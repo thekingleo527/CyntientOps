@@ -79,7 +79,7 @@ struct HeroStatusCard: View {
                 Text("\(Int(weather.temperature))°F")
                     .font(.headline)
                 
-                Text(weather.condition.rawValue)
+                Text(weather.condition)
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
@@ -227,7 +227,7 @@ struct HeroStatusCard: View {
         lastUpdated: Date()
     )
     
-    return HeroStatusCard(
+    HeroStatusCard(
         workerId: "kevin",
         currentBuilding: "Rubin Museum",
         weather: sampleWeather,
