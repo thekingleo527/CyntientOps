@@ -315,7 +315,7 @@ struct StandardWorkerDashboard: View {
                 }
                 
                 // Hero Performance Card
-                WorkerHeroCard(
+                WorkerStatsCard(
                     taskProgress: viewModel.taskProgress,
                     completionRate: viewModel.completionRate,
                     hoursWorked: viewModel.hoursWorkedToday,
@@ -495,7 +495,7 @@ struct WorkerMainHeaderView: View {
 }
 
 // MARK: - Worker Hero Card
-struct WorkerHeroCard: View {
+struct WorkerStatsCard: View {
     let taskProgress: CoreTypes.TaskProgress?
     let completionRate: Double
     let hoursWorked: Double

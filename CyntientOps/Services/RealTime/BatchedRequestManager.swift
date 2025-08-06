@@ -167,8 +167,8 @@ public actor BatchedRequestManager {
     }
     
     /// Get current queue status
-    public func getQueueStatus() async -> QueueStatus {
-        QueueStatus(
+    public func getQueueStatus() async -> BatchQueueStatus {
+        BatchQueueStatus(
             pendingCount: pendingRequests.count,
             isProcessing: batchTimer != nil,
             totalProcessed: totalRequestsProcessed,
@@ -403,7 +403,7 @@ public actor BatchedRequestManager {
 
 // MARK: - Supporting Types
 
-public struct QueueStatus {
+public struct BatchQueueStatus {
     public let pendingCount: Int
     public let isProcessing: Bool
     public let totalProcessed: Int

@@ -834,21 +834,6 @@ struct IntelligencePreviewPanel: View {
 
 // MARK: - Supporting Components
 
-struct StatusPill: View {
-    let text: String
-    let color: Color
-    
-    var body: some View {
-        Text(text)
-            .font(.caption2)
-            .fontWeight(.bold)
-            .foregroundColor(.white)
-            .padding(.horizontal, 6)
-            .padding(.vertical, 2)
-            .background(color)
-            .cornerRadius(4)
-    }
-}
 
 struct IntelligenceMetricCard: View {
     let title: String

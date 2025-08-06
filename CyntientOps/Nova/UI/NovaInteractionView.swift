@@ -859,17 +859,17 @@ struct NovaInteractionView: View {
     private func checkForActiveScenarios() {
         // Check various conditions and add scenarios
         if shouldShowEmergencyRepair {
-            addScenario(.emergencyRepair)
+            addScenario(.emergencyResponse)
         }
         
         if let urgent = urgentTaskCount, urgent > 0 {
-            addScenario(.taskOverdue)
+            addScenario(.taskOptimization)
         }
         
         // Check time-based scenarios
         let hour = Calendar.current.component(.hour, from: Date())
         if hour >= 17 && contextAdapter.currentWorker != nil {
-            addScenario(.clockOutReminder)
+            addScenario(.taskOptimization)
         }
     }
     
@@ -911,11 +911,11 @@ struct NovaInteractionView: View {
         let message = response.message.lowercased()
         
         if message.contains("weather") && message.contains("alert") {
-            return .weatherAlert
+            return .maintenancePrediction
         } else if message.contains("inventory") && message.contains("low") {
-            return .inventoryLow
+            return .inventoryManagement
         } else if message.contains("emergency") || message.contains("urgent") {
-            return .emergencyRepair
+            return .emergencyResponse
         }
         
         return nil
@@ -1097,49 +1097,45 @@ struct NovaInteractionView: View {
     
     private func getScenarioTitle(_ type: CoreTypes.AIScenarioType) -> String {
         switch type {
-        case .clockOutReminder: return "Clock Out Reminder"
-        case .weatherAlert: return "Weather Alert"
-        case .inventoryLow: return "Low Inventory"
-        case .routineIncomplete: return "Incomplete Routine"
-        case .pendingTasks: return "Pending Tasks"
-        case .emergencyRepair: return "Emergency Repair"
-        case .taskOverdue: return "Overdue Task"
-        case .buildingAlert: return "Building Alert"
+        case .taskOptimization: return "Task Optimization"
+        case .routeOptimization: return "Route Optimization"
+        case .inventoryManagement: return "Inventory Management"
+        case .complianceAlert: return "Compliance Alert"
+        case .maintenancePrediction: return "Maintenance Prediction"
+        case .emergencyResponse: return "Emergency Response"
         }
     }
     
     private func getScenarioDescription(_ type: CoreTypes.AIScenarioType) -> String {
         switch type {
-        case .clockOutReminder: return "Remember to clock out when your shift ends"
-        case .weatherAlert: return "Weather conditions may affect work schedule"
-        case .inventoryLow: return "Supplies running low and need restocking"
-        case .routineIncomplete: return "Some routine tasks haven't been completed"
-        case .pendingTasks: return "You have tasks waiting for completion"
-        case .emergencyRepair: return "System repair needed for building assignments"
-        case .taskOverdue: return "Task is past its due date"
-        case .buildingAlert: return "Building requires attention"
+        case .taskOptimization: return "Optimize task scheduling and routing"
+        case .routeOptimization: return "Improve route efficiency between locations"
+        case .inventoryManagement: return "Monitor and manage supply inventory levels"
+        case .complianceAlert: return "Address compliance-related issues"
+        case .maintenancePrediction: return "Predict and prevent maintenance issues"
+        case .emergencyResponse: return "Respond to emergency situations quickly"
         }
     }
     
     private func getScenarioIcon(_ type: CoreTypes.AIScenarioType) -> String {
         switch type {
-        case .clockOutReminder: return "clock.arrow.circlepath"
-        case .weatherAlert: return "cloud.bolt.rain.fill"
-        case .inventoryLow: return "shippingbox"
-        case .routineIncomplete: return "exclamationmark.circle"
-        case .pendingTasks: return "list.bullet.clipboard"
-        case .emergencyRepair: return "wrench.and.screwdriver.fill"
-        case .taskOverdue: return "clock.badge.exclamationmark"
-        case .buildingAlert: return "building.2.fill"
+        case .taskOptimization: return "list.bullet.clipboard.fill"
+        case .routeOptimization: return "location.fill"
+        case .inventoryManagement: return "shippingbox.fill"
+        case .complianceAlert: return "exclamationmark.shield.fill"
+        case .maintenancePrediction: return "wrench.and.screwdriver.fill"
+        case .emergencyResponse: return "exclamationmark.triangle.fill"
         }
     }
     
     private func getScenarioPriority(_ type: CoreTypes.AIScenarioType) -> CoreTypes.AIPriority {
         switch type {
-        case .emergencyRepair, .taskOverdue: return .critical
-        case .weatherAlert, .buildingAlert: return .high
-        case .clockOutReminder, .inventoryLow, .routineIncomplete: return .medium
-        case .pendingTasks: return .low
+        case .emergencyResponse: return .critical
+        case .complianceAlert: return .critical
+        case .maintenancePrediction: return .high
+        case .inventoryManagement: return .high
+        case .taskOptimization: return .medium
+        case .routeOptimization: return .medium
         }
     }
 }
@@ -1390,6 +1386,9 @@ struct NovaInsightsView: View {
         case .quality: return .purple
         case .operations: return .gray
         case .maintenance: return .yellow
+        case .routing: return .mint
+        case .weather: return .cyan
+        case .performance: return .indigo
         }
     }
 }

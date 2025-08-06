@@ -23,6 +23,7 @@ public final class NYCAPIService: ObservableObject {
     // MARK: - Private Properties
     private let session: URLSession
     private let cache: CacheManager
+    private let keychainManager: KeychainManager
     private var cancellables = Set<AnyCancellable>()
     
     // API Configuration
@@ -42,7 +43,7 @@ public final class NYCAPIService: ObservableObject {
     }
     
     // MARK: - API Endpoints
-    public enum APIEndpoint: CaseIterable, Hashable {
+    public enum APIEndpoint: Hashable {
         case hpdViolations(bin: String)
         case dobPermits(bin: String)
         case dsnySchedule(district: String)
@@ -102,6 +103,7 @@ public final class NYCAPIService: ObservableObject {
         config.timeoutIntervalForResource = 30
         self.session = URLSession(configuration: config)
         self.cache = CacheManager()
+        self.keychainManager = KeychainManager.shared
         
         setupConnectivityMonitoring()
     }
@@ -152,7 +154,7 @@ public final class NYCAPIService: ObservableObject {
     
     // MARK: - Generic Fetch Method
     
-    public func fetch<T: Decodable>(_ endpoint: APIEndpoint) async throws -> [T] {
+    public func fetch<T: Decodable & Encodable>(_ endpoint: APIEndpoint) async throws -> [T] {
         // Update status
         await MainActor.run {
             apiStatus[endpoint] = .fetching
@@ -257,8 +259,11 @@ public final class NYCAPIService: ObservableObject {
         
         for building in buildings {
             // Extract BIN and BBL from building data
-            let bin = building.metadata?["bin"] as? String ?? building.id
-            let bbl = building.metadata?["bbl"] as? String ?? ""
+            let bin: String
+            let bbl: String
+            // Use building ID as placeholder since NamedCoordinate doesn't have metadata
+            bin = building.id
+            bbl = ""
             
             _ = await fetchBuildingCompliance(bin: bin, bbl: bbl)
             

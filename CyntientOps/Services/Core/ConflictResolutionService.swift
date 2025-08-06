@@ -17,7 +17,7 @@ import Combine
 // MARK: - Conflict Types
 
 /// Represents a sync conflict between local and remote versions
-public struct Conflict: Identifiable {
+public struct Conflict: Identifiable, Encodable {
     public let id = UUID().uuidString
     public let entityId: String
     public let entityType: String
@@ -25,6 +25,21 @@ public struct Conflict: Identifiable {
     public let remoteVersion: CoreTypes.DashboardUpdate
     public let detectedAt: Date = Date()
     public let vectorClockComparison: ClockComparison?
+    
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(entityId, forKey: .entityId)
+        try container.encode(entityType, forKey: .entityType)
+        try container.encode(localVersion, forKey: .localVersion)
+        try container.encode(remoteVersion, forKey: .remoteVersion)
+        try container.encode(detectedAt, forKey: .detectedAt)
+        // Skip vectorClockComparison as it might not be encodable
+    }
+    
+    private enum CodingKeys: String, CodingKey {
+        case id, entityId, entityType, localVersion, remoteVersion, detectedAt
+    }
     
     public init(
         entityId: String,
@@ -432,8 +447,7 @@ actor ConflictResolutionService {
             workerId: local.workerId,
             data: mergedData,
             timestamp: max(local.timestamp, remote.timestamp),
-            deviceId: local.deviceId,
-            vectorClock: mergedClock
+            description: "Merged update resolved conflict"
         )
     }
     

@@ -196,7 +196,7 @@ public class ViolationPredictor: ObservableObject {
             WHERE isActive = 1
         """)
         
-        return rows.compactMap { row in
+        return rows.compactMap { row -> CoreTypes.NamedCoordinate? in
             guard let id = row["id"] as? String ?? (row["id"] as? Int64).map(String.init),
                   let name = row["name"] as? String,
                   let address = row["address"] as? String,
@@ -218,8 +218,7 @@ public class ViolationPredictor: ObservableObject {
                 address: address,
                 latitude: lat,
                 longitude: lon,
-                type: buildingType,
-                metadata: metadata
+                type: buildingType
             )
         }
     }
@@ -315,7 +314,7 @@ public class ViolationPredictor: ObservableObject {
                 ORDER BY reported_date DESC
             """, [buildingId])
             
-            return rows.compactMap { row in
+            return rows.compactMap { row -> ComplianceEvent? in
                 guard let source = row["source"] as? String,
                       let severityStr = row["severity"] as? String,
                       let reportedDateStr = row["reported_date"] as? String else {

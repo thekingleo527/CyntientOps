@@ -83,7 +83,7 @@ extension CoreTypes.MaintenanceTask {
             return .notToday
         }
         
-        if isCompleted {
+        if status == .completed {
             return .completed
         }
         
@@ -155,11 +155,7 @@ extension TaskService {
                     estimatedDuration: 3600, // Default 1 hour
                     createdDate: Date(),
                     dueDate: contextualTask.dueDate,
-                    completedDate: contextualTask.completedDate,
-                    instructions: nil,
-                    requiredSkills: [],
-                    isRecurring: false,
-                    parentTaskId: nil
+                    completedDate: contextualTask.completedAt
                 )
             }
         

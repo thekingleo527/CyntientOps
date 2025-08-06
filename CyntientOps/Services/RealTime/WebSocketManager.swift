@@ -96,12 +96,23 @@ actor WebSocketManager {
             let encoder = JSONEncoder()
             encoder.dateEncodingStrategy = .iso8601
             // ✅ Add device identifier to the update to prevent echo-back.
-            var updateToSend = update
+            var updatedData = update.data
             #if canImport(UIKit)
-            updateToSend.data["deviceId"] = UIDevice.current.identifierForVendor?.uuidString
+            updatedData["deviceId"] = UIDevice.current.identifierForVendor?.uuidString ?? "unknown"
             #else
-            updateToSend.data["deviceId"] = ProcessInfo.processInfo.globallyUniqueString
+            updatedData["deviceId"] = ProcessInfo.processInfo.globallyUniqueString
             #endif
+            
+            let updateToSend = CoreTypes.DashboardUpdate(
+                id: update.id,
+                source: update.source,
+                type: update.type,
+                buildingId: update.buildingId,
+                workerId: update.workerId,
+                data: updatedData,
+                timestamp: update.timestamp,
+                description: update.description
+            )
             let data = try encoder.encode(updateToSend)
             
             try await task.send(.data(data))
@@ -215,7 +226,7 @@ actor WebSocketManager {
                 return sessionToken
             }
             // Fallback to using user ID as token for testing
-            return NewAuthManager.shared.currentUser?.id
+            return NewAuthManager.shared.currentUser?.id ?? "anonymous"
         }
         return token
     }

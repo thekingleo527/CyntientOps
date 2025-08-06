@@ -14,7 +14,7 @@ import Foundation
 
 // MARK: - Predictive Analytics Service
 
-final class PredictiveAnalytics {
+public final class PredictiveAnalytics {
     
     // MARK: - Task Predictions
     

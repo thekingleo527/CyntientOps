@@ -349,7 +349,8 @@ public struct NYCBuildingCompliance: Codable {
                 description: violation.novDescription,
                 source: "HPD",
                 date: violation.inspectionDate,
-                deadline: violation.newCorrectByDate
+                deadline: violation.newCorrectByDate,
+                fine: nil // HPD violations may not always have fines
             ))
         }
         
@@ -374,7 +375,8 @@ public struct NYCBuildingCompliance: Codable {
                 description: "Expired \(permit.workType) permit",
                 source: "DOB",
                 date: permit.expirationDate ?? "",
-                deadline: nil
+                deadline: nil,
+                fine: nil // Permits don't typically have fines until violations occur
             ))
         }
         
@@ -455,20 +457,6 @@ public struct RequiredAction {
 
 // MARK: - Extensions
 
-extension Date {
-    var iso8601String: String {
-        let formatter = ISO8601DateFormatter()
-        return formatter.string(from: self)
-    }
-}
+// Date extension is in OperationalDataManager.swift
 
-extension CoreTypes.ComplianceSeverity {
-    var rawValue: Int {
-        switch self {
-        case .critical: return 4
-        case .high: return 3
-        case .medium: return 2
-        case .low: return 1
-        }
-    }
-}
+// ComplianceSeverity extensions moved to ComplianceIssue.swift to avoid duplicates

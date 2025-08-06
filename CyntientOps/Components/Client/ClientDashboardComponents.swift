@@ -125,7 +125,7 @@ struct ClientHeaderMetric: View {
 
 // MARK: - Portfolio Hero Card (240px)
 
-struct ClientPortfolioHeroCard: View {
+struct ClientDashboardPortfolioHeroCard: View {
     let portfolioHealth: CoreTypes.PortfolioHealth
     let realtimeMetrics: CoreTypes.RealtimePortfolioMetrics
     let monthlyMetrics: CoreTypes.MonthlyMetrics
@@ -290,60 +290,6 @@ struct ClientBuildingGridSection: View {
     }
 }
 
-struct ClientBuildingCard: View {
-    let building: CoreTypes.NamedCoordinate
-    let metrics: CoreTypes.BuildingMetrics?
-    let onTap: () -> Void
-    
-    var body: some View {
-        Button(action: onTap) {
-            VStack(alignment: .leading, spacing: 8) {
-                Text(building.name)
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(.white)
-                    .lineLimit(1)
-                
-                if let metrics = metrics {
-                    VStack(spacing: 4) {
-                        HStack {
-                            Text("\(Int(metrics.completionRate * 100))%")
-                                .font(.title3)
-                                .fontWeight(.bold)
-                                .foregroundColor(.blue)
-                            
-                            Spacer()
-                            
-                            Circle()
-                                .fill(metrics.completionRate >= 0.8 ? Color.green : Color.orange)
-                                .frame(width: 6, height: 6)
-                        }
-                        
-                        ProgressView(value: metrics.completionRate)
-                            .progressViewStyle(LinearProgressViewStyle())
-                            .tint(.blue)
-                            .scaleEffect(x: 1, y: 0.8)
-                    }
-                    
-                    if metrics.criticalIssues > 0 {
-                        HStack(spacing: 4) {
-                            Image(systemName: "exclamationmark.triangle.fill")
-                                .font(.system(size: 8))
-                                .foregroundColor(.red)
-                            
-                            Text("\(metrics.criticalIssues) issues")
-                                .font(.caption2)
-                                .foregroundColor(.red)
-                        }
-                    }
-                }
-            }
-            .padding(12)
-            .background(Color.white.opacity(0.05))
-            .cornerRadius(12)
-        }
-        .buttonStyle(PlainButtonStyle())
-    }
-}
 
 // MARK: - Compliance Section
 
@@ -512,7 +458,7 @@ struct ClientDashboardComponents_Previews: PreviewProvider {
                 )
                 .frame(height: 70)
                 
-                ClientPortfolioHeroCard(
+                ClientDashboardPortfolioHeroCard(
                     portfolioHealth: CoreTypes.PortfolioHealth(
                         overallScore: 0.85,
                         totalBuildings: 9,

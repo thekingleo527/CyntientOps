@@ -147,32 +147,31 @@ struct WorkerUrgentTasksSection_Previews: PreviewProvider {
                 id: "urgent-1",
                 title: "Emergency water leak - Basement Level",
                 description: "Water leak reported in basement mechanical room",
+                dueDate: Date().addingTimeInterval(-3600),
+                urgency: .emergency,
                 building: CoreTypes.NamedCoordinate(
                     id: "14",
                     name: "Rubin Museum", 
                     address: "150 W 17th St",
                     latitude: 40.7408,
                     longitude: -73.9971,
-                    type: .cultural
+                    type: .educational
                 ),
-                urgency: .emergency,
-                isOverdue: true,
                 requiresPhoto: true
             ),
             CoreTypes.ContextualTask(
                 id: "urgent-2",
                 title: "HVAC system failure - 3rd floor",
                 description: "Temperature control malfunction affecting multiple units",
+                urgency: .critical,
                 building: CoreTypes.NamedCoordinate(
                     id: "14",
                     name: "Rubin Museum",
                     address: "150 W 17th St", 
                     latitude: 40.7408,
                     longitude: -73.9971,
-                    type: .cultural
+                    type: .educational
                 ),
-                urgency: .critical,
-                isOverdue: false,
                 requiresPhoto: false
             )
         ]

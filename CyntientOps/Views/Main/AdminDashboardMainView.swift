@@ -259,6 +259,7 @@ struct AdminMainHeaderView: View {
         switch syncStatus {
         case .syncing: return .orange
         case .synced: return .green
+        case .failed: return .red
         case .error: return .red
         case .offline: return .gray
         }
@@ -1309,7 +1310,10 @@ struct AdminSettingsSheet: View {
 #if DEBUG
 struct AdminDashboardMainView_Previews: PreviewProvider {
     static var previews: some View {
-        AdminDashboardMainView()
+        Text("Admin Dashboard Preview")
+            .foregroundColor(.white)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(.black)
             .environmentObject(NewAuthManager.shared)
             .environmentObject(DashboardSyncService.shared)
             .preferredColorScheme(.dark)

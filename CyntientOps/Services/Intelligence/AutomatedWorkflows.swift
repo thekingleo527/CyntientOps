@@ -130,7 +130,7 @@ public class AutomatedWorkflows: ObservableObject {
         taskId: String,
         workerId: String,
         buildingId: String,
-        completionData: TaskCompletionData
+        completionData: WorkflowTaskCompletionData
     ) async throws -> String {
         
         let workflowId = UUID().uuidString
@@ -432,7 +432,7 @@ public class AutomatedWorkflows: ObservableObject {
         
         // Generate compliance certification document
         let certificationId = UUID().uuidString
-        let certificationData = [
+        let certificationData: [String: Any] = [
             "certificationId": certificationId,
             "taskId": taskId,
             "workflowId": workflow.id,
@@ -547,7 +547,7 @@ public class AutomatedWorkflows: ObservableObject {
     }
     
     private func calculateAverageCompletionTime() -> TimeInterval {
-        let completedWithTimes = completedWorkflows.compactMap { workflow in
+        let completedWithTimes = completedWorkflows.compactMap { workflow -> TimeInterval? in
             guard let completedAt = workflow.completedAt else { return nil }
             return completedAt.timeIntervalSince(workflow.createdAt)
         }
@@ -619,7 +619,7 @@ public class AutomatedWorkflows: ObservableObject {
         taskId: String,
         workerId: String,
         buildingId: String,
-        completionData: TaskCompletionData
+        completionData: WorkflowTaskCompletionData
     ) -> [WorkflowStep] {
         return [
             WorkflowStep(
@@ -907,7 +907,7 @@ public struct WorkflowStats {
     }
 }
 
-public struct TaskCompletionData {
+public struct WorkflowTaskCompletionData {
     public let taskId: String
     public let workerId: String
     public let completedAt: Date
@@ -963,7 +963,7 @@ public enum WorkflowError: LocalizedError {
 
 // MARK: - Notification Service Placeholder
 
-private class NotificationService {
+public class NotificationService {
     func scheduleNotification(id: String, title: String, body: String, date: Date, userInfo: [String: Any]) async {
         print("📅 Scheduled notification: \(title) for \(date)")
     }

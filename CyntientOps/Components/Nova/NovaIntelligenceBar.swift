@@ -300,12 +300,15 @@ struct NovaInsightCard: View {
 #if DEBUG
 struct NovaIntelligenceBar_Previews: PreviewProvider {
     static var previews: some View {
+        Text("NovaIntelligenceBar Preview")
+            .foregroundColor(.white)
+        /*
         VStack {
             Spacer()
             
             // Collapsed state
             NovaIntelligenceBar(
-                container: try! ServiceContainer(),
+                container: ServiceContainer(),
                 workerId: "4",
                 currentContext: [
                     "workerId": "4",
@@ -317,6 +320,7 @@ struct NovaIntelligenceBar_Previews: PreviewProvider {
         }
         .background(Color.black)
         .preferredColorScheme(.dark)
+        */
     }
 }
 #endif

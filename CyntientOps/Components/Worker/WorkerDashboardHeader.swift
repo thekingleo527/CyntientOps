@@ -17,7 +17,7 @@ struct WorkerDashboardHeader: View {
     var body: some View {
         HStack(spacing: 12) {
             // Worker Avatar
-            WorkerAvatar(name: workerName, size: 36)
+            WorkerAvatar(workerName: workerName, size: .small)
             
             // Worker Info
             VStack(alignment: .leading, spacing: 2) {

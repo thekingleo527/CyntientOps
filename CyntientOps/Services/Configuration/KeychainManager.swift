@@ -11,7 +11,7 @@
 //  CyntientOps (formerly CyntientOps)
 //
 //  Phase 0.5: Keychain Manager for secure storage
-//  Manages secure storage of sensitive data
+//  Manages secure storage of sensitive data including NYC API keys
 //
 
 import Foundation
@@ -186,6 +186,16 @@ public final class KeychainManager {
         return try getCodable(UserSession.self, for: KeychainKeys.userSession)
     }
     
+    /// Save NYC API keys
+    public func saveNYCAPIKeys(_ keys: NYCAPIKeys) throws {
+        try saveCodable(keys, for: KeychainKeys.nycAPIKeys)
+    }
+    
+    /// Get NYC API keys
+    public func getNYCAPIKeys() throws -> NYCAPIKeys {
+        return try getCodable(NYCAPIKeys.self, for: KeychainKeys.nycAPIKeys)
+    }
+    
     /// Clear all sensitive data
     public func clearAll() {
         let keys = [
@@ -193,7 +203,8 @@ public final class KeychainManager {
             KeychainKeys.quickBooksTokens,
             KeychainKeys.userSession,
             KeychainKeys.biometricEnabled,
-            KeychainKeys.encryptionKey
+            KeychainKeys.encryptionKey,
+            KeychainKeys.nycAPIKeys
         ]
         
         for key in keys {
@@ -226,6 +237,7 @@ private struct KeychainKeys {
     static let userSession = "com.cyntientops.user.session"
     static let biometricEnabled = "com.cyntientops.biometric.enabled"
     static let encryptionKey = "com.cyntientops.encryption.key"
+    static let nycAPIKeys = "com.cyntientops.nyc.api.keys"
 }
 
 // MARK: - Data Models
@@ -253,6 +265,22 @@ public struct QuickBooksTokens: Codable {
         self.refreshToken = refreshToken
         self.expiresAt = expiresAt
         self.companyId = companyId
+    }
+}
+
+public struct NYCAPIKeys: Codable {
+    public let hpdAPIKey: String
+    public let dobAPIKey: String
+    public let depAPIKey: String
+    public let ll97APIKey: String
+    public let dsnyAPIKey: String
+    
+    public init(hpdAPIKey: String, dobAPIKey: String, depAPIKey: String, ll97APIKey: String, dsnyAPIKey: String) {
+        self.hpdAPIKey = hpdAPIKey
+        self.dobAPIKey = dobAPIKey
+        self.depAPIKey = depAPIKey
+        self.ll97APIKey = ll97APIKey
+        self.dsnyAPIKey = dsnyAPIKey
     }
 }
 

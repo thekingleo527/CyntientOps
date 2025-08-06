@@ -186,8 +186,8 @@ extension TaskService {
             id: taskId,
             title: opTask.taskName,
             description: "Operational task: \(opTask.taskName) at \(opTask.building)",
-            isCompleted: false,
-            completedDate: nil,
+            status: .pending,
+            completedAt: nil,
             dueDate: dueDate,
             category: category,
             urgency: urgency,
@@ -253,6 +253,7 @@ extension TaskService {
         switch urgency {
         case .low: return 1
         case .medium: return 2
+        case .normal: return 2
         case .high: return 3
         case .urgent: return 4
         case .critical: return 5

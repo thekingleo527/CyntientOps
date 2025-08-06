@@ -510,6 +510,24 @@ extension WorkerService {
             worker.skills?.contains(where: { $0.lowercased().contains("maintenance") }) ?? false
         }
     }
+    
+    /// Get an available worker for task assignment
+    func getAvailableWorker(for buildingId: String) async throws -> CoreTypes.WorkerProfile? {
+        let rows = try await grdbManager.query("""
+            SELECT w.* FROM workers w
+            LEFT JOIN worker_buildings wb ON w.id = wb.worker_id
+            WHERE w.isActive = 1 
+            AND (wb.building_id = ? OR wb.building_id IS NULL)
+            ORDER BY w.name
+            LIMIT 1
+        """, [buildingId])
+        
+        guard let row = rows.first else {
+            return nil
+        }
+        
+        return convertRowToWorkerProfile(row)
+    }
 }
 
 // MARK: - ViewModel Adapter Extension

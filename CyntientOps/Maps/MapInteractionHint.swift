@@ -401,7 +401,10 @@ private struct InteractiveDemoView: View {
                     }
                     
                     demoButton("Reset All Hints", color: .orange) {
-                        UserDefaults.standard.resetFrancoOnboardingHints()
+                        // Reset onboarding hints
+                        UserDefaults.standard.removeObject(forKey: "has_seen_map_hint")
+                        UserDefaults.standard.removeObject(forKey: "has_seen_building_hint")
+                        UserDefaults.standard.removeObject(forKey: "has_seen_task_hint")
                     }
                 }
                 

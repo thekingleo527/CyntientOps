@@ -3,6 +3,16 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleGetInfoString</key>
-	<string></string>
+	<string>CyntientOps - Building Management System</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>CyntientOps uses Face ID for secure worker authentication and building access.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>CyntientOps uses the camera to capture photo evidence for completed tasks and maintenance documentation.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>CyntientOps uses location services to verify worker proximity to assigned buildings for clock-in and task completion.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>CyntientOps uses location services to verify worker proximity to assigned buildings and track work site attendance.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>CyntientOps accesses the photo library to allow workers to select images for task evidence and maintenance documentation.</string>
 </dict>
 </plist>

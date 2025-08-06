@@ -30,13 +30,15 @@ public final class CacheManager: ObservableObject {
     }
     
     public init() {
-        startPeriodicCleanup()
+        Task {
+            await startPeriodicCleanup()
+        }
     }
     
     // MARK: - Public Methods
     
     /// Set value with key and optional TTL
-    public func set<T: Codable>(key: String, value: T, expiry: TimeInterval = Config.defaultTTL) {
+    public func set<T: Codable>(key: String, value: T, expiry: TimeInterval = 300) {
         accessQueue.async(flags: .barrier) { [weak self] in
             do {
                 let data = try JSONEncoder().encode(value)

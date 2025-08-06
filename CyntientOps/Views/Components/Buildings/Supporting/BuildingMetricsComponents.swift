@@ -610,7 +610,8 @@ class BuildingMetricsViewModel: ObservableObject {
             // ✅ FIXED: Added 'await' before the async call
             metrics = try await BuildingMetricsService.shared.calculateMetrics(for: buildingId)
             
-            BuildingMetricsService.shared.subscribeToMetrics(for: buildingId)
+            let publisher = await BuildingMetricsService.shared.subscribeToMetrics(for: buildingId)
+            publisher
                 .receive(on: DispatchQueue.main)
                 .sink(receiveCompletion: { [weak self] completion in
                     if case .failure(let error) = completion {
@@ -658,17 +659,6 @@ struct CostAnalysisData {
 // MARK: - CoreTypes Extensions for UI
 
 extension CoreTypes.TrendDirection {
-    var icon: String {
-        switch self {
-        case .up: return "arrow.up"
-        case .down: return "arrow.down"
-        case .stable: return "minus"
-        case .improving: return "arrow.up.right"
-        case .declining: return "arrow.down.right"
-        case .unknown: return "questionmark"
-        }
-    }
-    
     var color: Color {
         switch self {
         case .up, .improving: return .green

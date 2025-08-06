@@ -304,6 +304,7 @@ struct WorkerTaskCard: View {
         case .critical: return .red
         case .urgent: return .orange
         case .high: return .orange
+        case .normal: return .green
         case .medium: return .blue
         case .low: return .gray
         }
@@ -319,7 +320,7 @@ struct WorkerTodaysTasksSection_Previews: PreviewProvider {
             address: "150 W 17th St",
             latitude: 40.7408,
             longitude: -73.9971,
-            type: .cultural
+            type: .educational
         )
         
         let allTasks = [
@@ -327,28 +328,26 @@ struct WorkerTodaysTasksSection_Previews: PreviewProvider {
                 id: "1",
                 title: "Clean gallery floors - Level 2",
                 description: "Daily cleaning routine",
-                building: building,
+                status: .completed,
                 urgency: .medium,
-                isCompleted: true,
+                building: building,
                 requiresPhoto: true
             ),
             CoreTypes.ContextualTask(
                 id: "2",
                 title: "Vacuum lobby carpets - Main entrance",
                 description: "Morning lobby cleaning",
-                building: building,
+                dueDate: Date().addingTimeInterval(-3600),
                 urgency: .high,
-                isCompleted: false,
-                isOverdue: true,
+                building: building,
                 requiresPhoto: true
             ),
             CoreTypes.ContextualTask(
                 id: "3",
                 title: "Empty waste receptacles - All floors",
                 description: "Daily waste collection",
-                building: building,
                 urgency: .medium,
-                isCompleted: false,
+                building: building,
                 requiresPhoto: false
             )
         ]

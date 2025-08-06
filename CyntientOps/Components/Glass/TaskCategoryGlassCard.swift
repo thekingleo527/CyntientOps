@@ -335,10 +335,6 @@ struct TaskRowGlassView: View {
                     Text(formatTime(dueDate))
                         .font(.caption)
                         .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
-                } else if task.isRecurring {
-                    Text("Recurring")
-                        .font(.caption)
-                        .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
                 } else {
                     Text(formatDuration(task.estimatedDuration))
                         .font(.caption)
@@ -453,14 +449,16 @@ struct TaskRowGlassView: View {
         switch task.urgency {
         case .low:
             return CyntientOpsDesign.DashboardColors.success
+        case .normal:
+            return CyntientOpsDesign.DashboardColors.secondaryText
         case .medium:
-            return Color(hex: "fbbf24") // Amber
+            return Color.orange // Amber
         case .high:
             return CyntientOpsDesign.DashboardColors.warning
         case .critical, .emergency:
             return CyntientOpsDesign.DashboardColors.critical
         case .urgent:
-            return Color(hex: "9333ea") // Purple
+            return Color.purple // Purple
         }
     }
     
@@ -496,8 +494,7 @@ struct TaskCategoryGlassCard_Previews: PreviewProvider {
                 urgency: .medium,
                 buildingId: "15",
                 assignedWorkerId: "2",
-                dueDate: Date(),
-                isRecurring: true
+                dueDate: Date()
             ),
             MaintenanceTask(
                 title: "Vacuum Common Areas",
@@ -506,8 +503,7 @@ struct TaskCategoryGlassCard_Previews: PreviewProvider {
                 urgency: .low,
                 buildingId: "15",
                 assignedWorkerId: "2",
-                dueDate: Date(),
-                isRecurring: true
+                dueDate: Date()
             ),
             MaintenanceTask(
                 title: "Emergency Light Check",
@@ -516,8 +512,7 @@ struct TaskCategoryGlassCard_Previews: PreviewProvider {
                 urgency: .urgent,
                 buildingId: "15",
                 assignedWorkerId: "1",
-                dueDate: Calendar.current.date(byAdding: .day, value: -1, to: Date()) ?? Date(),
-                isRecurring: true
+                dueDate: Calendar.current.date(byAdding: .day, value: -1, to: Date()) ?? Date()
             )
         ]
     }

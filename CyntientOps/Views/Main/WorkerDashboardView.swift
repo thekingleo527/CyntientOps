@@ -23,7 +23,7 @@ struct WorkerDashboardView: View {
     @ObservedObject private var contextEngine = WorkerContextEngine.shared
     @EnvironmentObject private var authManager: NewAuthManager
     @EnvironmentObject private var dashboardSync: DashboardSyncService
-    @StateObject private var novaEngine = NovaIntelligenceEngine.shared
+    @StateObject private var novaEngine = NovaAIManager.shared
     
     // MARK: - State Variables
     @State private var isHeroCollapsed = false

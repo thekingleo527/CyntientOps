@@ -12,7 +12,7 @@
 import Foundation
 import GRDB
 
-actor BuildingService {
+public actor BuildingService {
     static let shared = BuildingService()
     
     private let grdbManager = GRDBManager.shared

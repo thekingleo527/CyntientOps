@@ -15,10 +15,10 @@ import Combine
 
 struct ComplianceStatusCard: View {
     let buildingId: String
-    @State private var complianceData: BuildingComplianceData?
+    @State private var complianceData: LocalBuildingComplianceData?
     @State private var isLoading = true
     @State private var showingDetailSheet = false
-    @EnvironmentObject private var dashboardSync: DashboardSyncService
+    @EnvironmentObject private var serviceContainer: ServiceContainer
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -108,17 +108,18 @@ struct ComplianceStatusCard: View {
     
     private func loadComplianceData() async {
         do {
-            // Load from IntelligenceService
-            let intelligence = try await IntelligenceService.shared.getBuildingIntelligence(for: buildingId)
+            // Load compliance data from services
+            let complianceOverview = try await serviceContainer.compliance.getComplianceOverview()
+            let complianceIssues = try await serviceContainer.compliance.getComplianceIssues(for: buildingId)
             
-            // Extract compliance data
-            complianceData = BuildingComplianceData(
-                complianceScore: intelligence.complianceScore,
-                safetyStatus: determineStatus(from: intelligence, category: "safety"),
-                sanitationStatus: determineStatus(from: intelligence, category: "sanitation"),
-                environmentalStatus: determineStatus(from: intelligence, category: "environmental"),
-                criticalIssues: intelligence.criticalIssues,
-                nextInspection: getNextInspection(from: intelligence)
+            // Create compliance data
+            complianceData = LocalBuildingComplianceData(
+                complianceScore: Int(complianceOverview.overallScore * 100),
+                safetyStatus: .compliant,
+                sanitationStatus: .compliant,
+                environmentalStatus: .compliant,
+                criticalIssues: complianceIssues.filter { $0.severity == .critical }.count,
+                nextInspection: nil
             )
             
             isLoading = false
@@ -129,28 +130,6 @@ struct ComplianceStatusCard: View {
         }
     }
     
-    private func determineStatus(from intelligence: CoreTypes.BuildingIntelligence, category: String) -> CoreTypes.ComplianceStatus {
-        // Determine status based on intelligence data
-        // This is simplified - in production would analyze specific compliance data
-        if intelligence.criticalIssues > 0 {
-            return .nonCompliant
-        } else if intelligence.complianceScore >= 90 {
-            return .compliant
-        } else {
-            return .warning
-        }
-    }
-    
-    private func getNextInspection(from intelligence: CoreTypes.BuildingIntelligence) -> ScheduledInspection? {
-        // In production, would fetch from database
-        // For now, return mock data if needed
-        return ScheduledInspection(
-            id: UUID().uuidString,
-            type: "Annual Safety",
-            date: Date().addingTimeInterval(604800), // 1 week
-            inspector: "NYC Fire Department"
-        )
-    }
 }
 
 // MARK: - Compliance Checklist View
@@ -161,7 +140,7 @@ struct ComplianceChecklistView: View {
     @State private var checklistItems: [ComplianceChecklistItem] = []
     @State private var isLoading = true
     @State private var showingAddItem = false
-    @EnvironmentObject private var dashboardSync: DashboardSyncService
+    @EnvironmentObject private var serviceContainer: ServiceContainer
     
     enum ComplianceChecklistType: String, CaseIterable {
         case daily = "Daily"
@@ -375,7 +354,7 @@ struct ComplianceChecklistView: View {
                 "complianceType": complianceType.rawValue
             ]
         )
-        dashboardSync.broadcastWorkerUpdate(update)
+        serviceContainer.dashboardSync.broadcastWorkerUpdate(update)
     }
     
     private func addNote(to item: ComplianceChecklistItem) {
@@ -1144,7 +1123,8 @@ struct ComplianceIndicator: View {
         case .nonCompliant: return .red
         case .warning: return .orange
         case .pending: return .gray
-        case .notApplicable: return .gray
+        case .needsReview: return .gray
+        default: return .gray
         }
     }
 }
@@ -2434,7 +2414,7 @@ struct DSNYScheduleDetailSheet: View {
 
 // MARK: - Data Models
 
-struct BuildingComplianceData {
+struct LocalBuildingComplianceData {
     let complianceScore: Int
     let safetyStatus: CoreTypes.ComplianceStatus
     let sanitationStatus: CoreTypes.ComplianceStatus

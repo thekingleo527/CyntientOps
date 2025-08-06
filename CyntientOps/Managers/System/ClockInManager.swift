@@ -14,7 +14,8 @@ import Combine
 import GRDB
 
 /// Portfolio-aware clock in/out system with QuickBooks integration
-public actor ClockInManager {
+@MainActor
+public class ClockInManager: ObservableObject {
     
     // MARK: - Singleton
     
@@ -456,9 +457,7 @@ public struct WorkerHoursSummary {
 
 // MARK: - Notification Names
 
-extension Notification.Name {
-    static let workerClockInChanged = Notification.Name("workerClockInChanged")
-}
+// Notification.Name extension is in ClockInService.swift
 
 // MARK: - SwiftUI Integration
 

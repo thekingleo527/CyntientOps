@@ -2,7 +2,7 @@
 //  InventoryView.swift
 //  CyntientOps v6.0
 //
-//  ✅ FIXED: Removed duplicate InventoryCategory - now uses CoreTypes version
+//  ✅ FIXED: Removed duplicate CoreTypes.InventoryCategory - now uses CoreTypes version
 //  ✅ FIXED: Added type aliases to avoid conflicts
 //  ✅ DARK ELEGANCE: Full CyntientOpsDesign implementation
 //  ✅ GLASS MORPHISM: Consistent with system design
@@ -12,10 +12,7 @@
 
 import SwiftUI
 
-// MARK: - Type Aliases to use CoreTypes definitions
-public typealias InventoryCategory = CoreTypes.InventoryCategory
-public typealias InventoryItem = CoreTypes.InventoryItem
-public typealias RestockStatus = CoreTypes.RestockStatus
+// MARK: - Using CoreTypes definitions (globally available)
 
 // MARK: - Main View
 
@@ -23,18 +20,18 @@ public struct InventoryView: View {
     public let buildingId: String
     public let buildingName: String
     
-    @State private var inventoryItems: [InventoryItem] = []
-    @State private var filteredItems: [InventoryItem] = []
-    @State private var selectedCategory: InventoryCategory = .supplies
+    @State private var inventoryItems: [CoreTypes.InventoryItem] = []
+    @State private var filteredItems: [CoreTypes.InventoryItem] = []
+    @State private var selectedCategory: CoreTypes.InventoryCategory = .supplies
     @State private var searchText = ""
     @State private var showingAddItem = false
     @State private var showingStockAlert = false
-    @State private var lowStockItems: [InventoryItem] = []
+    @State private var lowStockItems: [CoreTypes.InventoryItem] = []
     @State private var isLoading = true
     @State private var errorMessage: String?
     @State private var animateCards = false
     
-    private var categories: [InventoryCategory] = InventoryCategory.allCases
+    private var categories: [CoreTypes.InventoryCategory] = CoreTypes.InventoryCategory.allCases
     
     internal init(buildingId: String, buildingName: String) {
         self.buildingId = buildingId
@@ -72,7 +69,7 @@ public struct InventoryView: View {
             .onChange(of: searchText) { _, _ in filterItems() }
             .onChange(of: selectedCategory) { _, _ in filterItems() }
             .sheet(isPresented: $showingAddItem) {
-                AddInventoryItemView(buildingId: buildingId) { success in
+                AddCoreTypes.InventoryItemView(buildingId: buildingId) { success in
                     showingAddItem = false
                     if success {
                         loadInventoryData()
@@ -213,8 +210,8 @@ public struct InventoryView: View {
                         .padding(.top, 60)
                 } else {
                     ForEach(Array(filteredItems.enumerated()), id: \.element.id) { index, item in
-                        InventoryItemRow(item: item) { updatedItem in
-                            updateInventoryItem(updatedItem)
+                        CoreTypes.InventoryItemRow(item: item) { updatedItem in
+                            updateCoreTypes.InventoryItem(updatedItem)
                         }
                         .animatedGlassAppear(delay: Double(index) * 0.05)
                     }
@@ -232,7 +229,7 @@ public struct InventoryView: View {
         // Simulate data loading with sample data
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             inventoryItems = [
-                InventoryItem(
+                CoreTypes.InventoryItem(
                     name: "All-Purpose Cleaner",
                     category: .supplies,
                     currentStock: 5,
@@ -242,7 +239,7 @@ public struct InventoryView: View {
                     cost: 4.99,
                     location: "Storage Room A"
                 ),
-                InventoryItem(
+                CoreTypes.InventoryItem(
                     name: "Vacuum Cleaner",
                     category: .equipment,
                     currentStock: 2,
@@ -252,7 +249,7 @@ public struct InventoryView: View {
                     cost: 199.99,
                     location: "Equipment Closet"
                 ),
-                InventoryItem(
+                CoreTypes.InventoryItem(
                     name: "Safety Goggles",
                     category: .safety,
                     currentStock: 8,
@@ -262,7 +259,7 @@ public struct InventoryView: View {
                     cost: 12.50,
                     location: "Safety Cabinet"
                 ),
-                InventoryItem(
+                CoreTypes.InventoryItem(
                     name: "Screwdriver Set",
                     category: .tools,
                     currentStock: 3,
@@ -272,7 +269,7 @@ public struct InventoryView: View {
                     cost: 45.00,
                     location: "Tool Storage"
                 ),
-                InventoryItem(
+                CoreTypes.InventoryItem(
                     name: "Light Bulbs (LED)",
                     category: .supplies,
                     currentStock: 15,
@@ -282,7 +279,7 @@ public struct InventoryView: View {
                     cost: 8.00,
                     location: "Electrical Supply"
                 ),
-                InventoryItem(
+                CoreTypes.InventoryItem(
                     name: "Concrete Patch",
                     category: .materials,
                     currentStock: 6,
@@ -329,7 +326,7 @@ public struct InventoryView: View {
         filteredItems = filtered.sorted { $0.name < $1.name }
     }
     
-    private func updateInventoryItem(_ item: InventoryItem) {
+    private func updateInventoryItem(_ item: CoreTypes.InventoryItem) {
         if let index = inventoryItems.firstIndex(where: { $0.id == item.id }) {
             withAnimation {
                 inventoryItems[index] = item
@@ -347,39 +344,10 @@ public struct InventoryView: View {
 
 // MARK: - Supporting Views
 
-struct StatCard: View {
-    let title: String
-    let value: String
-    let icon: String
-    let color: Color
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Image(systemName: icon)
-                    .font(.caption)
-                    .foregroundColor(color)
-                
-                Spacer()
-            }
-            
-            Text(value)
-                .font(.title3)
-                .fontWeight(.bold)
-                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-            
-            Text(title)
-                .font(.caption)
-                .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
-        }
-        .padding()
-        .frame(maxWidth: .infinity)
-        .francoDarkCardBackground()
-    }
-}
+// StatCard is imported from Components/Cards/StatCard.swift
 
 public struct CategoryButton: View {
-    internal let category: InventoryCategory
+    internal let category: CoreTypes.InventoryCategory
     public let isSelected: Bool
     public let action: () -> Void
     
@@ -423,8 +391,8 @@ public struct CategoryButton: View {
 }
 
 public struct InventoryItemRow: View {
-    public let item: InventoryItem
-    public let onUpdate: (InventoryItem) -> Void
+    public let item: CoreTypes.InventoryItem
+    public let onUpdate: (CoreTypes.InventoryItem) -> Void
     
     @State private var showingDetail = false
     @State private var isPressed = false
@@ -492,7 +460,7 @@ public struct InventoryItemRow: View {
             isPressed = pressing
         }
         .sheet(isPresented: $showingDetail) {
-            InventoryItemDetailView(item: item, onUpdate: onUpdate)
+            CoreTypes.InventoryItemDetailView(item: item, onUpdate: onUpdate)
         }
     }
 }
@@ -500,7 +468,7 @@ public struct InventoryItemRow: View {
 public struct StockIndicator: View {
     public let current: Int
     public let minimum: Int
-    public let status: RestockStatus
+    public let status: CoreTypes.RestockStatus
     
     public var body: some View {
         HStack(spacing: 6) {
@@ -537,7 +505,7 @@ public struct StockIndicator: View {
 }
 
 public struct EmptyStateView: View {
-    internal let category: InventoryCategory
+    internal let category: CoreTypes.InventoryCategory
     
     public var body: some View {
         VStack(spacing: 20) {
@@ -576,7 +544,7 @@ public struct AddInventoryItemView: View {
     
     @State private var itemName = ""
     @State private var itemDescription = ""
-    @State private var selectedCategory: InventoryCategory = .supplies
+    @State private var selectedCategory: CoreTypes.InventoryCategory = .supplies
     @State private var quantity = 1
     @State private var minimumStock = 5
     @State private var maxStock = 50
@@ -677,7 +645,7 @@ public struct AddInventoryItemView: View {
                                     Spacer()
                                     
                                     Menu {
-                                        ForEach(InventoryCategory.allCases, id: \.self) { category in
+                                        ForEach(CoreTypes.InventoryCategory.allCases, id: \.self) { category in
                                             Button(action: { selectedCategory = category }) {
                                                 Label(category.displayName, systemImage: category.icon)
                                             }
@@ -778,7 +746,7 @@ public struct AddInventoryItemView: View {
     private func addItem() {
         isSubmitting = true
         
-        let newItem = InventoryItem(
+        let newItem = CoreTypes.InventoryItem(
             name: itemName,
             category: selectedCategory,
             currentStock: quantity,
@@ -873,8 +841,8 @@ struct StepperRow: View {
 // MARK: - Inventory Item Detail View
 
 public struct InventoryItemDetailView: View {
-    public let item: InventoryItem
-    public let onUpdate: (InventoryItem) -> Void
+    public let item: CoreTypes.InventoryItem
+    public let onUpdate: (CoreTypes.InventoryItem) -> Void
     
     @Environment(\.dismiss) private var dismiss
     @State private var currentStock: Int
@@ -882,7 +850,7 @@ public struct InventoryItemDetailView: View {
     @State private var showingEditMode = false
     @State private var adjustmentAmount = 0
     
-    internal init(item: InventoryItem, onUpdate: @escaping (InventoryItem) -> Void) {
+    internal init(item: CoreTypes.InventoryItem, onUpdate: @escaping (CoreTypes.InventoryItem) -> Void) {
         self.item = item
         self.onUpdate = onUpdate
         self._currentStock = State(initialValue: item.currentStock)
@@ -1115,7 +1083,7 @@ public struct InventoryItemDetailView: View {
     
     // MARK: - Helper Properties & Methods
     
-    private var currentStockStatus: RestockStatus {
+    private var currentStockStatus: CoreTypes.RestockStatus {
         if currentStock <= 0 {
             return .outOfStock
         } else if currentStock <= item.minimumStock {
@@ -1154,7 +1122,7 @@ public struct InventoryItemDetailView: View {
     }
     
     private func updateItem() {
-        let updatedItem = InventoryItem(
+        let updatedItem = CoreTypes.InventoryItem(
             id: item.id,
             name: item.name,
             category: item.category,
@@ -1224,7 +1192,7 @@ struct QuickAdjustButton: View {
 
 // MARK: - Extensions
 
-extension InventoryCategory {
+extension CoreTypes.InventoryCategory {
     var icon: String {
         switch self {
         case .tools: return "wrench.and.screwdriver"

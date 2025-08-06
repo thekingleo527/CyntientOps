@@ -26,6 +26,10 @@ public class DSNYAPIService: ObservableObject {
     @Published private var scheduleCache: [String: DSNY.BuildingSchedule] = [:]
     private let cacheExpiration: TimeInterval = 86400 // 24 hours
     
+    // Task generation
+    @Published public var autoGenerateTasks: Bool = true
+    @Published public var lastTaskGeneration: Date?
+    
     // URLSession
     private let session: URLSession
     
@@ -176,8 +180,8 @@ public class DSNYAPIService: ObservableObject {
                     building: building,
                     buildingId: building.id,
                     assignedWorkerId: workerId,
-                    requiresPhoto: true,
-                    frequency: .weekly
+                    frequency: .weekly,
+                    requiresPhoto: true
                 )
                 
                 tasks.append(task)
@@ -200,8 +204,8 @@ public class DSNYAPIService: ObservableObject {
                     building: building,
                     buildingId: building.id,
                     assignedWorkerId: workerId,
-                    requiresPhoto: false,
-                    frequency: .weekly
+                    frequency: .weekly,
+                    requiresPhoto: false
                 )
                 
                 tasks.append(task)

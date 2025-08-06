@@ -170,8 +170,8 @@ public class UnifiedDataService: ObservableObject {
             id: "op_\(operationalTask.taskName.hash)_\(workerId)",
             title: operationalTask.taskName,
             description: generateTaskDescription(operationalTask),
-            isCompleted: false,
-            completedDate: nil,
+            status: .pending,
+            completedAt: nil,
             dueDate: calculateDueDate(for: operationalTask),
             category: mapToTaskCategory(operationalTask.category),
             urgency: mapToTaskUrgency(operationalTask.skillLevel),
@@ -346,7 +346,7 @@ public class UnifiedDataService: ObservableObject {
     private func getBuildingName(for buildingId: String) async -> String? {
         do {
             let building = try await buildingService.getBuilding(buildingId: buildingId)
-            return building?.name
+            return building.name
         } catch {
             print("⚠️ Error getting building name for ID '\(buildingId)': \(error)")
             return nil

@@ -330,6 +330,7 @@ public struct CoreTypes {
         case utilities = "utilities"
         case emergency = "emergency"
         case renovation = "renovation"
+        case compliance = "compliance"
         case landscaping = "landscaping"
         case sanitation = "sanitation"
         
@@ -347,6 +348,7 @@ public struct CoreTypes {
             case .renovation: return "building.2"
             case .landscaping: return "leaf"
             case .sanitation: return "sparkles"
+            case .compliance: return "checkmark.shield"
             }
         }
     }
@@ -993,6 +995,21 @@ public struct CoreTypes {
         case routing = "Routing"
         case weather = "Weather"
         case performance = "Performance"
+        
+        public var icon: String {
+            switch self {
+            case .efficiency: return "speedometer"
+            case .cost: return "dollarsign.circle"
+            case .safety: return "shield.fill"
+            case .compliance: return "checkmark.shield"
+            case .quality: return "star.fill"
+            case .operations: return "gearshape.fill"
+            case .maintenance: return "wrench.and.screwdriver"
+            case .routing: return "location.fill"
+            case .weather: return "cloud.fill"
+            case .performance: return "chart.line.uptrend.xyaxis"
+            }
+        }
     }
     
     public typealias InsightType = InsightCategory
@@ -2227,6 +2244,33 @@ public struct CoreTypes {
         case unknown = "unknown"
     }
     
+    // MARK: - Realtime Metrics Types
+    
+    public struct RealtimeMetrics: Codable, Identifiable {
+        public let id: String
+        public let lastUpdateTime: Date
+        public let activeAlerts: Int
+        public let pendingActions: Int
+        public let systemHealth: DataHealthStatus
+        public let responseTime: TimeInterval
+        
+        public init(
+            id: String = UUID().uuidString,
+            lastUpdateTime: Date = Date(),
+            activeAlerts: Int = 0,
+            pendingActions: Int = 0,
+            systemHealth: DataHealthStatus = .healthy,
+            responseTime: TimeInterval = 0.0
+        ) {
+            self.id = id
+            self.lastUpdateTime = lastUpdateTime
+            self.activeAlerts = activeAlerts
+            self.pendingActions = pendingActions
+            self.systemHealth = systemHealth
+            self.responseTime = responseTime
+        }
+    }
+    
 } // END of CoreTypes namespace
 
 // MARK: - Global Type Aliases for Direct Access
@@ -2277,56 +2321,10 @@ public typealias AISuggestion = CoreTypes.AISuggestion
 
 // Photo Types
 public typealias ActionEvidence = CoreTypes.ActionEvidence
-public typealias FrancoPhotoCategory = CoreTypes.FrancoPhotoCategory
-
-// Other Essential Types
-public typealias UserRole = CoreTypes.UserRole
-public typealias TrendDirection = CoreTypes.TrendDirection
-public typealias User = CoreTypes.User
-public typealias WorkerID = CoreTypes.WorkerID
-public typealias BuildingID = CoreTypes.BuildingID
-public typealias TaskID = CoreTypes.TaskID
-public typealias PortfolioMetrics = CoreTypes.PortfolioMetrics
-public typealias AdminAlert = CoreTypes.AdminAlert
-public typealias ComplianceIssue = CoreTypes.ComplianceIssue
-public typealias ClientPortfolioIntelligence = CoreTypes.ClientPortfolioIntelligence
-public typealias StrategicRecommendation = CoreTypes.StrategicRecommendation
-public typealias WeatherData = CoreTypes.WeatherData
-public typealias WeatherCondition = CoreTypes.WeatherCondition
-public typealias OutdoorWorkRisk = CoreTypes.OutdoorWorkRisk
-public typealias PerformanceMetrics = CoreTypes.PerformanceMetrics
-public typealias InventoryItem = CoreTypes.InventoryItem
-public typealias InventoryCategory = CoreTypes.InventoryCategory
-public typealias RestockStatus = CoreTypes.RestockStatus
-
-// Route Types
-public typealias WorkerDailyRoute = CoreTypes.WorkerDailyRoute
-public typealias RouteOptimization = CoreTypes.RouteOptimization
-public typealias RouteStop = CoreTypes.RouteStop
-public typealias WorkerRoutineSummary = CoreTypes.WorkerRoutineSummary
-public typealias WorkerAssignment = CoreTypes.WorkerAssignment
-public typealias FrancoWorkerAssignment = CoreTypes.FrancoWorkerAssignment
-
-// Portfolio Types
-public typealias ExecutiveSummary = CoreTypes.ExecutiveSummary
-public typealias PortfolioBenchmark = CoreTypes.PortfolioBenchmark
-public typealias PortfolioHealth = CoreTypes.PortfolioHealth
-public typealias PortfolioIntelligence = CoreTypes.PortfolioIntelligence
-public typealias BuildingAnalytics = CoreTypes.BuildingAnalytics
-public typealias BuildingIntelligence = CoreTypes.BuildingIntelligence
-public typealias ExecutiveIntelligence = CoreTypes.ExecutiveIntelligence
-
-// Client Activity Types
-public typealias ClientAlert = CoreTypes.ClientAlert
-public typealias RealtimeActivity = CoreTypes.RealtimeActivity
-public typealias RealtimePortfolioMetrics = CoreTypes.PortfolioMetrics
-public typealias CostInsight = CoreTypes.CostInsight
-public typealias WorkerProductivityInsight = CoreTypes.WorkerProductivityInsight
-
-// Verification Types
-public typealias VerificationStatus = CoreTypes.VerificationStatus
-public typealias TaskCompletionRecord = CoreTypes.TaskCompletionRecord
+// Note: Removed duplicate typealiases to prevent compilation errors
+// Use CoreTypes.TypeName for all type references
 
 // Misc Types
 public typealias SkillLevel = CoreTypes.SkillLevel
 public typealias DataHealthStatus = CoreTypes.DataHealthStatus
+public typealias RealtimeMetrics = CoreTypes.RealtimeMetrics

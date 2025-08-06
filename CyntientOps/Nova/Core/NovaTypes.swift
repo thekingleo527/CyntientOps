@@ -541,42 +541,45 @@ public typealias NovaScenarioType = CoreTypes.AIScenarioType
 extension CoreTypes.AIScenarioType {
     public var icon: String {
         switch self {
-        case .clockOutReminder: return "clock.arrow.circlepath"
-        case .weatherAlert: return "cloud.rain.fill"
-        case .inventoryLow: return "shippingbox.fill"
-        case .routineIncomplete: return "exclamationmark.circle.fill"
-        case .pendingTasks: return "list.bullet.clipboard.fill"
-        case .emergencyRepair: return "wrench.and.screwdriver.fill"
-        case .taskOverdue: return "clock.badge.exclamationmark"
-        case .buildingAlert: return "building.2.fill"
+        case .taskOptimization: return "list.bullet.clipboard.fill"
+        case .routeOptimization: return "location.fill"
+        case .inventoryManagement: return "shippingbox.fill"
+        case .complianceAlert: return "exclamationmark.shield.fill"
+        case .maintenancePrediction: return "wrench.and.screwdriver.fill"
+        case .emergencyResponse: return "exclamationmark.triangle.fill"
         }
     }
     
     public var displayTitle: String {
         switch self {
-        case .clockOutReminder: return "Clock Out Reminder"
-        case .weatherAlert: return "Weather Alert"
-        case .inventoryLow: return "Inventory Low"
-        case .routineIncomplete: return "Routine Incomplete"
-        case .pendingTasks: return "Pending Tasks"
-        case .emergencyRepair: return "Emergency Repair"
-        case .taskOverdue: return "Task Overdue"
-        case .buildingAlert: return "Building Alert"
+        case .taskOptimization: return "Task Optimization"
+        case .routeOptimization: return "Route Optimization"
+        case .inventoryManagement: return "Inventory Management"
+        case .complianceAlert: return "Compliance Alert"
+        case .maintenancePrediction: return "Maintenance Prediction"
+        case .emergencyResponse: return "Emergency Response"
         }
     }
     
     public var color: Color {
         switch self {
-        case .clockOutReminder: return .red
-        case .weatherAlert: return .yellow
-        case .inventoryLow: return .orange
-        case .routineIncomplete: return .orange
-        case .pendingTasks: return .blue
-        case .emergencyRepair: return .red
-        case .taskOverdue: return .red
-        case .buildingAlert: return .orange
+        case .taskOptimization: return .blue
+        case .routeOptimization: return .green
+        case .inventoryManagement: return .orange
+        case .complianceAlert: return .red
+        case .maintenancePrediction: return .yellow
+        case .emergencyResponse: return .red
         }
     }
     
-    // REMOVED: priority property already exists in CoreTypes.AIScenarioType
+    public var priority: CoreTypes.AIPriority {
+        switch self {
+        case .taskOptimization: return .medium
+        case .routeOptimization: return .medium
+        case .inventoryManagement: return .high
+        case .complianceAlert: return .critical
+        case .maintenancePrediction: return .high
+        case .emergencyResponse: return .critical
+        }
+    }
 }

@@ -15,6 +15,9 @@ public final class CommandChainManager: ObservableObject {
     // MARK: - Published Properties
     @Published public var activeChains: [String: CommandChain] = [:]
     @Published public var chainHistory: [ChainExecution] = []
+    @Published public var failedChains: [String] = []
+    @Published public var successfulChains: Int = 0
+    @Published public var isProcessing: Bool = false
     
     // MARK: - Dependencies
     private let container: ServiceContainer
@@ -237,6 +240,8 @@ public final class CommandChainManager: ObservableObject {
             
             // Success
             activeChains.removeValue(forKey: chain.id)
+            successfulChains += 1
+            isProcessing = false
             
             let execution = ChainExecution(
                 chainId: chain.id,
@@ -261,6 +266,8 @@ public final class CommandChainManager: ObservableObject {
         } catch {
             // Failure
             activeChains.removeValue(forKey: chain.id)
+            failedChains.append(chain.id)
+            isProcessing = false
             
             let execution = ChainExecution(
                 chainId: chain.id,

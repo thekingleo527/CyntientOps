@@ -265,7 +265,7 @@ public final class WorkerContextEngine: ObservableObject {
     public func updateTaskCompletion(_ taskId: String, isCompleted: Bool) {
         if let index = todaysTasks.firstIndex(where: { $0.id == taskId }) {
             todaysTasks[index].isCompleted = isCompleted
-            todaysTasks[index].completedDate = isCompleted ? Date() : nil
+            todaysTasks[index].completedAt = isCompleted ? Date() : nil
             updateTaskProgress()
             
             // Notify other services
@@ -452,6 +452,7 @@ extension CoreTypes.TaskUrgency {
         switch self {
         case .low: return 1
         case .medium: return 2
+        case .normal: return 2
         case .high: return 3
         case .critical: return 4
         case .emergency: return 5

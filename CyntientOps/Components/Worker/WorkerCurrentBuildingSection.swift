@@ -215,7 +215,7 @@ struct WorkerCurrentBuildingSection_Previews: PreviewProvider {
             address: "150 W 17th St, New York, NY 10011",
             latitude: 40.7408,
             longitude: -73.9971,
-            type: .cultural
+            type: .educational
         )
         
         let buildingTasks = [
@@ -223,37 +223,35 @@ struct WorkerCurrentBuildingSection_Previews: PreviewProvider {
                 id: "task-1",
                 title: "Clean gallery floors - Level 2",
                 description: "Daily cleaning of hardwood gallery floors",
-                building: building,
+                status: .completed,
                 urgency: .medium,
-                isCompleted: true,
+                building: building,
                 requiresPhoto: true
             ),
             CoreTypes.ContextualTask(
                 id: "task-2", 
                 title: "Dust exhibition cases - Himalayan Art",
                 description: "Weekly dusting of glass display cases",
-                building: building,
                 urgency: .low,
-                isCompleted: false,
+                building: building,
                 requiresPhoto: false
             ),
             CoreTypes.ContextualTask(
                 id: "task-3",
                 title: "Vacuum carpeted areas - Lobby",
                 description: "Daily vacuuming of lobby carpets",
-                building: building,
+                dueDate: Date().addingTimeInterval(-3600),
                 urgency: .medium,
-                isCompleted: false,
-                isOverdue: true,
+                building: building,
                 requiresPhoto: true
             ),
             CoreTypes.ContextualTask(
                 id: "task-4",
                 title: "Empty trash receptacles - All floors",
                 description: "Empty and replace liners in all waste bins",
-                building: building,
+                status: .completed,
                 urgency: .medium,
-                isCompleted: true,
+                building: building,
                 requiresPhoto: false
             )
         ]

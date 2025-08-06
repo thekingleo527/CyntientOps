@@ -488,7 +488,8 @@ public class DashboardSyncService: ObservableObject {
         
         return recentEvents.compactMap { event in
             // Convert operational events to dashboard updates
-            guard let typeRawValue = event.type,
+            guard let metadata = event.metadata,
+                  let typeRawValue = metadata["type"] as? String,
                   let eventType = CoreTypes.DashboardUpdate.UpdateType(rawValue: typeRawValue) else { return nil }
             
             return CoreTypes.DashboardUpdate(
@@ -496,7 +497,7 @@ public class DashboardSyncService: ObservableObject {
                 type: eventType,
                 buildingId: event.buildingId ?? "",
                 workerId: event.workerId ?? "",
-                data: event.metadata as? [String: String] ?? [:]
+                data: metadata as? [String: String] ?? [:]
             )
         }
     }
@@ -549,10 +550,9 @@ public class DashboardSyncService: ObservableObject {
         // Anonymize any worker lists
         if let workerList = anonymizedData["workers"] {
             // Replace with count only
-            if let workers = workerList.split(separator: ",") {
-                anonymizedData["workerCount"] = String(workers.count)
-                anonymizedData.removeValue(forKey: "workers")
-            }
+            let workers = workerList.split(separator: ",")
+            anonymizedData["workerCount"] = String(workers.count)
+            anonymizedData.removeValue(forKey: "workers")
         }
         
         // Create anonymized update

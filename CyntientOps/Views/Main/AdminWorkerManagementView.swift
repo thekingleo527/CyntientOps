@@ -25,7 +25,7 @@ struct AdminWorkerManagementView: View {
     // MARK: - Properties
     
     @StateObject private var workerEngine = WorkerManagementEngine.shared
-    @StateObject private var novaEngine = NovaIntelligenceEngine.shared
+    @StateObject private var novaEngine = NovaAIManager.shared
     @ObservedObject private var clockManager = ClockInManager.shared
     @EnvironmentObject private var dashboardSync: DashboardSyncService
     @EnvironmentObject private var adminViewModel: AdminDashboardViewModel
@@ -1024,7 +1024,7 @@ struct WorkerHeroStatusCard: View {
 
 struct WorkerCard: View {
     let worker: CoreTypes.WorkerProfile
-    let status: WorkerStatus
+    let status: CoreTypes.WorkerStatus
     let currentBuilding: CoreTypes.NamedCoordinate?
     let tasksCompleted: Int
     let onTap: () -> Void
@@ -1093,34 +1093,7 @@ struct WorkerCard: View {
     }
 }
 
-struct WorkerAvatar: View {
-    let worker: CoreTypes.WorkerProfile
-    let size: CGFloat
-    
-    var body: some View {
-        ZStack {
-            Circle()
-                .fill(avatarColor)
-                .frame(width: size, height: size)
-            
-            Text(worker.name.prefix(1).uppercased())
-                .francoTypography(CyntientOpsDesign.Typography.caption)
-                .fontWeight(.semibold)
-                .foregroundColor(.white)
-        }
-    }
-    
-    private var avatarColor: Color {
-        let colors = [
-            CyntientOpsDesign.DashboardColors.success,
-            CyntientOpsDesign.DashboardColors.info,
-            CyntientOpsDesign.DashboardColors.warning,
-            CyntientOpsDesign.DashboardColors.primaryAction
-        ]
-        let index = abs(worker.name.hashValue) % colors.count
-        return colors[index]
-    }
-}
+// WorkerAvatar is imported from Components/Common/WorkerAvatar.swift
 
 struct WorkerActivityRow: View {
     let activity: WorkerActivity
@@ -1456,7 +1429,7 @@ struct WorkerIntelligencePanel: View {
     }
     
     private var isProcessing: Bool {
-        NovaIntelligenceEngine.shared.processingState != .idle
+        NovaAIManager.shared.processingState != .idle
     }
     
     private func handleInsightAction(_ insight: CoreTypes.IntelligenceInsight) {
@@ -1747,30 +1720,7 @@ struct PayrollSummarySheet: View {
 
 // MARK: - Supporting Types
 
-enum WorkerStatus {
-    case clockedIn
-    case onBreak
-    case clockedOut
-    case offline
-    
-    var displayText: String {
-        switch self {
-        case .clockedIn: return "Active"
-        case .onBreak: return "On Break"
-        case .clockedOut: return "Clocked Out"
-        case .offline: return "Offline"
-        }
-    }
-    
-    var color: Color {
-        switch self {
-        case .clockedIn: return CyntientOpsDesign.DashboardColors.success
-        case .onBreak: return CyntientOpsDesign.DashboardColors.warning
-        case .clockedOut: return CyntientOpsDesign.DashboardColors.info
-        case .offline: return CyntientOpsDesign.DashboardColors.tertiaryText
-        }
-    }
-}
+// Using CoreTypes.WorkerStatus extensions from Components/Common/WorkerAvatar.swift
 
 struct WorkerActivity: Identifiable {
     let id = UUID()

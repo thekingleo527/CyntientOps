@@ -214,7 +214,7 @@ struct AdminBuildingPerformanceSection_Previews: PreviewProvider {
                 address: "150 W 17th St",
                 latitude: 40.7408,
                 longitude: -73.9971,
-                type: .cultural
+                type: .educational
             ),
             CoreTypes.NamedCoordinate(
                 id: "1",

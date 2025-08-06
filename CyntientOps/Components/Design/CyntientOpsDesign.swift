@@ -393,6 +393,8 @@ enum CyntientOpsDesign {
             case .operations: return Color.white.opacity(0.6)
             case .maintenance: return Color(red: 251/255, green: 191/255, blue: 36/255)
             case .routing: return DashboardColors.info
+            case .weather: return Color(red: 135/255, green: 206/255, blue: 235/255)
+            case .performance: return DashboardColors.success
             }
         }
         
@@ -414,6 +416,7 @@ enum CyntientOpsDesign {
             switch urgency {
             case .low: return DashboardColors.success
             case .medium: return Color(red: 251/255, green: 191/255, blue: 36/255)
+            case .normal: return Color.white.opacity(0.6)
             case .high: return DashboardColors.warning
             case .urgent: return DashboardColors.tertiaryAction
             case .critical: return DashboardColors.critical
@@ -498,6 +501,7 @@ enum CyntientOpsDesign {
             case .syncing: return DashboardColors.info
             case .failed: return DashboardColors.critical
             case .offline: return DashboardColors.inactive
+            case .error: return DashboardColors.critical
             }
         }
         
@@ -517,6 +521,7 @@ enum CyntientOpsDesign {
             switch risk {
             case .low: return DashboardColors.success
             case .medium: return Color(red: 251/255, green: 191/255, blue: 36/255)
+            case .moderate: return Color(red: 251/255, green: 191/255, blue: 36/255)
             case .high: return DashboardColors.warning
             case .extreme: return DashboardColors.critical
             }

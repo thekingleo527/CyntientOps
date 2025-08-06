@@ -21,6 +21,14 @@ public final class NovaAIManager: ObservableObject {
     @Published public var rotationAngle: Double = 0
     @Published public var hasUrgentInsights = false
     @Published public var thinkingParticles: [Particle] = []
+    @Published public var currentInsights: [CoreTypes.IntelligenceInsight] = []
+    @Published public var priorityTasks: [String] = []
+    @Published public var buildingAlerts: [String: Int] = [:]
+    
+    // MARK: - Computed Properties
+    public var isThinking: Bool {
+        return novaState == .thinking
+    }
     
     // MARK: - Nova State Enum
     public enum NovaState {
@@ -151,6 +159,44 @@ public final class NovaAIManager: ObservableObject {
         hasUrgentInsights = false
         if novaState == .urgent {
             novaState = .idle
+        }
+    }
+    
+    // MARK: - Intelligence Processing
+    public func processInsights(_ insights: [CoreTypes.IntelligenceInsight]) {
+        setState(.thinking)
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            self.currentInsights = insights
+            
+            // Check for urgent insights
+            let urgentInsights = insights.filter { $0.priority == .critical }
+            if !urgentInsights.isEmpty {
+                self.setState(.urgent)
+                self.hasUrgentInsights = true
+            } else {
+                self.setState(.active)
+            }
+        }
+    }
+    
+    public func updateBuildingAlerts(_ alerts: [String: Int]) {
+        buildingAlerts = alerts
+        
+        let criticalBuildings = alerts.filter { $0.value > 0 }.count
+        if criticalBuildings > 0 {
+            setState(.urgent)
+            hasUrgentInsights = true
+        }
+    }
+    
+    public func updatePriorityTasks(_ tasks: [String]) {
+        priorityTasks = tasks
+        
+        if tasks.count > 5 {
+            setState(.thinking)
+        } else if tasks.isEmpty {
+            setState(.idle)
         }
     }
     

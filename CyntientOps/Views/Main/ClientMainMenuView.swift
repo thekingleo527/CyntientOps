@@ -15,7 +15,7 @@ import MapKit
 
 public struct ClientMainMenuViewV6: View {
     @Environment(\.dismiss) var dismiss
-    @ObservedObject private var contextEngine = ClientContextEngine.shared
+    @EnvironmentObject private var contextEngine: ClientContextEngine
     
     public var body: some View {
         NavigationView {

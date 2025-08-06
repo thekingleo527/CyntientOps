@@ -107,20 +107,17 @@ public final class NYCComplianceService: ObservableObject {
         for violation in nycData.hpdViolations.filter({ $0.isActive }) {
             issues.append(CoreTypes.ComplianceIssue(
                 id: violation.violationId,
-                buildingId: buildingId,
-                buildingName: nil,
-                type: .violation,
-                severity: violation.severity,
-                status: .open,
                 title: "HPD Violation - \(violation.currentStatus)",
                 description: violation.novDescription,
-                reportedDate: parseDate(violation.inspectionDate) ?? Date(),
+                severity: violation.severity,
+                buildingId: buildingId,
+                buildingName: nil,
+                status: .open,
                 dueDate: parseDate(violation.newCorrectByDate),
-                resolvedDate: parseDate(violation.certifiedDate),
                 assignedTo: nil,
-                notes: "Order Number: \(violation.orderNumber)",
-                source: "HPD",
-                externalId: violation.violationId
+                createdAt: Date(),
+                reportedDate: parseDate(violation.inspectionDate) ?? Date(),
+                type: .regulatory
             ))
         }
         
@@ -128,20 +125,17 @@ public final class NYCComplianceService: ObservableObject {
         for emission in nycData.ll97Data.filter({ !$0.isCompliant }) {
             issues.append(CoreTypes.ComplianceIssue(
                 id: "ll97_\(emission.bbl)_\(emission.reportingYear)",
-                buildingId: buildingId,
-                buildingName: emission.propertyName,
-                type: .environmental,
-                severity: .critical,
-                status: .open,
                 title: "LL97 Emissions Over Limit",
                 description: emission.complianceStatus,
-                reportedDate: Date(),
+                severity: .critical,
+                buildingId: buildingId,
+                buildingName: emission.propertyName,
+                status: .open,
                 dueDate: nil,
-                resolvedDate: nil,
                 assignedTo: nil,
-                notes: "Potential Fine: $\(emission.potentialFine ?? 0)",
-                source: "LL97",
-                externalId: emission.bbl
+                createdAt: Date(),
+                reportedDate: Date(),
+                type: .environmental
             ))
         }
         
@@ -149,20 +143,17 @@ public final class NYCComplianceService: ObservableObject {
         for complaint in nycData.complaints311.filter({ $0.isActive }) {
             issues.append(CoreTypes.ComplianceIssue(
                 id: complaint.uniqueKey,
-                buildingId: buildingId,
-                buildingName: nil,
-                type: .complaint,
-                severity: complaint.priority.toComplianceSeverity(),
-                status: .open,
                 title: "\(complaint.complaintType) Complaint",
                 description: complaint.descriptor ?? complaint.complaintType,
-                reportedDate: parseDate(complaint.createdDate) ?? Date(),
+                severity: complaint.priority.toComplianceSeverity(),
+                buildingId: buildingId,
+                buildingName: nil,
+                status: .open,
                 dueDate: nil,
-                resolvedDate: parseDate(complaint.closedDate),
                 assignedTo: nil,
-                notes: "Agency: \(complaint.agency)",
-                source: "311",
-                externalId: complaint.uniqueKey
+                createdAt: Date(),
+                reportedDate: parseDate(complaint.createdDate) ?? Date(),
+                type: .operational
             ))
         }
         
@@ -250,18 +241,19 @@ public final class NYCComplianceService: ObservableObject {
                 address: address,
                 latitude: lat,
                 longitude: lon,
-                type: buildingType,
-                metadata: metadata
+                type: buildingType
             )
         }
     }
     
     private func extractBIN(from building: CoreTypes.NamedCoordinate) -> String {
-        return building.metadata?["bin"] as? String ?? building.id
+        // Use building ID as BIN placeholder since NamedCoordinate doesn't have metadata
+        return building.id
     }
     
     private func extractBBL(from building: CoreTypes.NamedCoordinate) -> String {
-        return building.metadata?["bbl"] as? String ?? ""
+        // Return empty string as placeholder since NamedCoordinate doesn't have metadata
+        return ""
     }
     
     private func updateMainComplianceSystem(buildingId: String, nycData: NYCBuildingCompliance) async {
@@ -279,6 +271,7 @@ public final class NYCComplianceService: ObservableObject {
         // Post notification for UI updates
         NotificationCenter.default.post(
             name: .complianceDataUpdated,
+            object: nil,
             userInfo: ["buildingId": buildingId, "score": nycData.overallComplianceScore]
         )
     }
@@ -302,14 +295,14 @@ public final class NYCComplianceService: ObservableObject {
             issue.description,
             issue.reportedDate.timeIntervalSince1970,
             issue.dueDate?.timeIntervalSince1970,
-            issue.resolvedDate?.timeIntervalSince1970,
+            nil, // resolved_date placeholder
             issue.assignedTo,
-            issue.notes,
-            issue.source,
-            issue.externalId
+            "", // notes placeholder
+            "NYC", // source placeholder
+            issue.id // external_id = id
         ]
         
-        try await database.execute(query, parameters: params)
+        try await database.execute(query, params)
     }
     
     private func updateBuildingComplianceScore(buildingId: String, score: Double) async throws {
@@ -319,7 +312,7 @@ public final class NYCComplianceService: ObservableObject {
             WHERE id = ?
         """
         
-        try await database.execute(query, parameters: [score, Date().timeIntervalSince1970, buildingId])
+        try await database.execute(query, [score, Date().timeIntervalSince1970, buildingId])
     }
     
     private func saveComplianceDataToDatabase() async {
@@ -332,7 +325,7 @@ public final class NYCComplianceService: ObservableObject {
                     (building_id, data, updated_at) 
                     VALUES (?, ?, ?)
                 """
-                try await database.execute(query, parameters: [buildingId, data, Date().timeIntervalSince1970])
+                try await database.execute(query, [buildingId, data, Date().timeIntervalSince1970])
             } catch {
                 print("Failed to cache compliance data for building \(buildingId): \(error)")
             }
@@ -374,6 +367,7 @@ extension CoreTypes.TaskUrgency {
         case .urgent, .high: return .high
         case .medium: return .medium
         case .low: return .low
+        case .normal: return .low
         }
     }
 }

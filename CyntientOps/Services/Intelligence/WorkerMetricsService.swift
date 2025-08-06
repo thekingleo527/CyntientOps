@@ -240,20 +240,24 @@ extension WorkerMetricsService {
             let qualityScore = (completionRate + efficiency) / 2.0
             
             return CoreTypes.PerformanceMetrics(
+                completionRate: completionRate,
+                avgTaskTime: avgDuration,
                 efficiency: efficiency,
-                tasksCompleted: completedTasks.count,
-                averageTime: avgDuration,
                 qualityScore: qualityScore,
-                lastUpdate: Date()
+                punctualityScore: 0.85,
+                totalTasks: workerTasks.count,
+                completedTasks: completedTasks.count
             )
         } catch {
             print("⚠️ Error getting overall worker performance: \(error)")
             return CoreTypes.PerformanceMetrics(
+                completionRate: 0.0,
+                avgTaskTime: 0.0,
                 efficiency: 0.0,
-                tasksCompleted: 0,
-                averageTime: 0.0,
                 qualityScore: 0.0,
-                lastUpdate: Date()
+                punctualityScore: 0.0,
+                totalTasks: 0,
+                completedTasks: 0
             )
         }
     }

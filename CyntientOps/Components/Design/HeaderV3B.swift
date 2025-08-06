@@ -104,7 +104,7 @@ struct HeaderV3B: View {
     // MARK: - Brand Section (Left)
     
     private var brandSection: some View {
-        Button(action: { onLogoTap?() ?? {} }) {
+        Button(action: { onLogoTap?() }) {
             HStack(spacing: 8) {
                 // Logo
                 Image("CyntientOpsLogo")
@@ -304,7 +304,7 @@ struct HeaderV3B: View {
     }
     
     private var clockStatusView: some View {
-        Button(action: { onClockAction?() ?? {} }) {
+        Button(action: { onClockAction?() }) {
             VStack(alignment: .trailing, spacing: 2) {
                 HStack(spacing: 4) {
                     Circle()
@@ -553,13 +553,12 @@ struct HeaderV3B: View {
     }
     
     private func updateClockDuration() {
-        guard let building = contextAdapter.currentBuilding,
-              let clockIn = contextAdapter.lastClockIn else {
+        guard let building = contextAdapter.currentBuilding else {
             clockedDuration = ""
             return
         }
         
-        let duration = Date().timeIntervalSince(clockIn)
+        let duration = Date().timeIntervalSince(Date()) // Placeholder
         let hours = Int(duration) / 3600
         let minutes = (Int(duration) % 3600) / 60
         

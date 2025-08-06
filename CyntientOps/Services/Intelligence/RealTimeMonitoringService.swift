@@ -21,7 +21,7 @@ public class RealTimeMonitoringService: ObservableObject {
     @Published public var connectionStatus: ConnectionStatus = .disconnected
     @Published public var lastUpdate: Date?
     
-    public enum ConnectionStatus {
+    public enum ConnectionStatus: Equatable {
         case connected
         case connecting
         case disconnected
@@ -422,7 +422,7 @@ public class RealTimeMonitoringService: ObservableObject {
             timestamp: Date(),
             estimatedCost: costPrediction,
             actionRequired: true,
-            expiresAt: Date().addingTimeInterval(MonitoringConfig.alertRetentionHours * 3600)
+            expiresAt: Date().addingTimeInterval(TimeInterval(MonitoringConfig.alertRetentionHours * 3600))
         )
     }
     
@@ -442,8 +442,9 @@ public class RealTimeMonitoringService: ObservableObject {
             sourceId: data["inspection_id"] as? String,
             source: "DOB",
             timestamp: Date(),
+            estimatedCost: 500.0, // Default inspection cost
             actionRequired: true,
-            expiresAt: Date().addingTimeInterval(MonitoringConfig.alertRetentionHours * 3600)
+            expiresAt: Date().addingTimeInterval(TimeInterval(MonitoringConfig.alertRetentionHours * 3600))
         )
     }
     
@@ -465,7 +466,7 @@ public class RealTimeMonitoringService: ObservableObject {
             timestamp: Date(),
             estimatedCost: 2500, // Typical permit renewal cost
             actionRequired: true,
-            expiresAt: Date().addingTimeInterval(MonitoringConfig.alertRetentionHours * 3600)
+            expiresAt: Date().addingTimeInterval(TimeInterval(MonitoringConfig.alertRetentionHours * 3600))
         )
     }
     
@@ -488,7 +489,7 @@ public class RealTimeMonitoringService: ObservableObject {
             timestamp: Date(),
             estimatedCost: 50000, // Typical LL97 fine
             actionRequired: true,
-            expiresAt: Date().addingTimeInterval(MonitoringConfig.alertRetentionHours * 3600)
+            expiresAt: Date().addingTimeInterval(TimeInterval(MonitoringConfig.alertRetentionHours * 3600))
         )
     }
     
@@ -508,6 +509,7 @@ public class RealTimeMonitoringService: ObservableObject {
             sourceId: data["incident_id"] as? String,
             source: data["source"] as? String ?? "Emergency Services",
             timestamp: Date(),
+            estimatedCost: nil, // Emergency costs vary widely
             actionRequired: true,
             expiresAt: Date().addingTimeInterval(4 * 3600) // 4 hours for emergency
         )
@@ -528,8 +530,9 @@ public class RealTimeMonitoringService: ObservableObject {
             sourceId: data["update_id"] as? String,
             source: data["source"] as? String ?? "System",
             timestamp: Date(),
+            estimatedCost: nil, // Informational alerts have no cost
             actionRequired: false,
-            expiresAt: Date().addingTimeInterval(MonitoringConfig.alertRetentionHours * 3600)
+            expiresAt: Date().addingTimeInterval(TimeInterval(MonitoringConfig.alertRetentionHours * 3600))
         )
     }
     
@@ -623,7 +626,6 @@ public class RealTimeMonitoringService: ObservableObject {
     }
     
     deinit {
-        stopMonitoring()
         networkMonitor.cancel()
     }
 }

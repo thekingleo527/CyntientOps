@@ -202,9 +202,7 @@ public actor IntelligenceService {
         
         do {
             // Get building
-            guard let building = try await buildingService.getBuilding(buildingId: buildingId) else {
-                throw IntelligenceError.buildingNotFound(buildingId)
-            }
+            let building = try await buildingService.getBuilding(buildingId: buildingId)
             
             // Get all tasks and filter for building
             let allTasks = try await taskService.getAllTasks()
@@ -379,18 +377,17 @@ public actor IntelligenceService {
         
         return CoreTypes.BuildingAnalytics(
             buildingId: buildingId,
-            totalTasks: metrics.pendingTasks + metrics.overdueTasks,
-            efficiency: metrics.maintenanceEfficiency,
-            costTrends: [
-                "monthly": Double(metrics.pendingTasks) * 100.0,  // Simplified cost calculation
-                "weekly": Double(metrics.pendingTasks) * 25.0
-            ],
-            performanceMetrics: [
-                "completionRate": metrics.completionRate,
-                "overallScore": Double(metrics.overallScore),
-                "activeWorkers": Double(metrics.activeWorkers)
-            ],
-            predictedMaintenance: []  // Empty for now
+            metrics: CoreTypes.BuildingMetrics(
+                buildingId: buildingId,
+                completionRate: metrics.completionRate,
+                overdueTasks: metrics.overdueTasks,
+                totalTasks: metrics.pendingTasks + metrics.overdueTasks,
+                activeWorkers: metrics.activeWorkers,
+                overallScore: metrics.overallScore,
+                pendingTasks: metrics.pendingTasks,
+                urgentTasksCount: Int(metrics.overallScore * 10), // Derived value
+                maintenanceEfficiency: metrics.maintenanceEfficiency
+            )
         )
     }
     

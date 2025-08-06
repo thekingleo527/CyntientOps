@@ -84,10 +84,14 @@ public actor BuildingMetricsService {
         
         // Notify other dashboards
         await MainActor.run {
-            DashboardSyncService.shared.onBuildingMetricsChanged(
+            let update = CoreTypes.DashboardUpdate(
+                source: .admin,
+                type: .buildingMetricsChanged,
                 buildingId: buildingId,
-                metrics: metrics
+                workerId: "",
+                data: ["metricsUpdated": "true"]
             )
+            DashboardSyncService.shared.broadcastAdminUpdate(update)
         }
         return metrics
     }
@@ -271,10 +275,14 @@ public actor BuildingMetricsService {
         
         // Notify other dashboards
         await MainActor.run {
-            DashboardSyncService.shared.onBuildingMetricsChanged(
+            let update = CoreTypes.DashboardUpdate(
+                source: .admin,
+                type: .buildingMetricsChanged,
                 buildingId: buildingId,
-                metrics: metrics
+                workerId: "",
+                data: ["metricsUpdated": "true"]
             )
+            DashboardSyncService.shared.broadcastAdminUpdate(update)
         }
         return metrics
     }

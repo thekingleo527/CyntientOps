@@ -15,11 +15,15 @@ import CoreLocation
 
 struct ClientDashboardView: View {
     // MARK: - View Models & Services (matching Worker/Admin pattern)
-    @StateObject private var viewModel = ClientDashboardViewModel()
-    @ObservedObject private var contextEngine = ClientContextEngine.shared  // Keep as ObservedObject for singleton
+    @StateObject private var viewModel: ClientDashboardViewModel
+    @EnvironmentObject private var container: ServiceContainer
+    
+    init(container: ServiceContainer) {
+        self._viewModel = StateObject(wrappedValue: ClientDashboardViewModel(container: container))
+    }
     @EnvironmentObject private var authManager: NewAuthManager
     @EnvironmentObject private var dashboardSync: DashboardSyncService
-    @ObservedObject private var novaEngine = NovaIntelligenceEngine.shared  // Keep as ObservedObject for singleton
+    @ObservedObject private var novaEngine = NovaAIManager.shared  // Keep as ObservedObject for singleton
     
     // MARK: - State Variables
     @State private var isHeroCollapsed = false

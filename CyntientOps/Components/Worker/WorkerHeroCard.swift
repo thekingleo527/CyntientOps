@@ -21,7 +21,7 @@ struct WorkerHeroCard: View {
             HStack {
                 // Worker Avatar (larger)
                 if let profile = workerProfile {
-                    WorkerAvatar(name: profile.name, size: 60)
+                    WorkerAvatar(workerName: profile.name, size: .large)
                 } else {
                     Circle()
                         .fill(Color.gray)
@@ -157,7 +157,7 @@ struct WorkerHeroCard_Previews: PreviewProvider {
                     address: "150 W 17th St",
                     latitude: 40.7408,
                     longitude: -73.9971,
-                    type: .cultural
+                    type: .educational
                 ),
                 todaysProgress: 0.42, // 16/38 tasks
                 clockedIn: true,

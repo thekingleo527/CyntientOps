@@ -18,7 +18,7 @@ struct ComplianceOverviewView: View {
     // MARK: - Properties
     
     @StateObject private var complianceEngine = ComplianceIntelligenceEngine.shared
-    @StateObject private var novaEngine = NovaIntelligenceEngine.shared
+    @StateObject private var novaEngine = NovaAIManager.shared
     @EnvironmentObject private var dashboardSync: DashboardSyncService
     
     // State management
@@ -1436,7 +1436,7 @@ struct ComplianceIntelligencePanel: View {
     }
     
     private var isProcessing: Bool {
-        NovaIntelligenceEngine.shared.processingState != .idle
+        NovaAIManager.shared.processingState != .idle
     }
     
     private func handleInsightAction(_ insight: CoreTypes.IntelligenceInsight) {

@@ -676,7 +676,7 @@ public class OperationalDataManager: ObservableObject {
             endHour: 16,
             daysOfWeek: "Mon,Wed",
             workerId: CanonicalIDs.Workers.kevinDutan,
-            buildingId: CanonicalIDs.Buildings.west17th136,
+            buildingId: CanonicalIDs.Buildings.westSeventeenth136,
             requiresPhoto: true,
             estimatedDuration: 60
         ),
@@ -691,7 +691,7 @@ public class OperationalDataManager: ObservableObject {
             endHour: 16,
             daysOfWeek: "Tue,Thu",
             workerId: CanonicalIDs.Workers.kevinDutan,
-            buildingId: CanonicalIDs.Buildings.west17th138,
+            buildingId: CanonicalIDs.Buildings.westSeventeenth138,
             requiresPhoto: true,
             estimatedDuration: 30
         ),
@@ -721,7 +721,7 @@ public class OperationalDataManager: ObservableObject {
             endHour: 15,
             daysOfWeek: "Mon,Tue,Wed,Thu,Fri",
             workerId: CanonicalIDs.Workers.kevinDutan,
-            buildingId: CanonicalIDs.Buildings.west17th117,
+            buildingId: CanonicalIDs.Buildings.westSeventeenth117,
             requiresPhoto: false,
             estimatedDuration: 30
         ),
@@ -736,7 +736,7 @@ public class OperationalDataManager: ObservableObject {
             endHour: 15,
             daysOfWeek: "Mon,Wed,Fri",
             workerId: CanonicalIDs.Workers.kevinDutan,
-            buildingId: CanonicalIDs.Buildings.west18th112,
+            buildingId: CanonicalIDs.Buildings.westEighteenth112,
             requiresPhoto: true,
             estimatedDuration: 60
         ),
@@ -796,7 +796,7 @@ public class OperationalDataManager: ObservableObject {
             endHour: 14,
             daysOfWeek: "Tue,Fri",
             workerId: CanonicalIDs.Workers.kevinDutan,
-            buildingId: CanonicalIDs.Buildings.west17th135,
+            buildingId: CanonicalIDs.Buildings.westSeventeenth135_139,
             requiresPhoto: false,
             estimatedDuration: 30
         ),
@@ -811,7 +811,7 @@ public class OperationalDataManager: ObservableObject {
             endHour: 15,
             daysOfWeek: "Fri",
             workerId: CanonicalIDs.Workers.kevinDutan,
-            buildingId: CanonicalIDs.Buildings.west17th117,
+            buildingId: CanonicalIDs.Buildings.westSeventeenth117,
             requiresPhoto: true,
             estimatedDuration: 30
         ),

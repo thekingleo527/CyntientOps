@@ -338,11 +338,14 @@ struct NovaClientInsightCard: View {
 #if DEBUG
 struct NovaClientIntelligenceBar_Previews: PreviewProvider {
     static var previews: some View {
+        Text("NovaClientIntelligenceBar Preview")
+            .foregroundColor(.white)
+        /*
         VStack {
             Spacer()
             
             NovaClientIntelligenceBar(
-                container: try! ServiceContainer(),
+                container: ServiceContainer(),
                 clientContext: [
                     "clientName": "JM Realty Group",
                     "totalBuildings": 9,
@@ -355,6 +358,7 @@ struct NovaClientIntelligenceBar_Previews: PreviewProvider {
         }
         .background(Color.black)
         .preferredColorScheme(.dark)
+        */
     }
 }
 #endif

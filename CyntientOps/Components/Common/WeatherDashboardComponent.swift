@@ -74,7 +74,7 @@ struct WeatherDashboardComponent: View {
                     .font(.headline)
                     .foregroundColor(.primary)
                 
-                Text(weather.condition)
+                Text(weather.condition.rawValue.capitalized)
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .lineLimit(1)
@@ -132,35 +132,26 @@ struct WeatherDashboardComponent: View {
     // MARK: - Computed Properties
     
     private var weatherIcon: String {
-        let conditionEnum = CoreTypes.WeatherCondition(rawValue: weather.condition) ?? .clear
-        
-        switch conditionEnum {
-        case .sunny, .clear: return "sun.max"
-        case .cloudy, .overcast: return "cloud"
-        case .partlyCloudy: return "cloud.sun"
-        case .rainy: return "cloud.rain"
-        case .snowy: return "cloud.snow"
-        case .stormy: return "cloud.bolt"
-        case .foggy: return "cloud.fog"
+        switch weather.condition {
+        case .clear: return "sun.max"
+        case .cloudy: return "cloud"
+        case .rain: return "cloud.rain"
+        case .snow: return "cloud.snow"
+        case .storm: return "cloud.bolt"
+        case .fog: return "cloud.fog"
         case .windy: return "wind"
-        case .hot: return "thermometer.sun"
-        case .cold: return "thermometer.snowflake"
         }
     }
     
     private var weatherColor: Color {
-        let conditionEnum = CoreTypes.WeatherCondition(rawValue: weather.condition) ?? .clear
-        
-        switch conditionEnum {
-        case .sunny, .clear: return .orange
-        case .cloudy, .overcast, .partlyCloudy: return .gray
-        case .rainy: return .blue
-        case .snowy: return .cyan
-        case .stormy: return .purple
-        case .foggy: return .gray.opacity(0.7)
+        switch weather.condition {
+        case .clear: return .orange
+        case .cloudy: return .gray
+        case .rain: return .blue
+        case .snow: return .cyan
+        case .storm: return .purple
+        case .fog: return .gray.opacity(0.7)
         case .windy: return .mint
-        case .hot: return .red
-        case .cold: return .blue
         }
     }
 }
@@ -214,6 +205,7 @@ struct TaskRowView: View {
         switch urgency {
         case .low: return "Low"
         case .medium: return "Med"
+        case .normal: return "Normal"
         case .high: return "High"
         case .critical: return "Critical"
         case .urgent: return "Urgent"
@@ -225,6 +217,7 @@ struct TaskRowView: View {
         switch urgency {
         case .low: return .green
         case .medium: return .orange
+        case .normal: return .blue
         case .high: return .red
         case .critical, .urgent, .emergency: return .purple
         }
@@ -275,7 +268,7 @@ struct WeatherDashboardComponent_Previews: PreviewProvider {
     static var sampleWeather: CoreTypes.WeatherData {
         CoreTypes.WeatherData(
             temperature: 72,
-            condition: CoreTypes.WeatherCondition.sunny.rawValue,
+            condition: CoreTypes.WeatherCondition.clear,
             humidity: 65,
             windSpeed: 8.5,
             outdoorWorkRisk: CoreTypes.OutdoorWorkRisk.low,
@@ -286,7 +279,7 @@ struct WeatherDashboardComponent_Previews: PreviewProvider {
     static var stormyWeather: CoreTypes.WeatherData {
         CoreTypes.WeatherData(
             temperature: 58,
-            condition: CoreTypes.WeatherCondition.stormy.rawValue,
+            condition: CoreTypes.WeatherCondition.storm,
             humidity: 85,
             windSpeed: 25.0,
             outdoorWorkRisk: CoreTypes.OutdoorWorkRisk.extreme,

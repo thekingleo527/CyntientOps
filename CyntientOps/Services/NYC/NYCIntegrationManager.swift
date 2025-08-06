@@ -35,7 +35,7 @@ public final class NYCIntegrationManager: ObservableObject {
         static let backoffMultiplier = 2.0
     }
     
-    public enum IntegrationStatus {
+    public enum IntegrationStatus: Equatable {
         case initializing
         case ready
         case syncing
@@ -120,7 +120,7 @@ public final class NYCIntegrationManager: ObservableObject {
         integrationStatus = .ready
         
         // Post notification
-        NotificationCenter.default.post(name: .nycDataSyncCompleted, userInfo: nil)
+        NotificationCenter.default.post(name: .nycDataSyncCompleted, object: self, userInfo: nil)
     }
     
     /// Get compliance summary for all buildings
@@ -354,8 +354,8 @@ public final class NYCIntegrationManager: ObservableObject {
     }
     
     deinit {
-        stopBackgroundSync()
-        stopHealthMonitoring()
+        syncTask?.cancel()
+        healthCheckTimer?.invalidate()
     }
 }
 

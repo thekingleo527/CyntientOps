@@ -44,14 +44,15 @@ public class PhotoSecurityManager: ObservableObject {
     
     private init() {
         // Initialize master encryption key (in production, load from secure keychain)
-        if let keyData = KeychainManager.shared.getKey(identifier: "photo_master_key") {
+        do {
+            let keyData = try KeychainManager.shared.getData(for: "photo_master_key")
             self.masterKey = SymmetricKey(data: keyData)
-        } else {
+        } catch {
             // Generate new key and store in keychain
             self.masterKey = SymmetricKey(size: .bits256)
-            KeychainManager.shared.storeKey(
-                key: self.masterKey.withUnsafeBytes { Data($0) },
-                identifier: "photo_master_key"
+            try? KeychainManager.shared.save(
+                self.masterKey.withUnsafeBytes { Data($0) },
+                for: "photo_master_key"
             )
         }
         
@@ -460,7 +461,7 @@ extension UInt32 {
     }
     
     init(bigEndianData: Data) {
-        self = data.withUnsafeBytes { $0.load(as: UInt32.self) }.bigEndian
+        self = bigEndianData.withUnsafeBytes { $0.load(as: UInt32.self) }.bigEndian
     }
 }
 
@@ -474,18 +475,4 @@ extension TimeInterval {
     }
 }
 
-// MARK: - KeychainManager Placeholder
-
-private class KeychainManager {
-    static let shared = KeychainManager()
-    
-    func storeKey(key: Data, identifier: String) {
-        // TODO: Implement proper keychain storage
-        UserDefaults.standard.set(key, forKey: "keychain_\(identifier)")
-    }
-    
-    func getKey(identifier: String) -> Data? {
-        // TODO: Implement proper keychain retrieval
-        return UserDefaults.standard.data(forKey: "keychain_\(identifier)")
-    }
-}
+// Note: Using KeychainManager from Services/Configuration/KeychainManager.swift

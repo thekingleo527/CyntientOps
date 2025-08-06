@@ -430,7 +430,7 @@ public final class OfflineQueueManager: ObservableObject {
 
 // MARK: - Supporting Types
 
-public struct OfflineAction: Codable, Identifiable {
+public struct OfflineAction: Identifiable {
     public let id: String
     public let type: ActionType
     public let data: ActionData
@@ -481,6 +481,70 @@ public struct OfflineAction: Codable, Identifiable {
         self.timestamp = timestamp
         self.retryCount = retryCount
         self.priority = priority
+    }
+}
+
+// MARK: - OfflineAction Codable Implementation
+extension OfflineAction: Codable {
+    private enum CodingKeys: String, CodingKey {
+        case id, type, data, timestamp, retryCount, priority
+    }
+    
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        
+        id = try container.decode(String.self, forKey: .id)
+        type = try container.decode(ActionType.self, forKey: .type)
+        timestamp = try container.decode(Date.self, forKey: .timestamp)
+        retryCount = try container.decode(Int.self, forKey: .retryCount)
+        priority = try container.decode(Priority.self, forKey: .priority)
+        
+        // Decode the data based on type
+        switch type {
+        case .taskCompletion:
+            data = try container.decode(TaskCompletionData.self, forKey: .data)
+        case .clockIn:
+            data = try container.decode(ClockInData.self, forKey: .data)
+        case .clockOut:
+            data = try container.decode(ClockOutData.self, forKey: .data)
+        case .photoUpload:
+            data = try container.decode(PhotoUploadData.self, forKey: .data)
+        case .complianceUpdate:
+            data = try container.decode(ComplianceUpdateData.self, forKey: .data)
+        case .syncData:
+            data = try container.decode(SyncData.self, forKey: .data)
+        }
+    }
+    
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        
+        try container.encode(id, forKey: .id)
+        try container.encode(type, forKey: .type)
+        try container.encode(timestamp, forKey: .timestamp)
+        try container.encode(retryCount, forKey: .retryCount)
+        try container.encode(priority, forKey: .priority)
+        
+        // Encode the data
+        switch data {
+        case let taskData as TaskCompletionData:
+            try container.encode(taskData, forKey: .data)
+        case let clockInData as ClockInData:
+            try container.encode(clockInData, forKey: .data)
+        case let clockOutData as ClockOutData:
+            try container.encode(clockOutData, forKey: .data)
+        case let photoData as PhotoUploadData:
+            try container.encode(photoData, forKey: .data)
+        case let complianceData as ComplianceUpdateData:
+            try container.encode(complianceData, forKey: .data)
+        case let syncData as SyncData:
+            try container.encode(syncData, forKey: .data)
+        default:
+            throw EncodingError.invalidValue(data, EncodingError.Context(
+                codingPath: encoder.codingPath + [CodingKeys.data],
+                debugDescription: "Unknown ActionData type"
+            ))
+        }
     }
 }
 
@@ -545,6 +609,39 @@ public struct ComplianceUpdateData: ActionData {
         self.buildingId = buildingId
         self.violationId = violationId
         self.updateType = updateType
+    }
+}
+
+public struct SyncData: ActionData {
+    public let dataType: String
+    public let payload: [String: Any]
+    
+    public init(dataType: String, payload: [String: Any]) {
+        self.dataType = dataType
+        self.payload = payload
+    }
+    
+    // Custom Codable implementation for payload with Any values
+    private enum CodingKeys: String, CodingKey {
+        case dataType, payload
+    }
+    
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        dataType = try container.decode(String.self, forKey: .dataType)
+        
+        // Decode payload as [String: String] for simplicity
+        let payloadDict = try container.decode([String: String].self, forKey: .payload)
+        payload = payloadDict
+    }
+    
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(dataType, forKey: .dataType)
+        
+        // Encode payload as [String: String] for simplicity
+        let payloadDict = payload.compactMapValues { $0 as? String }
+        try container.encode(payloadDict, forKey: .payload)
     }
 }
 

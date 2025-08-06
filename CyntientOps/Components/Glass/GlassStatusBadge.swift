@@ -445,7 +445,7 @@ struct GlassStatusBadge_Previews: PreviewProvider {
                         
                         HStack(spacing: 12) {
                             GlassStatusBadge(text: "Weather Alert", icon: "cloud.rain.fill", style: .warning, size: .large, isPulsing: true)
-                            GlassStatusBadge(text: "Maintenance", style: .custom(color: Color(hex: "9333ea")), size: .large)
+                            GlassStatusBadge(text: "Maintenance", style: .custom(color: Color("9333ea")), size: .large)
                         }
                     }
                     

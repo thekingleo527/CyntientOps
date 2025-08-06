@@ -338,11 +338,14 @@ struct NovaAdminInsightCard: View {
 #if DEBUG
 struct NovaAdminIntelligenceBar_Previews: PreviewProvider {
     static var previews: some View {
+        Text("NovaAdminIntelligenceBar Preview")
+            .foregroundColor(.white)
+        /*
         VStack {
             Spacer()
             
             NovaAdminIntelligenceBar(
-                container: try! ServiceContainer(),
+                container: ServiceContainer(),
                 adminContext: [
                     "adminName": "Sarah Martinez",
                     "totalBuildings": 16,
@@ -356,6 +359,7 @@ struct NovaAdminIntelligenceBar_Previews: PreviewProvider {
         }
         .background(Color.black)
         .preferredColorScheme(.dark)
+        */
     }
 }
 #endif

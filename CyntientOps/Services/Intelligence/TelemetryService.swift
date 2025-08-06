@@ -54,11 +54,6 @@ enum PerformanceAlertType: String {
     case kevinWorkflowSlow = "KevinWorkflowSlow"
 }
 
-enum AlertSeverity: String {
-    case info = "Info"
-    case warning = "Warning"
-    case critical = "Critical"
-}
 
 // MARK: - Data Structures
 
@@ -329,7 +324,7 @@ actor TelemetryService {
             let alert = PerformanceAlert(
                 type: .dashboardLoadSlow,
                 message: "Dashboard load exceeded \(self.maxDashboardLoadTime)s target: \(String(format: "%.3f", totalLoadTime))s",
-                severity: totalLoadTime > self.maxDashboardLoadTime * 1.5 ? .critical : .warning,
+                severity: totalLoadTime > self.maxDashboardLoadTime * 1.5 ? .critical : .medium,
                 context: ["workerId": workerId, "totalTime": "\(totalLoadTime)s"]
             )
             self.performanceAlerts.append(alert)
@@ -369,7 +364,7 @@ actor TelemetryService {
                 let alert = PerformanceAlert(
                     type: .kevinWorkflowSlow,
                     message: "Kevin building assignment load took \(String(format: "%.3f", duration))s",
-                    severity: .warning,
+                    severity: .medium,
                     context: ["action": action.rawValue, "duration": "\(duration)s"]
                 )
                 self.performanceAlerts.append(alert)
@@ -388,7 +383,7 @@ actor TelemetryService {
             let alert = PerformanceAlert(
                 type: .operationSlow,
                 message: "Operation '\(operation)' took \(String(format: "%.3f", duration))s",
-                severity: duration > (isDashboardOperation ? maxDashboardLoadTime * 2 : 5.0) ? .critical : .warning,
+                severity: duration > (isDashboardOperation ? maxDashboardLoadTime * 2 : 5.0) ? .critical : .medium,
                 context: ["operation": operation, "duration": "\(duration)s"]
             )
             self.performanceAlerts.append(alert)
@@ -402,7 +397,7 @@ actor TelemetryService {
             let alert = PerformanceAlert(
                 type: .memorySpike,
                 message: "Operation '\(operation)' used \(String(format: "%.2f", memoryMB))MB",
-                severity: memoryDelta > maxMemoryBudget / 5 ? .critical : .warning,
+                severity: memoryDelta > maxMemoryBudget / 5 ? .critical : .medium,
                 context: ["operation": operation, "memoryMB": "\(memoryMB)MB"]
             )
             self.performanceAlerts.append(alert)
@@ -457,7 +452,7 @@ actor TelemetryService {
         let alert = PerformanceAlert(
             type: .memoryWarning,
             message: "Memory warning #\(self.memoryWarningCount) - Current usage: \(String(format: "%.2f", memoryMB))MB",
-            severity: self.memoryWarningCount > 3 ? .critical : .warning,
+            severity: self.memoryWarningCount > 3 ? .critical : .medium,
             context: ["warningCount": "\(self.memoryWarningCount)", "memoryMB": "\(memoryMB)MB"]
         )
         self.performanceAlerts.append(alert)

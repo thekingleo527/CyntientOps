@@ -25,7 +25,7 @@ struct AdminReportsView: View {
     
     @StateObject private var reportGen = ReportGenerator.shared
     @StateObject private var reportService = ReportService.shared
-    @StateObject private var novaEngine = NovaIntelligenceEngine.shared
+    @StateObject private var novaEngine = NovaAIManager.shared
     @EnvironmentObject private var dashboardSync: DashboardSyncService
     @EnvironmentObject private var adminViewModel: AdminDashboardViewModel
     
@@ -1517,7 +1517,7 @@ struct ReportIntelligencePanel: View {
     }
     
     private var isProcessing: Bool {
-        NovaIntelligenceEngine.shared.processingState != .idle
+        NovaAIManager.shared.processingState != .idle
     }
     
     private func handleInsightAction(_ insight: CoreTypes.IntelligenceInsight) {

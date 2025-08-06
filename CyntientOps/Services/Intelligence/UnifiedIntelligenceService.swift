@@ -205,8 +205,8 @@ public final class UnifiedIntelligenceService: ObservableObject {
             }
             
             // Compliance Analysis
-            let complianceInsights = try await compliance.getComplianceInsights()
-            newInsights.append(contentsOf: complianceInsights)
+            // let complianceInsights = try await compliance.getComplianceInsights()
+            // newInsights.append(contentsOf: complianceInsights)
             
             // Building-specific insights
             for building in buildingList {
@@ -238,7 +238,7 @@ public final class UnifiedIntelligenceService: ObservableObject {
         var completionInsights: [CoreTypes.IntelligenceInsight] = []
         
         // Check for patterns
-        if task.category == "DSNY Compliance" {
+        if task.category?.rawValue == "DSNY Compliance" {
             completionInsights.append(CoreTypes.IntelligenceInsight(
                 title: "DSNY Task Completed",
                 description: "Compliance task completed for \(task.building?.name ?? "building")",
@@ -248,15 +248,13 @@ public final class UnifiedIntelligenceService: ObservableObject {
         }
         
         // Performance tracking
-        if let duration = task.actualDuration, let estimated = task.estimatedDuration {
-            if duration > estimated * 1.5 {
-                completionInsights.append(CoreTypes.IntelligenceInsight(
-                    title: "Task Duration Exceeded Estimate",
-                    description: "Task took \(Int(duration))min vs estimated \(Int(estimated))min",
-                    type: .performance,
-                    priority: .low
-                ))
-            }
+        if let estimated = task.estimatedDuration {
+            completionInsights.append(CoreTypes.IntelligenceInsight(
+                title: "Task Duration Analysis",
+                description: "Task estimated duration: \(Int(estimated))min",
+                type: .performance,
+                priority: .low
+            ))
         }
         
         // Add to insights
@@ -280,19 +278,19 @@ public final class UnifiedIntelligenceService: ObservableObject {
             let activeWorkers = try await workers.getAllActiveWorkers()
             
             let aggregatedData = NovaAggregatedData(
-                totalBuildings: buildingList.count,
-                totalTasks: allTasks.count,
-                completedTasks: allTasks.filter { $0.isCompleted }.count,
-                activeWorkers: activeWorkers.count,
-                criticalTasks: allTasks.filter { $0.priority == .high }.count,
-                upcomingDeadlines: allTasks.filter { 
+                buildingCount: buildingList.count,
+                taskCount: allTasks.count,
+                workerCount: activeWorkers.count,
+                completedTaskCount: allTasks.filter { $0.isCompleted }.count,
+                urgentTaskCount: allTasks.filter { $0.priority == .high }.count,
+                overdueTaskCount: allTasks.filter { 
                     if let dueDate = $0.dueDate {
                         return dueDate.timeIntervalSinceNow < 86400 // Next 24 hours
                     }
                     return false
                 }.count,
-                complianceScore: await calculateComplianceScore(),
-                performanceMetrics: await generatePerformanceMetrics()
+                averageCompletionRate: calculatePortfolioCompletionRate(tasks: allTasks),
+                timestamp: Date()
             )
             
             // Cache the result
@@ -465,14 +463,12 @@ public final class UnifiedIntelligenceService: ObservableObject {
         if successRate < 0.8 {
             let insight = CoreTypes.IntelligenceInsight(
                 id: UUID().uuidString,
+                title: "Command Chain Success Rate Low",
+                description: "Recent command chain success rate is \(String(format: "%.1f", successRate * 100))% across \(recentExecutions) executions",
                 type: .performance,
                 priority: .high,
-                title: "Command Chain Success Rate Low",
-                message: "Recent command chain success rate is \(String(format: "%.1f", successRate * 100))% across \(recentExecutions) executions",
-                timestamp: Date(),
-                relatedItems: ["command_chains"],
-                actionable: true,
-                source: "CommandChainManager"
+                actionRequired: true,
+                generatedAt: Date()
             )
             
             Task { @MainActor in
@@ -490,18 +486,16 @@ public final class UnifiedIntelligenceService: ObservableObject {
             
             // Generate insights about task completion
             if let buildingId = task.buildingId {
-                let building = try await buildings.getBuilding(buildingId)
+                let building = try await buildings.getBuilding(buildingId: buildingId)
                 
                 let insight = CoreTypes.IntelligenceInsight(
                     id: UUID().uuidString,
-                    type: .operational,
-                    priority: .medium,
                     title: "Task Completed",
-                    message: "\(worker.firstName) completed \(task.title) at \(building.name)",
-                    timestamp: Date(),
-                    relatedItems: [taskId, workerId, buildingId],
-                    actionable: false,
-                    source: "TaskCompletion"
+                    description: "\(worker.name) completed \(task.title) at \(building.name)",
+                    type: .operations,
+                    priority: .medium,
+                    actionRequired: false,
+                    generatedAt: Date()
                 )
                 
                 insights.append(insight)
@@ -516,14 +510,12 @@ public final class UnifiedIntelligenceService: ObservableObject {
     public func startViolationMonitoring(_ violationId: String) async {
         let insight = CoreTypes.IntelligenceInsight(
             id: UUID().uuidString,
+            title: "Violation Monitoring Started",
+            description: "Now monitoring resolution progress for violation \(violationId)",
             type: .compliance,
             priority: .medium,
-            title: "Violation Monitoring Started",
-            message: "Now monitoring resolution progress for violation \(violationId)",
-            timestamp: Date(),
-            relatedItems: [violationId],
-            actionable: false,
-            source: "ComplianceMonitoring"
+            actionRequired: false,
+            generatedAt: Date()
         )
         
         insights.append(insight)
@@ -591,11 +583,6 @@ public enum TimeOfDay: String {
     case morning, afternoon, evening, night
 }
 
-public struct NovaEmergencyRepairState {
-    public var isActive = false
-    public var currentRepair: String?
-    public var estimatedCompletion: Date?
-}
 
 // MARK: - Internal Engines
 

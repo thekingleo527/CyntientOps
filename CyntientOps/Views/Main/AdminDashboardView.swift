@@ -156,7 +156,7 @@ struct AdminDashboardView: View {
                 
                 // Nova Intelligence Bar (Bottom)
                 if showingIntelligencePanel {
-                    NovaIntelligenceBar(
+                    AdminNovaIntelligenceBar(
                         novaState: novaAI.novaState,
                         insights: container.intelligence.getInsights(for: .admin),
                         isExpanded: .constant(intelligencePanelState == .expanded),
@@ -531,7 +531,8 @@ struct NovaAvatarView: View {
     }
 }
 
-struct NovaIntelligenceBar: View {
+// NovaIntelligenceBar component is imported from Components/Nova/
+struct AdminNovaIntelligenceBar: View {
     let novaState: NovaAIManager.NovaState
     let insights: [CoreTypes.IntelligenceInsight]
     @Binding var isExpanded: Bool
@@ -897,7 +898,7 @@ struct AdminHeroStatusCard: View {
 
 // MARK: - Supporting Components (with unique names)
 
-struct AdminMetricCard: View {
+struct LocalAdminMetricCard: View {
     let value: String
     let label: String
     var subtitle: String? = nil
@@ -1012,7 +1013,7 @@ struct AdminMetricPill: View {
     }
 }
 
-struct AdminActivityRow: View {
+struct LocalAdminActivityRow: View {
     let activity: AdminActivity
     
     var body: some View {

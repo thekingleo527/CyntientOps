@@ -171,12 +171,12 @@ public actor ClientService {
             SELECT COUNT(DISTINCT wa.worker_id) as count
             FROM worker_assignments wa
             INNER JOIN time_clock_entries tce ON wa.worker_id = tce.workerId
-            WHERE wa.building_id IN (\(buildingIds.map { "?" }.joined(separator: ",")))
+            WHERE wa.building_id IN (\(buildingIds.map { _ in "?" }.joined(separator: ",")))
             AND wa.is_active = 1
             AND tce.clockOutTime IS NULL
         """, buildingIds)
         
-        let activeWorkers = activeWorkersResult.first?["count"] as? Int64 ?? 0
+        let activeWorkers: Int = Int(activeWorkersResult.first?["count"] as? Int64 ?? 0)
         
         // Get task counts
         let taskResult = try await grdbManager.query("""
@@ -184,12 +184,12 @@ public actor ClientService {
                 COUNT(CASE WHEN isCompleted = 1 THEN 1 END) as completed,
                 COUNT(CASE WHEN isCompleted = 0 THEN 1 END) as pending
             FROM routine_tasks
-            WHERE building_id IN (\(buildingIds.map { "?" }.joined(separator: ",")))
+            WHERE building_id IN (\(buildingIds.map { _ in "?" }.joined(separator: ",")))
             AND date(createdAt) = date('now')
         """, buildingIds)
         
-        let completedTasks = taskResult.first?["completed"] as? Int64 ?? 0
-        let pendingTasks = taskResult.first?["pending"] as? Int64 ?? 0
+        let completedTasks: Int = Int(taskResult.first?["completed"] as? Int64 ?? 0)
+        let pendingTasks: Int = Int(taskResult.first?["pending"] as? Int64 ?? 0)
         
         // Calculate metrics
         var totalServiceLevel = 0.0

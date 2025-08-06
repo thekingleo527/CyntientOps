@@ -118,7 +118,7 @@ struct AdminActivityRow: View {
             
             // Update Content
             VStack(alignment: .leading, spacing: 2) {
-                Text(update.description)
+                Text(update.description ?? "No description")
                     .font(.system(size: 13, weight: .medium))
                     .foregroundColor(.white)
                     .lineLimit(1)
@@ -136,7 +136,7 @@ struct AdminActivityRow: View {
                         .font(.caption2)
                         .foregroundColor(.gray)
                     
-                    if let buildingName = update.metadata["buildingName"] as? String {
+                    if let buildingName = update.data["buildingName"] {
                         Text("•")
                             .font(.caption2)
                             .foregroundColor(.gray)
@@ -174,35 +174,43 @@ struct AdminRealtimeSection_Previews: PreviewProvider {
         let mockUpdates = [
             CoreTypes.DashboardUpdate(
                 id: "1",
-                type: .taskCompleted,
                 source: .worker,
-                description: "Kevin completed cleaning task at Rubin Museum",
+                type: .taskCompleted,
+                buildingId: "14",
+                workerId: "4",
+                data: ["buildingName": "Rubin Museum", "workerName": "Kevin Dutan"],
                 timestamp: Date().addingTimeInterval(-300),
-                metadata: ["buildingName": "Rubin Museum", "workerName": "Kevin Dutan"]
+                description: "Kevin completed cleaning task at Rubin Museum"
             ),
             CoreTypes.DashboardUpdate(
                 id: "2", 
-                type: .workerClockedIn,
                 source: .worker,
-                description: "Mercedes clocked in at JM Building A",
+                type: .workerClockedIn,
+                buildingId: "1",
+                workerId: "2",
+                data: ["buildingName": "JM Building A", "workerName": "Mercedes Inamagua"],
                 timestamp: Date().addingTimeInterval(-600),
-                metadata: ["buildingName": "JM Building A", "workerName": "Mercedes Inamagua"]
+                description: "Mercedes clocked in at JM Building A"
             ),
             CoreTypes.DashboardUpdate(
                 id: "3",
-                type: .buildingMetricsChanged,
                 source: .system,
-                description: "Building metrics updated for efficiency tracking",
+                type: .buildingMetricsChanged,
+                buildingId: "5",
+                workerId: "system",
+                data: ["buildingName": "Solar One Building"],
                 timestamp: Date().addingTimeInterval(-900),
-                metadata: ["buildingName": "Solar One Building"]
+                description: "Building metrics updated for efficiency tracking"
             ),
             CoreTypes.DashboardUpdate(
                 id: "4",
-                type: .criticalUpdate,
                 source: .system,
-                description: "Emergency maintenance required at Grand Elizabeth",
+                type: .criticalUpdate,
+                buildingId: "6",
+                workerId: "system",
+                data: ["buildingName": "Grand Elizabeth LLC"],
                 timestamp: Date().addingTimeInterval(-1200),
-                metadata: ["buildingName": "Grand Elizabeth LLC"]
+                description: "Emergency maintenance required at Grand Elizabeth"
             )
         ]
         

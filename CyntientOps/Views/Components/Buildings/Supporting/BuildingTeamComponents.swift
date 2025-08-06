@@ -134,7 +134,7 @@ struct WorkerScheduleGrid: View {
             await loadSchedule()
         }
         .sheet(item: $selectedWorker) { worker in
-            WorkerDetailSheet(worker: worker, buildingId: buildingId)
+            BuildingWorkerDetailSheet(worker: worker, buildingId: buildingId)
         }
         .sheet(isPresented: $showingShiftEditor) {
             ShiftAssignmentSheet(
@@ -1177,35 +1177,8 @@ struct CoverageStats {
     let coveragePercentage: Double
 }
 
-struct EmergencyContact: Identifiable {
-    let id: String
-    let name: String
-    let role: String?
-    let phone: String
-    let isPrimary: Bool
-    let isInternal: Bool
-    var textEnabled: Bool = true
-}
 
-struct WorkerCapabilities {
-    let workerId: String
-    let canUploadPhotos: Bool
-    let canAddNotes: Bool
-    let canViewMap: Bool
-    let canAddEmergencyTasks: Bool
-    let requiresPhotoForSanitation: Bool
-    let simplifiedInterface: Bool
-    
-    init(from row: [String: Any]) {
-        self.workerId = row["worker_id"] as? String ?? ""
-        self.canUploadPhotos = (row["can_upload_photos"] as? Int ?? 1) == 1
-        self.canAddNotes = (row["can_add_notes"] as? Int ?? 1) == 1
-        self.canViewMap = (row["can_view_map"] as? Int ?? 1) == 1
-        self.canAddEmergencyTasks = (row["can_add_emergency_tasks"] as? Int ?? 0) == 1
-        self.requiresPhotoForSanitation = (row["requires_photo_for_sanitation"] as? Int ?? 1) == 1
-        self.simplifiedInterface = (row["simplified_interface"] as? Int ?? 0) == 1
-    }
-}
+// Using CoreTypes.WorkerCapabilities instead of local duplicate
 
 struct HandoffNote: Identifiable {
     let id: String
@@ -1231,7 +1204,7 @@ struct WorkerPerformanceData {
 
 // MARK: - Sheet Views
 
-struct WorkerDetailSheet: View {
+struct BuildingWorkerDetailSheet: View {
     let worker: WorkerProfile
     let buildingId: String
     @Environment(\.dismiss) private var dismiss

@@ -137,8 +137,8 @@ public enum PillStyle {
     case outlined
     case subtle
     
-    var typography: CyntientOpsDesign.Typography {
-        return .caption2
+    var typography: CyntientOpsDesign.Typography.FontStyle {
+        return CyntientOpsDesign.Typography.caption2
     }
     
     var horizontalPadding: CGFloat {
@@ -374,29 +374,29 @@ public struct StatusPillGroup: View {
 extension StatusPill {
     
     /// Create a status pill for worker clock-in status
-    public static func workerClockStatus(_ isClocked: Bool) -> StatusPill {
-        return StatusPill(isClocked ? .clockedIn : .clockedOut)
+    public static func workerClockStatus(_ isClocked: Bool) -> Self {
+        return Self(isClocked ? .clockedIn : .clockedOut)
     }
     
     /// Create a status pill for task completion status
-    public static func taskStatus(_ isCompleted: Bool, isOverdue: Bool = false) -> StatusPill {
+    public static func taskStatus(_ isCompleted: Bool, isOverdue: Bool = false) -> Self {
         if isCompleted {
-            return StatusPill(.completed)
+            return Self(.completed)
         } else if isOverdue {
-            return StatusPill(.overdue)
+            return Self(.overdue)
         } else {
-            return StatusPill(.pending)
+            return Self(.pending)
         }
     }
     
     /// Create a status pill for building operational status
-    public static func buildingStatus(_ isOperational: Bool, hasCriticalIssues: Bool = false) -> StatusPill {
+    public static func buildingStatus(_ isOperational: Bool, hasCriticalIssues: Bool = false) -> Self {
         if hasCriticalIssues {
-            return StatusPill(.critical)
+            return Self(.critical)
         } else if isOperational {
-            return StatusPill(.operational)
+            return Self(.operational)
         } else {
-            return StatusPill(.maintenance)
+            return Self(.maintenance)
         }
     }
 }
@@ -409,7 +409,7 @@ struct StatusPill_Previews: PreviewProvider {
             // Different styles
             VStack(alignment: .leading, spacing: CyntientOpsDesign.Spacing.sm) {
                 Text("Different Styles")
-                    .francoTypography(.headline)
+                    .francoTypography(CyntientOpsDesign.Typography.headline)
                 
                 HStack(spacing: CyntientOpsDesign.Spacing.sm) {
                     StatusPill(text: "Available", icon: "circle.fill", color: .green, style: .filled)
@@ -421,7 +421,7 @@ struct StatusPill_Previews: PreviewProvider {
             // Predefined status types
             VStack(alignment: .leading, spacing: CyntientOpsDesign.Spacing.sm) {
                 Text("Worker Statuses")
-                    .francoTypography(.headline)
+                    .francoTypography(CyntientOpsDesign.Typography.headline)
                 
                 HStack(spacing: CyntientOpsDesign.Spacing.sm) {
                     StatusPill(.available)
@@ -434,7 +434,7 @@ struct StatusPill_Previews: PreviewProvider {
             // Task statuses
             VStack(alignment: .leading, spacing: CyntientOpsDesign.Spacing.sm) {
                 Text("Task Statuses")
-                    .francoTypography(.headline)
+                    .francoTypography(CyntientOpsDesign.Typography.headline)
                 
                 HStack(spacing: CyntientOpsDesign.Spacing.sm) {
                     StatusPill(.pending)
@@ -447,7 +447,7 @@ struct StatusPill_Previews: PreviewProvider {
             // Status pill group
             VStack(alignment: .leading, spacing: CyntientOpsDesign.Spacing.sm) {
                 Text("Status Group")
-                    .francoTypography(.headline)
+                    .francoTypography(CyntientOpsDesign.Typography.headline)
                 
                 StatusPillGroup([.operational, .compliant, .online, .syncing])
             }

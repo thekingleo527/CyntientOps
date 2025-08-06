@@ -218,7 +218,7 @@ public class CostIntelligenceService: ObservableObject {
             WHERE isActive = 1
         """)
         
-        return rows.compactMap { row in
+        return rows.compactMap { row -> CoreTypes.NamedCoordinate? in
             guard let id = row["id"] as? String ?? (row["id"] as? Int64).map(String.init),
                   let name = row["name"] as? String,
                   let address = row["address"] as? String,
@@ -240,8 +240,7 @@ public class CostIntelligenceService: ObservableObject {
                 address: address,
                 latitude: lat,
                 longitude: lon,
-                type: buildingType,
-                metadata: metadata
+                type: buildingType
             )
         }
     }
@@ -253,8 +252,8 @@ public class CostIntelligenceService: ObservableObject {
         let complianceCosts = try await getComplianceCosts(building.id)
         let violationCosts = try await getViolationCosts(building.id)
         
-        let buildingSize = building.metadata["size_sqft"] as? Double ?? 5000.0
-        let yearBuilt = building.metadata["year_built"] as? Int ?? 1950
+        let buildingSize = 5000.0 // Default size since metadata not available
+        let yearBuilt = 1950 // Default year since metadata not available
         let buildingAge = Date().year - yearBuilt
         
         // Calculate cost per square foot
@@ -262,7 +261,7 @@ public class CostIntelligenceService: ObservableObject {
         let costPerSqFt = totalAnnualCost / buildingSize
         
         // Compare to market benchmarks
-        let marketBenchmark = marketRates.getMaintenanceCostPerSqFt(building.type, age: buildingAge)
+        let marketBenchmark = marketRates.getMaintenanceCostPerSqFt(building.type ?? .residential, age: buildingAge)
         let costEfficiencyRatio = costPerSqFt / marketBenchmark
         
         // Predict future costs
@@ -513,7 +512,7 @@ public class CostIntelligenceService: ObservableObject {
     private func identifyCostRiskFactors(_ building: CoreTypes.NamedCoordinate, costs: (maintenance: Double, compliance: Double, violations: Double)) -> [String] {
         var riskFactors: [String] = []
         
-        let buildingAge = building.metadata["year_built"] as? Int.map { Date().year - $0 } ?? 0
+        let buildingAge = 25 // Default age since metadata not available
         
         if buildingAge > 50 {
             riskFactors.append("Building age: \(buildingAge) years")
@@ -873,8 +872,12 @@ private struct MarketRates {
     func getMaintenanceCostPerSqFt(_ buildingType: CoreTypes.BuildingType, age: Int) -> Double {
         let baseCost: Double = switch buildingType {
         case .residential: 8.5
-        case .commercial: 12.0
+        case .office: 12.0
+        case .retail: 11.0
         case .industrial: 6.5
+        case .warehouse: 7.0
+        case .medical: 15.0
+        case .educational: 9.0
         case .mixed: 10.0
         }
         

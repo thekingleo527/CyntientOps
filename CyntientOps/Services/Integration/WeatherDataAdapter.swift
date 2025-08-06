@@ -279,14 +279,13 @@ class WeatherDataAdapter: ObservableObject {
         let weatherCode = current["weather_code"] as? Int ?? 0
         
         let conditionEnum = weatherCodeToCondition(weatherCode)
-        let conditionString = conditionEnum.rawValue
         let outdoorRisk = calculateOutdoorWorkRisk(temperature: temperature, windSpeed: windSpeed, condition: conditionEnum)
         
-        // ✅ FIXED: Added id parameter as first argument
+        // ✅ FIXED: Added id parameter as first argument and pass conditionEnum directly
         return CoreTypes.WeatherData(
             id: UUID().uuidString,
             temperature: temperature,
-            condition: conditionString,
+            condition: conditionEnum,
             humidity: Double(humidity),
             windSpeed: windSpeed,
             outdoorWorkRisk: outdoorRisk,
@@ -315,14 +314,13 @@ class WeatherDataAdapter: ObservableObject {
             let weatherCode = i < weatherCodes.count ? weatherCodes[i] : 0
             
             let conditionEnum = weatherCodeToCondition(weatherCode)
-            let conditionString = conditionEnum.rawValue
             let outdoorRisk = calculateOutdoorWorkRisk(temperature: temperature, windSpeed: windSpeed, condition: conditionEnum)
             
-            // ✅ FIXED: Added id parameter as first argument
+            // ✅ FIXED: Added id parameter as first argument and pass conditionEnum directly
             weatherData.append(CoreTypes.WeatherData(
                 id: UUID().uuidString,
                 temperature: temperature,
-                condition: conditionString,
+                condition: conditionEnum,
                 humidity: Double(humidity),
                 windSpeed: windSpeed,
                 outdoorWorkRisk: outdoorRisk,
@@ -338,7 +336,7 @@ class WeatherDataAdapter: ObservableObject {
         return CoreTypes.WeatherData(
             id: UUID().uuidString,
             temperature: 72.0,
-            condition: "Clear",
+            condition: CoreTypes.WeatherCondition.clear,
             humidity: 50.0,
             windSpeed: 5.0,
             outdoorWorkRisk: .low,
@@ -350,20 +348,20 @@ class WeatherDataAdapter: ObservableObject {
         switch code {
         case 0: return .clear
         case 1, 2, 3: return .cloudy
-        case 45, 48: return .foggy
-        case 51, 53, 55, 56, 57: return .rainy
-        case 61, 63, 65, 66, 67: return .rainy
-        case 95, 96, 99: return .stormy
+        case 45, 48: return .fog
+        case 51, 53, 55, 56, 57: return .rain
+        case 61, 63, 65, 66, 67: return .rain
+        case 95, 96, 99: return .storm
         default: return .clear
         }
     }
     
     private func calculateOutdoorWorkRisk(temperature: Double, windSpeed: Double, condition: CoreTypes.WeatherCondition) -> CoreTypes.OutdoorWorkRisk {
-        if temperature > 95 || temperature < 20 || windSpeed > 35 || condition == .stormy {
+        if temperature > 95 || temperature < 20 || windSpeed > 35 || condition == .storm {
             return .extreme
-        } else if temperature > 85 || temperature < 32 || windSpeed > 25 || condition == .rainy {
+        } else if temperature > 85 || temperature < 32 || windSpeed > 25 || condition == .rain {
             return .high
-        } else if windSpeed > 15 || condition == .snowy {
+        } else if windSpeed > 15 || condition == .snow {
             return .medium
         } else {
             return .low
@@ -382,10 +380,10 @@ class WeatherDataAdapter: ObservableObject {
             guard day.isHazardous else { continue }
             
             let dueDate = calendar.date(byAdding: .day, value: index, to: Date()) ?? Date()
-            let conditionEnum = CoreTypes.WeatherCondition(rawValue: day.condition) ?? .clear
+            let conditionEnum = day.condition
             
             // Snow preparation
-            if conditionEnum == .snowy {
+            if conditionEnum == .snow {
                 tasks.append(CoreTypes.MaintenanceTask(
                     title: "Snow Removal Preparation",
                     description: "Prepare snow removal equipment, stock salt/sand, clear drainage areas",
@@ -397,7 +395,7 @@ class WeatherDataAdapter: ObservableObject {
             }
             
             // Storm preparation
-            if conditionEnum == .stormy || day.windSpeed > 30 {
+            if conditionEnum == .storm || day.windSpeed > 30 {
                 tasks.append(CoreTypes.MaintenanceTask(
                     title: "Storm Preparation",
                     description: "Secure outdoor items, check drainage, inspect roof/windows",
@@ -454,17 +452,17 @@ class WeatherDataAdapter: ObservableObject {
         }
         
         let now = Date()
-        let conditionEnum = CoreTypes.WeatherCondition(rawValue: weather.condition) ?? .clear
+        let conditionEnum = weather.condition
         
         let taskTitle: String
         let taskDescription: String
         let taskCategory: CoreTypes.TaskCategory
         
-        if conditionEnum == .rainy || conditionEnum == .stormy {
+        if conditionEnum == .rain || conditionEnum == .storm {
             taskTitle = "Emergency Rain Inspection"
             taskDescription = "Check for leaks, proper drainage, and clear any blockages from gutters due to heavy rain."
             taskCategory = .inspection
-        } else if conditionEnum == .snowy {
+        } else if conditionEnum == .snow {
             taskTitle = "Snow Removal"
             taskDescription = "Clear snow from walkways, entrances, and emergency exits. Apply salt as needed."
             taskCategory = .maintenance
@@ -546,13 +544,13 @@ class WeatherDataAdapter: ObservableObject {
     func createWeatherNotification(for building: NamedCoordinate) -> String? {
         guard let weatherData = currentWeather else { return nil }
         
-        let conditionEnum = CoreTypes.WeatherCondition(rawValue: weatherData.condition) ?? .clear
+        let conditionEnum = weatherData.condition
         
-        if conditionEnum == .stormy {
+        if conditionEnum == .storm {
             return "⚠️ Severe weather alert for \(building.name). Consider rescheduling outdoor tasks."
-        } else if conditionEnum == .rainy {
+        } else if conditionEnum == .rain {
             return "Rain expected at \(building.name). Some outdoor tasks may be affected."
-        } else if conditionEnum == .snowy {
+        } else if conditionEnum == .snow {
             return "Snow expected at \(building.name). Prepare walkways for clearing."
         } else if weatherData.windSpeed > 25 {
             return "High winds expected at \(building.name). Secure loose outdoor items."
@@ -650,15 +648,58 @@ class WeatherDataAdapter: ObservableObject {
 extension CoreTypes.WeatherData {
     /// Check if weather is extreme
     var isExtreme: Bool {
-        let conditionEnum = CoreTypes.WeatherCondition(rawValue: condition) ?? .clear
-        return conditionEnum == .stormy || temperature < 20 || temperature > 100
+        return condition == .storm || temperature < 20 || temperature > 100
     }
     
     /// Check if weather is hazardous for outdoor work
     var isHazardous: Bool {
-        let conditionEnum = CoreTypes.WeatherCondition(rawValue: condition) ?? .clear
         return temperature <= 32 || temperature >= 95 ||
                windSpeed >= 35 ||
-               conditionEnum == .stormy || isExtreme
+               condition == .storm || isExtreme
+    }
+    
+    /// Generate maintenance tasks based on weather conditions
+    func generateWeatherTasks(for buildingId: String) -> [CoreTypes.MaintenanceTask] {
+        var tasks: [CoreTypes.MaintenanceTask] = []
+        let calendar = Calendar.current
+        let tomorrow = calendar.date(byAdding: .day, value: 1, to: timestamp) ?? Date()
+        
+        // Storm preparation tasks
+        if condition == .storm {
+            tasks.append(CoreTypes.MaintenanceTask(
+                title: "Storm Preparation",
+                description: "Secure loose items, check drainage, inspect windows",
+                category: .emergency,
+                urgency: .high,
+                buildingId: buildingId,
+                dueDate: calendar.date(byAdding: .hour, value: 2, to: timestamp)
+            ))
+        }
+        
+        // Snow removal tasks
+        if condition == .snow && temperature <= 35 {
+            tasks.append(CoreTypes.MaintenanceTask(
+                title: "Snow Removal Preparation",
+                description: "Prepare snow removal equipment and salt supplies",
+                category: .maintenance,
+                urgency: .medium,
+                buildingId: buildingId,
+                dueDate: calendar.date(byAdding: .hour, value: 6, to: calendar.startOfDay(for: tomorrow))
+            ))
+        }
+        
+        // HVAC adjustments for extreme temperatures
+        if temperature >= 85 || temperature <= 35 {
+            tasks.append(CoreTypes.MaintenanceTask(
+                title: "HVAC System Check",
+                description: "Verify HVAC system performance for extreme temperatures",
+                category: .utilities,
+                urgency: .medium,
+                buildingId: buildingId,
+                dueDate: calendar.date(byAdding: .hour, value: 8, to: calendar.startOfDay(for: tomorrow))
+            ))
+        }
+        
+        return tasks
     }
 }

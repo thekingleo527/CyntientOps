@@ -46,6 +46,7 @@ public struct TaskDisplayHelpers {
             // Use the same color logic as in TaskRowView
             switch urgency {
             case .low: return .green
+            case .normal: return .blue
             case .medium: return .orange
             case .high: return .red
             case .critical, .urgent, .emergency: return .purple
@@ -129,6 +130,7 @@ public struct TaskDisplayHelpers {
             if let urgency = task.urgency {
                 switch urgency {
                 case .low: return .green
+                case .normal: return .blue
                 case .medium: return .orange
                 case .high: return .red
                 case .critical, .urgent, .emergency: return .purple
@@ -168,6 +170,8 @@ public struct TaskDisplayHelpers {
                 baseDuration = 2700 // 45 minutes
             case .medium:
                 baseDuration = 1800 // 30 minutes
+            case .normal:
+                baseDuration = 1200 // 20 minutes
             case .low:
                 baseDuration = 900  // 15 minutes
             }
@@ -331,6 +335,7 @@ extension View {
             if let urgency = task.urgency {
                 switch urgency {
                 case .low: return .green
+                case .normal: return .blue
                 case .medium: return .orange
                 case .high: return .red
                 case .critical, .urgent, .emergency: return .purple

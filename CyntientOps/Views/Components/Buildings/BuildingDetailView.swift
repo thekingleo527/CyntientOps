@@ -1456,7 +1456,7 @@ struct BuildingInventoryTab: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 12) {
                 ForEach(CoreTypes.InventoryCategory.allCases, id: \.self) { category in
-                    CategoryButton(
+                    BuildingInventoryCategoryButton(
                         category: category,
                         isSelected: selectedCategory == category,
                         action: { selectedCategory = category }
@@ -1519,7 +1519,7 @@ struct BuildingInventoryTab: View {
             } else {
                 VStack(spacing: 12) {
                     ForEach(filteredInventoryItems) { item in
-                        InventoryItemRow(item: item) { updatedItem in
+                        BuildingInventoryItemRow(item: item) { updatedItem in
                             viewModel.updateInventoryItem(updatedItem)
                         }
                     }
@@ -2543,7 +2543,7 @@ struct InventoryStatCard: View {
     }
 }
 
-struct CategoryButton: View {
+struct BuildingInventoryCategoryButton: View {
     let category: CoreTypes.InventoryCategory
     let isSelected: Bool
     let action: () -> Void
@@ -2564,58 +2564,7 @@ struct CategoryButton: View {
     }
 }
 
-struct InventoryItemRow: View {
-    let item: CoreTypes.InventoryItem
-    let onUpdate: (CoreTypes.InventoryItem) -> Void
-    
-    var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(item.name)
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-                
-                HStack(spacing: 8) {
-                    Text("\(item.currentStock) / \(item.minimumStock)")
-                        .font(.caption)
-                        .foregroundColor(stockColor)
-                    
-                    Text("•")
-                        .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
-                    
-                    Text(item.unit)
-                        .font(.caption)
-                        .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
-                }
-            }
-            
-            Spacer()
-            
-            HStack(spacing: 12) {
-                Button(action: { /* Decrease stock */ }) {
-                    Image(systemName: "minus.circle.fill")
-                        .foregroundColor(CyntientOpsDesign.DashboardColors.warning)
-                }
-                
-                Button(action: { /* Increase stock */ }) {
-                    Image(systemName: "plus.circle.fill")
-                        .foregroundColor(CyntientOpsDesign.DashboardColors.success)
-                }
-            }
-        }
-    }
-    
-    private var stockColor: Color {
-        if item.currentStock < item.minimumStock {
-            return CyntientOpsDesign.DashboardColors.warning
-        } else if item.currentStock < item.minimumStock * 2 {
-            return CyntientOpsDesign.DashboardColors.secondaryText
-        } else {
-            return CyntientOpsDesign.DashboardColors.success
-        }
-    }
-}
+// BuildingInventoryItemRow removed - using the one from BuildingInventoryComponents.swift
 
 struct AccessCodeChip: View {
     let code: AccessCode
@@ -2768,31 +2717,7 @@ struct BuildingEmergencyContactRow: View {
     }
 }
 
-struct EmergencyActionButton: View {
-    let title: String
-    let icon: String
-    let color: Color
-    let action: () -> Void
-    
-    var body: some View {
-        Button(action: action) {
-            VStack(spacing: 8) {
-                Image(systemName: icon)
-                    .font(.title2)
-                    .foregroundColor(.white)
-                
-                Text(title)
-                    .font(.caption)
-                    .fontWeight(.medium)
-                    .foregroundColor(.white)
-            }
-            .frame(maxWidth: .infinity)
-            .padding()
-            .background(color)
-            .cornerRadius(12)
-        }
-    }
-}
+// EmergencyActionButton removed - using the public one from AccessModeComponents.swift
 
 struct BuildingProcedureRow: View {
     let title: String
@@ -3049,7 +2974,7 @@ struct MessageComposerView: View {
     }
 }
 
-struct AddInventoryItemView: View {
+struct BuildingAddInventoryItemView: View {
     let buildingId: String
     let onComplete: (Bool) -> Void
     
@@ -3066,24 +2991,3 @@ struct AddInventoryItemView: View {
     }
 }
 
-struct MaintenanceTaskView: View {
-    let task: CoreTypes.MaintenanceTask
-    let buildingName: String
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text(task.title)
-                .font(.largeTitle)
-            Text(buildingName)
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-            
-            if let description = task.description {
-                Text(description)
-            }
-            
-            Spacer()
-        }
-        .padding()
-    }
-}

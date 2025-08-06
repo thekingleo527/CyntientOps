@@ -396,7 +396,7 @@ struct BuildingsView: View {
                 for building in loadedBuildings {
                     group.addTask {
                         do {
-                            let metrics = try await self.buildingService.getMetrics(for: building.id)
+                            let metrics = try await self.buildingService.getBuildingMetrics(building.id)
                             return (building.id, metrics)
                         } catch {
                             return (building.id, nil)
@@ -504,13 +504,14 @@ struct BuildingRowCard: View {
     }
     
     private var buildingImage: some View {
-        MySitesCard(
-            building: building,
-            metrics: metrics,
-            showMetrics: false,
-            style: .compact
-        )
-        .frame(width: 80, height: 60)
+        RoundedRectangle(cornerRadius: 8)
+            .fill(.ultraThinMaterial)
+            .frame(width: 80, height: 60)
+            .overlay(
+                Image(systemName: "building.2.fill")
+                    .font(.title2)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+            )
     }
 }
 

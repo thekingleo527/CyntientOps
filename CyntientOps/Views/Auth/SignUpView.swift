@@ -14,7 +14,7 @@ struct SignUpView: View {
     @State private var password = ""
     @State private var confirmPassword = ""
     @State private var fullName = ""
-    @State private var selectedRole: UserRole = .worker
+    @State private var selectedRole: CoreTypes.UserRole = .worker
     @State private var isLoading = false
     @State private var showingError = false
     @State private var errorMessage = ""
@@ -97,14 +97,14 @@ struct SignUpView: View {
             
             // ✅ FIXED: Use actual UserRole cases (admin, manager, worker, client)
             LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 2), spacing: 12) {
-                ForEach([UserRole.worker, UserRole.manager, UserRole.admin, UserRole.client], id: \.self) { role in
+                ForEach([CoreTypes.UserRole.worker, CoreTypes.UserRole.manager, CoreTypes.UserRole.admin, CoreTypes.UserRole.client], id: \.self) { role in
                     roleButton(for: role)
                 }
             }
         }
     }
     
-    private func roleButton(for role: UserRole) -> some View {
+    private func roleButton(for role: CoreTypes.UserRole) -> some View {
         Button(action: {
             selectedRole = role
         }) {
@@ -163,7 +163,7 @@ struct SignUpView: View {
     
     // MARK: - Helper Methods
     
-    private func iconForRole(_ role: UserRole) -> String {
+    private func iconForRole(_ role: CoreTypes.UserRole) -> String {
         switch role {
         case .worker: return "person.fill"
         case .admin: return "person.badge.key.fill"
