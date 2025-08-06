@@ -153,14 +153,14 @@ public final class ServiceContainer: ObservableObject {
         
         print("✅ Layer 7: NYC API integration initialized")
         
-        // Initialize services that need full container reference after all stored properties are set
+        // Start background services
+        await startBackgroundServices()
+        
+        // Initialize services that need full container reference after ALL initialization is complete
         self.clientContext = ClientContextEngine(container: self)
         self.commands = CommandChainManager(container: self)
         
         print("✅ Layer 5: Command chains initialized")
-        
-        // Start background services
-        await startBackgroundServices()
         
         // Initialize AdminContextEngine after container is fully created
         await initializeAdminContext()
