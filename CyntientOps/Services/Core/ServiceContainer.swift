@@ -87,7 +87,7 @@ public final class ServiceContainer: ObservableObject {
         // Layer 1: Core Services (no circular dependencies)
         print("🔧 Layer 1: Initializing core services...")
         
-        self.auth = try AuthenticationService(database: database)
+        self.auth = AuthenticationService(database: database)
         self.workers = WorkerService.shared
         self.buildings = BuildingService.shared
         self.tasks = TaskService.shared
