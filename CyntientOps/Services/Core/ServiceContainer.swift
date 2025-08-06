@@ -48,10 +48,10 @@ public final class ServiceContainer: ObservableObject {
     // MARK: - Layer 4: Context Engines
     public let workerContext: WorkerContextEngine
     public let adminContext: AdminContextEngine
-    public let clientContext: ClientContextEngine!
+    public let clientContext: ClientContextEngine
     
-    // MARK: - Layer 5: Command Chains
-    public let commands: CommandChainManager!
+    // MARK: - Layer 5: Command Chains  
+    public let commands: CommandChainManager
     
     // MARK: - Layer 6: Offline Support
     public let offlineQueue: OfflineQueueManager
@@ -151,14 +151,14 @@ public final class ServiceContainer: ObservableObject {
         self.nycCompliance = NYCComplianceService(database: database)
         self.nycIntegration = NYCIntegrationManager(database: database)
         
+        // Initialize services that need full container reference - ALL stored properties must be set first
+        self.clientContext = ClientContextEngine(container: self)
+        self.commands = CommandChainManager(container: self)
+        
         print("✅ Layer 7: NYC API integration initialized")
         
         // Start background services
         await startBackgroundServices()
-        
-        // Initialize services that need full container reference after ALL initialization is complete
-        self.clientContext = ClientContextEngine(container: self)
-        self.commands = CommandChainManager(container: self)
         
         print("✅ Layer 5: Command chains initialized")
         
