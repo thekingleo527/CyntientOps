@@ -513,7 +513,7 @@ public class BuildingDetailViewModel: ObservableObject {
             }
             
             // Then try to get fresh data from service
-            let building = try await buildingService.getBuildingDetails(buildingId)
+            let building = try await buildingService.getBuilding(buildingId: buildingId)
             
             await MainActor.run {
                 self.buildingType = building.type.rawValue.capitalized
@@ -579,7 +579,7 @@ public class BuildingDetailViewModel: ObservableObject {
     
     private func loadRoutines() async {
         do {
-            let routines = try await taskService.getDailyRoutines(buildingId: buildingId)
+            let routines = try await taskService.getTasksForBuilding(buildingId)
             
             await MainActor.run {
                 self.dailyRoutines = routines.map { routine in
@@ -603,33 +603,12 @@ public class BuildingDetailViewModel: ObservableObject {
     
     private func loadSpacesAndAccess() async {
         do {
-            let buildingSpaces = try await buildingService.getSpaces(buildingId: buildingId)
+            // TODO: Implement getSpaces in BuildingService
+            let buildingSpaces: [Any] = [] // Placeholder until getSpaces is implemented
             
             await MainActor.run {
-                self.spaces = buildingSpaces.map { space in
-                    BDSpaceAccess(
-                        id: space.id,
-                        name: space.name,
-                        category: self.mapToSpaceCategory(space.type),
-                        thumbnail: nil,
-                        lastUpdated: space.lastPhotoDate ?? Date(),
-                        accessCode: space.accessCode,
-                        notes: space.notes,
-                        requiresKey: space.requiresPhysicalKey,
-                        photoIds: []
-                    )
-                }
-                
-                self.accessCodes = buildingSpaces.compactMap { space in
-                    guard let code = space.accessCode else { return nil }
-                    return BDAccessCode(
-                        id: space.id,
-                        location: space.name,
-                        code: code,
-                        type: space.accessType ?? "keypad",
-                        updatedDate: space.lastUpdated
-                    )
-                }
+                self.spaces = [] // Empty for now
+                self.accessCodes = [] // Empty for now
             }
             
             // Load thumbnails asynchronously
@@ -675,18 +654,29 @@ public class BuildingDetailViewModel: ObservableObject {
     
     private func loadInventorySummary() async {
         do {
-            let summary = try await inventoryService.getBuildingInventorySummary(buildingId: buildingId)
+            // Get inventory items and build summary
+            let items = try await inventoryService.getInventoryForBuilding(buildingId)
+            let lowStockItems = try await inventoryService.getLowStockItems(for: buildingId)
+            let totalValue = try await inventoryService.getInventoryValue(for: buildingId)
             
             await MainActor.run {
+                // Calculate counts by category
+                let cleaningItems = items.filter { $0.category == .cleaning }
+                let equipmentItems = items.filter { $0.category == .equipment }
+                let maintenanceItems = items.filter { $0.category == .maintenance }
+                let safetyItems = items.filter { $0.category == .safety }
+                
+                let lowStockIds = Set(lowStockItems.map { $0.id })
+                
                 self.inventorySummary = BDInventorySummary(
-                    cleaningLow: summary.categorySummaries[.cleaning]?.lowStockCount ?? 0,
-                    cleaningTotal: summary.categorySummaries[.cleaning]?.totalItems ?? 0,
-                    equipmentLow: summary.categorySummaries[.equipment]?.lowStockCount ?? 0,
-                    equipmentTotal: summary.categorySummaries[.equipment]?.totalItems ?? 0,
-                    maintenanceLow: summary.categorySummaries[.maintenance]?.lowStockCount ?? 0,
-                    maintenanceTotal: summary.categorySummaries[.maintenance]?.totalItems ?? 0,
-                    safetyLow: summary.categorySummaries[.safety]?.lowStockCount ?? 0,
-                    safetyTotal: summary.categorySummaries[.safety]?.totalItems ?? 0
+                    cleaningLow: cleaningItems.filter { lowStockIds.contains($0.id) }.count,
+                    cleaningTotal: cleaningItems.count,
+                    equipmentLow: equipmentItems.filter { lowStockIds.contains($0.id) }.count,
+                    equipmentTotal: equipmentItems.count,
+                    maintenanceLow: maintenanceItems.filter { lowStockIds.contains($0.id) }.count,
+                    maintenanceTotal: maintenanceItems.count,
+                    safetyLow: safetyItems.filter { lowStockIds.contains($0.id) }.count,
+                    safetyTotal: safetyItems.count
                 )
                 
                 // Update computed values
@@ -696,7 +686,7 @@ public class BuildingDetailViewModel: ObservableObject {
                 self.totalInventoryItems = inventorySummary.cleaningTotal + inventorySummary.equipmentTotal +
                                            inventorySummary.maintenanceTotal + inventorySummary.safetyTotal
                 
-                self.totalInventoryValue = summary.totalValue
+                self.totalInventoryValue = totalValue
             }
         } catch {
             print("⚠️ Error loading inventory: \(error)")
