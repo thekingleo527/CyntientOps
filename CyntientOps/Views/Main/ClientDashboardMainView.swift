@@ -37,7 +37,7 @@ struct ClientDashboardMainView: View {
             executiveSummary: CoreTypes.ExecutiveSummary(
                 totalBuildings: 6,
                 totalWorkers: 15,
-                portfolioHealth: contextEngine.portfolioHealth,
+                portfolioHealth: contextEngine.portfolioHealth.overallScore,
                 monthlyPerformance: "Excellent",
                 generatedAt: Date()
             ),
@@ -184,7 +184,7 @@ struct ClientDashboardMainView: View {
             
         case .analytics:
             ClientAnalyticsTabView(
-                portfolioHealth: contextEngine.portfolioHealth,
+                portfolioHealth: contextEngine.portfolioHealth.overallScore,
                 performanceMetrics: CoreTypes.RealtimeMetrics(
                     lastUpdateTime: Date(),
                     activeAlerts: 0,
@@ -243,7 +243,7 @@ struct OverviewTabView: View {
             executiveSummary: CoreTypes.ExecutiveSummary(
                 totalBuildings: 6,
                 totalWorkers: 15,
-                portfolioHealth: contextEngine.portfolioHealth,
+                portfolioHealth: contextEngine.portfolioHealth.overallScore,
                 monthlyPerformance: "Excellent",
                 generatedAt: Date()
             ),
@@ -293,11 +293,12 @@ struct OverviewTabView: View {
                     )
                 }
                 
-                // Intelligence Insights
-                if !contextEngine.costOptimizationInsights.isEmpty {
-                    IntelligenceInsightsSection(
-                        insights: Array(contextEngine.costOptimizationInsights.prefix(3))
-                    )
+                // Intelligence Insights  
+                VStack {
+                    Text("Intelligence Insights")
+                        .font(.headline)
+                    Text("Cost optimization and insights coming soon...")
+                        .foregroundColor(.secondary)
                 }
             }
             .padding()

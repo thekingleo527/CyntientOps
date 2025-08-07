@@ -922,7 +922,7 @@ struct WorkerHeroStatusCard: View {
                         secondaryColor: CyntientOpsDesign.DashboardColors.cardBackground
                     )
                     .overlay(
-                        Text("\(calculatePercentage())%")
+                        Text("\(Int((Double(activeWorkers) / Double(max(totalWorkers, 1))) * 100))%")
                             .francoTypography(CyntientOpsDesign.Typography.caption)
                             .fontWeight(.bold)
                             .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
