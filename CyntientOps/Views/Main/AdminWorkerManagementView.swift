@@ -656,9 +656,11 @@ struct AdminWorkerManagementView: View {
         }
         
         // Add Nova AI insights
-        insights.append(contentsOf: novaEngine.insights.filter { 
-            $0.type == .operations || $0.type == .efficiency 
-        })
+        let novaInsights = novaEngine.insights
+        let filteredNovaInsights = novaInsights.filter { insight in
+            insight.type == .operations || insight.type == .efficiency 
+        }
+        insights.append(contentsOf: filteredNovaInsights)
         
         return insights.sorted { $0.priority.rawValue > $1.priority.rawValue }
     }
@@ -1925,7 +1927,7 @@ struct AdminWorkerManagementView_Previews: PreviewProvider {
     static var previews: some View {
         AdminWorkerManagementView()
             .environmentObject(DashboardSyncService.shared)
-            .environmentObject(AdminDashboardViewModel(container: ServiceContainer.shared))
+            .environmentObject(AdminDashboardViewModel(container: ServiceContainer()))
             .preferredColorScheme(.dark)
     }
 }

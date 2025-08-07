@@ -1158,7 +1158,7 @@ struct ReportsHeroStatusCard: View {
             
             ReportMetricCard(
                 title: "This Month",
-                value: "\(self.mockMonthlyReportCount)",
+                value: "\(mockMonthlyReportCount)",
                 icon: "calendar",
                 color: CyntientOpsDesign.DashboardColors.warning
             )
