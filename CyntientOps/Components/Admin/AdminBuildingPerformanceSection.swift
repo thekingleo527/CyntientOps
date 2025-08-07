@@ -84,7 +84,7 @@ struct AdminBuildingPerformanceCard: View {
                             .foregroundColor(.white)
                             .lineLimit(1)
                         
-                        Text(building.type.rawValue.capitalized)
+                        Text(building.type?.rawValue.capitalized ?? "Unknown")
                             .font(.caption2)
                             .foregroundColor(.gray)
                     }
@@ -244,27 +244,47 @@ struct AdminBuildingPerformanceSection_Previews: PreviewProvider {
         
         let mockMetrics = [
             "14": CoreTypes.BuildingMetrics(
+                buildingId: "14",
                 completionRate: 0.85,
-                activeWorkers: 2,
                 overdueTasks: 0,
+                totalTasks: 10,
+                activeWorkers: 2,
+                overallScore: 0.85,
+                pendingTasks: 2,
+                urgentTasksCount: 0,
                 criticalIssues: 0
             ),
             "1": CoreTypes.BuildingMetrics(
+                buildingId: "1",
                 completionRate: 0.65,
-                activeWorkers: 1,
                 overdueTasks: 2,
+                totalTasks: 8,
+                activeWorkers: 1,
+                overallScore: 0.65,
+                pendingTasks: 3,
+                urgentTasksCount: 1,
                 criticalIssues: 1
             ),
             "2": CoreTypes.BuildingMetrics(
+                buildingId: "2",
                 completionRate: 0.92,
-                activeWorkers: 1,
                 overdueTasks: 0,
+                totalTasks: 12,
+                activeWorkers: 1,
+                overallScore: 0.92,
+                pendingTasks: 1,
+                urgentTasksCount: 0,
                 criticalIssues: 0
             ),
             "3": CoreTypes.BuildingMetrics(
+                buildingId: "3",
                 completionRate: 0.45,
-                activeWorkers: 0,
                 overdueTasks: 5,
+                totalTasks: 15,
+                activeWorkers: 0,
+                overallScore: 0.45,
+                pendingTasks: 8,
+                urgentTasksCount: 2,
                 criticalIssues: 2
             )
         ]

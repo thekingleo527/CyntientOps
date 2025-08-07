@@ -382,7 +382,7 @@ struct ProgressTaskRow: View {
         switch urgency {
         case .emergency, .critical: return .red
         case .urgent, .high: return .orange
-        case .medium: return .yellow
+        case .medium, .normal: return .yellow
         case .low: return .blue
         }
     }

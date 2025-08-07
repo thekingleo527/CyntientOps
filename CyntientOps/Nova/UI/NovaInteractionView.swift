@@ -16,6 +16,7 @@ import Combine
 struct NovaInteractionView: View {
     // MARK: - State Management
     @StateObject private var contextAdapter = WorkerContextEngineAdapter.shared
+    @EnvironmentObject private var novaManager: NovaAIManager
     @Environment(\.dismiss) private var dismiss
     
     @State private var userQuery = ""
@@ -23,6 +24,15 @@ struct NovaInteractionView: View {
     @State private var novaResponses: [NovaResponse] = []
     @State private var processingState: NovaProcessingState = .idle
     @State private var currentContext: NovaContext?
+    
+    // Enhanced Tab System
+    @State private var selectedTab: NovaTab = .chat
+    @State private var showingHolographicView = false
+    
+    // Gesture Navigation State
+    @State private var dragOffset: CGSize = .zero
+    @State private var swipeDirection: SwipeDirection?
+    @State private var lastSwipeTime: Date = Date()
     
     // Enhanced state from AIScenarioSheetView
     @State private var showingEmergencyRepair = false
@@ -52,6 +62,9 @@ struct NovaInteractionView: View {
                     // Nova header with status
                     novaHeader
                     
+                    // Enhanced Tab Bar
+                    enhancedTabBar
+                    
                     // Emergency repair card if needed
                     if shouldShowEmergencyRepair {
                         emergencyRepairCard
@@ -64,51 +77,26 @@ struct NovaInteractionView: View {
                             .transition(.move(edge: .top).combined(with: .opacity))
                     }
                     
-                    // Chat interface
-                    ScrollViewReader { proxy in
-                        ScrollView {
-                            LazyVStack(spacing: 16) {
-                                // Welcome card with context
-                                if novaPrompts.isEmpty && novaResponses.isEmpty {
-                                    welcomeCard
-                                }
-                                
-                                ForEach(Array(chatMessages.enumerated()), id: \.offset) { index, message in
-                                    NovaChatBubble(
-                                        message: message,
-                                        isExpanded: expandedMessageIds.contains(message.id),
-                                        onToggleExpand: { toggleMessageExpansion(message.id) }
-                                    )
-                                    .id(index)
-                                }
-                                
-                                if processingState == .processing {
-                                    NovaProcessingIndicator()
-                                }
-                            }
-                            .padding()
-                        }
-                        .onChange(of: chatMessages.count) { oldCount, newCount in
-                            withAnimation {
-                                proxy.scrollTo(newCount - 1, anchor: .bottom)
-                            }
-                        }
-                    }
+                    // Tab Content
+                    tabContent
                     
-                    // Enhanced input area with quick actions
-                    novaInputBar
+                    // Enhanced input area with quick actions (only for chat tab)
+                    if selectedTab == .chat {
+                        novaInputBar
+                    }
                 }
             }
             .navigationBarTitleDisplayMode(.inline)
+            .navigationBarBackButtonHidden(true)
             .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
+                ToolbarItemGroup(placement: .navigationBarLeading) {
                     Button(action: { dismiss() }) {
                         Image(systemName: "xmark.circle.fill")
                             .foregroundColor(.white.opacity(0.7))
                     }
                 }
                 
-                ToolbarItem(placement: .principal) {
+                ToolbarItemGroup(placement: .principal) {
                     HStack(spacing: 8) {
                         Image(systemName: "brain")
                             .font(.caption)
@@ -119,7 +107,7 @@ struct NovaInteractionView: View {
                     }
                 }
                 
-                ToolbarItem(placement: .navigationBarTrailing) {
+                ToolbarItemGroup(placement: .navigationBarTrailing) {
                     Button(action: { showContextualData.toggle() }) {
                         Image(systemName: showContextualData ? "info.circle.fill" : "info.circle")
                             .foregroundColor(.white.opacity(0.7))
@@ -132,6 +120,486 @@ struct NovaInteractionView: View {
             await initializeNovaContext()
             checkForActiveScenarios()
         }
+        .sheet(isPresented: $showingHolographicView) {
+            // NovaHolographicView temporarily disabled due to module visibility
+            VStack(spacing: 20) {
+                Image(systemName: "cube.transparent")
+                    .font(.system(size: 60))
+                    .foregroundColor(.cyan)
+                
+                Text("🔮 Holographic Mode")
+                    .font(.title)
+                    .foregroundColor(.white)
+                
+                Text("Holographic interface coming soon...")
+                    .foregroundColor(.secondary)
+                
+                Button("Close") {
+                    showingHolographicView = false
+                }
+                .buttonStyle(.borderedProminent)
+            }
+            .padding()
+            .background(.black)
+        }
+    }
+    
+    // MARK: - Enhanced Tab System
+    
+    private var enhancedTabBar: some View {
+        HStack(spacing: 0) {
+            ForEach(NovaTab.allCases, id: \.self) { tab in
+                Button(action: {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                        if tab == .holographic {
+                            showingHolographicView = true
+                        } else {
+                            selectedTab = tab
+                        }
+                    }
+                }) {
+                    VStack(spacing: 6) {
+                        Image(systemName: tab.icon)
+                            .font(.system(size: 18, weight: .medium))
+                            .foregroundColor(selectedTab == tab ? .cyan : .white.opacity(0.6))
+                        
+                        Text(tab.displayName)
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(selectedTab == tab ? .cyan : .white.opacity(0.6))
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(
+                        selectedTab == tab ?
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(.ultraThinMaterial)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(.cyan.opacity(0.5), lineWidth: 1)
+                            ) :
+                        nil
+                    )
+                    .shadow(color: selectedTab == tab ? .cyan.opacity(0.3) : .clear, radius: 3)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(.ultraThinMaterial.opacity(0.8))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(.white.opacity(0.1), lineWidth: 1)
+                )
+        )
+        .padding(.horizontal)
+    }
+    
+    private var tabContent: some View {
+        TabView(selection: $selectedTab) {
+            // Chat Tab
+            chatTabContent
+                .tag(NovaTab.chat)
+            
+            // Map Tab  
+            mapTabContent
+                .tag(NovaTab.map)
+            
+            // Portfolio Tab
+            portfolioTabContent
+                .tag(NovaTab.portfolio)
+        }
+        .tabViewStyle(.page(indexDisplayMode: .never))
+        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: selectedTab)
+        .gesture(tabSwipeGesture)
+    }
+    
+    private var chatTabContent: some View {
+        addContextualGestures(to: 
+            ScrollView {
+                LazyVStack(spacing: 16) {
+                    // Welcome card if no messages
+                    if novaPrompts.isEmpty {
+                        welcomeCard
+                            .padding(.horizontal)
+                    }
+                    
+                    // Chat messages
+                    ForEach(chatMessages) { message in
+                        NovaChatBubble(
+                            message: message,
+                            isExpanded: expandedMessageIds.contains(message.id),
+                            onToggleExpand: {
+                                toggleMessageExpansion(message.id)
+                            }
+                        )
+                        .padding(.horizontal)
+                    }
+                    
+                    // Processing indicator
+                    if processingState == .processing {
+                        NovaProcessingIndicator()
+                            .padding(.horizontal)
+                            .transition(.asymmetric(
+                                insertion: .scale.combined(with: .opacity),
+                                removal: .scale.combined(with: .opacity)
+                            ))
+                    }
+                }
+                .padding(.vertical)
+            }
+        )
+    }
+    
+    private var mapTabContent: some View {
+        addContextualGestures(to:
+            VStack(spacing: 20) {
+            // Map header
+            VStack(spacing: 12) {
+                HStack {
+                    Image(systemName: "map.circle.fill")
+                        .font(.title2)
+                        .foregroundColor(.cyan)
+                    
+                    Text("Building Portfolio Map")
+                        .font(.headline)
+                        .foregroundColor(.white)
+                    
+                    Spacer()
+                }
+                
+                Text("Interactive map view of your assigned buildings")
+                    .font(.subheadline)
+                    .foregroundColor(.white.opacity(0.7))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .padding(20)
+            .background(.ultraThinMaterial)
+            .cornerRadius(16)
+            .padding(.horizontal)
+            
+            // Building cards grid
+            if !contextAdapter.assignedBuildings.isEmpty {
+                ScrollView {
+                    LazyVGrid(columns: [
+                        GridItem(.flexible()),
+                        GridItem(.flexible())
+                    ], spacing: 16) {
+                        ForEach(contextAdapter.assignedBuildings) { building in
+                            buildingMapCard(building)
+                        }
+                    }
+                    .padding(.horizontal)
+                }
+            } else {
+                VStack(spacing: 16) {
+                    Image(systemName: "building.2.crop.circle")
+                        .font(.system(size: 48))
+                        .foregroundColor(.white.opacity(0.3))
+                    
+                    Text("No buildings assigned")
+                        .font(.headline)
+                        .foregroundColor(.white.opacity(0.7))
+                    
+                    Text("Buildings will appear here once assigned")
+                        .font(.subheadline)
+                        .foregroundColor(.white.opacity(0.5))
+                        .multilineTextAlignment(.center)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+            
+            Spacer()
+            }
+        )
+    }
+    
+    private func buildingMapCard(_ building: CoreTypes.NamedCoordinate) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "building.2.fill")
+                    .font(.title3)
+                    .foregroundColor(.cyan)
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(building.name)
+                        .font(.headline)
+                        .foregroundColor(.white)
+                        .lineLimit(1)
+                    
+                    Text(building.address)
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.7))
+                        .lineLimit(2)
+                }
+                
+                Spacer()
+            }
+            
+            // Building stats
+            HStack(spacing: 16) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Tasks")
+                        .font(.caption2)
+                        .foregroundColor(.white.opacity(0.6))
+                    Text("\(contextAdapter.todaysTasks.filter { $0.buildingId == building.id }.count)")
+                        .font(.caption.weight(.semibold))
+                        .foregroundColor(.cyan)
+                }
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Status")
+                        .font(.caption2)
+                        .foregroundColor(.white.opacity(0.6))
+                    Text("Active")
+                        .font(.caption.weight(.semibold))
+                        .foregroundColor(.green)
+                }
+            }
+        }
+        .padding(16)
+        .background(.ultraThinMaterial)
+        .cornerRadius(12)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(.white.opacity(0.1), lineWidth: 1)
+        )
+        .onTapGesture {
+            // Navigate to building detail
+            userQuery = "Show me details for \(building.name)"
+            selectedTab = .chat
+            sendPrompt()
+        }
+    }
+    
+    private var portfolioTabContent: some View {
+        addContextualGestures(to:
+            ScrollView {
+            VStack(spacing: 20) {
+                // Portfolio header
+                VStack(spacing: 12) {
+                    HStack {
+                        Image(systemName: "building.2.crop.circle.fill")
+                            .font(.title2)
+                            .foregroundColor(.cyan)
+                        
+                        Text("Portfolio Overview")
+                            .font(.headline)
+                            .foregroundColor(.white)
+                        
+                        Spacer()
+                    }
+                    
+                    Text("Complete overview of your building portfolio and performance metrics")
+                        .font(.subheadline)
+                        .foregroundColor(.white.opacity(0.7))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .padding(20)
+                .background(.ultraThinMaterial)
+                .cornerRadius(16)
+                .padding(.horizontal)
+                
+                // Portfolio metrics
+                LazyVGrid(columns: [
+                    GridItem(.flexible()),
+                    GridItem(.flexible())
+                ], spacing: 16) {
+                    portfolioMetricCard(
+                        icon: "building.2",
+                        title: "Buildings", 
+                        value: "\(contextAdapter.assignedBuildings.count)",
+                        subtitle: "assigned",
+                        color: .cyan
+                    )
+                    
+                    portfolioMetricCard(
+                        icon: "checklist",
+                        title: "Total Tasks",
+                        value: "\(contextAdapter.todaysTasks.count)",
+                        subtitle: "today",
+                        color: .blue
+                    )
+                    
+                    portfolioMetricCard(
+                        icon: "checkmark.circle.fill",
+                        title: "Completed",
+                        value: "\(contextAdapter.todaysTasks.filter { $0.isCompleted }.count)",
+                        subtitle: "tasks done",
+                        color: .green
+                    )
+                    
+                    portfolioMetricCard(
+                        icon: "exclamationmark.triangle.fill",
+                        title: "Urgent",
+                        value: "\(urgentTaskCount ?? 0)",
+                        subtitle: "high priority",
+                        color: .orange
+                    )
+                }
+                .padding(.horizontal)
+                
+                // Recent activity
+                if !contextAdapter.todaysTasks.isEmpty {
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Text("Recent Activity")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                            
+                            Spacer()
+                        }
+                        
+                        ForEach(contextAdapter.todaysTasks.prefix(3)) { task in
+                            recentActivityItem(task)
+                        }
+                    }
+                    .padding(20)
+                    .background(.ultraThinMaterial)
+                    .cornerRadius(16)
+                    .padding(.horizontal)
+                }
+            }
+            .padding(.vertical)
+            }
+        )
+    }
+    
+    private func portfolioMetricCard(icon: String, title: String, value: String, subtitle: String, color: Color) -> some View {
+        VStack(spacing: 12) {
+            HStack {
+                Image(systemName: icon)
+                    .font(.title3)
+                    .foregroundColor(color)
+                
+                Spacer()
+            }
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text(value)
+                    .font(.title.bold())
+                    .foregroundColor(.white)
+                
+                Text(title)
+                    .font(.headline)
+                    .foregroundColor(.white)
+                
+                Text(subtitle)
+                    .font(.caption)
+                    .foregroundColor(.white.opacity(0.6))
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(16)
+        .background(.ultraThinMaterial)
+        .cornerRadius(12)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(color.opacity(0.3), lineWidth: 1)
+        )
+    }
+    
+    private func recentActivityItem(_ task: CoreTypes.ContextualTask) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle")
+                .font(.title3)
+                .foregroundColor(task.isCompleted ? .green : .white.opacity(0.6))
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text(task.title)
+                    .font(.subheadline)
+                    .foregroundColor(.white)
+                    .lineLimit(1)
+                
+                if let building = contextAdapter.assignedBuildings.first(where: { $0.id == task.buildingId }) {
+                    Text(building.name)
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.7))
+                }
+            }
+            
+            Spacer()
+            
+            Text(task.urgency?.rawValue.capitalized ?? "normal")
+                .font(.caption2.weight(.medium))
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background((task.urgency == .critical) ? Color.red.opacity(0.2) : Color.blue.opacity(0.2))
+                .foregroundColor((task.urgency == .critical) ? .red : .blue)
+                .cornerRadius(8)
+        }
+        .padding(12)
+        .background(Color.white.opacity(0.05))
+        .cornerRadius(8)
+    }
+    
+    // MARK: - Gesture Navigation System
+    
+    private var tabSwipeGesture: some Gesture {
+        DragGesture()
+            .onChanged { value in
+                dragOffset = value.translation
+                
+                // Determine swipe direction
+                if abs(value.translation.width) > abs(value.translation.height) {
+                    if value.translation.width > 50 && Date().timeIntervalSince(lastSwipeTime) > 0.3 {
+                        swipeDirection = .left
+                    } else if value.translation.width < -50 && Date().timeIntervalSince(lastSwipeTime) > 0.3 {
+                        swipeDirection = .right
+                    }
+                }
+            }
+            .onEnded { value in
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                    dragOffset = .zero
+                    
+                    if let direction = swipeDirection {
+                        handleTabSwipe(direction)
+                        lastSwipeTime = Date()
+                        swipeDirection = nil
+                    }
+                }
+            }
+    }
+    
+    private func handleTabSwipe(_ direction: SwipeDirection) {
+        let tabs = NovaTab.allCases.filter { $0 != .holographic }
+        guard let currentIndex = tabs.firstIndex(of: selectedTab) else { return }
+        
+        switch direction {
+        case .left:
+            // Swipe left = go to previous tab
+            if currentIndex > 0 {
+                selectedTab = tabs[currentIndex - 1]
+            }
+        case .right:
+            // Swipe right = go to next tab
+            if currentIndex < tabs.count - 1 {
+                selectedTab = tabs[currentIndex + 1]
+            }
+        }
+    }
+    
+    private func addContextualGestures<Content: View>(to content: Content) -> some View {
+        content
+            .onLongPressGesture(minimumDuration: 0.5) {
+                // Trigger holographic mode on any long press
+                withAnimation(.spring()) {
+                    showingHolographicView = true
+                }
+                
+                // Haptic feedback
+                let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
+                impactFeedback.impactOccurred()
+            }
+            .onTapGesture(count: 2) {
+                // Double tap to show context
+                withAnimation(.spring()) {
+                    showContextualData.toggle()
+                }
+            }
     }
     
     // MARK: - Enhanced View Components
@@ -1141,6 +1609,32 @@ struct NovaInteractionView: View {
 }
 
 // MARK: - Supporting Types
+
+enum SwipeDirection {
+    case left, right
+}
+
+enum NovaTab: CaseIterable {
+    case chat, map, portfolio, holographic
+    
+    var displayName: String {
+        switch self {
+        case .chat: return "Chat"
+        case .map: return "Map"
+        case .portfolio: return "Portfolio"
+        case .holographic: return "Holographic"
+        }
+    }
+    
+    var icon: String {
+        switch self {
+        case .chat: return "message.circle"
+        case .map: return "map.circle"
+        case .portfolio: return "building.2.crop.circle"
+        case .holographic: return "cube.transparent"
+        }
+    }
+}
 
 struct NovaChatMessage: Identifiable {
     let id: String

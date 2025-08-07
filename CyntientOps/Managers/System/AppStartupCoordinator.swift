@@ -69,7 +69,7 @@ public final class AppStartupCoordinator: ObservableObject {
     // MARK: - Public Methods
     
     /// Start the app initialization sequence
-    public func startInitialization() async {
+    public func startInitialization() async throws {
         guard startupPhase == .notStarted else {
             print("⚠️ Initialization already started")
             return
@@ -161,7 +161,7 @@ public final class AppStartupCoordinator: ObservableObject {
         }
         
         // Import operational data if needed
-        try await operationalData.importOperationalDataIfNeeded()
+        let _ = try await operationalData.importRoutinesAndDSNYAsync()
         
         // Wait for initialization
         var attempts = 0

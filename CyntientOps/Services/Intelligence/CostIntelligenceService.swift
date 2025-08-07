@@ -873,6 +873,7 @@ private struct MarketRates {
         let baseCost: Double = switch buildingType {
         case .residential: 8.5
         case .office: 12.0
+        case .commercial: 11.5
         case .retail: 11.0
         case .industrial: 6.5
         case .warehouse: 7.0

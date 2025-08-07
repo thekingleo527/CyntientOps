@@ -151,8 +151,9 @@ struct CyntientOpsApp: App {
             // Create service container
             let container = try await ServiceContainer()
             
-            // Connect Nova AI to intelligence service
+            // Connect Nova AI to intelligence service (bidirectional)
             container.setNovaManager(novaAI)
+            novaAI.setServiceContainer(container)
             
             // Set container
             await MainActor.run {

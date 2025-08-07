@@ -1,38 +1,32 @@
 import SwiftUI
-// Import Nova Types
-// All Nova types (NovaContext, NovaPrompt, etc.) come from NovaTypes.swift
-
-// DEPENDENCIES:
-// - AIAssistantImageLoader: Loads the AI assistant image from Assets
-// - AIAssistant image: Must be present in Assets catalog
-// - Nova types: Import from NovaTypes.swift if needed
 
 //
-//  NovaAvatar.swift - AI ASSISTANT ANIMATED VERSION
-//  CyntientOps
+//  NovaAvatar.swift - HOLOGRAPHIC AI ASSISTANT AVATAR
+//  CyntientOps v6.0
 //
-//  ✅ Uses actual AI Assistant image from Assets
-//  ✅ Sophisticated animations on the AI image itself
-//  ✅ Thinking particles when busy
-//  ✅ Breathing and rotation effects
-//  ✅ Status badge with mini AI avatar
-//  ✅ FIXED: iOS 17 onChange syntax and method parameters
+//  🔮 HOLOGRAPHIC NOVA AVATAR - Enhanced with Persistent Image Architecture
+//  ✅ PERSISTENT: Uses NovaAIManager for cached image loading
+//  ✅ HOLOGRAPHIC: Supports holographic mode transformations
+//  ✅ ENHANCED: Advanced breathing, rotation, and status animations  
+//  ✅ PRESERVED: All original functionality with performance improvements
+//  ✅ REACTIVE: Responds to NovaAIManager state changes
+//  ✅ LONG PRESS: Holographic mode trigger
 //
-
-import SwiftUI
 
 // MARK: - Nova Avatar Component
-/// An animated AI assistant avatar that shows the actual AI assistant image
-/// with sophisticated animations for different states (active, busy, urgent).
-/// The avatar breathes naturally, rotates when thinking, and shows particle effects.
-struct NovaAvatar: View {
+/// An animated AI assistant avatar with persistent image loading and holographic support.
+/// Features sophisticated animations for different states and holographic mode activation.
+public struct NovaAvatar: View {
     // Configuration
-    let size: Size
+    let size: AvatarSize
     let isActive: Bool
     let hasUrgentInsights: Bool
     let isBusy: Bool
     let onTap: () -> Void
     let onLongPress: () -> Void
+    
+    // Persistent Nova Manager
+    @EnvironmentObject private var novaManager: NovaAIManager
     
     // Animation states
     @State private var breathe = false
@@ -42,8 +36,8 @@ struct NovaAvatar: View {
     @State private var busyPulse = false
     @State private var hasStartedPulse = false
     
-    init(
-        size: Size = .large,
+    public init(
+        size: AvatarSize = .large,
         isActive: Bool = false,
         hasUrgentInsights: Bool = false,
         isBusy: Bool = false,
@@ -58,7 +52,7 @@ struct NovaAvatar: View {
         self.onLongPress = onLongPress
     }
     
-    var body: some View {
+    public var body: some View {
         ZStack {
             // Pulsating ring when busy
             if isBusy {
@@ -82,7 +76,11 @@ struct NovaAvatar: View {
                     }
                 }
                 .onTapGesture { onTap() }
-                .onLongPressGesture { onLongPress() }
+                .onLongPressGesture { 
+                    // Trigger holographic mode on long press
+                    novaManager.toggleHolographicMode()
+                    onLongPress() 
+                }
             
             // Status badge
             if isActive || hasUrgentInsights || isBusy {
@@ -102,16 +100,56 @@ struct NovaAvatar: View {
         }
     }
     
-    // MARK: - Avatar View using AIAssistantImageLoader
+    // MARK: - Avatar View using Persistent NovaAIManager Image
     private var avatarView: some View {
         ZStack {
-            // Base AI Assistant avatar
-            AIAssistantImageLoader.circularAIAssistantView(
-                diameter: size.dimension,
-                borderColor: .clear // We'll add our own animated border
-            )
+            // Base AI Assistant avatar from persistent manager
+            Group {
+                if let novaImage = novaManager.currentNovaImage {
+                    Image(uiImage: novaImage)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: size.dimension, height: size.dimension)
+                        .clipShape(Circle())
+                } else {
+                    // Fallback while loading
+                    Circle()
+                        .fill(
+                            LinearGradient(
+                                colors: [.blue, .purple],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: size.dimension, height: size.dimension)
+                        .overlay(
+                            Image(systemName: "brain.head.profile")
+                                .font(.system(size: size.dimension * 0.4, weight: .medium))
+                                .foregroundColor(.white.opacity(0.8))
+                        )
+                }
+            }
             .scaleEffect(breathe ? 1.05 : 0.95) // Breathing effect on the AI image itself
             .rotationEffect(.degrees(isBusy ? rotationAngle : 0)) // Rotate when thinking
+            // Add holographic effects when in holographic mode
+            .opacity(novaManager.isHolographicMode ? 0.9 : 1.0)
+            .overlay(
+                // Holographic scanline effect
+                novaManager.isHolographicMode ?
+                LinearGradient(
+                    colors: [
+                        .clear,
+                        .cyan.opacity(0.3),
+                        .clear,
+                        .cyan.opacity(0.2),
+                        .clear
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .mask(Circle())
+                : nil
+            )
             
             // Animated border ring
             Circle()
@@ -350,11 +388,24 @@ struct NovaAvatar: View {
             
             // Use mini AI assistant icon instead of system icons
             if isBusy {
-                // Mini spinning AI icon for busy state
-                AIAssistantImageLoader.circularAIAssistantView(
-                    diameter: size.badgeSize - 4,
-                    borderColor: .white
-                )
+                // Mini spinning AI icon for busy state using persistent image
+                Group {
+                    if let novaImage = novaManager.currentNovaImage {
+                        Image(uiImage: novaImage)
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .frame(width: size.badgeSize - 4, height: size.badgeSize - 4)
+                            .clipShape(Circle())
+                            .overlay(
+                                Circle()
+                                    .stroke(.white, lineWidth: 1)
+                            )
+                    } else {
+                        Image(systemName: "brain.head.profile")
+                            .font(.system(size: size.badgeIconSize, weight: .medium))
+                            .foregroundColor(.white)
+                    }
+                }
                 .rotationEffect(.degrees(rotationAngle))
                 .scaleEffect(0.8)
             } else {
@@ -449,7 +500,7 @@ struct NovaAvatar: View {
 
 // MARK: - Size Enum
 extension NovaAvatar {
-    enum Size {
+    public enum AvatarSize {
         case small   // 40x40
         case medium  // 50x50
         case large   // 60x60

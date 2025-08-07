@@ -172,6 +172,7 @@ public struct CoreTypes {
     public enum WorkerStatus: String, Codable, CaseIterable {
         case available = "Available"
         case clockedIn = "Clocked In"
+        case clockedOut = "Clocked Out"
         case onBreak = "On Break"
         case offline = "Offline"
     }
@@ -231,6 +232,7 @@ public struct CoreTypes {
         case office = "Office"
         case residential = "Residential"
         case retail = "Retail"
+        case commercial = "Commercial"
         case industrial = "Industrial"
         case warehouse = "Warehouse"
         case medical = "Medical"
@@ -259,6 +261,7 @@ public struct CoreTypes {
         // Additional properties for compatibility
         public var serviceLevel: Double { completionRate }
         public var complianceScore: Double { isCompliant ? 1.0 : 0.5 }
+        public var efficiency: Double { completionRate * 0.9 } // Efficiency based on completion rate
         public var costVariance: Double { 0.05 } // Mock value
         public var leadWorker: String? { nil }
         public var taskCount: Int { totalTasks }
@@ -1478,22 +1481,34 @@ public struct CoreTypes {
     
     public enum WeatherCondition: String, Codable, CaseIterable {
         case clear = "clear"
+        case sunny = "sunny"
         case cloudy = "cloudy"
+        case overcast = "overcast"
         case rain = "rain"
         case snow = "snow"
+        case snowy = "snowy"
         case storm = "storm"
         case fog = "fog"
+        case foggy = "foggy"
         case windy = "windy"
+        case hot = "hot"
+        case cold = "cold"
         
         public var icon: String {
             switch self {
             case .clear: return "sun.max"
+            case .sunny: return "sun.max.fill"
             case .cloudy: return "cloud"
+            case .overcast: return "cloud.fill"
             case .rain: return "cloud.rain"
             case .snow: return "snowflake"
+            case .snowy: return "cloud.snow"
             case .storm: return "cloud.bolt"
             case .fog: return "cloud.fog"
+            case .foggy: return "cloud.fog.fill"
             case .windy: return "wind"
+            case .hot: return "thermometer.sun"
+            case .cold: return "thermometer.snowflake"
             }
         }
     }

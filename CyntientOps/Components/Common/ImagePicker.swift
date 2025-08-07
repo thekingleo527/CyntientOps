@@ -342,7 +342,7 @@ struct FrancoBuildingPhotoCaptureView: View {
             }
         }
         .onAppear {
-            locationManager.requestLocation()
+            locationManager.requestSingleUpdate()
         }
     }
 }
@@ -703,7 +703,7 @@ class FrancoPhotoGalleryViewModel: ObservableObject {
     private let locationManager = LocationManager.shared
     
     init() {
-        locationManager.requestLocation()
+        locationManager.requestSingleUpdate()
     }
     
     func loadPhotos(for buildingId: String) async {

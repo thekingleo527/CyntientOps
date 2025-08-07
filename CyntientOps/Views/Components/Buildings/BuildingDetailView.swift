@@ -225,7 +225,7 @@ struct BuildingDetailView: View {
                 }
                 
                 // Status information
-                HStack(alignment: Alignment.bottom) {
+                HStack(alignment: .bottom) {
                     VStack(alignment: .leading, spacing: 12) {
                         // Building type badge
                         HStack(spacing: 6) {
@@ -240,7 +240,7 @@ struct BuildingDetailView: View {
                         .padding(.vertical, 6)
                         .background(
                             CyntientOpsDesign.DashboardColors.glassOverlay
-                                .overlay(CyntientOpsDesign.glassBorder())
+                                .overlay(RoundedRectangle(cornerRadius: 12).stroke(CyntientOpsDesign.DashboardColors.borderSubtle, lineWidth: 1))
                         )
                         .cornerRadius(20)
                         
@@ -379,7 +379,7 @@ struct BuildingDetailView: View {
         .padding(.vertical, 12)
         .background(
             CyntientOpsDesign.DashboardColors.glassOverlay
-                .overlay(CyntientOpsDesign.glassBorder())
+                .overlay(RoundedRectangle(cornerRadius: 12).stroke(CyntientOpsDesign.DashboardColors.borderSubtle, lineWidth: 1))
         )
     }
     
@@ -477,7 +477,7 @@ struct BuildingDetailView: View {
                 } label: {
                     ZStack {
                         Circle()
-                            .fill(CyntientOpsDesign.DashboardGradients.accentGradient)
+                            .fill(CyntientOpsDesign.DashboardGradients.successGradient)
                             .frame(width: 56, height: 56)
                         
                         Image(systemName: "plus")
@@ -1517,8 +1517,12 @@ struct BuildingInventoryTab: View {
             } else {
                 VStack(spacing: 12) {
                     ForEach(filteredInventoryItems) { item in
-                        BuildingInventoryItemRow(item: item) { updatedItem in
-                            viewModel.updateInventoryItem(updatedItem)
+                        BuildingInventoryItemRow(
+                            item: item,
+                            buildingId: buildingId
+                        ) { newQuantity in
+                            // Handle quantity update - the component itself will handle the database update
+                            // The viewModel.updateInventoryItem is a placeholder for future implementation
                         }
                     }
                 }
@@ -2314,7 +2318,7 @@ struct MaintenanceTaskRow: View {
     private var urgencyColor: Color {
         switch task.urgency {
         case .low: return .green
-        case .medium: return .yellow
+        case .medium, .normal: return .yellow
         case .high: return .orange
         case .urgent: return .purple
         case .critical, .emergency: return .red
@@ -2772,8 +2776,7 @@ struct MaintenanceTaskDetailSheet: View {
     var body: some View {
         NavigationView {
             MaintenanceTaskView(
-                task: task,
-                buildingName: buildingName
+                task: task
             )
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

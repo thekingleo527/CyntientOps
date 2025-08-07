@@ -440,7 +440,7 @@ struct AdminDashboardView: View {
 // MARK: - Nova Components
 
 struct NovaAvatarView: View {
-    let state: NovaAIManager.NovaState
+    let state: NovaState
     let size: CGFloat
     let hasUrgent: Bool
     
@@ -533,7 +533,7 @@ struct NovaAvatarView: View {
 
 // NovaIntelligenceBar component is imported from Components/Nova/
 struct AdminNovaIntelligenceBar: View {
-    let novaState: NovaAIManager.NovaState
+    let novaState: NovaState
     let insights: [CoreTypes.IntelligenceInsight]
     @Binding var isExpanded: Bool
     let onTap: () -> Void

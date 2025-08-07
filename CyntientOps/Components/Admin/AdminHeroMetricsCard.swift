@@ -22,7 +22,7 @@ struct AdminHeroMetricsCard: View {
     private var averageEfficiency: Double {
         let metrics = Array(buildingMetrics.values)
         guard !metrics.isEmpty else { return 0.0 }
-        return metrics.map { $0.efficiency ?? 0.0 }.reduce(0, +) / Double(metrics.count)
+        return metrics.map { $0.efficiency }.reduce(0, +) / Double(metrics.count)
     }
     
     var body: some View {
@@ -183,30 +183,49 @@ struct AdminHeroMetric: View {
 struct AdminHeroMetricsCard_Previews: PreviewProvider {
     static var previews: some View {
         let mockSummary = AdminPortfolioSummary(
-            completionPercentage: "78%",
-            complianceScore: 0.85,
+            totalBuildings: 18,
+            totalWorkers: 8,
+            activeWorkers: 6,
+            totalTasks: 150,
             completedTasks: 124,
+            pendingTasks: 26,
             criticalInsights: 3,
-            todaysPhotoCount: 89,
+            completionRate: 0.78,
+            averageTaskTime: 45.0,
+            overdueTasks: 4,
+            complianceScore: 0.85,
+            completionPercentage: "78%",
             efficiencyDescription: "Operating efficiently across all buildings",
-            efficiencyStatus: AdminEfficiencyStatus(
+            efficiencyStatus: AdminPortfolioSummary.EfficiencyStatus(
                 icon: "checkmark.circle.fill",
-                color: .green
-            )
+                color: .green,
+                description: "Excellent performance"
+            ),
+            todaysPhotoCount: 89
         )
         
         let mockMetrics = [
             "1": CoreTypes.BuildingMetrics(
+                buildingId: "1",
                 completionRate: 0.85,
-                activeWorkers: 2,
                 overdueTasks: 1,
-                efficiency: 0.88
+                totalTasks: 10,
+                activeWorkers: 2,
+                overallScore: 0.85,
+                pendingTasks: 2,
+                urgentTasksCount: 1,
+                criticalIssues: 0
             ),
             "2": CoreTypes.BuildingMetrics(
+                buildingId: "2", 
                 completionRate: 0.72,
-                activeWorkers: 1,
                 overdueTasks: 3,
-                efficiency: 0.75
+                totalTasks: 15,
+                activeWorkers: 1,
+                overallScore: 0.72,
+                pendingTasks: 4,
+                urgentTasksCount: 3,
+                criticalIssues: 1
             )
         ]
         

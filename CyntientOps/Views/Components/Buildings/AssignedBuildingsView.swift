@@ -160,7 +160,7 @@ struct AssignedBuildingsView: View {
             for building in assignedBuildings {
                 group.addTask {
                     do {
-                        let metrics = try await self.buildingService.getMetrics(for: building.id)
+                        let metrics = try await self.buildingService.getBuildingMetrics(building.id)
                         return (building.id, metrics)
                     } catch {
                         return (building.id, nil)
@@ -197,12 +197,12 @@ struct AssignedBuildingCard: View {
     
     var body: some View {
         HStack(spacing: CyntientOpsDesign.Spacing.md) {
-            // Building image using MySitesCard
-            MySitesCard(
+            // Building image using PropertyCard
+            PropertyCard(
                 building: building,
                 metrics: metrics,
-                showMetrics: false,
-                style: .compact
+                mode: .worker,
+                onTap: { }
             )
             .frame(width: 60, height: 60)
             
@@ -222,19 +222,19 @@ struct AssignedBuildingCard: View {
                 HStack(spacing: CyntientOpsDesign.Spacing.sm) {
                     if isCurrentBuilding {
                         BuildingStatusBadge(
-                            title: "CURRENT",
+                            label: "CURRENT",
                             icon: "location.fill",
                             color: CyntientOpsDesign.DashboardColors.success
                         )
                     } else if isPrimaryAssignment {
                         BuildingStatusBadge(
-                            title: "PRIMARY",
+                            label: "PRIMARY",
                             icon: "star.fill",
                             color: CyntientOpsDesign.DashboardColors.warning
                         )
                     } else {
                         BuildingStatusBadge(
-                            title: "Assigned",
+                            label: "Assigned",
                             icon: "checkmark.circle.fill",
                             color: CyntientOpsDesign.DashboardColors.info
                         )

@@ -41,13 +41,29 @@ struct AdminReportsView: View {
     @State private var showingReportPreview = false
     @State private var showingTemplateLibrary = false
     @State private var showingDistributionSettings = false
-    @State private var currentReport: GeneratedReport?
+    @State private var currentReport: AdminGeneratedReport?
     @State private var isGenerating = false
     @State private var searchText = ""
     @State private var filterCategory: ReportCategory = .all
     
     // Intelligence panel state
     @AppStorage("reportsPanelPreference") private var userPanelPreference: IntelPanelState = .collapsed
+    
+    // MARK: - Mock Data Properties
+    @State private var mockGeneratedReports: [AdminGeneratedReport] = []
+    @State private var mockScheduledReports: [ReportSchedule] = []
+    @State private var mockReportTemplates: [ReportTemplate] = []
+    @State private var mockTotalReportsGenerated = 47
+    @State private var mockAvgGenerationTime: Double = 23.5
+    @State private var mockLastGeneratedDate: Date? = Date().addingTimeInterval(-3600)
+    @State private var mockFavoriteReports: [AdminGeneratedReport] = []
+    @State private var mockAllReports: [AdminGeneratedReport] = []
+    @State private var mockFeaturedTemplates: [ReportTemplate] = []
+    @State private var mockPendingReports: [AdminGeneratedReport] = []
+    @State private var mockOverdueReports: [AdminGeneratedReport] = []
+    @State private var mockMostUsedTemplate: ReportTemplate?
+    @State private var mockDistributionSettings: DistributionSettings?
+    @State private var mockMonthlyReportCount = 15
     
     // MARK: - Enums
     
@@ -159,8 +175,8 @@ struct AdminReportsView: View {
         }
     }
     
-    private var filteredReports: [GeneratedReport] {
-        reportService.generatedReports.filter { report in
+    private var filteredReports: [AdminGeneratedReport] {
+        mockGeneratedReports.filter { report in
             let matchesSearch = searchText.isEmpty ||
                 report.name.localizedCaseInsensitiveContains(searchText) ||
                 report.type.rawValue.localizedCaseInsensitiveContains(searchText)
@@ -180,8 +196,8 @@ struct AdminReportsView: View {
     }
     
     private func hasReportingInsights() -> Bool {
-        reportService.pendingReports.count > 0 ||
-        reportService.overdueReports.count > 0 ||
+        mockPendingReports.count > 0 ||
+        mockOverdueReports.count > 0 ||
         reportGen.hasQueuedReports
     }
     
@@ -202,11 +218,11 @@ struct AdminReportsView: View {
                         // Collapsible Reports Hero
                         CollapsibleReportsHeroWrapper(
                             isCollapsed: $isHeroCollapsed,
-                            totalReports: reportService.totalReportsGenerated,
-                            scheduledReports: reportService.scheduledReports.count,
-                            lastGenerated: reportService.lastGeneratedDate,
-                            avgGenerationTime: reportService.avgGenerationTime,
-                            favoriteReports: reportService.favoriteReports,
+                            totalReports: mockTotalReportsGenerated,
+                            scheduledReports: mockScheduledReports.count,
+                            lastGenerated: mockLastGeneratedDate,
+                            avgGenerationTime: mockAvgGenerationTime,
+                            favoriteReports: mockFavoriteReports,
                             onGenerateNow: { showingReportBuilder = true },
                             onSchedule: { showingScheduleSetup = true },
                             onViewHistory: { showingReportHistory = true },
@@ -218,7 +234,7 @@ struct AdminReportsView: View {
                         quickReportSection
                         
                         // Scheduled Reports (if any)
-                        if !reportService.scheduledReports.isEmpty {
+                        if !mockScheduledReports.isEmpty {
                             scheduledReportsSection
                         }
                         
@@ -274,7 +290,7 @@ struct AdminReportsView: View {
         }
         .sheet(isPresented: $showingScheduleSetup) {
             ScheduleReportSheet(
-                availableReports: reportService.reportTemplates,
+                availableReports: mockReportTemplates,
                 onSchedule: { schedule in
                     scheduleReport(schedule)
                 }
@@ -292,7 +308,7 @@ struct AdminReportsView: View {
         }
         .sheet(isPresented: $showingReportHistory) {
             ReportHistorySheet(
-                reports: reportService.allReports,
+                reports: mockAllReports,
                 onSelect: { report in
                     currentReport = report
                     showingReportPreview = true
@@ -317,7 +333,7 @@ struct AdminReportsView: View {
         }
         .sheet(isPresented: $showingTemplateLibrary) {
             TemplateLibrarySheet(
-                templates: reportService.reportTemplates,
+                templates: mockReportTemplates,
                 onSelect: { template in
                     applyTemplate(template)
                 }
@@ -325,7 +341,7 @@ struct AdminReportsView: View {
         }
         .sheet(isPresented: $showingDistributionSettings) {
             DistributionSettingsSheet(
-                currentSettings: reportService.distributionSettings,
+                currentSettings: mockDistributionSettings,
                 onSave: { settings in
                     updateDistributionSettings(settings)
                 }
@@ -333,7 +349,7 @@ struct AdminReportsView: View {
         }
         .onAppear {
             Task {
-                await reportService.loadReportData()
+                await loadReportData()
             }
         }
     }
@@ -349,7 +365,7 @@ struct AdminReportsView: View {
                         .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                     
                     HStack(spacing: 8) {
-                        Text("\(reportService.totalReportsGenerated)")
+                        Text("\(mockTotalReportsGenerated)")
                             .francoTypography(CyntientOpsDesign.Typography.headline)
                             .foregroundColor(CyntientOpsDesign.DashboardColors.success)
                         
@@ -500,7 +516,7 @@ struct AdminReportsView: View {
             
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 12) {
-                    ForEach(reportService.scheduledReports.prefix(5)) { schedule in
+                    ForEach(mockScheduledReports.prefix(5)) { schedule in
                         ScheduledReportCard(
                             schedule: schedule,
                             onEdit: {
@@ -632,7 +648,7 @@ struct AdminReportsView: View {
                 GridItem(.flexible()),
                 GridItem(.flexible())
             ], spacing: 12) {
-                ForEach(reportService.featuredTemplates.prefix(4)) { template in
+                ForEach(mockFeaturedTemplates.prefix(4)) { template in
                     TemplateCard(
                         template: template,
                         onUse: {
@@ -701,18 +717,61 @@ struct AdminReportsView: View {
     
     // MARK: - Helper Methods
     
+    private func loadReportData() async {
+        // Initialize mock data
+        mockGeneratedReports = createMockGeneratedReports()
+        mockScheduledReports = createMockScheduledReports()
+        mockReportTemplates = createMockReportTemplates()
+        mockFeaturedTemplates = Array(mockReportTemplates.prefix(4))
+        mockAllReports = mockGeneratedReports
+        mockFavoriteReports = mockGeneratedReports.filter { $0.isFavorite }
+        mockPendingReports = []
+        mockOverdueReports = []
+        mockMostUsedTemplate = mockReportTemplates.first
+        mockDistributionSettings = DistributionSettings(emailRecipients: [], slackChannels: [], autoSend: false)
+    }
+    
     private func refreshReportData() async {
-        await reportService.refreshData()
+        await loadReportData()
+    }
+    
+    private func createMockGeneratedReports() -> [AdminGeneratedReport] {
+        return [
+            AdminGeneratedReport(name: "Compliance Report - Q4 2024", type: .compliance, generatedDate: Date().addingTimeInterval(-3600), fileSize: "2.4 MB", isFavorite: true, isScheduled: false, isArchived: false),
+            AdminGeneratedReport(name: "Performance Analytics - December", type: .performance, generatedDate: Date().addingTimeInterval(-7200), fileSize: "1.8 MB", isFavorite: false, isScheduled: true, isArchived: false),
+            AdminGeneratedReport(name: "Financial Summary - 2024", type: .financial, generatedDate: Date().addingTimeInterval(-10800), fileSize: "3.2 MB", isFavorite: true, isScheduled: false, isArchived: false),
+            AdminGeneratedReport(name: "Operations Digest - Weekly", type: .operations, generatedDate: Date().addingTimeInterval(-14400), fileSize: "1.5 MB", isFavorite: false, isScheduled: true, isArchived: false),
+            AdminGeneratedReport(name: "Executive Summary - November", type: .executive, generatedDate: Date().addingTimeInterval(-18000), fileSize: "900 KB", isFavorite: false, isScheduled: false, isArchived: false)
+        ]
+    }
+    
+    private func createMockScheduledReports() -> [ReportSchedule] {
+        return [
+            ReportSchedule(name: "Weekly Operations", type: .operations, frequency: .weekly, nextRun: Date().addingTimeInterval(86400), isEnabled: true),
+            ReportSchedule(name: "Monthly Compliance", type: .compliance, frequency: .monthly, nextRun: Date().addingTimeInterval(172800), isEnabled: true),
+            ReportSchedule(name: "Quarterly Executive", type: .executive, frequency: .quarterly, nextRun: Date().addingTimeInterval(259200), isEnabled: false)
+        ]
+    }
+    
+    private func createMockReportTemplates() -> [ReportTemplate] {
+        return [
+            ReportTemplate(name: "Standard Compliance", type: .compliance, icon: "checkmark.shield.fill", color: .orange, usageCount: 23, description: "Complete compliance overview"),
+            ReportTemplate(name: "Performance Dashboard", type: .performance, icon: "chart.line.uptrend.xyaxis", color: .green, usageCount: 18, description: "Key performance indicators"),
+            ReportTemplate(name: "Financial Overview", type: .financial, icon: "dollarsign.circle.fill", color: .blue, usageCount: 15, description: "Comprehensive financial analysis"),
+            ReportTemplate(name: "Operations Summary", type: .operations, icon: "gear", color: .purple, usageCount: 12, description: "Daily operations report"),
+            ReportTemplate(name: "Executive Brief", type: .executive, icon: "briefcase.fill", color: .red, usageCount: 9, description: "High-level executive summary"),
+            ReportTemplate(name: "Custom Analytics", type: .custom, icon: "slider.horizontal.3", color: .gray, usageCount: 6, description: "Customizable report template")
+        ]
     }
     
     private func getReportingInsights() -> [CoreTypes.IntelligenceInsight] {
         var insights: [CoreTypes.IntelligenceInsight] = []
         
         // Critical: Overdue reports
-        if reportService.overdueReports.count > 0 {
+        if mockOverdueReports.count > 0 {
             insights.append(CoreTypes.IntelligenceInsight(
                 id: UUID().uuidString,
-                title: "\(reportService.overdueReports.count) overdue reports",
+                title: "\(mockOverdueReports.count) overdue reports",
                 description: "Scheduled reports failed to generate",
                 type: .operations,
                 priority: .critical,
@@ -735,7 +794,7 @@ struct AdminReportsView: View {
         }
         
         // Medium: Popular report template
-        if let popular = reportService.mostUsedTemplate {
+        if let popular = mockMostUsedTemplate {
             insights.append(CoreTypes.IntelligenceInsight(
                 id: UUID().uuidString,
                 title: "Popular template: \(popular.name)",
@@ -748,11 +807,11 @@ struct AdminReportsView: View {
         }
         
         // Low: Optimization opportunity
-        if reportService.avgGenerationTime > 30 {
+        if mockAvgGenerationTime > 30 {
             insights.append(CoreTypes.IntelligenceInsight(
                 id: UUID().uuidString,
                 title: "Report optimization available",
-                description: "Average generation time: \(Int(reportService.avgGenerationTime))s",
+                description: "Average generation time: \(Int(mockAvgGenerationTime))s",
                 type: .efficiency,
                 priority: .low,
                 actionRequired: false,
@@ -761,17 +820,22 @@ struct AdminReportsView: View {
         }
         
         // Add Nova AI insights
-        insights.append(contentsOf: novaEngine.insights.filter {
-            $0.type == .operations || $0.type == .efficiency
-        })
+        let operationalInsights = novaEngine.insights.filter { insight in
+            insight.type == .operations || insight.type == .efficiency
+        }
+        insights.append(contentsOf: operationalInsights)
         
-        return insights.sorted { $0.priority.rawValue > $1.priority.rawValue }
+        // Sort by priority (highest first)
+        let sortedInsights = insights.sorted { lhs, rhs in
+            lhs.priority.rawValue > rhs.priority.rawValue
+        }
+        return sortedInsights
     }
     
     private func handleIntelligenceNavigation(_ target: ReportIntelligencePanel.NavigationTarget) {
         switch target {
         case .report(let id):
-            if let report = reportService.allReports.first(where: { $0.id == id }) {
+            if let report = mockAllReports.first(where: { $0.id == id }) {
                 currentReport = report
                 showingReportPreview = true
             }
@@ -832,12 +896,12 @@ struct AdminReportsView: View {
     }
     
     private func scheduleReport(_ schedule: ReportSchedule) {
-        reportService.scheduleReport(schedule)
+        mockScheduledReports.append(schedule)
         showingScheduleSetup = false
     }
     
-    private func exportReport(_ report: GeneratedReport, format: ExportFormat, to destination: ExportDestination) {
-        reportService.exportReport(report, format: format, to: destination)
+    private func exportReport(_ report: AdminGeneratedReport, format: AdminExportFormat, to destination: ExportDestination) {
+        // Mock export functionality
         showingExportOptions = false
     }
     
@@ -851,8 +915,11 @@ struct AdminReportsView: View {
         applyTemplate(template)
     }
     
-    private func toggleFavorite(_ report: GeneratedReport) {
-        reportService.toggleFavorite(report)
+    private func toggleFavorite(_ report: AdminGeneratedReport) {
+        // Mock toggle favorite functionality
+        if let index = mockGeneratedReports.firstIndex(where: { $0.id == report.id }) {
+            mockGeneratedReports[index].isFavorite.toggle()
+        }
     }
     
     private func editSchedule(_ schedule: ReportSchedule) {
@@ -860,11 +927,14 @@ struct AdminReportsView: View {
     }
     
     private func disableSchedule(_ schedule: ReportSchedule) {
-        reportService.disableSchedule(schedule)
+        // Mock disable schedule functionality
+        if let index = mockScheduledReports.firstIndex(where: { $0.id == schedule.id }) {
+            mockScheduledReports.remove(at: index)
+        }
     }
     
     private func updateDistributionSettings(_ settings: DistributionSettings) {
-        reportService.updateDistributionSettings(settings)
+        // Mock update distribution settings functionality
         showingDistributionSettings = false
     }
 }
@@ -878,7 +948,7 @@ struct CollapsibleReportsHeroWrapper: View {
     let scheduledReports: Int
     let lastGenerated: Date?
     let avgGenerationTime: Double
-    let favoriteReports: [GeneratedReport]
+    let favoriteReports: [AdminGeneratedReport]
     
     let onGenerateNow: () -> Void
     let onSchedule: () -> Void
@@ -992,7 +1062,7 @@ struct ReportsHeroStatusCard: View {
     let scheduledReports: Int
     let lastGenerated: Date?
     let avgGenerationTime: Double
-    let favoriteReports: [GeneratedReport]
+    let favoriteReports: [AdminGeneratedReport]
     
     let onGenerateNow: () -> Void
     let onSchedule: () -> Void
@@ -1088,14 +1158,14 @@ struct ReportsHeroStatusCard: View {
             
             ReportMetricCard(
                 title: "This Month",
-                value: "\(ReportService.shared.monthlyReportCount)",
+                value: "\(self.mockMonthlyReportCount)",
                 icon: "calendar",
                 color: CyntientOpsDesign.DashboardColors.warning
             )
             
             ReportMetricCard(
                 title: "Templates",
-                value: "\(ReportService.shared.reportTemplates.count)",
+                value: "\(self.mockReportTemplates.count)",
                 icon: "doc.on.doc",
                 color: CyntientOpsDesign.DashboardColors.tertiaryAction
             )
@@ -1223,7 +1293,7 @@ struct ScheduledReportCard: View {
 }
 
 struct ReportRowCard: View {
-    let report: GeneratedReport
+    let report: AdminGeneratedReport
     let onView: () -> Void
     let onExport: () -> Void
     let onFavorite: () -> Void
@@ -1328,7 +1398,7 @@ struct EmptyReportsState: View {
 }
 
 struct FavoriteReportChip: View {
-    let report: GeneratedReport
+    let report: AdminGeneratedReport
     
     var body: some View {
         HStack(spacing: 4) {
@@ -1517,7 +1587,7 @@ struct ReportIntelligencePanel: View {
     }
     
     private var isProcessing: Bool {
-        NovaAIManager.shared.processingState != .idle
+        NovaAIManager.shared.novaState != .idle
     }
     
     private func handleInsightAction(_ insight: CoreTypes.IntelligenceInsight) {
@@ -1632,8 +1702,8 @@ struct ScheduleReportSheet: View {
 }
 
 struct ExportOptionsSheet: View {
-    let report: GeneratedReport
-    let onExport: (ExportFormat, ExportDestination) -> Void
+    let report: AdminGeneratedReport
+    let onExport: (AdminExportFormat, ExportDestination) -> Void
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
@@ -1653,8 +1723,8 @@ struct ExportOptionsSheet: View {
 }
 
 struct ReportHistorySheet: View {
-    let reports: [GeneratedReport]
-    let onSelect: (GeneratedReport) -> Void
+    let reports: [AdminGeneratedReport]
+    let onSelect: (AdminGeneratedReport) -> Void
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
@@ -1671,7 +1741,7 @@ struct ReportHistorySheet: View {
 }
 
 struct ReportPreviewSheet: View {
-    let report: GeneratedReport
+    let report: AdminGeneratedReport
     let onExport: () -> Void
     let onDismiss: () -> Void
     
@@ -1729,6 +1799,23 @@ struct DistributionSettingsSheet: View {
 
 // MARK: - Supporting Types
 
+struct AdminGeneratedReport: Identifiable {
+    let id = UUID().uuidString
+    let name: String
+    let type: AdminReportsView.ReportType
+    let generatedDate: Date
+    let fileSize: String
+    var isFavorite: Bool
+    let isScheduled: Bool
+    let isArchived: Bool
+}
+
+enum AdminExportFormat: String, CaseIterable {
+    case pdf = "PDF"
+    case csv = "CSV"
+    case excel = "Excel"
+    case json = "JSON"
+}
 
 struct ReportTemplate: Identifiable {
     let id = UUID().uuidString
@@ -1746,7 +1833,7 @@ struct ReportSchedule: Identifiable {
     let type: AdminReportsView.ReportType
     let frequency: Frequency
     let nextRun: Date
-    let isEnabled: Bool
+    var isEnabled: Bool
     
     enum Frequency {
         case daily
@@ -1769,7 +1856,7 @@ struct ReportConfiguration {
     let type: AdminReportsView.ReportType
     let dateRange: DateInterval
     let includePhotos: Bool
-    let format: ExportFormat
+    let format: AdminExportFormat
 }
 
 struct DistributionSettings {
@@ -1797,9 +1884,9 @@ class ReportGenerator: ObservableObject {
     
     var hasQueuedReports: Bool { queueLength > 0 }
     
-    func generateReport(config: ReportConfiguration) async -> GeneratedReport {
+    func generateReport(config: ReportConfiguration) async -> AdminGeneratedReport {
         // Implementation
-        return GeneratedReport(
+        return AdminGeneratedReport(
             name: "Sample Report",
             type: config.type,
             generatedDate: Date(),
@@ -1834,7 +1921,7 @@ struct AdminReportsView_Previews: PreviewProvider {
     static var previews: some View {
         AdminReportsView()
             .environmentObject(DashboardSyncService.shared)
-            .environmentObject(AdminDashboardViewModel())
+            .environmentObject(AdminDashboardViewModel(container: ServiceContainer.shared))
             .preferredColorScheme(.dark)
     }
 }

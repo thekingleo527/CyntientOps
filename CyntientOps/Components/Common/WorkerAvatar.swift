@@ -341,6 +341,8 @@ extension CoreTypes.WorkerStatus {
         switch self {
         case .available, .clockedIn:
             return CyntientOpsDesign.DashboardColors.success
+        case .clockedOut:
+            return CyntientOpsDesign.DashboardColors.secondaryText
         case .onBreak:
             return CyntientOpsDesign.DashboardColors.warning
         case .offline:

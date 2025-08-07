@@ -134,24 +134,36 @@ struct WeatherDashboardComponent: View {
     private var weatherIcon: String {
         switch weather.condition {
         case .clear: return "sun.max"
+        case .sunny: return "sun.max.fill"
         case .cloudy: return "cloud"
+        case .overcast: return "cloud.fill"
         case .rain: return "cloud.rain"
         case .snow: return "cloud.snow"
+        case .snowy: return "cloud.snow.fill"
         case .storm: return "cloud.bolt"
         case .fog: return "cloud.fog"
+        case .foggy: return "cloud.fog.fill"
         case .windy: return "wind"
+        case .hot: return "thermometer.sun"
+        case .cold: return "thermometer.snowflake"
         }
     }
     
     private var weatherColor: Color {
         switch weather.condition {
         case .clear: return .orange
+        case .sunny: return .yellow
         case .cloudy: return .gray
+        case .overcast: return .gray.opacity(0.8)
         case .rain: return .blue
         case .snow: return .cyan
+        case .snowy: return .cyan.opacity(0.8)
         case .storm: return .purple
         case .fog: return .gray.opacity(0.7)
+        case .foggy: return .gray.opacity(0.5)
         case .windy: return .mint
+        case .hot: return .red
+        case .cold: return .blue.opacity(0.7)
         }
     }
 }

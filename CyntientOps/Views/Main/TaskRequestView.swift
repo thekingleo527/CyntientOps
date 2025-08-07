@@ -121,8 +121,6 @@ final class TaskRequestViewModel: ObservableObject {
             id: UUID().uuidString,
             title: taskName,
             description: taskDescription,
-            isCompleted: false,
-            completedDate: nil,
             dueDate: selectedDate,
             category: selectedCategory,
             urgency: selectedUrgency,
@@ -784,6 +782,7 @@ struct TaskRequestHelpers {
         switch urgency {
         case .low: return .green
         case .medium: return .yellow
+        case .normal: return .blue
         case .high: return .orange
         case .critical: return .red
         case .emergency: return .red
@@ -1128,6 +1127,9 @@ extension CoreTypes.InventoryItem {
         case .general: return "items"
         case .office: return "items"
         case .maintenance: return "items"
+        case .building: return "items"
+        case .sanitation: return "items"  
+        case .seasonal: return "items"
         case .other: return "items"
         }
     }

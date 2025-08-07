@@ -25,8 +25,32 @@ struct ClientDashboardMainView: View {
     @State private var selectedTab: DashboardTab = .overview
     @State private var selectedBuildingId: String?
     @State private var showingBuildingSelector = false
+    @State private var isPortfolioHeroCollapsed = false
+    @State private var showCostData = true
     @State private var showingProfile = false
     @State private var refreshID = UUID()
+    
+    private var mockClientIntelligence: CoreTypes.ClientPortfolioIntelligence {
+        CoreTypes.ClientPortfolioIntelligence(
+            id: UUID().uuidString,
+            portfolioHealth: contextEngine.portfolioHealth,
+            executiveSummary: CoreTypes.ExecutiveSummary(
+                title: "Portfolio Overview",
+                content: "Your portfolio is performing well",
+                generatedAt: Date()
+            ),
+            benchmarks: [],
+            strategicRecommendations: [],
+            performanceTrends: [85, 87, 89, 91, 93],
+            generatedAt: Date(),
+            totalProperties: contextEngine.clientBuildings.count,
+            serviceLevel: 0.92,
+            complianceScore: 87,
+            complianceIssues: 3,
+            monthlyTrend: .up,
+            coveragePercentage: 0.94
+        )
+    }
     
     // MARK: - Tab Structure
     enum DashboardTab: String, CaseIterable {
@@ -77,7 +101,7 @@ struct ClientDashboardMainView: View {
                 // Bottom Tab Bar
                 clientTabBar
             }
-            .background(CyntientOpsDesign.BackgroundColors.primary)
+            .background(CyntientOpsDesign.DashboardColors.baseBackground)
             .navigationBarHidden(true)
         }
         .preferredColorScheme(.dark)
@@ -85,7 +109,7 @@ struct ClientDashboardMainView: View {
             await contextEngine.refreshContext()
         }
         .refreshable {
-            await viewModel.refreshData()
+            try? await viewModel.refreshData()
             refreshID = UUID()
         }
         .sheet(isPresented: $showingProfile) {
@@ -212,10 +236,8 @@ struct OverviewTabView: View {
             LazyVStack(spacing: 16) {
                 // Portfolio Performance Hero
                 ClientPortfolioHeroCard(
-                    portfolioHealth: contextEngine.portfolioHealth,
-                    realtimeMetrics: contextEngine.realtimeMetrics,
-                    monthlyMetrics: contextEngine.monthlyMetrics,
-                    onDrillDown: { }
+                    intelligence: mockClientIntelligence,
+                    isCollapsed: $isPortfolioHeroCollapsed
                 )
                 
                 // Quick Metrics Grid
@@ -322,7 +344,7 @@ struct ClientBuildingCard: View {
                     
                     MetricIndicator(
                         title: "This Month",
-                        value: "\(metrics.completedTasks)",
+                        value: "\(Int(Double(metrics.totalTasks) * metrics.completionRate))",
                         color: .blue
                     )
                 }
@@ -866,7 +888,7 @@ struct ClientProfileSheet: View {
                 Spacer()
             }
             .padding()
-            .background(CyntientOpsDesign.BackgroundColors.primary)
+            .background(CyntientOpsDesign.DashboardColors.baseBackground)
             .navigationTitle("Profile")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

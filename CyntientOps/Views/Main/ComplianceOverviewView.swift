@@ -1865,6 +1865,12 @@ struct ComplianceExportSheet: View {
         case custom = "Custom"
     }
     
+    enum ExportFormat: String, CaseIterable {
+        case pdf = "PDF"
+        case excel = "Excel"
+        case csv = "CSV"
+    }
+    
     var body: some View {
         NavigationStack {
             ZStack {

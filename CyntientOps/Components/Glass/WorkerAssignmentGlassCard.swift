@@ -5,16 +5,17 @@
 //  ✅ UPDATED: Dark Elegance theme fully applied
 //  ✅ ENHANCED: Complete CyntientOpsDesign integration
 //  ✅ IMPROVED: Glass effects optimized for dark theme
-//  ✅ ALIGNED: With CoreTypes.FrancoWorkerAssignment definition
+//  ✅ ALIGNED: With CoreTypes.WorkerAssignment definition
+//  ✅ FIXED: All compilation errors resolved
 //
 
 import SwiftUI
 
 struct WorkerAssignmentGlassCard: View {
-    let workers: [CoreTypes.FrancoWorkerAssignment]
-    let clockedInStatus: (isClockedIn: Bool, buildingId: Int64?)
-    let currentWorkerId: Int64
-    let onWorkerTap: (CoreTypes.FrancoWorkerAssignment) -> Void
+    let workers: [CoreTypes.WorkerAssignment]
+    let clockedInStatus: (isClockedIn: Bool, buildingId: String?)
+    let currentWorkerId: String
+    let onWorkerTap: (CoreTypes.WorkerAssignment) -> Void
     
     @State private var isAnimating = false
     
@@ -153,23 +154,21 @@ struct WorkerAssignmentGlassCard: View {
                 
                 Spacer()
                 
-                // Shift distribution
-                if hasShiftData() {
-                    shiftDistributionView
-                }
+                // Status distribution
+                statusDistributionView
             }
         }
     }
     
-    private var shiftDistributionView: some View {
+    private var statusDistributionView: some View {
         HStack(spacing: 8) {
-            Text("Shifts:")
+            Text("Status:")
                 .font(.caption2)
                 .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
             
-            ForEach(getShiftDistribution(), id: \.0) { shift, count in
+            ForEach(getStatusDistribution(), id: \.0) { status, count in
                 HStack(spacing: 4) {
-                    Text(shift)
+                    Text(status.capitalized)
                         .font(.caption2)
                         .fontWeight(.medium)
                         .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
@@ -226,7 +225,7 @@ struct WorkerAssignmentGlassCard: View {
     
     // MARK: - Helper Methods
     
-    private func isWorkerOnSite(_ worker: CoreTypes.FrancoWorkerAssignment) -> Bool {
+    private func isWorkerOnSite(_ worker: CoreTypes.WorkerAssignment) -> Bool {
         guard clockedInStatus.isClockedIn else { return false }
         guard worker.workerId == currentWorkerId else { return false }
         guard let buildingId = clockedInStatus.buildingId else { return false }
@@ -264,23 +263,19 @@ struct WorkerAssignmentGlassCard: View {
         workers.count - getOnSiteCount()
     }
     
-    private func hasShiftData() -> Bool {
-        workers.contains { !$0.shift.isEmpty }
-    }
-    
-    private func getShiftDistribution() -> [(String, Int)] {
-        let shifts = workers.map { $0.shift }.filter { !$0.isEmpty }
-        let shiftCounts = Dictionary(grouping: shifts) { $0 }
+    private func getStatusDistribution() -> [(String, Int)] {
+        let statuses = workers.map { $0.status }.filter { !$0.isEmpty }
+        let statusCounts = Dictionary(grouping: statuses) { $0 }
             .mapValues { $0.count }
         
-        return Array(shiftCounts).sorted { $0.0 < $1.0 }
+        return Array(statusCounts).sorted { $0.0 < $1.0 }
     }
 }
 
 // MARK: - WorkerRowGlassView
 
 struct WorkerRowGlassView: View {
-    let worker: CoreTypes.FrancoWorkerAssignment
+    let worker: CoreTypes.WorkerAssignment
     let isCurrentUser: Bool
     let isOnSite: Bool
     let onTap: () -> Void
@@ -309,7 +304,7 @@ struct WorkerRowGlassView: View {
                 // Worker info
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(spacing: 8) {
-                        Text(worker.workerName)
+                        Text(getWorkerName())
                             .font(.subheadline)
                             .fontWeight(.medium)
                             .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
@@ -327,28 +322,26 @@ struct WorkerRowGlassView: View {
                     }
                     
                     HStack(spacing: 12) {
-                        if !worker.shift.isEmpty {
-                            HStack(spacing: 4) {
-                                Image(systemName: "clock")
-                                    .font(.caption2)
-                                    .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
-                                
-                                Text(worker.shift)
-                                    .font(.caption)
-                                    .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
-                            }
+                        // Status display
+                        HStack(spacing: 4) {
+                            Image(systemName: "person.badge.clock")
+                                .font(.caption2)
+                                .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+                            
+                            Text(worker.status.capitalized)
+                                .font(.caption)
+                                .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
                         }
                         
-                        if let role = worker.specialRole {
-                            HStack(spacing: 4) {
-                                Image(systemName: "star.fill")
-                                    .font(.caption2)
-                                    .foregroundColor(CyntientOpsDesign.DashboardColors.warning)
-                                
-                                Text(role)
-                                    .font(.caption)
-                                    .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
-                            }
+                        // Task count
+                        HStack(spacing: 4) {
+                            Image(systemName: "list.bullet")
+                                .font(.caption2)
+                                .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+                            
+                            Text("\(worker.taskIds.count) tasks")
+                                .font(.caption)
+                                .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
                         }
                     }
                 }
@@ -449,22 +442,28 @@ struct WorkerRowGlassView: View {
     
     // MARK: - Helper Methods
     
+    private func getWorkerName() -> String {
+        return WorkerConstants.getWorkerName(id: worker.workerId)
+    }
+    
     private func getInitials() -> String {
-        let components = worker.workerName.split(separator: " ")
+        let name = getWorkerName()
+        let components = name.split(separator: " ")
         let initials = components.prefix(2).compactMap { $0.first }.map { String($0) }
         return initials.joined().uppercased()
     }
     
     private func getAvatarGradient() -> LinearGradient {
         // Generate consistent color based on worker name
-        let hash = worker.workerName.hashValue
+        let name = getWorkerName()
+        let hash = name.hashValue
         let colors: [(Color, Color)] = [
             (CyntientOpsDesign.DashboardColors.info, CyntientOpsDesign.DashboardColors.info.opacity(0.5)),
             (CyntientOpsDesign.DashboardColors.success, CyntientOpsDesign.DashboardColors.success.opacity(0.5)),
             (CyntientOpsDesign.DashboardColors.warning, CyntientOpsDesign.DashboardColors.warning.opacity(0.5)),
-            (Color(hex: "9333ea"), Color(hex: "9333ea").opacity(0.5)), // Purple
-            (Color(hex: "ec4899"), Color(hex: "ec4899").opacity(0.5)), // Pink
-            (Color(hex: "fbbf24"), Color(hex: "fbbf24").opacity(0.5))  // Amber
+            (Color.purple, Color.purple.opacity(0.5)), // Purple
+            (Color.pink, Color.pink.opacity(0.5)), // Pink
+            (Color.orange, Color.orange.opacity(0.5))  // Orange
         ]
         
         let colorPair = colors[abs(hash) % colors.count]
@@ -506,40 +505,34 @@ struct FooterStat: View {
 // MARK: - Preview
 
 struct WorkerAssignmentGlassCard_Previews: PreviewProvider {
-    static var sampleWorkers: [CoreTypes.FrancoWorkerAssignment] {
+    static var sampleWorkers: [CoreTypes.WorkerAssignment] {
         [
-            CoreTypes.FrancoWorkerAssignment(
+            CoreTypes.WorkerAssignment(
                 id: "1",
-                workerId: 1,
-                workerName: "Greg Hutson",
-                buildingId: 15,
-                buildingName: "Rubin Museum",
-                startDate: Date(),
-                shift: "Day",
-                specialRole: "Lead Maintenance",
-                isActive: true
+                workerId: "1",
+                buildingId: "15",
+                taskIds: ["task1", "task2", "task3"],
+                startTime: Date(),
+                endTime: nil,
+                status: "active"
             ),
-            CoreTypes.FrancoWorkerAssignment(
+            CoreTypes.WorkerAssignment(
                 id: "2",
-                workerId: 2,
-                workerName: "Edwin Lema",
-                buildingId: 15,
-                buildingName: "Rubin Museum",
-                startDate: Date(),
-                shift: "Day",
-                specialRole: nil,
-                isActive: true
+                workerId: "2",
+                buildingId: "15",
+                taskIds: ["task4", "task5"],
+                startTime: Date(),
+                endTime: nil,
+                status: "active"
             ),
-            CoreTypes.FrancoWorkerAssignment(
+            CoreTypes.WorkerAssignment(
                 id: "3",
-                workerId: 3,
-                workerName: "Jose Rodriguez",
-                buildingId: 15,
-                buildingName: "Rubin Museum",
-                startDate: Date(),
-                shift: "Evening",
-                specialRole: "Cleaning Specialist",
-                isActive: true
+                workerId: "4",
+                buildingId: "15",
+                taskIds: ["task6", "task7", "task8", "task9"],
+                startTime: Date(),
+                endTime: nil,
+                status: "pending"
             )
         ]
     }
@@ -552,24 +545,24 @@ struct WorkerAssignmentGlassCard_Previews: PreviewProvider {
             VStack(spacing: 24) {
                 WorkerAssignmentGlassCard(
                     workers: sampleWorkers,
-                    clockedInStatus: (true, 15),
-                    currentWorkerId: 2,
+                    clockedInStatus: (true, "15"),
+                    currentWorkerId: "2",
                     onWorkerTap: { worker in
-                        print("Tapped: \(worker.workerName)")
+                        print("Tapped: \(WorkerConstants.getWorkerName(id: worker.workerId))")
                     }
                 )
                 
                 WorkerAssignmentGlassCard(
                     workers: [],
                     clockedInStatus: (false, nil),
-                    currentWorkerId: 1,
+                    currentWorkerId: "1",
                     onWorkerTap: { _ in }
                 )
                 
                 WorkerAssignmentGlassCard(
                     workers: Array(sampleWorkers.prefix(1)),
-                    clockedInStatus: (true, 15),
-                    currentWorkerId: 1,
+                    clockedInStatus: (true, "15"),
+                    currentWorkerId: "1",
                     onWorkerTap: { _ in }
                 )
                 

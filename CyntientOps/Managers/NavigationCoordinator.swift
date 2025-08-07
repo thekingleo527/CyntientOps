@@ -148,9 +148,18 @@ struct NavigationCoordinatorViewModifier: ViewModifier {
                     // This now correctly points to the single, authoritative WorkerPreferencesView file.
                     WorkerPreferencesView(workerId: workerId)
                 case .conflictResolution(let conflict):
-                    ConflictResolutionView(conflict: conflict) { choice in
-                        // Handle resolution choice
+                    VStack(spacing: 20) {
+                        Text("🔄 Conflict Resolution")
+                            .font(.title2)
+                        Text("Conflict detected - resolution needed")
+                            .foregroundColor(.secondary)
+                        Button("Resolve") {
+                            // Handle resolution choice
+                            coordinator.dismissSheet()
+                        }
+                        .buttonStyle(.borderedProminent)
                     }
+                    .padding()
                 default:
                     Text("Unknown Sheet")
                 }

@@ -108,8 +108,8 @@ struct LoginView: View {
                                 .shadow(color: Color.black.opacity(0.3), radius: 20, y: 10)
                             
                             // Logo
-                            AbstractCyntientOpsLogo(size: 100)
-                                .rotationEffect(.degrees(logoRotation))
+                            SimpleCyntientOpsLogo(size: 100)
+                                .rotationEffect(Angle.degrees(logoRotation))
                         }
                         .scaleEffect(logoScale)
                         .opacity(logoOpacity)
@@ -472,7 +472,7 @@ struct LoginView: View {
         }
         
         do {
-            try await authManager.login(email: email, password: password)
+            try await authManager.authenticate(email: email, password: password)
             
             await MainActor.run {
                 withAnimation(Animation.easeInOut(duration: 0.2)) {
@@ -500,7 +500,7 @@ struct LoginView: View {
         }
         
         do {
-            try await authManager.loginWithBiometrics()
+            try await authManager.authenticateWithBiometrics()
             
             await MainActor.run {
                 withAnimation(Animation.easeInOut(duration: 0.2)) {
@@ -517,6 +517,82 @@ struct LoginView: View {
                 }
             }
         }
+    }
+}
+
+// MARK: - Simple Logo Component
+
+struct SimpleCyntientOpsLogo: View {
+    let size: CGFloat
+    
+    init(size: CGFloat) {
+        self.size = size
+    }
+    
+    var body: some View {
+        ZStack {
+            // Outer circle
+            Circle()
+                .stroke(
+                    LinearGradient(
+                        colors: [
+                            Color(red: 0.29, green: 0.56, blue: 0.89),
+                            Color(red: 0.48, green: 0.73, blue: 1.0)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: size * 0.08
+                )
+            
+            // Inner geometric pattern
+            ZStack {
+                // Building blocks representation
+                RoundedRectangle(cornerRadius: size * 0.04)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color.white.opacity(0.9),
+                                Color.white.opacity(0.7)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: size * 0.35, height: size * 0.5)
+                    .offset(x: -size * 0.1, y: -size * 0.05)
+                
+                RoundedRectangle(cornerRadius: size * 0.04)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color(red: 0.29, green: 0.56, blue: 0.89).opacity(0.8),
+                                Color(red: 0.48, green: 0.73, blue: 1.0).opacity(0.6)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: size * 0.25, height: size * 0.4)
+                    .offset(x: size * 0.12, y: size * 0.05)
+                
+                // Gear/operations symbol
+                Image(systemName: "gearshape.fill")
+                    .font(.system(size: size * 0.2, weight: .medium))
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [
+                                Color(red: 0.29, green: 0.56, blue: 0.89),
+                                Color(red: 0.48, green: 0.73, blue: 1.0)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .offset(x: size * 0.05, y: size * 0.15)
+            }
+        }
+        .frame(width: size, height: size)
     }
 }
 

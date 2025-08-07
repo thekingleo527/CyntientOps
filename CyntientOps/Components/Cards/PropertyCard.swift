@@ -429,10 +429,10 @@ struct PropertyCard_Previews: PreviewProvider {
                         overdueTasks: 0,
                         totalTasks: 5,
                         activeWorkers: 1,
+                        isCompliant: true,
                         overallScore: 5.0,
                         pendingTasks: 0,
-                        urgentTasksCount: 0,
-                        isCompliant: true
+                        urgentTasksCount: 0
                     ),
                     mode: .client,
                     onTap: {}

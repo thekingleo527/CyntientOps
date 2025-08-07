@@ -21,7 +21,7 @@ import SwiftUI
 
 struct SyncStatusView: View {
     
-    @ObservedObject var syncService = DashboardSyncService.shared
+    @StateObject private var syncService = DashboardSyncService.shared
     
     var body: some View {
         HStack(spacing: 8) {
@@ -46,7 +46,7 @@ struct SyncStatusView: View {
             if syncService.isOnline == false || syncService.pendingUpdatesCount > 0 {
                 Button("Retry") {
                     Task {
-                        await syncService.processPendingUpdates()
+                        await syncService.processPendingUpdatesBatch()
                     }
                 }
                 .font(.caption)

@@ -2156,17 +2156,12 @@ public class OperationalDataManager: ObservableObject {
         
         return dsnyTasks.map { task in
             OperationalDataTaskAssignment(
+                building: building.name,
                 taskName: task.title,
-                taskType: task.title,
+                assignedWorker: "DSNY Worker",
                 category: "Sanitation",
+                skillLevel: "Standard",
                 recurrence: "Weekly",
-                specificDaysOfWeek: [], // Will be set by DSNY schedule
-                specificTimeOfDay: task.scheduledDate?.timeIntervalSince1970,
-                specificDate: task.scheduledDate,
-                taskId: task.id,
-                primaryTaskType: "DSNY Compliance",
-                secondaryTaskType: task.title.contains("Set Out") ? "Evening" : "Afternoon",
-                tertiaryTaskType: nil,
                 workerId: workerId,
                 buildingId: building.id,
                 requiresPhoto: task.requiresPhoto ?? true,
@@ -2964,8 +2959,7 @@ public class OperationalDataManager: ObservableObject {
                 id: generateExternalId(for: operationalTask, index: 0),
                 title: operationalTask.taskName,
                 description: "Imported from current active worker schedule",
-                isCompleted: false,
-                completedDate: nil,
+                completedAt: nil,
                 dueDate: calculateDueDate(for: operationalTask.recurrence, from: date),
                 category: taskCategory,
                 urgency: taskUrgency,

@@ -40,8 +40,9 @@ final class BackupManager {
         
         print("📦 Creating database backup at: \(backupURL.path)...")
         
-        // Use GRDB's online backup API to safely copy the database while it's in use.
-        try await dbPool.backup(to: backupURL.path)
+        // Use GRDB's backup API with DatabaseQueue/Pool
+        let backupQueue = try DatabaseQueue(path: backupURL.path)
+        try await dbPool.backup(to: backupQueue)
         
         print("✅ Backup created successfully.")
         return backupURL
@@ -59,7 +60,9 @@ final class BackupManager {
         print("🔄 Restoring database from backup: \(backupURL.path)...")
         
         // This will overwrite the existing database file with the backup.
-        try await dbPool.restore(from: backupURL.path)
+        // GRDB doesn't have a direct restore method, we need to replace the database
+        // This would require closing current connections and replacing the file
+        throw NSError(domain: "BackupManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "Restore functionality requires database recreation"])
         
         print("✅ Database restored successfully. The app should be restarted.")
     }

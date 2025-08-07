@@ -656,11 +656,16 @@ struct AdminWorkerManagementView: View {
         }
         
         // Add Nova AI insights
-        insights.append(contentsOf: novaEngine.insights.filter { 
-            $0.type == .operations || $0.type == .efficiency 
-        })
+        let operationsInsights = novaEngine.insights.filter { insight in
+            insight.type == .operations || insight.type == .efficiency
+        }
+        insights.append(contentsOf: operationsInsights)
         
-        return insights.sorted { $0.priority.rawValue > $1.priority.rawValue }
+        // Sort by priority (highest first)
+        let sortedInsights = insights.sorted { lhs, rhs in
+            lhs.priority.rawValue > rhs.priority.rawValue
+        }
+        return sortedInsights
     }
     
     private func handleIntelligenceNavigation(_ target: WorkerIntelligencePanel.NavigationTarget) {
@@ -938,7 +943,7 @@ struct WorkerHeroStatusCard: View {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 8) {
                             ForEach(clockedIn.prefix(10)) { worker in
-                                WorkerAvatar(workerName: worker.name, size: .small)
+                                WorkerAvatar(worker: worker, size: 32)
                             }
                             
                             if clockedIn.count > 10 {
@@ -1039,7 +1044,7 @@ struct WorkerCard: View {
             VStack(alignment: .leading, spacing: 12) {
                 // Header
                 HStack {
-                    WorkerAvatar(workerName: worker.name, size: .medium)
+                    WorkerAvatar(worker: worker, size: 40)
                     
                     VStack(alignment: .leading, spacing: 2) {
                         Text(worker.name)

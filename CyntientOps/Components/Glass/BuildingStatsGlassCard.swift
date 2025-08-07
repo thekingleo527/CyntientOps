@@ -253,7 +253,7 @@ struct BuildingStatsGlassCard: View {
         case 0:
             return CyntientOpsDesign.DashboardColors.success
         case 1...3:
-            return Color(hex: "fbbf24") // Amber
+            return .orange // Amber
         case 4...8:
             return CyntientOpsDesign.DashboardColors.warning
         default:

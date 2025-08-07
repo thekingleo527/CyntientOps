@@ -32,8 +32,8 @@ struct WeatherViewModifier: ViewModifier {
     @ViewBuilder
     private var weatherOverlay: some View {
         if let weather = weatherAdapter.currentWeather {
-            // FIX: Convert String condition to enum
-            let conditionEnum = CoreTypes.WeatherCondition(rawValue: weather.condition) ?? .clear
+            // weather.condition is already a WeatherCondition enum
+            let conditionEnum = weather.condition
             
             HStack(spacing: 8) {
                 Image(systemName: getWeatherIcon(for: conditionEnum))
@@ -63,18 +63,16 @@ struct WeatherViewModifier: ViewModifier {
             return "sun.max.fill"
         case .cloudy:
             return "cloud.fill"
-        case .rainy:
+        case .rain:
             return "cloud.rain.fill"
-        case .snowy:
+        case .snow, .snowy:
             return "cloud.snow.fill"
-        case .stormy:
+        case .storm:
             return "cloud.bolt.fill"
-        case .foggy:
+        case .fog, .foggy:
             return "cloud.fog.fill"
         case .windy:
             return "wind"
-        case .partlyCloudy:
-            return "cloud.sun.fill"
         case .overcast:
             return "cloud.fill"
         case .hot:
@@ -92,18 +90,16 @@ struct WeatherViewModifier: ViewModifier {
             return .orange
         case .cloudy:
             return .gray
-        case .rainy:
+        case .rain:
             return .blue
-        case .snowy:
+        case .snow, .snowy:
             return .cyan
-        case .stormy:
+        case .storm:
             return .purple
-        case .foggy:
+        case .fog, .foggy:
             return .gray.opacity(0.7)
         case .windy:
             return .mint
-        case .partlyCloudy:
-            return .yellow.opacity(0.8)
         case .overcast:
             return .gray.opacity(0.9)
         case .hot:
@@ -118,22 +114,22 @@ struct WeatherViewModifier: ViewModifier {
             return "No weather data available"
         }
         
-        // FIX: Convert String condition to enum
-        let conditionEnum = CoreTypes.WeatherCondition(rawValue: weather.condition) ?? .clear
+        // weather.condition is already a WeatherCondition enum
+        let conditionEnum = weather.condition
         
         switch conditionEnum {
-        case .stormy:
+        case .storm:
             return "Severe weather alert: Storm conditions detected"
-        case .rainy:
+        case .rain:
             // FIX: Use windSpeed as proxy for rain intensity since no precipitation property
             if weather.windSpeed > 15 {
                 return "Heavy rain alert: Consider indoor tasks"
             } else {
                 return "Rain detected: Monitor outdoor conditions"
             }
-        case .snowy:
+        case .snow, .snowy:
             return "Snow alert: Use caution for outdoor work"
-        case .foggy:
+        case .fog, .foggy:
             return "Fog alert: Reduced visibility conditions"
         case .windy:
             if weather.windSpeed > 25 {
@@ -143,7 +139,7 @@ struct WeatherViewModifier: ViewModifier {
             }
         case .clear, .sunny:
             return "Current weather conditions are favorable"
-        case .cloudy, .partlyCloudy, .overcast:
+        case .cloudy, .overcast:
             return "Cloudy conditions - good for most outdoor work"
         case .hot:
             return "Heat alert: Stay hydrated and take frequent breaks"
@@ -162,11 +158,11 @@ struct WeatherViewModifier: ViewModifier {
     private func checkWeatherAlerts() {
         guard let weather = weatherAdapter.currentWeather else { return }
         
-        // FIX: Convert String condition to enum
-        let conditionEnum = CoreTypes.WeatherCondition(rawValue: weather.condition) ?? .clear
+        // weather.condition is already a WeatherCondition enum
+        let conditionEnum = weather.condition
         
         // FIX: Use outdoor work risk and wind speed instead of precipitation
-        if conditionEnum == .stormy ||
+        if conditionEnum == .storm ||
            weather.outdoorWorkRisk == .extreme ||
            weather.outdoorWorkRisk == .high ||
            weather.windSpeed > 20 {

@@ -750,7 +750,7 @@ public enum CheckError: LocalizedError {
 
 // MARK: - Extensions
 
-extension NovaAIManager.NovaState {
+extension NovaState {
     var description: String {
         switch self {
         case .idle: return "idle"
