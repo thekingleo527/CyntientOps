@@ -661,10 +661,10 @@ public class BuildingDetailViewModel: ObservableObject {
             
             await MainActor.run {
                 // Calculate counts by category
-                let cleaningItems = items.filter { $0.category == .cleaning }
-                let equipmentItems = items.filter { $0.category == .equipment }
-                let maintenanceItems = items.filter { $0.category == .maintenance }
-                let safetyItems = items.filter { $0.category == .safety }
+                let cleaningItems = items.filter { $0.category == CoreTypes.InventoryCategory.cleaning }
+                let equipmentItems = items.filter { $0.category == CoreTypes.InventoryCategory.equipment }
+                let maintenanceItems = items.filter { $0.category == CoreTypes.InventoryCategory.maintenance }
+                let safetyItems = items.filter { $0.category == CoreTypes.InventoryCategory.safety }
                 
                 let lowStockIds = Set(lowStockItems.map { $0.id })
                 
