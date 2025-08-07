@@ -2339,31 +2339,6 @@ public typealias ActionEvidence = CoreTypes.ActionEvidence
 // Note: Removed duplicate typealiases to prevent compilation errors
 // Use CoreTypes.TypeName for all type references
 
-// Report Types
-public struct ReportSchedule: Codable, Identifiable {
-    public let id: String
-    public let name: String
-    public let reportType: String
-    public let frequency: String
-    public let nextRun: Date
-    public let isActive: Bool
-    
-    public init(
-        id: String = UUID().uuidString,
-        name: String,
-        reportType: String,
-        frequency: String,
-        nextRun: Date = Date().addingTimeInterval(86400),
-        isActive: Bool = true
-    ) {
-        self.id = id
-        self.name = name
-        self.reportType = reportType
-        self.frequency = frequency
-        self.nextRun = nextRun
-        self.isActive = isActive
-    }
-}
 
 // Misc Types
 public typealias SkillLevel = CoreTypes.SkillLevel
