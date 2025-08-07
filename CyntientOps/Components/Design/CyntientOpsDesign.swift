@@ -486,6 +486,7 @@ enum CyntientOpsDesign {
             case .office: return DashboardColors.info
             case .residential: return DashboardColors.success
             case .retail: return DashboardColors.tertiaryAction
+            case .commercial: return DashboardColors.secondaryAction
             case .industrial: return DashboardColors.warning
             case .warehouse: return Color(red: 146/255, green: 64/255, blue: 14/255)  // Brown
             case .medical: return DashboardColors.critical
