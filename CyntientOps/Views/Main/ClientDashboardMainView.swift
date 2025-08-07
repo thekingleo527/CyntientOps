@@ -184,7 +184,7 @@ struct ClientDashboardMainView: View {
             
         case .analytics:
             ClientAnalyticsTabView(
-                portfolioHealth: contextEngine.portfolioHealth.overallScore,
+                portfolioHealth: contextEngine.portfolioHealth,
                 performanceMetrics: CoreTypes.RealtimeMetrics(
                     lastUpdateTime: Date(),
                     activeAlerts: 0,

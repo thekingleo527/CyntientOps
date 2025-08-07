@@ -1152,7 +1152,7 @@ struct ReportsHeroStatusCard: View {
             
             ReportMetricCard(
                 title: "Avg Time",
-                value: "\(Int(mockAvgGenerationTime))s",
+                value: "24s",
                 icon: "timer",
                 color: CyntientOpsDesign.DashboardColors.success
             )
