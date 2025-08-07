@@ -656,7 +656,7 @@ struct AdminWorkerManagementView: View {
         }
         
         // Add Nova AI insights
-        let novaInsights = novaEngine.insights
+        let novaInsights = novaEngine.wrappedValue.insights
         let filteredNovaInsights = novaInsights.filter { insight in
             insight.type == .operations || insight.type == .efficiency 
         }
@@ -1927,7 +1927,6 @@ struct AdminWorkerManagementView_Previews: PreviewProvider {
     static var previews: some View {
         AdminWorkerManagementView()
             .environmentObject(DashboardSyncService.shared)
-            .environmentObject(AdminDashboardViewModel(container: ServiceContainer()))
             .preferredColorScheme(.dark)
     }
 }

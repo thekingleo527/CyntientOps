@@ -1144,14 +1144,14 @@ struct ReportsHeroStatusCard: View {
         ], spacing: 12) {
             ReportMetricCard(
                 title: "Scheduled",
-                value: "\(scheduledReports)",
+                value: "\(mockScheduledReports.count)",
                 icon: "calendar.badge.clock",
                 color: CyntientOpsDesign.DashboardColors.info
             )
             
             ReportMetricCard(
                 title: "Avg Time",
-                value: "\(Int(avgGenerationTime))s",
+                value: "\(Int(mockAvgGenerationTime))s",
                 icon: "timer",
                 color: CyntientOpsDesign.DashboardColors.success
             )

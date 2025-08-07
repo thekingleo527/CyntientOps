@@ -234,6 +234,7 @@ struct ClientDashboardMainView: View {
 struct OverviewTabView: View {
     let contextEngine: ClientContextEngine
     let showCostData: Bool
+    @State private var isPortfolioHeroCollapsed = false
     
     var body: some View {
         ScrollView {
@@ -533,20 +534,10 @@ struct ClientReportsTabView: View {
             LL97EmissionsView(container: container)
         }
         .sheet(isPresented: $showingComplianceReport) {
-            VStack {
-                Text("HPD Violations Report")
-                    .font(.title)
-                Text("Loading violation data...")
-                    .foregroundColor(.secondary)
-            }
+            HPDViolationsView(container: container)
         }
         .sheet(isPresented: $showingPerformanceReport) {
-            VStack {
-                Text("Performance Report")
-                    .font(.title)
-                Text("Loading performance data...")
-                    .foregroundColor(.secondary)
-            }
+            ComplianceSuiteView(buildings: buildings, container: container)
         }
     }
 }
