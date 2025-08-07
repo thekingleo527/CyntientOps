@@ -28,17 +28,17 @@ struct ContentView: View {
                     // Admin and Manager share the same dashboard experience
                     AdminDashboardContainerView()
                         .transition(roleTransition)
-                        .id("admin-\(authManager.currentWorkerId ?? "")")
+                        .id("admin-\(authManager.workerId ?? "")")
                     
                 case .client:
                     ClientDashboardContainerView()
                         .transition(roleTransition)
-                        .id("client-\(authManager.currentWorkerId ?? "")")
+                        .id("client-\(authManager.workerId ?? "")")
                     
                 case .worker:
                     WorkerDashboardContainerView()
                         .transition(roleTransition)
-                        .id("worker-\(authManager.currentWorkerId ?? "")")
+                        .id("worker-\(authManager.workerId ?? "")")
                     
                 case nil:
                     // Fallback with loading state for undefined role
@@ -164,7 +164,7 @@ struct UndefinedRoleView: View {
         
         Task {
             // Attempt to refresh the user's role
-            if let workerId = authManager.currentWorkerId {
+            if let workerId = authManager.workerId {
                 // Try to re-authenticate or refresh session
                 do {
                     try await authManager.refreshSession()
