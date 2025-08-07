@@ -820,7 +820,8 @@ struct AdminReportsView: View {
         }
         
         // Add Nova AI insights
-        let operationalInsights = novaEngine.insights.filter { insight in
+        let novaInsights = novaEngine.insights
+        let operationalInsights = novaInsights.filter { insight in
             insight.type == .operations || insight.type == .efficiency
         }
         insights.append(contentsOf: operationalInsights)
@@ -1921,7 +1922,6 @@ struct AdminReportsView_Previews: PreviewProvider {
     static var previews: some View {
         AdminReportsView()
             .environmentObject(DashboardSyncService.shared)
-            .environmentObject(AdminDashboardViewModel(container: ServiceContainer.shared))
             .preferredColorScheme(.dark)
     }
 }

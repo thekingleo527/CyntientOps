@@ -128,7 +128,7 @@ struct AdminWorkerManagementView: View {
     }
     
     private func calculatePercentage() -> Int {
-        let percentage = (Double(activeWorkers) / Double(max(workerEngine.allWorkers.count, 1))) * 100
+        let percentage = (Double(activeWorkerCount) / Double(max(workerEngine.allWorkers.count, 1))) * 100
         return Int(percentage)
     }
     
@@ -656,7 +656,7 @@ struct AdminWorkerManagementView: View {
         }
         
         // Add Nova AI insights
-        let novaInsights = novaEngine.wrappedValue.insights
+        let novaInsights = novaEngine.insights
         let filteredNovaInsights = novaInsights.filter { insight in
             insight.type == .operations || insight.type == .efficiency 
         }

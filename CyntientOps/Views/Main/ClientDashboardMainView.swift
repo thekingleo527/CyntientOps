@@ -33,11 +33,11 @@ struct ClientDashboardMainView: View {
     private var mockClientIntelligence: CoreTypes.ClientPortfolioIntelligence {
         CoreTypes.ClientPortfolioIntelligence(
             id: UUID().uuidString,
-            portfolioHealth: contextEngine.portfolioHealth,
+            portfolioHealth: contextEngine.portfolioHealth.overallScore,
             executiveSummary: CoreTypes.ExecutiveSummary(
                 totalBuildings: 6,
                 totalWorkers: 15,
-                portfolioHealth: contextEngine.portfolioHealth,
+                portfolioHealth: contextEngine.portfolioHealth.overallScore,
                 monthlyPerformance: "Excellent",
                 generatedAt: Date()
             ),
@@ -111,7 +111,7 @@ struct ClientDashboardMainView: View {
             await contextEngine.refreshContext()
         }
         .refreshable {
-            try? await viewModel.refreshData()
+            await viewModel.refreshData()
             refreshID = UUID()
         }
         .sheet(isPresented: $showingProfile) {
@@ -234,6 +234,31 @@ struct ClientDashboardMainView: View {
 struct OverviewTabView: View {
     let contextEngine: ClientContextEngine
     let showCostData: Bool
+    @State private var isPortfolioHeroCollapsed = false
+    
+    private var mockClientIntelligence: CoreTypes.ClientPortfolioIntelligence {
+        CoreTypes.ClientPortfolioIntelligence(
+            id: UUID().uuidString,
+            portfolioHealth: contextEngine.portfolioHealth.overallScore,
+            executiveSummary: CoreTypes.ExecutiveSummary(
+                totalBuildings: 6,
+                totalWorkers: 15,
+                portfolioHealth: contextEngine.portfolioHealth.overallScore,
+                monthlyPerformance: "Excellent",
+                generatedAt: Date()
+            ),
+            benchmarks: [],
+            strategicRecommendations: [],
+            performanceTrends: [85, 87, 89, 91, 93],
+            generatedAt: Date(),
+            totalProperties: 6,
+            serviceLevel: 95.0,
+            complianceScore: 92,
+            complianceIssues: 2,
+            monthlyTrend: .up,
+            coveragePercentage: 98.5
+        )
+    }
     
     var body: some View {
         ScrollView {
@@ -530,7 +555,12 @@ struct ClientReportsTabView: View {
             .padding()
         }
         .sheet(isPresented: $showingEmissionsReport) {
-            LL97EmissionsView(container: container)
+            VStack {
+                Text("LL97 Emissions Report")
+                    .font(.title)
+                Text("Loading emissions data...")
+                    .foregroundColor(.secondary)
+            }
         }
         .sheet(isPresented: $showingComplianceReport) {
             VStack {
