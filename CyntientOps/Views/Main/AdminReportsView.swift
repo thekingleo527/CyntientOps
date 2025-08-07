@@ -1166,7 +1166,7 @@ struct ReportsHeroStatusCard: View {
             
             ReportMetricCard(
                 title: "Templates",
-                value: "\(self.mockReportTemplates.count)",
+                value: "8",
                 icon: "doc.on.doc",
                 color: CyntientOpsDesign.DashboardColors.tertiaryAction
             )
