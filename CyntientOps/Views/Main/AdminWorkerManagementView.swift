@@ -656,7 +656,7 @@ struct AdminWorkerManagementView: View {
         }
         
         // Add Nova AI insights
-        let novaInsights = novaEngine.insights
+        let novaInsights = novaEngine.currentInsights
         let filteredNovaInsights = novaInsights.filter { insight in
             insight.type == .operations || insight.type == .efficiency 
         }

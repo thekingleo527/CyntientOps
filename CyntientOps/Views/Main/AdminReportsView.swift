@@ -820,7 +820,7 @@ struct AdminReportsView: View {
         }
         
         // Add Nova AI insights
-        let novaInsights = novaEngine.insights
+        let novaInsights = novaEngine.currentInsights
         let operationalInsights = novaInsights.filter { insight in
             insight.type == .operations || insight.type == .efficiency
         }

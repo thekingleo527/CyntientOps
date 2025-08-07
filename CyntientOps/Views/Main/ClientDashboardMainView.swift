@@ -33,11 +33,11 @@ struct ClientDashboardMainView: View {
     private var mockClientIntelligence: CoreTypes.ClientPortfolioIntelligence {
         CoreTypes.ClientPortfolioIntelligence(
             id: UUID().uuidString,
-            portfolioHealth: contextEngine.portfolioHealth.overallScore,
+            portfolioHealth: contextEngine.portfolioHealth,
             executiveSummary: CoreTypes.ExecutiveSummary(
                 totalBuildings: 6,
                 totalWorkers: 15,
-                portfolioHealth: contextEngine.portfolioHealth.overallScore,
+                portfolioHealth: contextEngine.portfolioHealth,
                 monthlyPerformance: "Excellent",
                 generatedAt: Date()
             ),
@@ -239,11 +239,11 @@ struct OverviewTabView: View {
     private var mockClientIntelligence: CoreTypes.ClientPortfolioIntelligence {
         CoreTypes.ClientPortfolioIntelligence(
             id: UUID().uuidString,
-            portfolioHealth: contextEngine.portfolioHealth.overallScore,
+            portfolioHealth: contextEngine.portfolioHealth,
             executiveSummary: CoreTypes.ExecutiveSummary(
                 totalBuildings: 6,
                 totalWorkers: 15,
-                portfolioHealth: contextEngine.portfolioHealth.overallScore,
+                portfolioHealth: contextEngine.portfolioHealth,
                 monthlyPerformance: "Excellent",
                 generatedAt: Date()
             ),
@@ -294,9 +294,9 @@ struct OverviewTabView: View {
                 }
                 
                 // Intelligence Insights
-                if !contextEngine.intelligenceInsights.isEmpty {
+                if !contextEngine.costOptimizationInsights.isEmpty {
                     IntelligenceInsightsSection(
-                        insights: Array(contextEngine.intelligenceInsights.prefix(3))
+                        insights: Array(contextEngine.costOptimizationInsights.prefix(3))
                     )
                 }
             }
@@ -949,9 +949,7 @@ struct ClientProfileSheet: View {
 #if DEBUG
 struct ClientDashboardMainView_Previews: PreviewProvider {
     static var previews: some View {
-        ClientDashboardMainView(container: ServiceContainer())
-            .environmentObject(NewAuthManager.shared)
-            .environmentObject(DashboardSyncService.shared)
+        Text("Client Dashboard Preview")
             .preferredColorScheme(.dark)
     }
 }
