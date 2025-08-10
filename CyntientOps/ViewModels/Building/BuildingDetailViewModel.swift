@@ -857,8 +857,6 @@ public class BuildingDetailViewModel: ObservableObject {
             // Load thumbnails asynchronously
             await loadSpaceThumbnails()
             
-        } catch {
-            print("⚠️ Error loading spaces: \(error)")
         }
     }
     
@@ -1126,7 +1124,7 @@ public class BuildingDetailViewModel: ObservableObject {
                 isActive: true
             )
             
-            let savedPhoto = try await photoEvidenceService.captureEvidence(image: photo, for: dummyTask, worker: dummyWorker, location: location, notes: notes)
+            let savedPhoto = try await photoEvidenceService.captureQuick(image: photo, category: category, buildingId: buildingId, workerId: dummyWorker.id, notes: notes)
             print("✅ Photo saved: \(savedPhoto.id)")
             
             // Reload spaces if it was a space photo

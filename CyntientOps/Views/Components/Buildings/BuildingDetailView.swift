@@ -2243,7 +2243,7 @@ struct EmptyStateMessage: View {
 }
 
 struct DailyRoutineRow: View {
-    let routine: LocalDailyRoutine
+    let routine: DailyRoutineTask
     let onToggle: () -> Void
     
     var body: some View {
@@ -2266,7 +2266,7 @@ struct DailyRoutineRow: View {
                             .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
                     }
                     
-                    if let worker = routine.assignedWorker {
+                    if let worker = routine.workerName {
                         Label(worker, systemImage: "person.fill")
                             .font(.caption)
                             .foregroundColor(CyntientOpsDesign.DashboardColors.info)
