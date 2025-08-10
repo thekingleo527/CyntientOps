@@ -316,8 +316,8 @@ public enum DatabaseMigrationError: LocalizedError {
         }
     }
     
-    /// MIGRATION v6: Add photos table for streamlined building documentation
-    private static func addPhotosTable(_ db: Database) throws {
+    /// v6: Add photos table for streamlined building documentation
+    private func addPhotosTable(_ db: Database) throws {
         print("📸 Creating photos table for building documentation...")
         
         try db.execute(sql: """

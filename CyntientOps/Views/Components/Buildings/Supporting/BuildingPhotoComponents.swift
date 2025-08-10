@@ -16,13 +16,13 @@ import MapKit
 struct BuildingPhotoGallery: View {
     let buildingId: String
     @State private var photos: [BuildingPhoto] = []
-    @State private var selectedCategory: PhotoCategory = .all
+    @State private var selectedCategory: LocalPhotoCategory = .all
     @State private var isGridView = true
     @State private var selectedPhoto: BuildingPhoto?
     @State private var showingPhotoDetail = false
     @State private var isLoading = true
     
-    enum PhotoCategory: String, CaseIterable {
+    enum LocalPhotoCategory: String, CaseIterable {
         case all = "All"
         case compliance = "Compliance"
         case maintenance = "Maintenance"
@@ -103,11 +103,11 @@ struct BuildingPhotoGallery: View {
         return photos.filter { $0.category == selectedCategory.rawValue }
     }
     
-    private func getPhotoCounts() -> [PhotoCategory: Int] {
-        var counts: [PhotoCategory: Int] = [:]
+    private func getPhotoCounts() -> [LocalPhotoCategory: Int] {
+        var counts: [LocalPhotoCategory: Int] = [:]
         counts[.all] = photos.count
         
-        for category in PhotoCategory.allCases where category != .all {
+        for category in LocalPhotoCategory.allCases where category != .all {
             counts[category] = photos.filter { $0.category == category.rawValue }.count
         }
         
@@ -139,13 +139,13 @@ struct BuildingPhotoGallery: View {
 // MARK: - Photo Category Filter
 
 struct PhotoCategoryFilter: View {
-    @Binding var selectedCategory: BuildingPhotoGallery.PhotoCategory
-    let photoCounts: [BuildingPhotoGallery.PhotoCategory: Int]
+    @Binding var selectedCategory: BuildingPhotoGallery.LocalPhotoCategory
+    let photoCounts: [BuildingPhotoGallery.LocalPhotoCategory: Int]
     
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
-                ForEach(BuildingPhotoGallery.PhotoCategory.allCases, id: \.self) { category in
+                ForEach(BuildingPhotoGallery.LocalPhotoCategory.allCases, id: \.self) { category in
                     PhotoCategoryChip(
                         category: category,
                         count: photoCounts[category] ?? 0,
@@ -1169,7 +1169,7 @@ struct PhotoListItem: View {
 }
 
 struct PhotoCategoryChip: View {
-    let category: BuildingPhotoGallery.PhotoCategory
+    let category: BuildingPhotoGallery.LocalPhotoCategory
     let count: Int
     let isSelected: Bool
     let action: () -> Void
@@ -1203,7 +1203,7 @@ struct PhotoCategoryChip: View {
 }
 
 struct EmptyPhotoGalleryView: View {
-    let category: BuildingPhotoGallery.PhotoCategory
+    let category: BuildingPhotoGallery.LocalPhotoCategory
     
     var body: some View {
         VStack(spacing: 16) {

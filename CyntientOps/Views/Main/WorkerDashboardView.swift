@@ -1063,7 +1063,7 @@ struct WorkerPrioritiesContentView: View {
     
     private func taskCardDescription(_ description: String) -> some View {
         Text(description)
-            .francoTypography(CyntientOpsDesign.Typography.micro)
+            .francoTypography(CyntientOpsDesign.Typography.caption2)
             .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
             .lineLimit(2)
     }

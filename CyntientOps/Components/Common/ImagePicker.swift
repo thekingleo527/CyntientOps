@@ -20,38 +20,7 @@ import Combine
 
 // MARK: - Photo Category (Using unique name to avoid conflicts)
 
-enum PhotoCategory: String, CaseIterable {
-    case all = "All"
-    case exterior = "Exterior"
-    case interior = "Interior"
-    case utilities = "Utilities"
-    case issues = "Issues"
-    case before = "Before"
-    case after = "After"
-    case equipment = "Equipment"
-    case compliance = "Compliance"
-    case general = "General"
-    
-    var icon: String {
-        switch self {
-        case .all: return "square.grid.3x3"
-        case .exterior: return "building.2"
-        case .interior: return "door.left.hand.open"
-        case .utilities: return "wrench"
-        case .issues: return "exclamationmark.triangle"
-        case .before: return "arrow.left.square"
-        case .after: return "arrow.right.square"
-        case .equipment: return "hammer"
-        case .compliance: return "checkmark.shield"
-        case .general: return "photo"
-        }
-    }
-    
-    var displayName: String { self.rawValue }
-}
-
-// Use PhotoCategory consistently throughout the file
-typealias FrancoPhotoCategory = PhotoCategory
+// Using CoreTypes.FrancoPhotoCategory for consistency
 
 // MARK: - Basic Image Picker (Renamed to avoid conflict)
 
@@ -167,7 +136,7 @@ struct FrancoPhotoPicker: View {
 struct FrancoBuildingPhotoGallery: View {
     let buildingId: String
     @StateObject private var viewModel = FrancoPhotoGalleryViewModel()
-    @State private var selectedCategory = PhotoCategory.all
+    @State private var selectedCategory = CoreTypes.FrancoPhotoCategory.utilities
     @State private var showingFullScreen = false
     @State private var selectedPhoto: FrancoBuildingPhoto?
     @State private var showingAddPhoto = false
@@ -183,7 +152,7 @@ struct FrancoBuildingPhotoGallery: View {
             // Category filter
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 12) {
-                    ForEach(PhotoCategory.allCases, id: \.self) { category in
+                    ForEach(CoreTypes.FrancoPhotoCategory.allCases, id: \.self) { category in
                         FrancoCategoryPill(
                             category: category,
                             isSelected: selectedCategory == category,
@@ -270,10 +239,10 @@ struct FrancoBuildingPhotoGallery: View {
 
 struct FrancoBuildingPhotoCaptureView: View {
     let buildingId: String
-    let onCapture: (UIImage, PhotoCategory, String) async -> Void
+    let onCapture: (UIImage, CoreTypes.FrancoPhotoCategory, String) async -> Void
     
     @State private var capturedImage: UIImage?
-    @State private var category = PhotoCategory.general
+    @State private var category = CoreTypes.FrancoPhotoCategory.utilities
     @State private var notes = ""
     @State private var showingCamera = true
     @StateObject private var locationManager = LocationManager.shared
@@ -293,7 +262,7 @@ struct FrancoBuildingPhotoCaptureView: View {
                     Form {
                         Section("Details") {
                             Picker("Category", selection: $category) {
-                                ForEach(PhotoCategory.allCases, id: \.self) { cat in
+                                ForEach(CoreTypes.FrancoPhotoCategory.allCases, id: \.self) { cat in
                                     if cat != .all {
                                         Label(cat.rawValue, systemImage: cat.icon).tag(cat)
                                     }
@@ -350,7 +319,7 @@ struct FrancoBuildingPhotoCaptureView: View {
 // MARK: - Category Pill
 
 struct FrancoCategoryPill: View {
-    let category: PhotoCategory
+    let category: CoreTypes.FrancoPhotoCategory
     let isSelected: Bool
     let count: Int
     let action: () -> Void
@@ -719,7 +688,7 @@ class FrancoPhotoGalleryViewModel: ObservableObject {
         isLoading = false
     }
     
-    func savePhoto(_ image: UIImage, buildingId: String, category: PhotoCategory = .general, notes: String? = nil) async {
+    func savePhoto(_ image: UIImage, buildingId: String, category: CoreTypes.FrancoPhotoCategory = .utilities, notes: String? = nil) async {
         do {
             let metadata = FrancoBuildingPhotoMetadata(
                 buildingId: buildingId,
@@ -739,14 +708,14 @@ class FrancoPhotoGalleryViewModel: ObservableObject {
         }
     }
     
-    func photoCount(for category: PhotoCategory) -> Int {
+    func photoCount(for category: CoreTypes.FrancoPhotoCategory) -> Int {
         if category == .all {
             return photos.count
         }
         return photos.filter { $0.category == category }.count
     }
     
-    func filteredPhotos(for category: PhotoCategory) -> [FrancoBuildingPhoto] {
+    func filteredPhotos(for category: CoreTypes.FrancoPhotoCategory) -> [FrancoBuildingPhoto] {
         if category == .all {
             return photos.sorted { $0.timestamp > $1.timestamp }
         }
@@ -759,7 +728,7 @@ class FrancoPhotoGalleryViewModel: ObservableObject {
 struct FrancoBuildingPhoto: Identifiable, Hashable {
     let id: String
     let buildingId: String
-    let category: PhotoCategory
+    let category: CoreTypes.FrancoPhotoCategory
     let timestamp: Date
     let uploadedBy: String?
     let notes: String?
@@ -786,7 +755,7 @@ struct FrancoBuildingPhoto: Identifiable, Hashable {
 
 struct FrancoBuildingPhotoMetadata {
     let buildingId: String
-    let category: PhotoCategory
+    let category: CoreTypes.FrancoPhotoCategory
     let notes: String?
     let location: CLLocation?
     let taskId: String?

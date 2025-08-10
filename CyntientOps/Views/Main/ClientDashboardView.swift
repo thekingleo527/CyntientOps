@@ -282,22 +282,23 @@ struct ClientDashboardView: View {
         }
     }
     
-    // MARK: - Header Component (broken out for simplicity)
+    // MARK: - Header Component (proper client header)
     private var clientHeader: some View {
-        HeaderV3B(
-            workerName: "Client", // TODO: Add clientProfile to viewModel
-            nextTaskName: getMostCriticalItem()?.title,
-            showClockPill: false,
-            isNovaProcessing: isNovaProcessing,
-            onProfileTap: { showProfileView = true },
-            onNovaPress: { showNovaAssistant = true },
-            onNovaLongPress: { handleNovaQuickAction() },
-            onLogoTap: { showMainMenu = true },
-            onClockAction: nil,
-            onVoiceCommand: voiceCommandEnabled ? handleVoiceCommand : nil,
-            onARModeToggle: arModeEnabled ? handleARMode : nil,
-            onWearableSync: nil
+        ClientDashboardHeader(
+            clientName: getClientName(),
+            portfolioValue: Double(viewModel.monthlyMetrics.monthlyBudget),
+            activeBuildings: viewModel.buildingsList.count,
+            complianceScore: viewModel.complianceScore,
+            onProfileTap: { showProfileView = true }
         )
+    }
+    
+    private func getClientName() -> String {
+        // Get actual client name from auth or viewModel
+        if let currentUser = authManager.currentUser {
+            return currentUser.name
+        }
+        return "Client Portal"
     }
     
     private var isNovaProcessing: Bool {

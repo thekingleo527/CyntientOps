@@ -13,58 +13,19 @@ import UIKit
 import CoreLocation
 import Combine
 
-// MARK: - Photo Categories (Streamlined)
-
-public enum PhotoCategory: String, CaseIterable, Identifiable {
-    // Core categories only - no sub-types for efficiency
-    case dsnyCompliance = "DSNY"
-    case buildingCondition = "Condition" 
-    case maintenance = "Maintenance"
-    case compliance = "Compliance"
-    case safety = "Safety"
-    case task = "Task"
-    
-    public var id: String { rawValue }
-    
-    public var priority: Int {
-        switch self {
-        case .dsnyCompliance: return 1 // Highest - legal compliance
-        case .safety: return 2
-        case .compliance: return 3
-        case .maintenance: return 4
-        case .buildingCondition: return 5
-        case .task: return 6 // Lowest - routine documentation
-        }
-    }
-    
-    public var retentionDays: Int {
-        switch self {
-        case .dsnyCompliance, .compliance: return 365 // Legal requirement
-        case .safety, .maintenance: return 90 // Safety/maintenance tracking
-        case .buildingCondition: return 30 // Condition monitoring
-        case .task: return 7 // Routine task verification
-        }
-    }
-    
-    public var autoCompress: Bool {
-        switch self {
-        case .dsnyCompliance, .compliance, .safety: return false // Keep full quality
-        case .maintenance, .buildingCondition, .task: return true // Compress after 24h
-        }
-    }
-}
+// MARK: - Photo Categories (Using CoreTypes)
 
 public struct PhotoBatch {
     public let id = UUID()
     public let buildingId: String
-    public let category: PhotoCategory
+    public let category: CoreTypes.FrancoPhotoCategory
     public let taskId: String?
     public let workerId: String
     public let timestamp = Date()
     public var photos: [UIImage] = []
     public var notes: String = ""
     
-    public init(buildingId: String, category: PhotoCategory, taskId: String? = nil, workerId: String) {
+    public init(buildingId: String, category: CoreTypes.FrancoPhotoCategory, taskId: String? = nil, workerId: String) {
         self.buildingId = buildingId
         self.category = category
         self.taskId = taskId
@@ -111,7 +72,7 @@ public class PhotoEvidenceService: ObservableObject {
     // MARK: - Batch Photo Processing
     
     /// Create a new photo batch for efficient multi-photo capture
-    public func createBatch(buildingId: String, category: PhotoCategory, taskId: String? = nil, workerId: String) -> PhotoBatch {
+    public func createBatch(buildingId: String, category: CoreTypes.FrancoPhotoCategory, taskId: String? = nil, workerId: String) -> PhotoBatch {
         return PhotoBatch(buildingId: buildingId, category: category, taskId: taskId, workerId: workerId)
     }
     
@@ -161,7 +122,7 @@ public class PhotoEvidenceService: ObservableObject {
     // MARK: - Quick Single Photo (for urgent/safety issues)
     
     /// Fast single photo capture for immediate issues
-    public func captureQuick(image: UIImage, category: PhotoCategory, buildingId: String, workerId: String, notes: String = "") async throws -> CoreTypes.ProcessedPhoto {
+    public func captureQuick(image: UIImage, category: CoreTypes.FrancoPhotoCategory, buildingId: String, workerId: String, notes: String = "") async throws -> CoreTypes.ProcessedPhoto {
         let quality = category.autoCompress ? standardQuality : highQuality
         
         let processed = try await processPhoto(
@@ -208,7 +169,7 @@ public class PhotoEvidenceService: ObservableObject {
     
     private func processPhoto(
         image: UIImage,
-        category: PhotoCategory,
+        category: CoreTypes.FrancoPhotoCategory,
         buildingId: String,
         workerId: String,
         quality: CGFloat,
@@ -387,7 +348,7 @@ public class PhotoEvidenceService: ObservableObject {
     
     // MARK: - Photo Retrieval (Optimized)
     
-    public func getRecentPhotos(buildingId: String, category: PhotoCategory? = nil, limit: Int = 20) async throws -> [CoreTypes.ProcessedPhoto] {
+    public func getRecentPhotos(buildingId: String, category: CoreTypes.FrancoPhotoCategory? = nil, limit: Int = 20) async throws -> [CoreTypes.ProcessedPhoto] {
         let categoryFilter = category != nil ? "AND category = ?" : ""
         let params: [Any] = category != nil ? [buildingId, category!.rawValue, limit] : [buildingId, limit]
         

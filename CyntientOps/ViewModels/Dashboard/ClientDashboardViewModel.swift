@@ -59,6 +59,11 @@ public final class ClientDashboardViewModel: ObservableObject {
     @Published public var dashboardUpdates: [CoreTypes.DashboardUpdate] = []
     @Published public var dashboardSyncStatus: CoreTypes.DashboardSyncStatus = .synced
     
+    // Photo Evidence (for client building documentation view)
+    @Published public var recentPhotos: [CoreTypes.ProcessedPhoto] = []
+    @Published public var todaysPhotoCount: Int = 0
+    @Published public var photoCategories: [String: Int] = [:]
+    
     // Client-specific data
     @Published public var clientBuildings: [CoreTypes.NamedCoordinate] = []
     @Published public var clientId: String?
@@ -621,6 +626,26 @@ public final class ClientDashboardViewModel: ObservableObject {
         case .complianceStatusChanged:
             await generateComplianceIssues()
             
+        case .buildingMetricsChanged:
+            // Handle photo updates specifically
+            if let action = update.data["action"], action == "photoBatch" || action == "urgentPhoto" {
+                await loadRecentPhotos(for: update.buildingId)
+                await updatePhotoMetrics()
+            }
+            // Also refresh building metrics
+            if let updatedMetrics = try? await container.metrics.calculateMetrics(for: update.buildingId) {
+                buildingMetrics[update.buildingId] = updatedMetrics
+                updateComputedMetrics()
+            }
+            
+        case .criticalUpdate:
+            // Handle urgent photos (safety/DSNY compliance)
+            if let action = update.data["action"], action == "urgentPhoto" {
+                await loadRecentPhotos(for: update.buildingId)
+                // Mark as high priority for client attention
+                await generateUrgentPhotoAlert(update)
+            }
+            
         default:
             break
         }
@@ -629,6 +654,91 @@ public final class ClientDashboardViewModel: ObservableObject {
         dashboardUpdates.append(update)
         if dashboardUpdates.count > 50 {
             dashboardUpdates = Array(dashboardUpdates.suffix(50))
+        }
+    }
+    
+    // MARK: - Photo Integration Methods
+    
+    /// Load recent photos for specific building
+    private func loadRecentPhotos(for buildingId: String) async {
+        do {
+            let photos = try await container.photoEvidence.getPhotosForBuilding(buildingId, limit: 10)
+            
+            await MainActor.run {
+                // Update recent photos for this specific building
+                let buildingPhotos = photos.filter { $0.buildingId == buildingId }
+                
+                // Merge with existing photos, keeping unique ones
+                var updatedPhotos = self.recentPhotos.filter { $0.buildingId != buildingId }
+                updatedPhotos.append(contentsOf: buildingPhotos)
+                
+                // Sort by timestamp and keep most recent 20
+                self.recentPhotos = Array(updatedPhotos.sorted { $0.timestamp > $1.timestamp }.prefix(20))
+            }
+        } catch {
+            print("⚠️ Failed to load photos for building \(buildingId): \(error)")
+        }
+    }
+    
+    /// Update photo metrics across portfolio
+    private func updatePhotoMetrics() async {
+        let clientBuildingIds = Set(buildingsList.map { $0.id })
+        
+        do {
+            var todayCount = 0
+            var categoryBreakdown: [String: Int] = [:]
+            
+            for buildingId in clientBuildingIds {
+                let buildingPhotos = try await container.photoEvidence.getPhotosForBuilding(buildingId, limit: 50)
+                
+                // Count today's photos
+                let today = Calendar.current.startOfDay(for: Date())
+                todayCount += buildingPhotos.filter { photo in
+                    Calendar.current.isDate(photo.timestamp, inSameDayAs: today)
+                }.count
+                
+                // Update category breakdown
+                for photo in buildingPhotos {
+                    categoryBreakdown[photo.category, default: 0] += 1
+                }
+            }
+            
+            await MainActor.run {
+                self.todaysPhotoCount = todayCount
+                self.photoCategories = categoryBreakdown
+            }
+        } catch {
+            print("⚠️ Failed to update photo metrics: \(error)")
+        }
+    }
+    
+    /// Generate urgent photo alert for client attention
+    private func generateUrgentPhotoAlert(_ update: CoreTypes.DashboardUpdate) async {
+        guard let buildingName = buildingsList.first(where: { $0.id == update.buildingId })?.name,
+              let photoCategory = update.data["category"] as? String else { return }
+        
+        let alert = CoreTypes.IntelligenceInsight(
+            id: UUID().uuidString,
+            title: "Urgent Photo Documentation",
+            description: "New \(photoCategory) photo uploaded at \(buildingName) requires immediate review",
+            category: .safety,
+            priority: .critical,
+            confidence: 1.0,
+            actionableSteps: [
+                "Review photo documentation immediately",
+                "Contact building management if compliance action needed",
+                "Update client records with photo evidence"
+            ],
+            affectedBuildings: [update.buildingId]
+        )
+        
+        await MainActor.run {
+            self.intelligenceInsights.insert(alert, at: 0)
+            
+            // Keep insights list manageable
+            if self.intelligenceInsights.count > 20 {
+                self.intelligenceInsights = Array(self.intelligenceInsights.prefix(20))
+            }
         }
     }
 }
