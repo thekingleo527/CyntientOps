@@ -102,6 +102,19 @@ public class ClockInManager: ObservableObject {
             try await createTimeClockEntry(session: session)
             activeSessions[workerId] = session
             
+            // Update worker status in database
+            try await GRDBManager.shared.execute("""
+                UPDATE workers 
+                SET status = ?, current_building_id = ?, clock_in_time = ?, last_activity = ?
+                WHERE id = ?
+            """, [
+                "Clocked In",
+                building.id,
+                ISO8601DateFormatter().string(from: Date()),
+                ISO8601DateFormatter().string(from: Date()),
+                workerId
+            ])
+            
             print("✅ Worker \(workerId) clocked IN at \(building.name)")
             
             // Notify DashboardSyncService
@@ -141,6 +154,19 @@ public class ClockInManager: ObservableObject {
             )
             
             activeSessions.removeValue(forKey: workerId)
+            
+            // Update worker status in database
+            try await GRDBManager.shared.execute("""
+                UPDATE workers 
+                SET status = ?, current_building_id = ?, clock_in_time = ?, last_activity = ?
+                WHERE id = ?
+            """, [
+                "Not Clocked In",
+                "",
+                "",
+                ISO8601DateFormatter().string(from: Date()),
+                workerId
+            ])
             
             print("✅ Worker \(workerId) clocked OUT from \(session.buildingName)")
             

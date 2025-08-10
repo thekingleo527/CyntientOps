@@ -45,6 +45,7 @@ public actor WorkerService {
         return workers
     }
     
+    
     /// Get worker profile by ID - throws if not found
     func getWorkerProfile(for workerId: String) async throws -> CoreTypes.WorkerProfile {
         let rows = try await grdbManager.query("""

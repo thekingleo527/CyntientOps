@@ -137,6 +137,23 @@ public final class GRDBManager {
             )
         """)
         
+        // Add status column to workers table if it doesn't exist (for compatibility)
+        do {
+            // Check if status column exists
+            let columns = try db.columns(in: "workers")
+            let hasStatusColumn = columns.contains { $0.name == "status" }
+            
+            if !hasStatusColumn {
+                try db.execute(sql: "ALTER TABLE workers ADD COLUMN status TEXT DEFAULT 'Not Clocked In'")
+                try db.execute(sql: "ALTER TABLE workers ADD COLUMN current_building_id TEXT")
+                try db.execute(sql: "ALTER TABLE workers ADD COLUMN clock_in_time TEXT")
+                try db.execute(sql: "ALTER TABLE workers ADD COLUMN last_activity TEXT")
+                print("✅ Added status tracking columns to workers table")
+            }
+        } catch {
+            print("⚠️ Could not add status column to workers table: \(error)")
+        }
+        
         // Buildings table
         try db.execute(sql: """
             CREATE TABLE IF NOT EXISTS buildings (

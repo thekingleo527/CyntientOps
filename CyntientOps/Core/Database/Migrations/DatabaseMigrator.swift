@@ -95,11 +95,17 @@ public class DatabaseMigrator {
             print("🔧 Running migration v6: Adding photos table for building documentation...")
             try addPhotosTable(db)
         }
+        
+        // MIGRATION v7: Add Worker Status Column (Dec 2024)
+        migrator.registerMigration("v7_AddWorkerStatus") { db in
+            print("🔧 Running migration v7: Adding status column to workers table...")
+            try addWorkerStatusColumn(db)
+        }
     }
     
     /// Get total number of registered migrations
     private func getTotalMigrationsCount() -> Int {
-        return 6 // Update this as you add more migrations
+        return 7 // Update this as you add more migrations
     }
 }
 
@@ -296,25 +302,6 @@ extension DatabaseMigrator {
         
         print("✅ v5: user_preferences table added successfully")
     }
-}
-
-// MARK: - Error Types
-
-public enum DatabaseMigrationError: LocalizedError {
-    case migrationFailed(String)
-    case versionMismatch(String)
-    case rollbackFailed(String)
-    
-    public var errorDescription: String? {
-        switch self {
-        case .migrationFailed(let message):
-            return "Database migration failed: \(message)"
-        case .versionMismatch(let message):
-            return "Database version mismatch: \(message)"
-        case .rollbackFailed(let message):
-            return "Database rollback failed: \(message)"
-        }
-    }
     
     /// v6: Add photos table for streamlined building documentation
     private func addPhotosTable(_ db: Database) throws {
@@ -357,6 +344,53 @@ public enum DatabaseMigrationError: LocalizedError {
         """)
         
         print("✅ Photos table created with indices for efficient categorization and retrieval")
+    }
+    
+    /// v7: Add status column to workers table for clock-in tracking
+    private func addWorkerStatusColumn(_ db: Database) throws {
+        print("👥 Adding status column to workers table...")
+        
+        // Check if column already exists to avoid errors
+        let hasStatusColumn = try db.columnExists("status", inTable: "workers")
+        
+        if !hasStatusColumn {
+            try db.execute(sql: "ALTER TABLE workers ADD COLUMN status TEXT DEFAULT 'Not Clocked In'")
+            try db.execute(sql: "ALTER TABLE workers ADD COLUMN current_building_id TEXT")
+            try db.execute(sql: "ALTER TABLE workers ADD COLUMN clock_in_time TEXT")
+            try db.execute(sql: "ALTER TABLE workers ADD COLUMN last_activity TEXT")
+            
+            // Add foreign key constraint for current_building_id
+            try db.execute(sql: """
+                CREATE INDEX IF NOT EXISTS idx_workers_status ON workers(status)
+            """)
+            
+            try db.execute(sql: """
+                CREATE INDEX IF NOT EXISTS idx_workers_current_building ON workers(current_building_id)
+            """)
+            
+            print("✅ Added status tracking columns to workers table")
+        } else {
+            print("ℹ️ Status column already exists in workers table, skipping...")
+        }
+    }
+}
+
+// MARK: - Error Types
+
+public enum DatabaseMigrationError: LocalizedError {
+    case migrationFailed(String)
+    case versionMismatch(String)
+    case rollbackFailed(String)
+    
+    public var errorDescription: String? {
+        switch self {
+        case .migrationFailed(let message):
+            return "Database migration failed: \(message)"
+        case .versionMismatch(let message):
+            return "Database version mismatch: \(message)"
+        case .rollbackFailed(let message):
+            return "Database rollback failed: \(message)"
+        }
     }
 }
 
