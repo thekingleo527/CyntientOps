@@ -871,14 +871,13 @@ public class BuildingDetailViewModel: ObservableObject {
                     return true
                 }.map { $0.id }
                 
-                if let firstPhoto = photos.first(where: { spacePhotoIds.contains($0.id) }),
-                   let thumbnail = firstPhoto.thumbnail {
+                if let firstPhoto = photos.first(where: { spacePhotoIds.contains($0.id) }) {
                     await MainActor.run {
                         self.spaces[index] = BDSpaceAccess(
                             id: space.id,
                             name: space.name,
                             category: space.category,
-                            thumbnail: thumbnail,
+                            thumbnail: firstPhoto.thumbnailPath,
                             lastUpdated: space.lastUpdated,
                             accessCode: space.accessCode,
                             notes: space.notes,

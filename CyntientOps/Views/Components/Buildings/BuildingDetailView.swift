@@ -3201,7 +3201,7 @@ struct SanitationTaskRow: View {
                             .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
                     }
                     
-                    if let worker = routine.assignedWorker {
+                    if let worker = routine.workerName {
                         Label(worker, systemImage: "person")
                             .font(.caption)
                             .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
