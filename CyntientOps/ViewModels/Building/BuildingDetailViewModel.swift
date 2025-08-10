@@ -626,7 +626,7 @@ public class BuildingDetailViewModel: ObservableObject {
     
     private func loadRoutines() async {
         do {
-            // Get comprehensive task and routine data for this building
+            // First load today's specific tasks
             let taskData = try await container.database.query("""
                 SELECT t.*, w.name as worker_name,
                        tt.name as template_name,
@@ -641,8 +641,26 @@ public class BuildingDetailViewModel: ObservableObject {
                 ORDER BY t.scheduled_date ASC
             """, [buildingId])
             
+            // Then load recurring routine schedules for this building
+            let routineData = try await container.database.query("""
+                SELECT rs.*, w.name as worker_name
+                FROM routine_schedules rs
+                LEFT JOIN workers w ON rs.worker_id = w.id
+                WHERE rs.building_id = ?
+                ORDER BY rs.name ASC
+            """, [buildingId])
+            
+            // Load DSNY schedules for this building
+            let dsnyData = try await container.database.query("""
+                SELECT ds.* FROM dsny_schedules ds
+                WHERE ds.building_ids LIKE '%' || ? || '%'
+            """, [buildingId])
+            
             await MainActor.run {
-                self.dailyRoutines = taskData.map { task in
+                var allRoutines: [BDDailyRoutine] = []
+                
+                // Add today's specific tasks
+                let todayTasks = taskData.map { task in
                     let requiredTools = (task["required_tools"] as? String)?.components(separatedBy: ",") ?? []
                     
                     return BDDailyRoutine(
@@ -660,9 +678,61 @@ public class BuildingDetailViewModel: ObservableObject {
                         requiredInventory: requiredTools
                     )
                 }
+                allRoutines.append(contentsOf: todayTasks)
                 
+                // Add recurring routines (showing what should happen today based on schedule)
+                let recurringRoutines = routineData.compactMap { routine -> BDDailyRoutine? in
+                    guard let name = routine["name"] as? String,
+                          let workerName = routine["worker_name"] as? String,
+                          let category = routine["category"] as? String else { return nil }
+                    
+                    // Parse RRULE to determine if this routine applies today
+                    let rrule = routine["rrule"] as? String ?? ""
+                    let shouldRunToday = self.shouldRoutineRunToday(rrule: rrule)
+                    
+                    if shouldRunToday {
+                        let scheduledTime = self.extractTimeFromRRule(rrule: rrule)
+                        return BDDailyRoutine(
+                            id: routine["id"] as? String ?? UUID().uuidString,
+                            title: "\(name) (\(category))",
+                            scheduledTime: scheduledTime,
+                            isCompleted: false, // Routines reset daily
+                            assignedWorker: workerName,
+                            requiredInventory: category == "Cleaning" ? ["Cleaning supplies", "Trash bags"] : []
+                        )
+                    }
+                    return nil
+                }
+                allRoutines.append(contentsOf: recurringRoutines)
+                
+                // Add DSNY schedules for today
+                let dsnyTasks = dsnyData.compactMap { dsnySchedule -> BDDailyRoutine? in
+                    guard let collectionDays = dsnySchedule["collection_days"] as? String,
+                          let routeId = dsnySchedule["route_id"] as? String else { return nil }
+                    
+                    // Check if today is a collection day
+                    let todayDay = Calendar.current.component(.weekday, from: Date())
+                    let dayName = Calendar.current.weekdaySymbols[todayDay - 1].uppercased().prefix(3)
+                    
+                    if collectionDays.contains(String(dayName)) {
+                        return BDDailyRoutine(
+                            id: "dsny_\(routeId)",
+                            title: "DSNY: Set Out Trash & Recycling",
+                            scheduledTime: "8:00 PM", // Standard DSNY set-out time
+                            isCompleted: false,
+                            assignedWorker: "Building Staff",
+                            requiredInventory: ["Trash bins", "Recycling bins"]
+                        )
+                    }
+                    return nil
+                }
+                allRoutines.append(contentsOf: dsnyTasks)
+                
+                self.dailyRoutines = allRoutines
                 self.completedRoutines = dailyRoutines.filter { $0.isCompleted }.count
                 self.totalRoutines = dailyRoutines.count
+                
+                print("📋 Loaded \(allRoutines.count) routines for building \(buildingId): \(todayTasks.count) tasks, \(recurringRoutines.count) recurring, \(dsnyTasks.count) DSNY")
             }
             
             // Also load weekly/recurring routines for this building
@@ -695,22 +765,82 @@ public class BuildingDetailViewModel: ObservableObject {
     
     private func loadWeeklyRoutines() async {
         do {
-            // Load recurring routines and worker assignments for this building
-            let weeklyData = try await container.database.query("""
+            // Load detailed worker assignments and their schedules for this building
+            let workerAssignmentData = try await container.database.query("""
                 SELECT wba.*, w.name as worker_name, w.role, w.skills,
-                       COUNT(t.id) as task_count,
+                       COUNT(DISTINCT t.id) as task_count,
+                       COUNT(DISTINCT rs.id) as routine_count,
                        AVG(CASE WHEN t.status = 'completed' THEN 1.0 ELSE 0.0 END) as completion_rate
                 FROM worker_building_assignments wba
                 JOIN workers w ON wba.worker_id = w.id
                 LEFT JOIN tasks t ON t.assignee_id = w.id AND t.building_id = ?
+                LEFT JOIN routine_schedules rs ON rs.worker_id = w.id AND rs.building_id = ?
                 WHERE wba.building_id = ? AND wba.is_active = 1
-                GROUP BY wba.worker_id, w.name
-            """, [buildingId, buildingId])
+                GROUP BY wba.worker_id, w.name, w.role
+                ORDER BY w.name
+            """, [buildingId, buildingId, buildingId])
             
-            print("📊 Building \(buildingId) weekly routine data: \(weeklyData.count) active worker assignments")
+            // Load routine schedules to generate worker schedule information
+            let routineScheduleData = try await container.database.query("""
+                SELECT rs.*, w.name as worker_name
+                FROM routine_schedules rs
+                JOIN workers w ON rs.worker_id = w.id
+                WHERE rs.building_id = ?
+                ORDER BY rs.worker_id, rs.name
+            """, [buildingId])
+            
+            await MainActor.run {
+                // Process worker assignments with detailed schedule information
+                self.assignedWorkers = workerAssignmentData.map { assignment in
+                    let workerId = assignment["worker_id"] as? String ?? ""
+                    let workerName = assignment["worker_name"] as? String ?? "Unknown Worker"
+                    let role = assignment["role"] as? String ?? "General"
+                    let routineCount = assignment["routine_count"] as? Int64 ?? 0
+                    
+                    // Generate schedule summary for this worker at this building
+                    let workerRoutines = routineScheduleData.filter { routine in
+                        (routine["worker_id"] as? String) == workerId
+                    }
+                    
+                    var scheduleDays: Set<String> = []
+                    for routine in workerRoutines {
+                        if let rrule = routine["rrule"] as? String {
+                            if rrule.contains("FREQ=DAILY") {
+                                scheduleDays = Set(["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"])
+                                break
+                            } else if rrule.contains("BYDAY=") {
+                                let dayAbbreviations = ["MO", "TU", "WE", "TH", "FR", "SA", "SU"]
+                                for abbrev in dayAbbreviations {
+                                    if rrule.contains(abbrev) {
+                                        scheduleDays.insert(abbrev)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    let scheduleText = scheduleDays.isEmpty 
+                        ? "\(role) - \(routineCount) routines" 
+                        : "\(role) - \(scheduleDays.sorted().joined(separator: ", "))"
+                    
+                    return BDAssignedWorker(
+                        id: workerId,
+                        name: workerName,
+                        schedule: scheduleText,
+                        isOnSite: false // Will be updated by loadActivityData
+                    )
+                }
+                
+                print("📊 Building \(buildingId) worker assignments: \(self.assignedWorkers.count) workers with detailed schedules")
+                
+                // Log specific assignments for debugging
+                for worker in self.assignedWorkers {
+                    print("   👷 \(worker.name): \(worker.schedule ?? "No schedule")")
+                }
+            }
             
         } catch {
-            print("⚠️ Error loading weekly routines: \(error)")
+            print("⚠️ Error loading weekly routines and worker assignments: \(error)")
         }
     }
     
@@ -1175,6 +1305,64 @@ public class BuildingDetailViewModel: ObservableObject {
         case "access": return .access
         default: return .utility
         }
+    }
+    
+    // MARK: - RRULE Parsing Helpers
+    
+    private func shouldRoutineRunToday(rrule: String) -> Bool {
+        // Simple RRULE parsing - in production, you'd use a proper RRULE library
+        let today = Date()
+        let calendar = Calendar.current
+        let todayWeekday = calendar.component(.weekday, from: today)
+        
+        // Check daily routines
+        if rrule.contains("FREQ=DAILY") {
+            return true
+        }
+        
+        // Check weekly routines
+        if rrule.contains("FREQ=WEEKLY") {
+            if rrule.contains("BYDAY=") {
+                // Extract days from BYDAY
+                let dayAbbreviations = ["SU": 1, "MO": 2, "TU": 3, "WE": 4, "TH": 5, "FR": 6, "SA": 7]
+                for (abbrev, weekday) in dayAbbreviations {
+                    if rrule.contains(abbrev) && weekday == todayWeekday {
+                        return true
+                    }
+                }
+            }
+        }
+        
+        return false
+    }
+    
+    private func extractTimeFromRRule(rrule: String) -> String? {
+        // Extract hour from BYHOUR parameter
+        if let hourRange = rrule.range(of: "BYHOUR=") {
+            let afterHour = rrule[hourRange.upperBound...]
+            if let semicolonIndex = afterHour.firstIndex(of: ";") {
+                let hourString = String(afterHour[..<semicolonIndex])
+                if let hour = Int(hourString) {
+                    let formatter = DateFormatter()
+                    formatter.timeStyle = .short
+                    let calendar = Calendar.current
+                    let date = calendar.date(bySettingHour: hour, minute: 0, second: 0, of: Date()) ?? Date()
+                    return formatter.string(from: date)
+                }
+            } else {
+                // No semicolon, take rest of string
+                let hourString = String(afterHour)
+                if let hour = Int(hourString) {
+                    let formatter = DateFormatter()
+                    formatter.timeStyle = .short
+                    let calendar = Calendar.current
+                    let date = calendar.date(bySettingHour: hour, minute: 0, second: 0, of: Date()) ?? Date()
+                    return formatter.string(from: date)
+                }
+            }
+        }
+        
+        return nil
     }
     
     private func mapActivityType(_ type: String) -> BDBuildingDetailActivity.ActivityType {

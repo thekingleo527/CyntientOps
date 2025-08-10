@@ -408,6 +408,13 @@ struct BuildingDetailView: View {
                         viewModel: viewModel
                     )
                     
+                case .sanitation:
+                    BuildingSanitationTab(
+                        buildingId: buildingId,
+                        buildingName: buildingName,
+                        viewModel: viewModel
+                    )
+                    
                 case .inventory:
                     BuildingInventoryTab(
                         buildingId: buildingId,
@@ -601,6 +608,7 @@ enum BuildingDetailTab: String, CaseIterable {
     case tasks = "Tasks"
     case workers = "Workers"
     case maintenance = "Maintenance"
+    case sanitation = "Sanitation"
     case inventory = "Inventory"
     case spaces = "Spaces"
     case emergency = "Emergency"
@@ -611,6 +619,7 @@ enum BuildingDetailTab: String, CaseIterable {
         case .tasks: return "checkmark.circle.fill"
         case .workers: return "person.3.fill"
         case .maintenance: return "wrench.and.screwdriver.fill"
+        case .sanitation: return "trash.circle.fill"
         case .inventory: return "shippingbox.fill"
         case .spaces: return "key.fill"
         case .emergency: return "phone.arrow.up.right"
@@ -1863,7 +1872,7 @@ struct BuildingDetailActivity: Identifiable {
     }
 }
 
-struct DailyRoutine: Identifiable {
+struct LocalDailyRoutine: Identifiable {
     let id: String
     let title: String
     let scheduledTime: String?
@@ -2234,7 +2243,7 @@ struct EmptyStateMessage: View {
 }
 
 struct DailyRoutineRow: View {
-    let routine: DailyRoutine
+    let routine: LocalDailyRoutine
     let onToggle: () -> Void
     
     var body: some View {
@@ -2983,6 +2992,233 @@ struct BuildingAddInventoryItemView: View {
                 onComplete(true)
             }
         }
+    }
+}
+
+// MARK: - Building Sanitation Tab
+
+typealias ViewModelDailyRoutine = BDDailyRoutine
+
+struct BuildingSanitationTab: View {
+    let buildingId: String
+    let buildingName: String
+    @ObservedObject var viewModel: BuildingDetailVM
+    @State private var selectedFilter: SanitationFilter = .today
+    
+    enum SanitationFilter: String, CaseIterable {
+        case today = "Today"
+        case week = "This Week"
+        case schedule = "Full Schedule"
+    }
+    
+    var body: some View {
+        VStack(spacing: 20) {
+            // DSNY Schedule overview
+            dsnyScheduleCard
+                .animatedGlassAppear(delay: 0.1)
+            
+            // Filter picker
+            Picker("Filter", selection: $selectedFilter) {
+                ForEach(SanitationFilter.allCases, id: \.self) { filter in
+                    Text(filter.rawValue).tag(filter)
+                }
+            }
+            .pickerStyle(SegmentedPickerStyle())
+            .padding(.horizontal)
+            
+            // Sanitation tasks for today
+            sanitationTasksCard
+                .animatedGlassAppear(delay: 0.2)
+            
+            // Compliance status
+            sanitationComplianceCard
+                .animatedGlassAppear(delay: 0.3)
+        }
+        .padding()
+    }
+    
+    private var dsnyScheduleCard: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Label("DSNY Collection Schedule", systemImage: "trash.circle.fill")
+                .font(.headline)
+                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+            
+            VStack(spacing: 12) {
+                DSNYScheduleRow(
+                    day: "Today",
+                    time: "8:00 PM - Set Out",
+                    items: "Trash, Recycling",
+                    isToday: true
+                )
+                
+                DSNYScheduleRow(
+                    day: "Monday",
+                    time: "6:00 AM - Collection",
+                    items: "Regular Pickup",
+                    isToday: false
+                )
+                
+                DSNYScheduleRow(
+                    day: "Wednesday",
+                    time: "6:00 AM - Collection", 
+                    items: "Regular Pickup",
+                    isToday: false
+                )
+                
+                DSNYScheduleRow(
+                    day: "Friday",
+                    time: "6:00 AM - Collection",
+                    items: "Regular Pickup",
+                    isToday: false
+                )
+            }
+        }
+        .padding()
+        .francoDarkCardBackground()
+    }
+    
+    private var sanitationTasksCard: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Label("Sanitation Tasks", systemImage: "checkmark.circle.fill")
+                .font(.headline)
+                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+            
+            if viewModel.dailyRoutines.filter({ $0.title.contains("DSNY") || $0.title.contains("Trash") }).isEmpty {
+                EmptyStateMessage(message: "No sanitation tasks scheduled")
+            } else {
+                VStack(spacing: 12) {
+                    ForEach(viewModel.dailyRoutines.filter { $0.title.contains("DSNY") || $0.title.contains("Trash") }) { routine in
+                        SanitationTaskRow(routine: routine) {
+                            viewModel.toggleRoutineCompletion(routine)
+                        }
+                    }
+                }
+            }
+        }
+        .padding()
+        .francoDarkCardBackground()
+    }
+    
+    private var sanitationComplianceCard: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Label("Compliance Status", systemImage: "checkmark.shield.fill")
+                .font(.headline)
+                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+            
+            VStack(spacing: 12) {
+                ComplianceRow(
+                    title: "DSNY Requirements",
+                    status: viewModel.dsnyCompliance,
+                    nextAction: viewModel.nextDSNYAction
+                )
+                
+                ComplianceRow(
+                    title: "Set-Out Schedule",
+                    status: .compliant,
+                    nextAction: "Next set-out: Today 8:00 PM"
+                )
+                
+                ComplianceRow(
+                    title: "Bin Maintenance",
+                    status: .atRisk,
+                    nextAction: "Clean bins weekly"
+                )
+            }
+        }
+        .padding()
+        .francoDarkCardBackground()
+    }
+}
+
+// MARK: - Supporting Components for Sanitation Tab
+
+struct DSNYScheduleRow: View {
+    let day: String
+    let time: String
+    let items: String
+    let isToday: Bool
+    
+    var body: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(day)
+                    .font(.subheadline)
+                    .fontWeight(isToday ? .bold : .medium)
+                    .foregroundColor(isToday ? CyntientOpsDesign.DashboardColors.secondaryAction : CyntientOpsDesign.DashboardColors.primaryText)
+                
+                Text(time)
+                    .font(.caption)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+            }
+            
+            Spacer()
+            
+            VStack(alignment: .trailing, spacing: 4) {
+                Text(items)
+                    .font(.subheadline)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                
+                if isToday {
+                    Text("TODAY")
+                        .font(.caption2)
+                        .fontWeight(.bold)
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 2)
+                        .background(CyntientOpsDesign.DashboardColors.secondaryAction)
+                        .cornerRadius(4)
+                }
+            }
+        }
+        .padding(.vertical, 4)
+    }
+}
+
+struct SanitationTaskRow: View {
+    let routine: BDDailyRoutine
+    let onToggle: () -> Void
+    
+    var body: some View {
+        HStack {
+            Button(action: onToggle) {
+                Image(systemName: routine.isCompleted ? "checkmark.circle.fill" : "circle")
+                    .font(.title2)
+                    .foregroundColor(routine.isCompleted ? .green : CyntientOpsDesign.DashboardColors.tertiaryText)
+            }
+            .buttonStyle(PlainButtonStyle())
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text(routine.title)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                    .strikethrough(routine.isCompleted)
+                
+                HStack(spacing: 12) {
+                    if let time = routine.scheduledTime {
+                        Label(time, systemImage: "clock")
+                            .font(.caption)
+                            .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+                    }
+                    
+                    if let worker = routine.assignedWorker {
+                        Label(worker, systemImage: "person")
+                            .font(.caption)
+                            .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+                    }
+                }
+            }
+            
+            Spacer()
+            
+            if routine.isCompleted {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundColor(.green)
+            }
+        }
+        .padding(.vertical, 8)
+        .background(routine.isCompleted ? Color.green.opacity(0.1) : Color.clear)
+        .cornerRadius(8)
     }
 }
 
