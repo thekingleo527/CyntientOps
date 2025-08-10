@@ -968,9 +968,41 @@ struct WorkerPrioritiesContentView: View {
             HStack(spacing: 12) {
                 // Show urgent tasks first
                 ForEach(contextEngine.todaysTasks.filter { $0.urgency == .urgent || $0.urgency == .critical }.prefix(3)) { task in
-                    WorkerTaskCard(task: task, style: .pending, requiresPhoto: task.requiresPhoto ?? false) {
-                        onNavigate(.taskDetail(id: task.id))
+                    Button(action: { onNavigate(.taskDetail(id: task.id)) }) {
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                Circle()
+                                    .fill(CyntientOpsDesign.DashboardColors.critical)
+                                    .frame(width: 6, height: 6)
+                                
+                                Text(task.title)
+                                    .francoTypography(CyntientOpsDesign.Typography.caption)
+                                    .fontWeight(.medium)
+                                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                                    .lineLimit(1)
+                                
+                                Spacer()
+                            }
+                            
+                            if let description = task.description {
+                                Text(description)
+                                    .francoTypography(CyntientOpsDesign.Typography.micro)
+                                    .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                                    .lineLimit(2)
+                            }
+                        }
+                        .padding(12)
+                        .frame(width: 180)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(CyntientOpsDesign.DashboardColors.cardBackground)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(CyntientOpsDesign.DashboardColors.critical.opacity(0.3), lineWidth: 1)
+                                )
+                        )
                     }
+                    .buttonStyle(PlainButtonStyle())
                 }
 
                 // Then show insights
