@@ -1737,6 +1737,7 @@ public struct CoreTypes {
     }
     
     public enum FrancoPhotoCategory: String, Codable, CaseIterable {
+        case all = "all" // Special case for filtering
         case beforeWork = "before_work"
         case duringWork = "during_work"
         case afterWork = "after_work"
@@ -1748,6 +1749,7 @@ public struct CoreTypes {
         
         public var priority: Int {
             switch self {
+            case .all: return 999 // Special case - not for storage
             case .emergency: return 1 // Highest - emergency situations
             case .compliance: return 2 // Legal compliance required
             case .issue: return 3 // Problems that need addressing
@@ -1761,6 +1763,7 @@ public struct CoreTypes {
         
         public var retentionDays: Int {
             switch self {
+            case .all: return 0 // Special case - not for storage
             case .emergency, .compliance: return 365 // Legal requirements
             case .issue: return 90 // Problem tracking
             case .utilities, .inventory: return 90 // Asset records
@@ -1770,9 +1773,38 @@ public struct CoreTypes {
         
         public var autoCompress: Bool {
             switch self {
+            case .all: return false // Special case - not for storage
             case .emergency, .compliance: return false // Keep full quality for legal
             case .issue: return false // Keep quality for problem analysis
             case .utilities, .inventory, .beforeWork, .duringWork, .afterWork: return true // Can compress
+            }
+        }
+        
+        public var displayName: String {
+            switch self {
+            case .all: return "All Photos"
+            case .beforeWork: return "Before Work"
+            case .duringWork: return "During Work"
+            case .afterWork: return "After Work"
+            case .issue: return "Issues"
+            case .inventory: return "Inventory"
+            case .compliance: return "Compliance"
+            case .emergency: return "Emergency"
+            case .utilities: return "Utilities"
+            }
+        }
+        
+        public var icon: String {
+            switch self {
+            case .all: return "photo.stack"
+            case .beforeWork: return "camera.viewfinder"
+            case .duringWork: return "photo.on.rectangle"
+            case .afterWork: return "checkmark.circle"
+            case .issue: return "exclamationmark.triangle"
+            case .inventory: return "list.bullet.rectangle"
+            case .compliance: return "checkmark.shield"
+            case .emergency: return "exclamationmark.octagon"
+            case .utilities: return "wrench.and.screwdriver"
             }
         }
     }

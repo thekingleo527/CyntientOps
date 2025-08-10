@@ -136,7 +136,7 @@ struct FrancoPhotoPicker: View {
 struct FrancoBuildingPhotoGallery: View {
     let buildingId: String
     @StateObject private var viewModel = FrancoPhotoGalleryViewModel()
-    @State private var selectedCategory = CoreTypes.FrancoPhotoCategory.utilities
+    @State private var selectedCategory = CoreTypes.FrancoPhotoCategory.all
     @State private var showingFullScreen = false
     @State private var selectedPhoto: FrancoBuildingPhoto?
     @State private var showingAddPhoto = false

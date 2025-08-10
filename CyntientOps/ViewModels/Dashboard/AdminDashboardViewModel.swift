@@ -325,7 +325,7 @@ class AdminDashboardViewModel: ObservableObject {
             var verifiedTasks: [CoreTypes.ContextualTask] = []
             
             for task in tasksWithPhotos {
-                let photos = try await container.photos.loadPhotoEvidence(for: task.id)
+                let photos = try await container.photos.getRecentPhotos(buildingId: task.buildingId ?? "", limit: 10)
                 if !photos.isEmpty {
                     verifiedTasks.append(task)
                 }
@@ -433,11 +433,11 @@ class AdminDashboardViewModel: ObservableObject {
             }
             .store(in: &cancellables)
         
-        // Subscribe to pending uploads count
-        container.photos.$pendingUploads
+        // Subscribe to pending batches count
+        container.photos.$pendingBatches
             .receive(on: DispatchQueue.main)
             .sink { [weak self] (count: Int) in
-                let pendingMessage = NSLocalizedString("Pending photo uploads", comment: "Pending uploads message")
+                let pendingMessage = NSLocalizedString("Pending photo batches", comment: "Pending batches message")
                 print("📸 \(pendingMessage): \(count)")
             }
             .store(in: &cancellables)
@@ -506,11 +506,6 @@ class AdminDashboardViewModel: ObservableObject {
             )
             broadcastAdminUpdate(update)
             
-        } catch {
-            self.portfolioInsights = []
-            self.isLoadingInsights = false
-            let errorMessage = NSLocalizedString("Failed to load portfolio insights", comment: "Portfolio insights error")
-            print("⚠️ \(errorMessage): \(error)")
         }
     }
     

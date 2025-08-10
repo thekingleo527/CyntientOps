@@ -875,7 +875,7 @@ public class BuildingDetailViewModel: ObservableObject {
                             id: space.id,
                             name: space.name,
                             category: space.category,
-                            thumbnail: firstPhoto.thumbnailPath,
+                            thumbnail: nil, // TODO: Load image from thumbnailPath
                             lastUpdated: space.lastUpdated,
                             accessCode: space.accessCode,
                             notes: space.notes,

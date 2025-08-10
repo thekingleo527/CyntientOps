@@ -54,12 +54,16 @@ struct WorkerDashboardMainView: View {
             // Main Content
             VStack(spacing: 0) {
                 // Header (60px) - Fixed
-                WorkerDashboardHeader(
+                HeaderV3B(
                     workerName: viewModel.workerProfile?.name ?? "Worker",
-                    totalTasks: viewModel.todaysTasks.count,
-                    completedTasks: viewModel.completedTasksCount,
-                    currentBuilding: viewModel.currentBuilding?.name
+                    nextTaskName: viewModel.todaysTasks.first?.title,
+                    showClockPill: true,
+                    isNovaProcessing: false,
+                    onProfileTap: {},
+                    onNovaPress: {},
+                    onNovaLongPress: {}
                 )
+                .frame(height: 60)
                 .frame(height: 60)
                 
                 // Worker Hero Card (simplified for MainView)
@@ -322,17 +326,17 @@ struct WorkerDashboardMainView: View {
                         Task {
                             do {
                                 if let profile = viewModel.workerProfile {
-                                    let photoEvidence = try await PhotoEvidenceService.shared.captureEvidence(
+                                    let photoEvidence = try await PhotoEvidenceService.shared.captureQuick(
                                         image: image,
-                                        for: task,
-                                        worker: profile,
-                                        location: LocationManager.shared.location,
-                                        notes: "Photo evidence for \(task.title)"
+                                        category: .duringWork,
+                                        buildingId: task.buildingId ?? "",
+                                        workerId: profile.id,
+                                        notes: "Task completion photo for \(task.title)"
                                     )
                                     
                                     let evidence = CoreTypes.ActionEvidence(
                                         description: "Photo evidence for \(task.title)",
-                                        photoURLs: [photoEvidence.localPath],
+                                        photoURLs: [photoEvidence.filePath],
                                         timestamp: Date()
                                     )
                                     
