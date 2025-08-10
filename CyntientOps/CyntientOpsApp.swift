@@ -297,6 +297,16 @@ struct CyntientOpsApp: App {
             checkDailyOperations()
         }
         
+        // Phase 0A: Force logout in development for testing (TEMPORARY)
+        #if DEBUG
+        if ProductionConfiguration.environment == .development {
+            Task {
+                print("🔄 DEBUG: Force logout for testing")
+                await authManager.logout()
+            }
+        }
+        #endif
+        
         // Phase 0A: Seed user accounts if needed
         print("🔍 DEBUG: Current environment: \(ProductionConfiguration.environment.rawValue)")
         if ProductionConfiguration.environment == .development {

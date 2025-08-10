@@ -76,6 +76,25 @@ struct WorkerDashboardView: View {
     }
     
     // MARK: - Computed Properties
+    
+    @ViewBuilder
+    private var contextAwareContent: some View {
+        VStack(spacing: 16) {
+            if hasUrgentTasks() {
+                // Show urgent task cards
+                urgentTasksSection
+            }
+            
+            if viewModel.isCurrentlyClockedIn {
+                // Current building details and active task list
+                currentBuildingSection
+            } else {
+                // Clock in prompt and assigned buildings list
+                clockInPromptSection
+            }
+        }
+    }
+    
     private var intelligencePanelState: IntelPanelState {
         switch currentContext {
         case .dashboard:
@@ -117,8 +136,8 @@ struct WorkerDashboardView: View {
                 VStack(spacing: 0) {
                     // Updated HeaderV3B with brand-AI-user layout (5-7%)
                     HeaderV3B(
-                        workerName: contextEngine.currentWorker?.name ?? "Worker",
-                        nextTaskName: getCurrentTask()?.title,
+                        workerName: contextEngine.currentWorker?.name ?? "Loading Worker...",
+                        nextTaskName: getCurrentTask()?.title ?? "Loading Tasks...",
                         showClockPill: true, // Always show clock status
                         isNovaProcessing: false, // Simplified for compilation
                         onProfileTap: { showProfileView = true },
@@ -157,6 +176,9 @@ struct WorkerDashboardView: View {
                                 onSyncTap: { Task { await viewModel.refreshData() } }
                             )
                             .zIndex(50)
+                            
+                            // Context-aware content loading
+                            contextAwareContent
                             
                             // Spacer for bottom intelligence bar
                             Spacer(minLength: intelligencePanelState == .hidden ? 20 : 80)
@@ -259,6 +281,18 @@ struct WorkerDashboardView: View {
         }
         .onAppear {
             checkFeatureFlags()
+            
+            // Load worker context when view appears
+            if let workerId = authManager.workerId {
+                Task {
+                    do {
+                        await contextEngine.refreshContext()
+                        await viewModel.refreshData()
+                    } catch {
+                        print("Failed to load worker context: \(error)")
+                    }
+                }
+            }
         }
     }
     
@@ -489,9 +523,12 @@ struct WorkerDashboardView: View {
     }
     
     private func hasIntelligenceToShow() -> Bool {
-        return viewModel.assignedBuildings.count > 1 ||
-               viewModel.todaysTasks.filter { $0.isCompleted }.count > 3 ||
-               hasUpcomingDeadlines()
+        // Always show for now to debug display issues
+        return true
+        // TODO: Restore proper conditions later:
+        // return viewModel.assignedBuildings.count > 1 ||
+        //        viewModel.todaysTasks.filter { $0.isCompleted }.count > 3 ||
+        //        hasUpcomingDeadlines()
     }
     
     private func hasUpcomingDeadlines() -> Bool {
@@ -555,6 +592,117 @@ struct WorkerDashboardView: View {
         }
         
         return context
+    }
+    
+    // MARK: - Context-Aware Content Sections
+    
+    @ViewBuilder
+    private var urgentTasksSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("🚨 Urgent Tasks")
+                .font(.headline)
+                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+            
+            ForEach(viewModel.todaysTasks.filter { $0.urgency == .urgent || $0.urgency == .critical }.prefix(3), id: \.id) { task in
+                Button(action: {
+                    selectedTask = task
+                    showTaskDetail = true
+                }) {
+                    HStack {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundColor(.red)
+                        
+                        VStack(alignment: .leading) {
+                            Text(task.title)
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                            
+                            if let building = task.building {
+                                Text(building.name)
+                                    .font(.caption)
+                                    .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                            }
+                        }
+                        
+                        Spacer()
+                        
+                        Image(systemName: "chevron.right")
+                            .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+                    }
+                    .padding()
+                    .background(CyntientOpsDesign.DashboardColors.cardBackground)
+                    .cornerRadius(12)
+                }
+                .buttonStyle(PlainButtonStyle())
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private var currentBuildingSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if let building = contextEngine.currentBuilding {
+                Text("📍 Current Location: \(building.name)")
+                    .font(.headline)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                
+                Text("Active Tasks")
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                
+                ForEach(viewModel.todaysTasks.filter { !$0.isCompleted }.prefix(5), id: \.id) { task in
+                    WorkerTaskRowView(task: task) {
+                        selectedTask = task
+                        showTaskDetail = true
+                    }
+                }
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private var clockInPromptSection: some View {
+        VStack(spacing: 16) {
+            Text("📲 Ready to Start Your Day?")
+                .font(.headline)
+                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+            
+            Text("Select a building to clock in")
+                .font(.subheadline)
+                .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+            
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 2), spacing: 12) {
+                ForEach(contextEngine.assignedBuildings.prefix(4), id: \.id) { building in
+                    Button(action: {
+                        Task {
+                            await viewModel.clockIn(at: building)
+                            await contextEngine.refreshContext()
+                        }
+                    }) {
+                        VStack(spacing: 8) {
+                            Image(systemName: "building.2.fill")
+                                .font(.title2)
+                                .foregroundColor(.blue)
+                            
+                            Text(building.name)
+                                .font(.caption)
+                                .fontWeight(.medium)
+                                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                                .lineLimit(2)
+                                .multilineTextAlignment(.center)
+                        }
+                        .padding()
+                        .frame(height: 80)
+                        .frame(maxWidth: .infinity)
+                        .background(CyntientOpsDesign.DashboardColors.cardBackground)
+                        .cornerRadius(12)
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                }
+            }
+        }
     }
 }
 

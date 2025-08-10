@@ -134,64 +134,58 @@ struct HeaderV3B: View {
     // MARK: - Nova Section (Center)
     
     private var novaSection: some View {
-        VStack(spacing: 4) {
+        HStack(spacing: 12) {
             // Future phase buttons arranged around Nova
-            HStack(spacing: 16) {
-                // Voice Command (Phase 1)
-                if onVoiceCommand != nil {
-                    futurePhaseButton(
-                        icon: "mic.fill",
-                        color: .purple,
-                        action: { onVoiceCommand?() },
-                        label: "Voice"
-                    )
-                    .transition(.scale.combined(with: .opacity))
-                }
-                
-                // Nova button (center)
-                Button(action: handleNovaAction) {
-                    ZStack {
-                        // Background circle
-                        Circle()
-                            .fill(novaBackgroundGradient)
-                            .frame(width: 48, height: 48)
-                            .shadow(color: novaGlowColor.opacity(0.3), radius: 8)
-                        
-                        // Nova icon
-                        novaIcon
-                            .scaleEffect(novaScale)
-                        
-                        // State indicators
-                        if isNovaProcessing {
-                            novaProcessingRing
-                        }
-                        
-                        // Alert badge
-                        if hasUrgentContext {
-                            alertBadge
-                        }
-                    }
-                }
-                .buttonStyle(ScaleButtonStyle())
-                .onLongPressGesture {
-                    onNovaLongPress()
-                }
-                
-                // AR Mode (Phase 2)
-                if onARModeToggle != nil {
-                    futurePhaseButton(
-                        icon: "arkit",
-                        color: .cyan,
-                        action: { onARModeToggle?() },
-                        label: "AR"
-                    )
-                    .transition(.scale.combined(with: .opacity))
-                }
+            // Voice Command (Phase 1)
+            if onVoiceCommand != nil {
+                futurePhaseButton(
+                    icon: "mic.fill",
+                    color: .purple,
+                    action: { onVoiceCommand?() },
+                    label: "Voice"
+                )
+                .transition(.scale.combined(with: .opacity))
             }
             
-            // Context message
-            novaContextMessage
-                .animation(.easeInOut, value: novaMessage)
+            // Nova button (center)
+            Button(action: handleNovaAction) {
+                ZStack {
+                    // Background circle
+                    Circle()
+                        .fill(novaBackgroundGradient)
+                        .frame(width: 48, height: 48)
+                        .shadow(color: novaGlowColor.opacity(0.3), radius: 8)
+                    
+                    // Nova icon
+                    novaIcon
+                        .scaleEffect(novaScale)
+                    
+                    // State indicators
+                    if isNovaProcessing {
+                        novaProcessingRing
+                    }
+                    
+                    // Alert badge
+                    if hasUrgentContext {
+                        alertBadge
+                    }
+                }
+            }
+            .buttonStyle(ScaleButtonStyle())
+            .onLongPressGesture {
+                onNovaLongPress()
+            }
+            
+            // AR Mode (Phase 2)
+            if onARModeToggle != nil {
+                futurePhaseButton(
+                    icon: "arkit",
+                    color: .cyan,
+                    action: { onARModeToggle?() },
+                    label: "AR"
+                )
+                .transition(.scale.combined(with: .opacity))
+            }
         }
         .overlay(
             novaTooltip
@@ -202,7 +196,7 @@ struct HeaderV3B: View {
     
     private var novaIcon: some View {
         Group {
-            if let novaImage = UIImage(named: "NovaAI") {
+            if let novaImage = UIImage(named: "AIAssistant") {
                 Image(uiImage: novaImage)
                     .resizable()
                     .renderingMode(.template)

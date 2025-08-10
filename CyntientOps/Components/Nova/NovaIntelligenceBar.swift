@@ -16,6 +16,23 @@ struct NovaIntelligenceBar: View {
     @State private var isExpanded = false
     @State private var currentInsight: String = "Nova is analyzing your performance..."
     @State private var animationPhase = 0
+    @State private var selectedTab: NovaTab = .priorities
+    
+    enum NovaTab: String, CaseIterable {
+        case priorities = "Priorities"
+        case map = "Map"
+        case analytics = "Analytics"
+        case chat = "Chat"
+        
+        var icon: String {
+            switch self {
+            case .priorities: return "exclamationmark.triangle.fill"
+            case .map: return "map.fill"
+            case .analytics: return "chart.bar.fill"
+            case .chat: return "bubble.left.and.bubble.right.fill"
+            }
+        }
+    }
     
     // Nova AI Manager reference (passed from container)
     @ObservedObject var novaManager: NovaAIManager
@@ -69,6 +86,202 @@ struct NovaIntelligenceBar: View {
         }
         .onAppear {
             startInsightRotation()
+        }
+    }
+    
+    // MARK: - Tab Navigation
+    
+    private var tabNavigation: some View {
+        HStack(spacing: 0) {
+            ForEach(NovaTab.allCases, id: \.self) { tab in
+                Button(action: {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        selectedTab = tab
+                    }
+                }) {
+                    HStack(spacing: 6) {
+                        Image(systemName: tab.icon)
+                            .font(.system(size: 14))
+                        
+                        Text(tab.rawValue)
+                            .font(.caption)
+                            .fontWeight(.medium)
+                    }
+                    .foregroundColor(selectedTab == tab ? .white : .white.opacity(0.6))
+                    .padding(.vertical, 8)
+                    .padding(.horizontal, 12)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(selectedTab == tab ? Color.blue.opacity(0.3) : Color.clear)
+                    )
+                }
+                .buttonStyle(PlainButtonStyle())
+                
+                if tab != NovaTab.allCases.last {
+                    Spacer()
+                }
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+    }
+    
+    @ViewBuilder
+    private var tabContent: some View {
+        Group {
+            switch selectedTab {
+            case .priorities:
+                prioritiesContent
+            case .map:
+                mapContent
+            case .analytics:
+                analyticsContent
+            case .chat:
+                chatContent
+            }
+        }
+        .padding(.horizontal, 16)
+        .frame(height: 120)
+    }
+    
+    @ViewBuilder
+    private var prioritiesContent: some View {
+        LazyVGrid(columns: [
+            GridItem(.flexible()),
+            GridItem(.flexible())
+        ], spacing: 12) {
+            ForEach(Array(insights.enumerated()), id: \.offset) { index, insight in
+                NovaInsightCard(
+                    insight: insight,
+                    index: index,
+                    isActive: index < 2
+                )
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private var mapContent: some View {
+        VStack(spacing: 8) {
+            HStack {
+                Image(systemName: "map.fill")
+                    .foregroundColor(.blue)
+                Text("Building Navigation")
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .foregroundColor(.white)
+                Spacer()
+            }
+            
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    ForEach(0..<3) { index in
+                        VStack(spacing: 4) {
+                            Image(systemName: "building.2.fill")
+                                .font(.title2)
+                                .foregroundColor(.blue)
+                            Text("Building \(index + 1)")
+                                .font(.caption)
+                                .foregroundColor(.white)
+                        }
+                        .padding(8)
+                        .background(Color.white.opacity(0.1))
+                        .cornerRadius(8)
+                    }
+                }
+                .padding(.horizontal, 4)
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private var analyticsContent: some View {
+        VStack(spacing: 8) {
+            HStack {
+                Image(systemName: "chart.bar.fill")
+                    .foregroundColor(.green)
+                Text("Performance Analytics")
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .foregroundColor(.white)
+                Spacer()
+            }
+            
+            HStack(spacing: 16) {
+                VStack {
+                    Text("15")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .foregroundColor(.green)
+                    Text("Completed")
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.8))
+                }
+                
+                VStack {
+                    Text("38")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .foregroundColor(.blue)
+                    Text("Total")
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.8))
+                }
+                
+                VStack {
+                    Text("94%")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .foregroundColor(.orange)
+                    Text("Efficiency")
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.8))
+                }
+                
+                Spacer()
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private var chatContent: some View {
+        VStack(spacing: 8) {
+            HStack {
+                Image(systemName: "bubble.left.and.bubble.right.fill")
+                    .foregroundColor(.purple)
+                Text("AI Assistant")
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .foregroundColor(.white)
+                Spacer()
+            }
+            
+            VStack(spacing: 8) {
+                Text("💬 \"You're ahead of schedule on 3 tasks today!\"")
+                    .font(.caption)
+                    .foregroundColor(.white.opacity(0.9))
+                    .padding(8)
+                    .background(Color.purple.opacity(0.2))
+                    .cornerRadius(8)
+                
+                Button(action: {
+                    // Open full Nova chat
+                }) {
+                    HStack {
+                        Text("Open Nova Chat")
+                            .font(.caption)
+                            .fontWeight(.medium)
+                        Image(systemName: "arrow.up.right")
+                            .font(.caption)
+                    }
+                    .foregroundColor(.purple)
+                    .padding(.vertical, 6)
+                    .padding(.horizontal, 12)
+                    .background(Color.purple.opacity(0.1))
+                    .cornerRadius(6)
+                }
+                .buttonStyle(PlainButtonStyle())
+            }
         }
     }
     
@@ -166,20 +379,11 @@ struct NovaIntelligenceBar: View {
             .padding(.horizontal, 16)
             .padding(.top, 8)
             
-            // Insights Grid
-            LazyVGrid(columns: [
-                GridItem(.flexible()),
-                GridItem(.flexible())
-            ], spacing: 12) {
-                ForEach(Array(insights.enumerated()), id: \.offset) { index, insight in
-                    NovaInsightCard(
-                        insight: insight,
-                        index: index,
-                        isActive: index < 2
-                    )
-                }
-            }
-            .padding(.horizontal, 16)
+            // Tab Navigation
+            tabNavigation
+            
+            // Tab Content
+            tabContent
             
             // Action Buttons
             HStack(spacing: 12) {
