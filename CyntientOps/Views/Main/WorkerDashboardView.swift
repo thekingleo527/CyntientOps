@@ -963,72 +963,118 @@ struct WorkerPrioritiesContentView: View {
     let contextEngine: WorkerContextEngine
     let onNavigate: (IntelligencePreviewPanel.NavigationTarget) -> Void
 
+    // Computed property to get urgent tasks
+    private var urgentTasks: [CoreTypes.ContextualTask] {
+        contextEngine.todaysTasks.filter { $0.urgency == .urgent || $0.urgency == .critical }
+    }
+    
+    private var hasNoUrgentContent: Bool {
+        urgentTasks.isEmpty && insights.isEmpty
+    }
+
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 12) {
                 // Show urgent tasks first
-                ForEach(contextEngine.todaysTasks.filter { $0.urgency == .urgent || $0.urgency == .critical }.prefix(3)) { task in
-                    Button(action: { onNavigate(.taskDetail(id: task.id)) }) {
-                        VStack(alignment: .leading, spacing: 8) {
-                            HStack {
-                                Circle()
-                                    .fill(CyntientOpsDesign.DashboardColors.critical)
-                                    .frame(width: 6, height: 6)
-                                
-                                Text(task.title)
-                                    .francoTypography(CyntientOpsDesign.Typography.caption)
-                                    .fontWeight(.medium)
-                                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-                                    .lineLimit(1)
-                                
-                                Spacer()
-                            }
-                            
-                            if let description = task.description {
-                                Text(description)
-                                    .francoTypography(CyntientOpsDesign.Typography.micro)
-                                    .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
-                                    .lineLimit(2)
-                            }
-                        }
-                        .padding(12)
-                        .frame(width: 180)
-                        .background(
-                            RoundedRectangle(cornerRadius: 12)
-                                .fill(CyntientOpsDesign.DashboardColors.cardBackground)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .stroke(CyntientOpsDesign.DashboardColors.critical.opacity(0.3), lineWidth: 1)
-                                )
-                        )
-                    }
-                    .buttonStyle(PlainButtonStyle())
-                }
-
+                urgentTasksContent
+                
                 // Then show insights
-                ForEach(insights.prefix(2)) { insight in
-                    WorkerInsightCard(insight: insight) {
-                        onNavigate(.fullInsights)
-                    }
-                }
-
-                if contextEngine.todaysTasks.filter({ $0.urgency == .urgent || $0.urgency == .critical }).isEmpty && insights.isEmpty {
-                    VStack {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.title2)
-                            .foregroundColor(CyntientOpsDesign.DashboardColors.success)
-                        Text("All Clear")
-                            .font(.caption)
-                            .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-                    }
-                    .frame(width: 100, height: 80)
-                    .background(CyntientOpsDesign.DashboardColors.glassOverlay)
-                    .cornerRadius(8)
+                insightsContent
+                
+                // Show "All Clear" if no urgent content
+                if hasNoUrgentContent {
+                    allClearContent
                 }
             }
             .padding(.horizontal, 12)
         }
         .padding(.vertical, 8)
+    }
+    
+    // MARK: - View Components
+    
+    @ViewBuilder
+    private var urgentTasksContent: some View {
+        ForEach(Array(urgentTasks.prefix(3))) { task in
+            urgentTaskCard(for: task)
+        }
+    }
+    
+    @ViewBuilder
+    private var insightsContent: some View {
+        ForEach(Array(insights.prefix(2))) { insight in
+            WorkerInsightCard(insight: insight) {
+                onNavigate(.fullInsights)
+            }
+        }
+    }
+    
+    private var allClearContent: some View {
+        VStack {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.title2)
+                .foregroundColor(CyntientOpsDesign.DashboardColors.success)
+            Text("All Clear")
+                .font(.caption)
+                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+        }
+        .frame(width: 100, height: 80)
+        .background(CyntientOpsDesign.DashboardColors.glassOverlay)
+        .cornerRadius(8)
+    }
+    
+    // MARK: - Task Card Builder
+    
+    private func urgentTaskCard(for task: CoreTypes.ContextualTask) -> some View {
+        Button(action: { onNavigate(.taskDetail(id: task.id)) }) {
+            taskCardContent(for: task)
+        }
+        .buttonStyle(PlainButtonStyle())
+    }
+    
+    private func taskCardContent(for task: CoreTypes.ContextualTask) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            taskCardHeader(for: task)
+            
+            if let description = task.description {
+                taskCardDescription(description)
+            }
+        }
+        .padding(12)
+        .frame(width: 180)
+        .background(taskCardBackground)
+    }
+    
+    private func taskCardHeader(for task: CoreTypes.ContextualTask) -> some View {
+        HStack {
+            Circle()
+                .fill(CyntientOpsDesign.DashboardColors.critical)
+                .frame(width: 6, height: 6)
+            
+            Text(task.title)
+                .francoTypography(CyntientOpsDesign.Typography.caption)
+                .fontWeight(.medium)
+                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                .lineLimit(1)
+            
+            Spacer()
+        }
+    }
+    
+    private func taskCardDescription(_ description: String) -> some View {
+        Text(description)
+            .francoTypography(CyntientOpsDesign.Typography.micro)
+            .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+            .lineLimit(2)
+    }
+    
+    private var taskCardBackground: some View {
+        RoundedRectangle(cornerRadius: 12)
+            .fill(CyntientOpsDesign.DashboardColors.cardBackground)
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(CyntientOpsDesign.DashboardColors.critical.opacity(0.3), lineWidth: 1)
+            )
     }
 }
 
