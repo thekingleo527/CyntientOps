@@ -1745,6 +1745,36 @@ public struct CoreTypes {
         case compliance = "compliance"
         case emergency = "emergency"
         case utilities = "utilities"
+        
+        public var priority: Int {
+            switch self {
+            case .emergency: return 1 // Highest - emergency situations
+            case .compliance: return 2 // Legal compliance required
+            case .issue: return 3 // Problems that need addressing
+            case .utilities: return 4 // Equipment documentation
+            case .inventory: return 5 // Asset tracking
+            case .beforeWork: return 6 // Work documentation
+            case .duringWork: return 7 // Progress tracking
+            case .afterWork: return 8 // Completion verification
+            }
+        }
+        
+        public var retentionDays: Int {
+            switch self {
+            case .emergency, .compliance: return 365 // Legal requirements
+            case .issue: return 90 // Problem tracking
+            case .utilities, .inventory: return 90 // Asset records
+            case .beforeWork, .duringWork, .afterWork: return 30 // Work documentation
+            }
+        }
+        
+        public var autoCompress: Bool {
+            switch self {
+            case .emergency, .compliance: return false // Keep full quality for legal
+            case .issue: return false // Keep quality for problem analysis
+            case .utilities, .inventory, .beforeWork, .duringWork, .afterWork: return true // Can compress
+            }
+        }
     }
     
     // Streamlined photo processing result
