@@ -44,6 +44,10 @@ struct WorkerProfileView: View {
                             .animatedGlassAppear(delay: 0.4)
                     }
                     
+                    // Logout Section
+                    LogoutSectionView()
+                        .animatedGlassAppear(delay: 0.5)
+                    
                     Spacer(minLength: 50)
                 }
                 .padding()
@@ -699,6 +703,67 @@ class WorkerProfileViewModel: ObservableObject {
 extension WorkerService {
     func getWorkerBuildings(workerId: String) async throws -> [NamedCoordinate] {
         return []
+    }
+}
+
+// MARK: - Logout Section
+
+struct LogoutSectionView: View {
+    @EnvironmentObject private var authManager: NewAuthManager
+    @Environment(\.dismiss) private var dismiss
+    @State private var showLogoutConfirmation = false
+    
+    var body: some View {
+        VStack(spacing: 16) {
+            // Section Title
+            HStack {
+                Text("Account")
+                    .glassHeading()
+                Spacer()
+            }
+            
+            // Logout Button
+            Button(action: {
+                showLogoutConfirmation = true
+            }) {
+                HStack {
+                    Image(systemName: "rectangle.portrait.and.arrow.right")
+                        .font(.title3)
+                        .foregroundColor(.red)
+                    
+                    Text("Sign Out")
+                        .font(.headline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.red)
+                    
+                    Spacer()
+                    
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+                }
+                .padding()
+                .background(.ultraThinMaterial)
+                .cornerRadius(16)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(Color.red.opacity(0.3), lineWidth: 1)
+                )
+            }
+            .buttonStyle(PlainButtonStyle())
+        }
+        .padding(.horizontal)
+        .confirmationDialog("Sign Out", isPresented: $showLogoutConfirmation) {
+            Button("Sign Out", role: .destructive) {
+                Task {
+                    await authManager.logout()
+                    dismiss()
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Are you sure you want to sign out?")
+        }
     }
 }
 

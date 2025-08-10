@@ -352,7 +352,7 @@ struct LoginView: View {
                                 
                                 quickAccessButton(
                                     email: "shawn.magloire@cyntientops.com",
-                                    name: "Shawn (Admin)",
+                                    name: "Shawn (Manager)",
                                     icon: "shield.checkmark",
                                     color: .purple
                                 )
@@ -362,6 +362,13 @@ struct LoginView: View {
                                     name: "Edwin (Worker)",
                                     icon: "person.text.rectangle",
                                     color: .green
+                                )
+                                
+                                quickAccessButton(
+                                    email: "greg.hutson@cyntientops.com",
+                                    name: "Greg (Worker)",
+                                    icon: "hammer.fill",
+                                    color: .orange
                                 )
                             }
                         }
@@ -425,6 +432,8 @@ struct LoginView: View {
                     self.password = "ShawnHVAC2025!"
                 case "edwin.lema@cyntientops.com":
                     self.password = "EdwinPark2025!"
+                case "greg.hutson@cyntientops.com":
+                    self.password = "GregWorker2025!"
                 default:
                     self.password = "password"
                 }
