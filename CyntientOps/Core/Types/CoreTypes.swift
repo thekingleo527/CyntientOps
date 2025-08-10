@@ -2344,3 +2344,5 @@ public typealias ActionEvidence = CoreTypes.ActionEvidence
 public typealias SkillLevel = CoreTypes.SkillLevel
 public typealias DataHealthStatus = CoreTypes.DataHealthStatus
 public typealias RealtimeMetrics = CoreTypes.RealtimeMetrics
+
+// MARK: - Report Types (Defined in AdminReportsView)

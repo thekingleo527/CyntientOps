@@ -191,7 +191,7 @@ struct DailyRoutinesCard: View {
                     """, [
                         completionId,
                         routine.id,
-                        workerId ?? dashboardSync.currentUserId ?? "",
+                        workerId ?? "unknown",
                         buildingId,
                         now.ISO8601Format(),
                         now.ISO8601Format()
@@ -201,9 +201,9 @@ struct DailyRoutinesCard: View {
                 // Broadcast update
                 let update = CoreTypes.DashboardUpdate(
                     source: .worker,
-                    type: routine.isCompleted ? .taskReverted : .taskCompleted,
+                    type: routine.isCompleted ? .taskUpdated : .taskCompleted,
                     buildingId: buildingId,
-                    workerId: workerId ?? dashboardSync.currentUserId ?? "",
+                    workerId: workerId ?? "unknown",
                     data: [
                         "taskId": routine.id,
                         "taskName": routine.title,
@@ -405,21 +405,22 @@ struct MonthlyRoutinesCard: View {
                 }
             }
             
-            // Add routine button (admin only)
-            if dashboardSync.currentUserRole == .admin {
-                Button(action: { showingScheduleEditor = true }) {
-                    HStack {
-                        Image(systemName: "plus.circle.fill")
-                        Text("Add Monthly Routine")
-                    }
-                    .font(.subheadline)
-                    .foregroundColor(.blue)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 8)
-                    .background(Color.blue.opacity(0.1))
-                    .cornerRadius(8)
+            // Add routine button (temporarily disabled - admin role check needs proper implementation)
+            // TODO: Add proper user role checking with AuthManager or similar service
+            /*
+            Button(action: { showingScheduleEditor = true }) {
+                HStack {
+                    Image(systemName: "plus.circle.fill")
+                    Text("Add Monthly Routine")
                 }
+                .font(.subheadline)
+                .foregroundColor(.blue)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 8)
+                .background(Color.blue.opacity(0.1))
+                .cornerRadius(8)
             }
+            */
         }
         .padding()
         .background(Color.white.opacity(0.05))
@@ -905,12 +906,12 @@ struct AddRoutineSheet: View {
                 }
                 
                 Section {
-                    Text("This routine will be created for \(frequency.displayName.lowercased()) execution")
+                    Text("This routine will be created for \(frequency.rawValue.lowercased()) execution")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
             }
-            .navigationTitle("Add \(frequency.displayName) Routine")
+            .navigationTitle("Add \(frequency.rawValue.capitalized) Routine")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {

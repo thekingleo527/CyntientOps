@@ -19,6 +19,85 @@
 import Foundation
 import SwiftUI
 import Combine
+import GRDB
+
+// MARK: - Temporary alias until UserProfileService is properly added to Xcode project
+typealias UserProfileService = UserProfileServiceTemp
+
+@MainActor
+public final class UserProfileServiceTemp: ObservableObject {
+    @Published public var userPreferences: UserPreferences?
+    private let database: GRDBManager
+    
+    public init(database: GRDBManager) {
+        self.database = database
+    }
+    
+    public func loadUserProfile(for userId: String) async throws -> CoreTypes.User? {
+        let workers = try await database.query("""
+            SELECT id, name, email, role, isActive, lastLogin, created_at, updated_at
+            FROM workers 
+            WHERE id = ? AND isActive = 1
+        """, [userId])
+        
+        guard let workerData = workers.first,
+              let workerId = workerData["id"] as? String,
+              let name = workerData["name"] as? String,
+              let email = workerData["email"] as? String,
+              let role = workerData["role"] as? String else {
+            return nil
+        }
+        
+        return CoreTypes.User(workerId: workerId, name: name, email: email, role: role)
+    }
+    
+    public func updateProfile(userId: String, name: String?, email: String?) async throws {}
+    public func saveUserPreferences(_ preferences: UserPreferences) async throws {}
+    public func updatePreference<T>(userId: String, key: String, value: T) async throws {}
+}
+
+public struct UserPreferences {
+    public let userId: String
+    public let theme: String
+    public let notifications: Bool
+    public let autoClockOut: Bool
+    public let mapZoomLevel: Double
+    public let defaultView: String
+    
+    public init(
+        userId: String,
+        theme: String = "dark",
+        notifications: Bool = true,
+        autoClockOut: Bool = false,
+        mapZoomLevel: Double = 15.0,
+        defaultView: String = "dashboard"
+    ) {
+        self.userId = userId
+        self.theme = theme
+        self.notifications = notifications
+        self.autoClockOut = autoClockOut
+        self.mapZoomLevel = mapZoomLevel
+        self.defaultView = defaultView
+    }
+}
+
+public enum ProfileError: LocalizedError {
+    case preferencesNotLoaded
+    case invalidPreferenceKey(String)
+    case updateFailed
+    
+    public var errorDescription: String? {
+        switch self {
+        case .preferencesNotLoaded:
+            return "User preferences not loaded"
+        case .invalidPreferenceKey(let key):
+            return "Invalid preference key: \(key)"
+        case .updateFailed:
+            return "Failed to update profile"
+        }
+    }
+}
+
 
 @MainActor
 public final class ServiceContainer: ObservableObject {
@@ -35,6 +114,7 @@ public final class ServiceContainer: ObservableObject {
     public let clockIn: ClockInService // ObservableObject wrapper
     public let photos: PhotoEvidenceService
     public let client: ClientService
+    public let userProfile: UserProfileServiceTemp
     
     // MARK: - Layer 2: Business Logic
     public let dashboardSync: DashboardSyncService
@@ -48,6 +128,9 @@ public final class ServiceContainer: ObservableObject {
     // MARK: - Layer 4: Context Engines
     public let workerContext: WorkerContextEngine
     public let adminContext: AdminContextEngine
+    
+    // MARK: - AI & Intelligence (Owned by Container)
+    public let novaManager: NovaAIManager
     public lazy var clientContext: ClientContextEngine = ClientContextEngine(container: self)
     
     // MARK: - Layer 5: Command Chains  
@@ -61,8 +144,7 @@ public final class ServiceContainer: ObservableObject {
     public let nycIntegration: NYCIntegrationManager
     public let nycCompliance: NYCComplianceService
     
-    // MARK: - Nova AI Reference
-    private weak var novaManager: NovaAIManager?
+    // NovaAIManager removed from this section - now properly owned above
     
     // MARK: - Background Tasks
     private var backgroundTasks: Set<Task<Void, Never>> = []
@@ -97,6 +179,7 @@ public final class ServiceContainer: ObservableObject {
         
         self.photos = PhotoEvidenceService.shared // Allowed singleton
         self.client = ClientService()
+        self.userProfile = UserProfileServiceTemp(database: database)
         
         print("✅ Layer 1: Core services initialized")
         
@@ -131,9 +214,14 @@ public final class ServiceContainer: ObservableObject {
         print("🎯 Layer 4: Initializing context engines...")
         
         self.workerContext = WorkerContextEngine.shared
-        self.adminContext = AdminContextEngine.shared
+        self.adminContext = AdminContextEngine() // Initialize without container first
         
         print("✅ Layer 4: Context engines initialized")
+        
+        // Initialize NovaAIManager (owned by ServiceContainer)
+        print("🧠 Initializing Nova AI Manager...")
+        self.novaManager = NovaAIManager()
+        print("✅ Nova AI Manager initialized")
         
         print("⚡ Layer 5: Command chains and client context - lazy initialization on first access")
         
@@ -159,6 +247,9 @@ public final class ServiceContainer: ObservableObject {
         // Initialize AdminContextEngine after container is fully created
         await initializeAdminContext()
         
+        // Connect Nova to services after everything is initialized
+        connectNovaToServices()
+        
         print("✅ ServiceContainer initialization complete!")
     }
     
@@ -167,16 +258,28 @@ public final class ServiceContainer: ObservableObject {
     /// Initialize AdminContextEngine after container is fully created (solves circular dependency)
     private func initializeAdminContext() async {
         print("🎯 Initializing AdminContextEngine...")
-        // AdminContextEngine initialization placeholder - service not yet implemented
-        print("⚠️ AdminContextEngine deferred - service implementation pending")
+        
+        // Now that container is fully initialized, set the container reference
+        adminContext.setContainer(self)
+        
+        do {
+            // Connect Nova AI Manager to admin context
+            adminContext.setNovaManager(novaManager)
+            
+            // Trigger initial context refresh to load all admin data
+            await adminContext.refreshContext()
+            
+            print("✅ AdminContextEngine successfully initialized and refreshed")
+        } catch {
+            print("❌ AdminContextEngine initialization failed: \(error)")
+        }
     }
     
     // MARK: - Nova AI Integration
     
-    /// Connect Nova AI Manager to the intelligence service
-    public func setNovaManager(_ nova: NovaAIManager) {
-        self.novaManager = nova
-        self.intelligence.setNovaManager(nova)
+    /// Connect Nova AI Manager to intelligence services (called during initialization)
+    private func connectNovaToServices() {
+        self.intelligence.setNovaManager(novaManager)
         
         // Also connect to context engines if they need Nova
         // Context engines now connected to Nova via intelligence service

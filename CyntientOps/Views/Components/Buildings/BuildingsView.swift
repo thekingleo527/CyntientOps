@@ -368,7 +368,7 @@ struct BuildingsView: View {
     
     // MARK: - Helper Functions
     
-    private func getBuildingType(_ building: NamedCoordinate) -> BuildingFilter {
+    private func getBuildingType(_ building: CoreTypes.NamedCoordinate) -> BuildingFilter {
         let name = building.name.lowercased()
         
         if name.contains("museum") {
@@ -438,7 +438,7 @@ struct BuildingsView: View {
 // MARK: - Building Row Card Component
 
 struct BuildingRowCard: View {
-    let building: NamedCoordinate
+    let building: CoreTypes.NamedCoordinate
     let metrics: BuildingMetrics?
     let type: BuildingsView.BuildingFilter
     
@@ -671,7 +671,7 @@ struct BuildingsMapView: View {
 // MARK: - Building Map Pin
 
 struct BuildingMapPin: View {
-    let building: NamedCoordinate
+    let building: CoreTypes.NamedCoordinate
     @State private var showingDetail = false
     
     var body: some View {

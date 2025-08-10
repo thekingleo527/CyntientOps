@@ -16,7 +16,7 @@ struct NovaAdminIntelligenceBar: View {
     @State private var currentInsight: String = "Analyzing portfolio performance..."
     @State private var animationPhase = 0
     
-    @StateObject private var novaManager = NovaAIManager.shared
+    let novaManager: NovaAIManager
     
     private let adminInsights = [
         "Building efficiency up 12% this week",

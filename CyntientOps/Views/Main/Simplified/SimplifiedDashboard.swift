@@ -16,7 +16,7 @@ struct SimplifiedDashboard: View {
     @ObservedObject var viewModel: WorkerDashboardViewModel
     
     // State for navigating to the task detail view.
-    @State private var selectedTask: ContextualTask?
+    @State private var selectedTask: CoreTypes.ContextualTask?
     @State private var showClockInSheet = false
     @State private var animateClockButton = false
     
@@ -97,7 +97,7 @@ struct SimplifiedDashboard: View {
             Text(viewModel.workerProfile?.name ?? "Worker")
                 .font(.system(size: 36, weight: .bold, design: .rounded))
                 .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-                .glassTextGlow()
+                .shadow(color: CyntientOpsDesign.DashboardColors.primaryText.opacity(0.3), radius: 2)
             
             // Status indicator
             HStack(spacing: 8) {
@@ -156,7 +156,10 @@ struct SimplifiedDashboard: View {
         }
         .padding(24)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .francoGlassCard(intensity: .regular)
+        .background(
+            RoundedRectangle(cornerRadius: CyntientOpsDesign.CornerRadius.lg)
+                .fill(.regularMaterial)
+        )
     }
     
     // MARK: - Tasks Section
@@ -201,7 +204,7 @@ struct SimplifiedDashboard: View {
                                 }
                             }
                         )
-                        .transition(.glassSlideUp)
+                        .transition(.slide.combined(with: .opacity))
                     }
                     
                     if viewModel.todaysTasks.count > 5 {
@@ -215,7 +218,7 @@ struct SimplifiedDashboard: View {
                             .padding()
                             .frame(maxWidth: .infinity)
                             .background(
-                                RoundedRectangle(cornerRadius: CyntientOpsDesign.CornerRadius.medium)
+                                RoundedRectangle(cornerRadius: CyntientOpsDesign.CornerRadius.md)
                                     .fill(.ultraThinMaterial)
                             )
                         }
@@ -224,7 +227,10 @@ struct SimplifiedDashboard: View {
             }
         }
         .padding(24)
-        .francoGlassCard(intensity: .regular)
+        .background(
+            RoundedRectangle(cornerRadius: CyntientOpsDesign.CornerRadius.lg)
+                .fill(.regularMaterial)
+        )
     }
     
     // MARK: - Clock In/Out Button
@@ -281,7 +287,11 @@ struct SimplifiedDashboard: View {
             .scaleEffect(animateClockButton ? 1.0 : 0.9)
             .opacity(animateClockButton ? 1.0 : 0.0)
         }
-        .pulsingGlow(color: viewModel.isClockedIn ? .red : .green, enabled: !viewModel.isClockedIn)
+        .shadow(
+            color: (viewModel.isClockedIn ? CyntientOpsDesign.DashboardColors.critical : CyntientOpsDesign.DashboardColors.success).opacity(0.3),
+            radius: 10,
+            y: 5
+        )
     }
     
     // MARK: - Computed Properties
@@ -302,7 +312,7 @@ struct SimplifiedDashboard: View {
 // MARK: - Simplified Task Row
 
 struct SimplifiedTaskRow: View {
-    let task: ContextualTask
+    let task: CoreTypes.ContextualTask
     let onTap: () -> Void
     let onComplete: () -> Void
     
@@ -364,10 +374,10 @@ struct SimplifiedTaskRow: View {
             }
             .padding(20)
             .background(
-                RoundedRectangle(cornerRadius: CyntientOpsDesign.CornerRadius.large)
+                RoundedRectangle(cornerRadius: CyntientOpsDesign.CornerRadius.lg)
                     .fill(task.isCompleted ? .ultraThinMaterial : .regularMaterial)
                     .overlay(
-                        RoundedRectangle(cornerRadius: CyntientOpsDesign.CornerRadius.large)
+                        RoundedRectangle(cornerRadius: CyntientOpsDesign.CornerRadius.lg)
                             .stroke(CyntientOpsDesign.DashboardColors.borderSubtle, lineWidth: 1)
                     )
             )
@@ -389,6 +399,8 @@ struct SimplifiedTaskRow: View {
             return "exclamationmark.triangle.fill"
         case .critical, .emergency:
             return "exclamationmark.3"
+        case .normal:
+            return "circle"
         }
     }
 }
@@ -421,8 +433,8 @@ struct SimplifiedEmptyTasksView: View {
 // MARK: - Clock In Sheet
 
 struct SimplifiedClockInSheet: View {
-    let buildings: [NamedCoordinate]
-    let onSelectBuilding: (NamedCoordinate) -> Void
+    let buildings: [CoreTypes.NamedCoordinate]
+    let onSelectBuilding: (CoreTypes.NamedCoordinate) -> Void
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
@@ -458,10 +470,10 @@ struct SimplifiedClockInSheet: View {
                                     .frame(maxWidth: .infinity, alignment: .leading)
                                     .padding(20)
                                     .background(
-                                        RoundedRectangle(cornerRadius: CyntientOpsDesign.CornerRadius.large)
+                                        RoundedRectangle(cornerRadius: CyntientOpsDesign.CornerRadius.lg)
                                             .fill(.regularMaterial)
                                             .overlay(
-                                                RoundedRectangle(cornerRadius: CyntientOpsDesign.CornerRadius.large)
+                                                RoundedRectangle(cornerRadius: CyntientOpsDesign.CornerRadius.lg)
                                                     .stroke(CyntientOpsDesign.DashboardColors.workerPrimary.opacity(0.3), lineWidth: 2)
                                             )
                                     )
@@ -489,7 +501,7 @@ struct SimplifiedClockInSheet: View {
 // MARK: - Task List View
 
 struct TaskListView: View {
-    let tasks: [ContextualTask]
+    let tasks: [CoreTypes.ContextualTask]
     
     var body: some View {
         ZStack {
@@ -523,56 +535,9 @@ struct TaskListView: View {
 
 struct SimplifiedDashboard_Previews: PreviewProvider {
     static var previews: some View {
-        SimplifiedDashboard(viewModel: {
-            let mockViewModel = WorkerDashboardViewModel.preview()
-            mockViewModel.isClockedIn = true
-            mockViewModel.currentBuilding = .init(
-                id: "14",
-                name: "Rubin Museum of Art",
-                address: "150 W 17th St, New York, NY",
-                latitude: 40.7402,
-                longitude: -73.9980
-            )
-            
-            // Add some mock tasks
-            let mockTasks = [
-                ContextualTask(
-                    id: "1",
-                    title: "Clean Main Lobby",
-                    description: "Daily cleaning",
-                    isCompleted: false,
-                    dueDate: Date(),
-                    category: .cleaning,
-                    urgency: .medium,
-                    buildingId: "14",
-                    building: mockViewModel.currentBuilding
-                ),
-                ContextualTask(
-                    id: "2",
-                    title: "Check Emergency Exits",
-                    description: "Safety inspection",
-                    isCompleted: false,
-                    dueDate: Date(),
-                    category: .inspection,
-                    urgency: .high,
-                    buildingId: "14",
-                    building: mockViewModel.currentBuilding
-                ),
-                ContextualTask(
-                    id: "3",
-                    title: "Empty Trash Bins",
-                    description: "All floors",
-                    isCompleted: true,
-                    dueDate: Date(),
-                    category: .sanitation,
-                    urgency: .low,
-                    buildingId: "14",
-                    building: mockViewModel.currentBuilding
-                )
-            ]
-            
-            return mockViewModel
-        }())
-        .preferredColorScheme(.dark)
+        // Preview requires ServiceContainer - placeholder for now
+        Text("SimplifiedDashboard Preview")
+            .foregroundColor(.white)
+            .preferredColorScheme(.dark)
     }
 }

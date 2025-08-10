@@ -16,7 +16,7 @@ struct ClientPortfolioOverviewView: View {
     typealias ClientIntelligence = CoreTypes.ClientPortfolioIntelligence
     
     let clientIntelligence: ClientIntelligence
-    let onBuildingTap: ((NamedCoordinate) -> Void)?
+    let onBuildingTap: ((CoreTypes.NamedCoordinate) -> Void)?
     let onRefresh: (() async -> Void)?
     
     @State private var selectedMetric: ClientMetricType = .service
@@ -25,7 +25,7 @@ struct ClientPortfolioOverviewView: View {
     @State private var isHeroCollapsed = false
     
     init(clientIntelligence: ClientIntelligence,
-         onBuildingTap: ((NamedCoordinate) -> Void)? = nil,
+         onBuildingTap: ((CoreTypes.NamedCoordinate) -> Void)? = nil,
          onRefresh: (() async -> Void)? = nil) {
         self.clientIntelligence = clientIntelligence
         self.onBuildingTap = onBuildingTap
@@ -948,15 +948,27 @@ struct ClientPortfolioOverviewView_Previews: PreviewProvider {
     static var previews: some View {
         ClientPortfolioOverviewView(
             clientIntelligence: CoreTypes.ClientPortfolioIntelligence(
+                portfolioHealth: CoreTypes.PortfolioHealth(
+                    overallScore: 0.92,
+                    totalBuildings: 3,
+                    activeBuildings: 3,
+                    criticalIssues: 1,
+                    trend: .stable,
+                    lastUpdated: Date()
+                ),
+                executiveSummary: CoreTypes.ExecutiveSummary(
+                    id: UUID().uuidString,
+                    totalBuildings: 3,
+                    totalWorkers: 15,
+                    portfolioHealth: 0.92,
+                    monthlyPerformance: "Excellent"
+                ),
                 totalProperties: 3,
                 serviceLevel: 0.92,
                 complianceScore: 88,
                 complianceIssues: 1,
                 monthlyTrend: .stable,
-                coveragePercentage: 95,
-                monthlySpend: 15000,
-                monthlyBudget: 18000,
-                showCostData: true
+                coveragePercentage: 95
             )
         )
         .preferredColorScheme(.dark)

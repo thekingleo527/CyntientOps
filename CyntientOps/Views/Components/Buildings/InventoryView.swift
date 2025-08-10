@@ -61,7 +61,7 @@ public struct InventoryView: View {
                 ToolbarItem(placement: .primaryAction) {
                     Button(action: { showingAddItem = true }) {
                         Image(systemName: "plus.circle.fill")
-                            .foregroundColor(CyntientOpsDesign.DashboardColors.accent)
+                            .foregroundColor(CyntientOpsDesign.DashboardColors.primaryAction)
                     }
                 }
             }
@@ -69,7 +69,7 @@ public struct InventoryView: View {
             .onChange(of: searchText) { _, _ in filterItems() }
             .onChange(of: selectedCategory) { _, _ in filterItems() }
             .sheet(isPresented: $showingAddItem) {
-                AddCoreTypes.InventoryItemView(buildingId: buildingId) { success in
+                AddInventoryItemView(buildingId: buildingId) { success in
                     showingAddItem = false
                     if success {
                         loadInventoryData()
@@ -95,7 +95,7 @@ public struct InventoryView: View {
         VStack(spacing: 16) {
             ProgressView()
                 .scaleEffect(1.2)
-                .tint(CyntientOpsDesign.DashboardColors.accent)
+                .tint(CyntientOpsDesign.DashboardColors.primaryAction)
             
             Text("Loading inventory...")
                 .font(.headline)
@@ -127,7 +127,7 @@ public struct InventoryView: View {
                     .foregroundColor(.white)
                     .padding(.horizontal, 24)
                     .padding(.vertical, 12)
-                    .background(CyntientOpsDesign.DashboardColors.accent)
+                    .background(CyntientOpsDesign.DashboardColors.primaryAction)
                     .cornerRadius(10)
             }
         }
@@ -195,9 +195,11 @@ public struct InventoryView: View {
         }
         .padding(.vertical, 12)
         .background(
-            CyntientOpsDesign.glassMorphism()
+            RoundedRectangle(cornerRadius: CyntientOpsDesign.CornerRadius.lg)
+                .fill(.regularMaterial)
                 .overlay(
-                    CyntientOpsDesign.glassBorder()
+                    RoundedRectangle(cornerRadius: CyntientOpsDesign.CornerRadius.lg)
+                        .stroke(CyntientOpsDesign.DashboardColors.glassOverlay, lineWidth: 1)
                 )
         )
     }
@@ -210,8 +212,8 @@ public struct InventoryView: View {
                         .padding(.top, 60)
                 } else {
                     ForEach(Array(filteredItems.enumerated()), id: \.element.id) { index, item in
-                        CoreTypes.InventoryItemRow(item: item) { updatedItem in
-                            updateCoreTypes.InventoryItem(updatedItem)
+                        InventoryItemRow(item: item) { updatedItem in
+                            updateInventoryItem(updatedItem)
                         }
                         .animatedGlassAppear(delay: Double(index) * 0.05)
                     }
@@ -369,7 +371,11 @@ public struct CategoryButton: View {
             .background(
                 Group {
                     if isSelected {
-                        CyntientOpsDesign.DashboardGradients.accentGradient
+                        LinearGradient(
+                            colors: [CyntientOpsDesign.DashboardColors.primaryAction, CyntientOpsDesign.DashboardColors.primaryAction.opacity(0.8)], 
+                            startPoint: .topLeading, 
+                            endPoint: .bottomTrailing
+                        )
                     } else {
                         Color.white.opacity(0.05)
                     }
@@ -460,7 +466,7 @@ public struct InventoryItemRow: View {
             isPressed = pressing
         }
         .sheet(isPresented: $showingDetail) {
-            CoreTypes.InventoryItemDetailView(item: item, onUpdate: onUpdate)
+            InventoryItemDetailView(item: item, onUpdate: onUpdate)
         }
     }
 }
@@ -566,175 +572,203 @@ public struct AddInventoryItemView: View {
                 
                 ScrollView {
                     VStack(spacing: 20) {
-                        // Item Details Section
-                        VStack(alignment: .leading, spacing: 16) {
-                            sectionHeader("Item Details")
-                            
-                            VStack(spacing: 16) {
-                                FloatingTextField(
-                                    text: $itemName,
-                                    placeholder: "Item Name",
-                                    icon: "cube.box"
-                                )
-                                
-                                FloatingTextField(
-                                    text: $itemDescription,
-                                    placeholder: "Description (optional)",
-                                    icon: "text.alignleft",
-                                    axis: .vertical
-                                )
-                            }
-                            .padding()
-                            .francoDarkCardBackground()
-                        }
-                        
-                        // Quantity & Stock Section
-                        VStack(alignment: .leading, spacing: 16) {
-                            sectionHeader("Quantity & Stock")
-                            
-                            VStack(spacing: 16) {
-                                StepperRow(
-                                    title: "Initial Quantity",
-                                    value: $quantity,
-                                    range: 0...1000
-                                )
-                                
-                                StepperRow(
-                                    title: "Minimum Stock",
-                                    value: $minimumStock,
-                                    range: 1...100
-                                )
-                                
-                                StepperRow(
-                                    title: "Maximum Stock",
-                                    value: $maxStock,
-                                    range: minimumStock...1000
-                                )
-                                
-                                HStack {
-                                    Label("Unit", systemImage: "scalemass")
-                                        .font(.subheadline)
-                                        .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
-                                    
-                                    Spacer()
-                                    
-                                    Picker("Unit", selection: $unit) {
-                                        ForEach(commonUnits, id: \.self) { unitOption in
-                                            Text(unitOption).tag(unitOption)
-                                        }
-                                    }
-                                    .pickerStyle(.menu)
-                                    .tint(CyntientOpsDesign.DashboardColors.accent)
-                                }
-                            }
-                            .padding()
-                            .francoDarkCardBackground()
-                        }
-                        
-                        // Category & Details Section
-                        VStack(alignment: .leading, spacing: 16) {
-                            sectionHeader("Category & Details")
-                            
-                            VStack(spacing: 16) {
-                                // Category Picker
-                                HStack {
-                                    Label("Category", systemImage: "tag")
-                                        .font(.subheadline)
-                                        .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
-                                    
-                                    Spacer()
-                                    
-                                    Menu {
-                                        ForEach(CoreTypes.InventoryCategory.allCases, id: \.self) { category in
-                                            Button(action: { selectedCategory = category }) {
-                                                Label(category.displayName, systemImage: category.icon)
-                                            }
-                                        }
-                                    } label: {
-                                        HStack {
-                                            Image(systemName: selectedCategory.icon)
-                                                .foregroundColor(selectedCategory.color)
-                                            Text(selectedCategory.displayName)
-                                                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-                                            Image(systemName: "chevron.down")
-                                                .font(.caption)
-                                                .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
-                                        }
-                                        .padding(.horizontal, 12)
-                                        .padding(.vertical, 6)
-                                        .background(Color.white.opacity(0.05))
-                                        .cornerRadius(8)
-                                    }
-                                }
-                                
-                                FloatingTextField(
-                                    text: $location,
-                                    placeholder: "Storage Location",
-                                    icon: "location"
-                                )
-                                
-                                FloatingTextField(
-                                    text: $supplier,
-                                    placeholder: "Supplier (optional)",
-                                    icon: "shippingbox"
-                                )
-                                
-                                HStack {
-                                    Label("Cost per Unit", systemImage: "dollarsign.circle")
-                                        .font(.subheadline)
-                                        .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
-                                    
-                                    Spacer()
-                                    
-                                    TextField("0.00", value: $costPerUnit, format: .currency(code: "USD"))
-                                        .keyboardType(.decimalPad)
-                                        .multilineTextAlignment(.trailing)
-                                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-                                }
-                            }
-                            .padding()
-                            .francoDarkCardBackground()
-                        }
-                        
-                        // Add Button
-                        Button(action: addItem) {
-                            HStack {
-                                if isSubmitting {
-                                    ProgressView()
-                                        .tint(.white)
-                                } else {
-                                    Image(systemName: "plus.circle.fill")
-                                    Text("Add Item")
-                                        .fontWeight(.medium)
-                                }
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(
-                                itemName.isEmpty ?
-                                Color.gray.opacity(0.3) :
-                                CyntientOpsDesign.DashboardGradients.accentGradient
-                            )
-                            .foregroundColor(.white)
-                            .cornerRadius(12)
-                        }
-                        .disabled(itemName.isEmpty || isSubmitting)
+                        itemDetailsSection
+                        quantityStockSection
+                        categoryDetailsSection
+                        supplierCostSection
+                        submitSection
                     }
                     .padding()
                 }
             }
-            .navigationTitle("Add Inventory")
+            .navigationTitle("Add Inventory Item")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {
                         dismiss()
                     }
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.accent)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryAction)
                 }
             }
         }
         .preferredColorScheme(.dark)
+    }
+    
+    private var itemDetailsSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            sectionHeader("Item Details")
+            
+            VStack(spacing: 16) {
+                FloatingTextField(
+                    text: $itemName,
+                    placeholder: "Item Name",
+                    icon: "cube.box"
+                )
+                
+                FloatingTextField(
+                    text: $itemDescription,
+                    placeholder: "Description (optional)",
+                    icon: "text.alignleft",
+                    axis: .vertical
+                )
+            }
+            .padding()
+            .francoDarkCardBackground()
+        }
+    }
+    
+    private var quantityStockSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            sectionHeader("Quantity & Stock")
+            
+            VStack(spacing: 16) {
+                StepperRow(
+                    title: "Initial Quantity",
+                    value: $quantity,
+                    range: 0...1000
+                )
+                
+                StepperRow(
+                    title: "Minimum Stock",
+                    value: $minimumStock,
+                    range: 1...100
+                )
+                
+                StepperRow(
+                    title: "Maximum Stock",
+                    value: $maxStock,
+                    range: minimumStock...1000
+                )
+                
+                HStack {
+                    Label("Unit", systemImage: "scalemass")
+                        .font(.subheadline)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                    
+                    Spacer()
+                    
+                    Picker("Unit", selection: $unit) {
+                        ForEach(commonUnits, id: \.self) { unitOption in
+                            Text(unitOption).tag(unitOption)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .tint(CyntientOpsDesign.DashboardColors.primaryAction)
+                }
+            }
+            .padding()
+            .francoDarkCardBackground()
+        }
+    }
+    
+    private var categoryDetailsSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            sectionHeader("Category & Details")
+            
+            VStack(spacing: 16) {
+                // Category Picker
+                HStack {
+                    Label("Category", systemImage: "tag")
+                        .font(.subheadline)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                    
+                    Spacer()
+                    
+                    Menu {
+                        ForEach(CoreTypes.InventoryCategory.allCases, id: \.self) { category in
+                            Button(action: { selectedCategory = category }) {
+                                Label(category.displayName, systemImage: category.icon)
+                            }
+                        }
+                    } label: {
+                        HStack {
+                            Image(systemName: selectedCategory.icon)
+                                .foregroundColor(selectedCategory.color)
+                            Text(selectedCategory.displayName)
+                                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                            Image(systemName: "chevron.down")
+                                .font(.caption)
+                                .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(Color.white.opacity(0.05))
+                        .cornerRadius(8)
+                    }
+                }
+                
+                FloatingTextField(
+                    text: $location,
+                    placeholder: "Storage Location",
+                    icon: "location"
+                )
+            }
+            .padding()
+            .francoDarkCardBackground()
+        }
+    }
+    
+    private var supplierCostSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            sectionHeader("Supplier & Cost")
+            
+            VStack(spacing: 16) {
+                FloatingTextField(
+                    text: $supplier,
+                    placeholder: "Supplier (optional)",
+                    icon: "shippingbox"
+                )
+                
+                HStack {
+                    Label("Cost per Unit", systemImage: "dollarsign.circle")
+                        .font(.subheadline)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                    
+                    Spacer()
+                    
+                    TextField("0.00", value: $costPerUnit, format: .currency(code: "USD"))
+                        .keyboardType(.decimalPad)
+                        .multilineTextAlignment(.trailing)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                }
+            }
+            .padding()
+            .francoDarkCardBackground()
+        }
+    }
+    
+    private var submitSection: some View {
+        Button(action: addItem) {
+            HStack {
+                if isSubmitting {
+                    ProgressView()
+                        .tint(.white)
+                } else {
+                    Image(systemName: "plus.circle.fill")
+                    Text("Add Item")
+                        .fontWeight(.medium)
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .padding()
+            .background(
+                Group {
+                    if itemName.isEmpty {
+                        Color.gray.opacity(0.3)
+                    } else {
+                        LinearGradient(
+                            colors: [CyntientOpsDesign.DashboardColors.primaryAction, CyntientOpsDesign.DashboardColors.primaryAction.opacity(0.8)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    }
+                }
+            )
+            .foregroundColor(.white)
+            .cornerRadius(12)
+        }
+        .disabled(itemName.isEmpty || isSubmitting)
     }
     
     private func sectionHeader(_ title: String) -> some View {
@@ -813,7 +847,7 @@ struct StepperRow: View {
                     Image(systemName: "minus.circle.fill")
                         .foregroundColor(
                             value > range.lowerBound ?
-                            CyntientOpsDesign.DashboardColors.accent :
+                            CyntientOpsDesign.DashboardColors.primaryAction :
                             CyntientOpsDesign.DashboardColors.tertiaryText
                         )
                 }
@@ -828,7 +862,7 @@ struct StepperRow: View {
                     Image(systemName: "plus.circle.fill")
                         .foregroundColor(
                             value < range.upperBound ?
-                            CyntientOpsDesign.DashboardColors.accent :
+                            CyntientOpsDesign.DashboardColors.primaryAction :
                             CyntientOpsDesign.DashboardColors.tertiaryText
                         )
                 }
@@ -892,12 +926,12 @@ public struct InventoryItemDetailView: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Done") { dismiss() }
-                        .foregroundColor(CyntientOpsDesign.DashboardColors.accent)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryAction)
                 }
                 
                 ToolbarItem(placement: .primaryAction) {
                     Button("Edit") { showingEditMode = true }
-                        .foregroundColor(CyntientOpsDesign.DashboardColors.accent)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryAction)
                 }
             }
         }
@@ -1207,6 +1241,7 @@ extension CoreTypes.InventoryCategory {
         case .office: return "paperclip"
         case .maintenance: return "hammer"
         case .other: return "folder"
+        @unknown default: return "questionmark.folder"
         }
     }
     
@@ -1224,6 +1259,7 @@ extension CoreTypes.InventoryCategory {
         case .office: return .indigo
         case .maintenance: return .mint
         case .other: return .gray
+        @unknown default: return .gray
         }
     }
     
@@ -1241,6 +1277,7 @@ extension CoreTypes.InventoryCategory {
         case .office: return "Office"
         case .maintenance: return "Maintenance"
         case .other: return "Other"
+        @unknown default: return "Unknown"
         }
     }
 }

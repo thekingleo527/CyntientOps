@@ -162,9 +162,9 @@ class SchemaMigrationPatch {
         for (buildingId, notes) in kevinBuildings {
             try await grdbManager.execute("""
                 INSERT OR REPLACE INTO worker_building_assignments 
-                (worker_id, worker_name, building_id, assignment_type, start_date, is_active, notes) 
-                VALUES ('4', 'Kevin Dutan', ?, 'corrected_duties', datetime('now'), 1, ?)
-            """, [buildingId, notes])
+                (id, worker_id, building_id, role, assigned_date, is_active) 
+                VALUES (?, '4', ?, 'corrected_duties', datetime('now'), 1)
+            """, [UUID().uuidString, buildingId])
         }
         
         print("✅ Created \(kevinBuildings.count) CORRECTED building assignments for Kevin with GRDB")

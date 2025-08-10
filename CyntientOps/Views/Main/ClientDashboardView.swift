@@ -16,16 +16,47 @@ import CoreLocation
 struct ClientDashboardView: View {
     // MARK: - View Models & Services (matching Worker/Admin pattern)
     @StateObject private var viewModel: ClientDashboardViewModel
-    @EnvironmentObject private var container: ServiceContainer
+    @EnvironmentObject private var authManager: NewAuthManager
+    @EnvironmentObject private var novaEngine: NovaAIManager // From ServiceContainer
+    
+    private let container: ServiceContainer
+    
+    // Access DashboardSyncService through container
+    private var dashboardSync: DashboardSyncService {
+        container.dashboardSync
+    }
     
     init(container: ServiceContainer) {
+        self.container = container
         self._viewModel = StateObject(wrappedValue: ClientDashboardViewModel(container: container))
     }
-    @EnvironmentObject private var authManager: NewAuthManager
-    @EnvironmentObject private var dashboardSync: DashboardSyncService
-    @ObservedObject private var novaEngine = NovaAIManager.shared  // Keep as ObservedObject for singleton
     
+    // MARK: - Enums
+    enum Tab {
+        case dashboard
+        case buildings
+        case compliance
+        case reports
+    }
+    enum ViewContext {
+        case dashboard
+        case buildingDetail
+        case compliance
+        case reports
+        case novaChat
+        case emergency
+    }
+    
+    enum IntelPanelState: String {
+        case hidden = "hidden"
+        case minimal = "minimal"
+        case collapsed = "collapsed"
+        case expanded = "expanded"
+        case fullscreen = "fullscreen"
+    }
+
     // MARK: - State Variables
+    @State private var selectedTab: Tab = .dashboard
     @State private var isHeroCollapsed = false
     @State private var showProfileView = false
     @State private var showNovaAssistant = false
@@ -45,23 +76,8 @@ struct ClientDashboardView: View {
     @State private var voiceCommandEnabled = false
     @State private var arModeEnabled = false
     
-    // MARK: - Enums
-    enum ViewContext {
-        case dashboard
-        case buildingDetail
-        case compliance
-        case reports
-        case novaChat
-        case emergency
-    }
-    
-    enum IntelPanelState: String {
-        case hidden = "hidden"
-        case minimal = "minimal"
-        case collapsed = "collapsed"
-        case expanded = "expanded"
-        case fullscreen = "fullscreen"
-    }
+    // Map reveal functionality
+    @State private var isMapRevealed = false
     
     // MARK: - Computed Properties
     private var intelligencePanelState: IntelPanelState {
@@ -82,18 +98,20 @@ struct ClientDashboardView: View {
     }
     
     private func hasUrgentAlerts() -> Bool {
-        let hasCriticalInsights = novaEngine.insights.contains { $0.priority == .critical }
-        let hasCriticalViolations = contextEngine.complianceOverview.criticalViolations > 0
-        let hasBehindSchedule = contextEngine.realtimeRoutineMetrics.behindScheduleCount > 0
+        let hasCriticalInsights = novaEngine.currentInsights.contains { $0.priority == .critical }
+        // TODO: Replace contextEngine with appropriate ServiceContainer intelligence services
+        let hasCriticalViolations = false // Temporarily disabled - needs proper intelligence service integration
+        let hasBehindSchedule = false // Temporarily disabled - needs proper routine metrics integration
         return hasCriticalInsights || hasCriticalViolations || hasBehindSchedule
     }
     
     var body: some View {
         // WRAP IN MapRevealContainer - MATCHING PATTERN!
         MapRevealContainer(
-            buildings: contextEngine.clientBuildings,
+            buildings: viewModel.buildingsList,
             currentBuildingId: selectedBuilding?.id,
             focusBuildingId: selectedBuilding?.id,
+            isRevealed: $isMapRevealed,
             onBuildingTap: { building in
                 selectedBuilding = building
                 showBuildingDetail = true
@@ -110,42 +128,65 @@ struct ClientDashboardView: View {
                     clientHeader
                         .zIndex(100)
                     
-                    // Main content area with ScrollView
-                    ScrollView {
-                        VStack(spacing: 16) {
-                            // Collapsible Client Hero Card
-                            CollapsibleClientHeroWrapper(
-                                isCollapsed: $isHeroCollapsed,
-                                routineMetrics: contextEngine.realtimeRoutineMetrics,
-                                activeWorkers: contextEngine.activeWorkerStatus,
-                                complianceStatus: contextEngine.complianceOverview,
-                                monthlyMetrics: contextEngine.monthlyMetrics,
-                                syncStatus: getSyncStatus(),
-                                onBuildingsTap: { showAllBuildings = true },
-                                onComplianceTap: { showComplianceReport = true },
-                                onBudgetTap: { /* Show financial details */ },
-                                onSyncTap: { Task { await viewModel.refreshData() } }
-                            )
-                            .zIndex(50)
-                            
-                            // Spacer for bottom intelligence bar
-                            Spacer(minLength: intelligencePanelState == .hidden ? 20 : 80)
+                    // Main content area with TabView
+                    TabView(selection: $selectedTab) {
+                        ScrollView {
+                            VStack(spacing: 16) {
+                                // Collapsible Client Hero Card
+                                CollapsibleClientHeroWrapper(
+                                    isCollapsed: $isHeroCollapsed,
+                                    routineMetrics: viewModel.realtimeRoutineMetrics,
+                                    activeWorkers: viewModel.activeWorkerStatus,
+                                    complianceStatus: viewModel.complianceOverview,
+                                    monthlyMetrics: viewModel.monthlyMetrics,
+                                    syncStatus: getSyncStatus(),
+                                    onBuildingsTap: { showAllBuildings = true },
+                                    onComplianceTap: { showComplianceReport = true },
+                                    onBudgetTap: { /* Show financial details */ },
+                                    onSyncTap: { Task { await viewModel.refreshData() } }
+                                )
+                                .zIndex(50)
+                                
+                                // Spacer for bottom intelligence bar
+                                Spacer(minLength: intelligencePanelState == .hidden ? 20 : 80)
+                            }
+                            .padding(.horizontal, 20)
+                            .padding(.top, 16)
                         }
-                        .padding(.horizontal, 20)
-                        .padding(.top, 16)
+                        .refreshable {
+                            await viewModel.refreshData()
+                            refreshID = UUID()
+                        }
+                        .tag(Tab.dashboard)
+
+                        ClientBuildingsListView(
+                            buildings: viewModel.buildingsList,
+                            performanceMap: [:], // TODO: Add buildingPerformanceMap to viewModel
+                            onSelectBuilding: { building in
+                                selectedBuilding = building
+                                showBuildingDetail = true
+                            }
+                        )
+                        .tag(Tab.buildings)
+
+                        ClientComplianceOverview(
+                            complianceOverview: viewModel.complianceOverview,
+                            issues: viewModel.complianceIssues,
+                            selectedIssue: nil
+                        )
+                        .tag(Tab.compliance)
+
+                        Text("Reports Tab")
+                        .tag(Tab.reports)
                     }
-                    .refreshable {
-                        await viewModel.refreshData()
-                        await contextEngine.refreshContext()
-                        refreshID = UUID()
-                    }
+                    .tabViewStyle(.page(indexDisplayMode: .never))
                     
-                    // Intelligence Preview Panel
+                    // Nova Client Intelligence Bar  
                     if intelligencePanelState != .hidden && hasIntelligenceToShow() {
-                        IntelligencePreviewPanel(
-                            insights: getCurrentInsights(),
-                            displayMode: intelligencePanelState == .minimal ? .compact : .compact,
-                            onNavigate: handleIntelligenceNavigation
+                        NovaClientIntelligenceBar(
+                            container: container,
+                            clientContext: generateClientContext(),
+                            novaManager: novaEngine
                         )
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                         .animation(CyntientOpsDesign.Animations.spring, value: intelligencePanelState)
@@ -159,7 +200,7 @@ struct ClientDashboardView: View {
             ClientProfileView()  // Using the correct name
         }
         .sheet(isPresented: $showNovaAssistant) {
-            NovaInteractionView(clientMode: true)
+            NovaInteractionView()
                 .presentationDetents([.large])
                 .onAppear { currentContext = .novaChat }
                 .onDisappear { currentContext = .dashboard }
@@ -177,15 +218,15 @@ struct ClientDashboardView: View {
                 .onAppear { currentContext = .buildingDetail }
                 .onDisappear {
                     currentContext = .dashboard
-                    Task { await contextEngine.refreshContext() }
+                    Task { await viewModel.refreshData() }
                 }
             }
         }
         .sheet(isPresented: $showAllBuildings) {
             NavigationView {
                 ClientBuildingsListView(
-                    buildings: contextEngine.clientBuildings,
-                    performanceMap: contextEngine.buildingPerformanceMap,
+                    buildings: viewModel.buildingsList,
+                    performanceMap: [:], // TODO: Add buildingPerformanceMap to viewModel
                     onSelectBuilding: { building in
                         selectedBuilding = building
                         showBuildingDetail = true
@@ -209,8 +250,8 @@ struct ClientDashboardView: View {
         .sheet(isPresented: $showComplianceReport) {
             NavigationView {
                 ClientComplianceOverview(
-                    complianceOverview: contextEngine.complianceOverview,
-                    issues: contextEngine.allComplianceIssues,
+                    complianceOverview: viewModel.complianceOverview,
+                    issues: viewModel.complianceIssues,
                     selectedIssue: nil
                 )
                 .navigationTitle("Compliance Report")
@@ -237,14 +278,14 @@ struct ClientDashboardView: View {
             checkFeatureFlags()
         }
         .task {
-            await contextEngine.refreshContext()
+            await viewModel.refreshData()
         }
     }
     
     // MARK: - Header Component (broken out for simplicity)
     private var clientHeader: some View {
         HeaderV3B(
-            workerName: contextEngine.clientProfile?.name ?? "Client",
+            workerName: "Client", // TODO: Add clientProfile to viewModel
             nextTaskName: getMostCriticalItem()?.title,
             showClockPill: false,
             isNovaProcessing: isNovaProcessing,
@@ -260,7 +301,7 @@ struct ClientDashboardView: View {
     }
     
     private var isNovaProcessing: Bool {
-        switch novaEngine.processingState {
+        switch novaEngine.novaState {
         case .idle: return false
         default: return true
         }
@@ -269,17 +310,17 @@ struct ClientDashboardView: View {
     // MARK: - Intelligence Methods
     
     private func getCurrentInsights() -> [CoreTypes.IntelligenceInsight] {
-        var insights = novaEngine.insights
+        var insights = novaEngine.currentInsights
         
         // Behind schedule buildings
-        if contextEngine.realtimeRoutineMetrics.behindScheduleCount > 0 {
-            let affectedBuildings = contextEngine.realtimeRoutineMetrics.buildingStatuses
+        if viewModel.realtimeRoutineMetrics.behindScheduleCount > 0 {
+            let affectedBuildings = viewModel.realtimeRoutineMetrics.buildingStatuses
                 .filter { $0.value.isBehindSchedule }
                 .map { $0.key }
             
             insights.append(CoreTypes.IntelligenceInsight(
                 id: UUID().uuidString,
-                title: "\(contextEngine.realtimeRoutineMetrics.behindScheduleCount) properties behind schedule",
+                title: "\(viewModel.realtimeRoutineMetrics.behindScheduleCount) properties behind schedule",
                 description: "Service delays detected. Immediate attention recommended.",
                 type: .operations,
                 priority: .high,
@@ -290,22 +331,22 @@ struct ClientDashboardView: View {
         }
         
         // Compliance issues
-        if contextEngine.complianceOverview.criticalViolations > 0 {
+        if viewModel.complianceOverview.criticalViolations > 0 {
             insights.append(CoreTypes.IntelligenceInsight(
                 id: UUID().uuidString,
-                title: "\(contextEngine.complianceOverview.criticalViolations) compliance violations",
+                title: "\(viewModel.complianceOverview.criticalViolations) compliance violations",
                 description: "Critical violations require immediate resolution",
                 type: .compliance,
                 priority: .critical,
                 actionRequired: true,
                 recommendedAction: "View compliance report",
-                affectedBuildings: contextEngine.buildingsWithViolations
+                affectedBuildings: [] // TODO: Add buildingsWithViolations to viewModel
             ))
         }
         
         // Budget alerts
-        if contextEngine.monthlyMetrics.budgetUtilization > 1.0 {
-            let utilizationPercent = contextEngine.monthlyMetrics.budgetUtilization * 100
+        if viewModel.monthlyMetrics.budgetUtilization > 1.0 {
+            let utilizationPercent = viewModel.monthlyMetrics.budgetUtilization * 100
             insights.append(CoreTypes.IntelligenceInsight(
                 id: UUID().uuidString,
                 title: "Monthly spending over budget",
@@ -317,18 +358,8 @@ struct ClientDashboardView: View {
             ))
         }
         
-        // Cost savings
-        if contextEngine.estimatedMonthlySavings > 1000 {
-            insights.append(CoreTypes.IntelligenceInsight(
-                id: UUID().uuidString,
-                title: "Potential savings: $\(Int(contextEngine.estimatedMonthlySavings))/month",
-                description: "Optimization opportunities identified",
-                type: .cost,
-                priority: .medium,
-                actionRequired: false,
-                recommendedAction: "Review optimization report"
-            ))
-        }
+        // Cost savings - TODO: Add estimatedMonthlySavings to viewModel
+        // Placeholder for cost savings insights
         
         return insights.sorted { $0.priority.priorityValue > $1.priority.priorityValue }
     }
@@ -339,7 +370,7 @@ struct ClientDashboardView: View {
             showAllBuildings = true
             
         case .buildingDetail(let id):
-            if let building = contextEngine.clientBuildings.first(where: { $0.id == id }) {
+            if let building = viewModel.buildingsList.first(where: { $0.id == id }) {
                 selectedBuilding = building
                 showBuildingDetail = true
             }
@@ -366,16 +397,16 @@ struct ClientDashboardView: View {
     // MARK: - Helper Methods
     
     private func getMostCriticalItem() -> (title: String, urgency: CoreTypes.AIPriority)? {
-        if let criticalInsight = novaEngine.insights.first(where: { $0.priority == .critical }) {
+        if let criticalInsight = novaEngine.currentInsights.first(where: { $0.priority == .critical }) {
             return (criticalInsight.title, criticalInsight.priority)
         }
         
-        if contextEngine.complianceOverview.criticalViolations > 0 {
-            return ("\(contextEngine.complianceOverview.criticalViolations) compliance violations", .critical)
+        if viewModel.complianceOverview.criticalViolations > 0 {
+            return ("\(viewModel.complianceOverview.criticalViolations) compliance violations", .critical)
         }
         
-        if contextEngine.realtimeRoutineMetrics.behindScheduleCount > 0 {
-            return ("\(contextEngine.realtimeRoutineMetrics.behindScheduleCount) buildings behind", .high)
+        if viewModel.realtimeRoutineMetrics.behindScheduleCount > 0 {
+            return ("\(viewModel.realtimeRoutineMetrics.behindScheduleCount) buildings behind", .high)
         }
         
         return nil
@@ -392,11 +423,11 @@ struct ClientDashboardView: View {
     }
     
     private func hasIntelligenceToShow() -> Bool {
-        let hasBuildings = contextEngine.clientBuildings.count > 5
-        let hasViolations = contextEngine.complianceOverview.criticalViolations > 0
-        let hasBehindSchedule = contextEngine.realtimeRoutineMetrics.behindScheduleCount > 0
-        let hasSavings = contextEngine.estimatedMonthlySavings > 1000
-        let hasInsights = !novaEngine.insights.isEmpty
+        let hasBuildings = viewModel.buildingsList.count > 5
+        let hasViolations = viewModel.complianceOverview.criticalViolations > 0
+        let hasBehindSchedule = viewModel.realtimeRoutineMetrics.behindScheduleCount > 0
+        let hasSavings = false // TODO: Add estimatedMonthlySavings to viewModel
+        let hasInsights = !novaEngine.currentInsights.isEmpty
         
         return hasBuildings || hasViolations || hasBehindSchedule || hasSavings || hasInsights
     }
@@ -421,6 +452,28 @@ struct ClientDashboardView: View {
         voiceCommandEnabled = UserDefaults.standard.bool(forKey: "feature.voice.enabled")
         arModeEnabled = UserDefaults.standard.bool(forKey: "feature.ar.enabled")
         #endif
+    }
+    
+    private func generateClientContext() -> [String: Any] {
+        var context: [String: Any] = [:]
+        
+        // Portfolio metrics
+        context["totalBuildings"] = viewModel.buildingsList.count
+        context["activeWorkers"] = viewModel.activeWorkerStatus.totalActive
+        context["complianceScore"] = Int(viewModel.complianceOverview.overallScore * 100)
+        context["behindScheduleCount"] = viewModel.realtimeRoutineMetrics.behindScheduleCount
+        context["criticalViolations"] = viewModel.complianceOverview.criticalViolations
+        
+        // Financial metrics
+        context["budgetUtilization"] = viewModel.monthlyMetrics.budgetUtilization
+        context["monthlySpend"] = viewModel.monthlyMetrics.currentSpend
+        context["monthlyBudget"] = viewModel.monthlyMetrics.monthlyBudget
+        
+        // Performance trends
+        context["routineCompletion"] = viewModel.realtimeRoutineMetrics.overallCompletion
+        context["syncStatus"] = viewModel.dashboardSyncStatus.rawValue
+        
+        return context
     }
 }
 
@@ -650,9 +703,11 @@ struct ClientProfileView: View {
 
 struct ClientDashboardView_Previews: PreviewProvider {
     static var previews: some View {
-        ClientDashboardView()
-            .environmentObject(NewAuthManager.shared)
-            .environmentObject(DashboardSyncService.shared)
+        // Preview requires a ServiceContainer - would need proper mock container
+        Text("ClientDashboardView Preview")
+            .foregroundColor(.white)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color.black)
             .preferredColorScheme(.dark)
     }
 }

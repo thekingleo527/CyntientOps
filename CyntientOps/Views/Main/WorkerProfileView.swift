@@ -56,7 +56,7 @@ struct WorkerProfileView: View {
         }
         .overlay {
             if viewModel.isLoading {
-                GlassLoadingState(message: "Loading profile...")
+                GlassLoadingState()
             }
         }
     }
@@ -138,7 +138,7 @@ struct ProfileHeaderView: View {
             }
         }
         .padding(28)
-        .francoGlassCard(intensity: .regular)
+        .francoGlassCard(intensity: GlassIntensity.regular)
     }
 }
 
@@ -246,7 +246,7 @@ struct PerformanceMetricsView: View {
             .padding(.top, 8)
         }
         .padding(24)
-        .francoGlassCard(intensity: .regular)
+        .francoGlassCard(intensity: GlassIntensity.regular)
     }
     
     private func formatTime(_ seconds: TimeInterval) -> String {
@@ -298,10 +298,10 @@ struct WorkerMetricCard: View {
         .frame(maxWidth: .infinity)
         .padding(.vertical, 20)
         .background(
-            RoundedRectangle(cornerRadius: CyntientOpsDesign.CornerRadius.medium)
+            RoundedRectangle(cornerRadius: CyntientOpsDesign.CornerRadius.md)
                 .fill(color.opacity(0.1))
                 .overlay(
-                    RoundedRectangle(cornerRadius: CyntientOpsDesign.CornerRadius.medium)
+                    RoundedRectangle(cornerRadius: CyntientOpsDesign.CornerRadius.md)
                         .stroke(color.opacity(0.2), lineWidth: 1)
                 )
         )
@@ -338,13 +338,13 @@ struct RecentTasksView: View {
                 VStack(spacing: 12) {
                     ForEach(tasks.prefix(5), id: \.id) { task in
                         EnhancedTaskRow(task: task)
-                            .transition(.glassSlideUp)
+                            .transition(.move(edge: .bottom).combined(with: .opacity))
                     }
                 }
             }
         }
         .padding(24)
-        .francoGlassCard(intensity: .regular)
+        .francoGlassCard(intensity: GlassIntensity.regular)
     }
 }
 
@@ -387,15 +387,21 @@ struct EnhancedTaskRow: View {
                 
                 HStack(spacing: 12) {
                     if let building = task.building {
-                        Label(building.name, systemImage: "building.2")
-                            .glassCaption()
-                            .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                        HStack(spacing: 4) {
+                            Image(systemName: "building.2")
+                            Text(building.name)
+                                .glassCaption()
+                        }
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
                     }
                     
                     if let category = task.category {
-                        Label(category.rawValue.capitalized, systemImage: getCategoryIcon(category))
-                            .glassCaption()
-                            .foregroundColor(CyntientOpsDesign.EnumColors.genericCategoryColor(for: category.rawValue))
+                        HStack(spacing: 4) {
+                            Image(systemName: getCategoryIcon(category))
+                            Text(category.rawValue.capitalized)
+                                .glassCaption()
+                        }
+                        .foregroundColor(CyntientOpsDesign.EnumColors.genericCategoryColor(for: category.rawValue))
                     }
                 }
             }
@@ -430,10 +436,10 @@ struct EnhancedTaskRow: View {
         }
         .padding(16)
         .background(
-            RoundedRectangle(cornerRadius: CyntientOpsDesign.CornerRadius.small)
+            RoundedRectangle(cornerRadius: CyntientOpsDesign.CornerRadius.sm)
                 .fill(.ultraThinMaterial)
                 .overlay(
-                    RoundedRectangle(cornerRadius: CyntientOpsDesign.CornerRadius.small)
+                    RoundedRectangle(cornerRadius: CyntientOpsDesign.CornerRadius.sm)
                         .stroke(CyntientOpsDesign.DashboardColors.borderSubtle, lineWidth: 1)
                 )
         )
@@ -482,13 +488,13 @@ struct SkillsView: View {
                 FlowLayout(spacing: 12) {
                     ForEach(skills, id: \.self) { skill in
                         SkillChip(skill: skill)
-                            .transition(.glassScaleIn)
+                            .transition(.scale.combined(with: .opacity))
                     }
                 }
             }
         }
         .padding(24)
-        .francoGlassCard(intensity: .regular)
+        .francoGlassCard(intensity: GlassIntensity.regular)
     }
 }
 
@@ -616,11 +622,14 @@ class WorkerProfileViewModel: ObservableObject {
             
             // Load performance metrics
             performanceMetrics = CoreTypes.PerformanceMetrics(
+                workerId: workerId,
+                completionRate: 0.87,
+                avgTaskTime: 3600.0,
                 efficiency: 0.85,
-                tasksCompleted: 42,
-                averageTime: 3600.0,
                 qualityScore: 0.92,
-                lastUpdate: Date()
+                punctualityScore: 0.95,
+                totalTasks: 48,
+                completedTasks: 42
             )
             
             // Alternative: If you have access to the worker's building assignments
@@ -633,11 +642,15 @@ class WorkerProfileViewModel: ObservableObject {
                 
                 if let workerMetrics = metricsArray.first {
                     performanceMetrics = CoreTypes.PerformanceMetrics(
+                        workerId: workerId,
+                        buildingId: firstBuilding.id,
+                        completionRate: Double(workerMetrics.overallScore) / 100.0,
+                        avgTaskTime: workerMetrics.averageTaskDuration,
                         efficiency: workerMetrics.maintenanceEfficiency,
-                        tasksCompleted: workerMetrics.totalTasksAssigned,
-                        averageTime: workerMetrics.averageTaskDuration,
                         qualityScore: Double(workerMetrics.overallScore) / 100.0,
-                        lastUpdate: workerMetrics.lastActiveDate
+                        punctualityScore: 0.9,
+                        totalTasks: workerMetrics.totalTasksAssigned,
+                        completedTasks: Int(Double(workerMetrics.totalTasksAssigned) * workerMetrics.maintenanceEfficiency)
                     )
                 }
             }
@@ -666,11 +679,14 @@ class WorkerProfileViewModel: ObservableObject {
             print("Error loading worker data: \(error)")
             
             performanceMetrics = CoreTypes.PerformanceMetrics(
+                workerId: workerId,
+                completionRate: 0.0,
+                avgTaskTime: 0.0,
                 efficiency: 0.0,
-                tasksCompleted: 0,
-                averageTime: 0.0,
                 qualityScore: 0.0,
-                lastUpdate: Date()
+                punctualityScore: 0.0,
+                totalTasks: 0,
+                completedTasks: 0
             )
         }
         

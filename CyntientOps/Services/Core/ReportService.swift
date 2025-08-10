@@ -128,6 +128,57 @@ public final class ReportService: ObservableObject {
         fileManager.urls(for: .documentDirectory, in: .userDomainMask)[0]
     }
     
+    // MARK: - Report Management
+    
+    /// Get all generated reports from storage
+    public func getAllReports() async throws -> [AdminGeneratedReport] {
+        let reportsDirectory = getReportsDirectory()
+        let reportFiles = try fileManager.contentsOfDirectory(at: reportsDirectory, includingPropertiesForKeys: [.creationDateKey, .fileSizeKey], options: [])
+        
+        var reports: [AdminGeneratedReport] = []
+        
+        for fileURL in reportFiles {
+            guard fileURL.pathExtension.lowercased() == "pdf" else { continue }
+            
+            let resourceValues = try fileURL.resourceValues(forKeys: [.creationDateKey, .fileSizeKey])
+            let createdDate = resourceValues.creationDate ?? Date()
+            let fileSize = resourceValues.fileSize ?? 0
+            
+            let fileName = fileURL.deletingPathExtension().lastPathComponent
+            let components = fileName.components(separatedBy: "_")
+            
+            let reportType = components.first?.capitalized ?? "Unknown"
+            
+            let report = AdminGeneratedReport(
+                id: UUID().uuidString,
+                title: reportType,
+                type: reportType,
+                dateRange: "Unknown",
+                generatedDate: createdDate,
+                filePath: fileURL.path,
+                fileSize: fileSize,
+                isScheduled: false,
+                isArchived: false
+            )
+            
+            reports.append(report)
+        }
+        
+        return reports.sorted { $0.generatedDate > $1.generatedDate }
+    }
+    
+    /// Get reports directory, creating if needed
+    private func getReportsDirectory() -> URL {
+        let documentsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
+        let reportsURL = documentsURL.appendingPathComponent("Reports")
+        
+        if !fileManager.fileExists(atPath: reportsURL.path) {
+            try? fileManager.createDirectory(at: reportsURL, withIntermediateDirectories: true, attributes: nil)
+        }
+        
+        return reportsURL
+    }
+    
     private func createFullPortfolioReport(data: ClientPortfolioReportData) -> Data {
         let pdfMetaData = [
             kCGPDFContextCreator: "CyntientOps",

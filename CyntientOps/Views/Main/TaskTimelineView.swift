@@ -465,11 +465,11 @@ struct TaskTimelineCard: View {
                 Label(category.rawValue.capitalized, systemImage: category.icon)
                     .francoTypography(CyntientOpsDesign.Typography.caption2)
                     .fontWeight(.medium)
-                    .foregroundColor(CyntientOpsDesign.EnumColors.taskCategory(category))
+                    .foregroundColor(CyntientOpsDesign.EnumColors.taskUrgency(task.urgency ?? .normal))
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
                     .background(
-                        CyntientOpsDesign.EnumColors.taskCategory(category).opacity(0.1)
+                        CyntientOpsDesign.EnumColors.taskUrgency(task.urgency ?? .normal).opacity(0.1)
                     )
                     .cornerRadius(CyntientOpsDesign.CornerRadius.sm)
             }
@@ -517,45 +517,9 @@ struct TaskFilterView: View {
                     .ignoresSafeArea()
                 
                 Form {
-                    Section("Display Options") {
-                        Toggle("Show Completed Tasks", isOn: $filterOptions.showCompleted)
-                            .tint(CyntientOpsDesign.DashboardColors.primaryAction)
-                    }
-                    .listRowBackground(CyntientOpsDesign.DashboardColors.cardBackground)
-                    
-                    Section("Categories") {
-                        ForEach(CoreTypes.TaskCategory.allCases, id: \.self) { category in
-                            Toggle(category.rawValue.capitalized, isOn: Binding(
-                                get: { filterOptions.categories.contains(category) },
-                                set: { isOn in
-                                    if isOn {
-                                        filterOptions.categories.insert(category)
-                                    } else {
-                                        filterOptions.categories.remove(category)
-                                    }
-                                }
-                            ))
-                            .tint(CyntientOpsDesign.EnumColors.taskCategory(category))
-                        }
-                    }
-                    .listRowBackground(CyntientOpsDesign.DashboardColors.cardBackground)
-                    
-                    Section("Urgency Levels") {
-                        ForEach(CoreTypes.TaskUrgency.allCases, id: \.self) { urgency in
-                            Toggle(urgency.rawValue.capitalized, isOn: Binding(
-                                get: { filterOptions.urgencies.contains(urgency) },
-                                set: { isOn in
-                                    if isOn {
-                                        filterOptions.urgencies.insert(urgency)
-                                    } else {
-                                        filterOptions.urgencies.remove(urgency)
-                                    }
-                                }
-                            ))
-                            .tint(CyntientOpsDesign.EnumColors.taskUrgency(urgency))
-                        }
-                    }
-                    .listRowBackground(CyntientOpsDesign.DashboardColors.cardBackground)
+                    displayOptionsSection
+                    categoriesSection
+                    urgencySection
                 }
                 .scrollContentBackground(.hidden)
             }
@@ -577,6 +541,52 @@ struct TaskFilterView: View {
             }
         }
         .preferredColorScheme(.dark)
+    }
+    
+    private var displayOptionsSection: some View {
+        Section("Display Options") {
+            Toggle("Show Completed Tasks", isOn: $filterOptions.showCompleted)
+                .tint(CyntientOpsDesign.DashboardColors.primaryAction)
+        }
+        .listRowBackground(CyntientOpsDesign.DashboardColors.cardBackground)
+    }
+    
+    private var categoriesSection: some View {
+        Section("Categories") {
+            ForEach(CoreTypes.TaskCategory.allCases, id: \.self) { category in
+                Toggle(category.rawValue.capitalized, isOn: Binding(
+                    get: { filterOptions.categories.contains(category) },
+                    set: { isOn in
+                        if isOn {
+                            filterOptions.categories.insert(category)
+                        } else {
+                            filterOptions.categories.remove(category)
+                        }
+                    }
+                ))
+                .tint(.blue) // Simplified for now
+            }
+        }
+        .listRowBackground(CyntientOpsDesign.DashboardColors.cardBackground)
+    }
+    
+    private var urgencySection: some View {
+        Section("Urgency Levels") {
+            ForEach(CoreTypes.TaskUrgency.allCases, id: \.self) { urgency in
+                Toggle(urgency.rawValue.capitalized, isOn: Binding(
+                    get: { filterOptions.urgencies.contains(urgency) },
+                    set: { isOn in
+                        if isOn {
+                            filterOptions.urgencies.insert(urgency)
+                        } else {
+                            filterOptions.urgencies.remove(urgency)
+                        }
+                    }
+                ))
+                .tint(CyntientOpsDesign.EnumColors.taskUrgency(urgency))
+            }
+        }
+        .listRowBackground(CyntientOpsDesign.DashboardColors.cardBackground)
     }
 }
 
@@ -745,6 +755,8 @@ struct NovaInsightRow: View {
         case .quality: return "star"
         case .operations: return "gearshape.2"
         case .maintenance: return "wrench.and.screwdriver"
+        case .routing: return "arrow.triangle.branch"
+        case .weather: return "cloud.fill"
         @unknown default: return "lightbulb" // Handle any future cases
         }
     }
@@ -805,7 +817,7 @@ struct FrancoGlassButtonStyle: ButtonStyle {
     private var borderColor: Color {
         switch style {
         case .normal:
-            return CyntientOpsDesign.DashboardColors.glassBorder
+            return CyntientOpsDesign.DashboardColors.glassOverlay
         case .prominent:
             return CyntientOpsDesign.DashboardColors.primaryAction.opacity(0.3)
         }

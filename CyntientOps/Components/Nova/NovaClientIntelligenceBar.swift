@@ -16,7 +16,7 @@ struct NovaClientIntelligenceBar: View {
     @State private var currentInsight: String = "Analyzing portfolio performance..."
     @State private var animationPhase = 0
     
-    @StateObject private var novaManager = NovaAIManager.shared
+    @ObservedObject var novaManager: NovaAIManager
     
     private let clientInsights = [
         "Portfolio performance up 8% this quarter",

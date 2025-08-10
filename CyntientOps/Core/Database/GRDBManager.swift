@@ -319,6 +319,30 @@ public final class GRDBManager {
             )
         """)
         
+        // Compliance issues (for ComplianceService queries)
+        try db.execute(sql: """
+            CREATE TABLE IF NOT EXISTS compliance_issues (
+                id TEXT PRIMARY KEY,
+                title TEXT NOT NULL,
+                description TEXT NOT NULL,
+                severity TEXT NOT NULL,
+                building_id TEXT,
+                building_name TEXT,
+                status TEXT NOT NULL,
+                due_date TEXT,
+                assigned_to TEXT,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                reported_date TEXT NOT NULL,
+                type TEXT NOT NULL,
+                resolved_at TEXT,
+                resolution_notes TEXT,
+                estimated_cost REAL,
+                actual_cost REAL,
+                FOREIGN KEY (building_id) REFERENCES buildings(id),
+                FOREIGN KEY (assigned_to) REFERENCES workers(id)
+            )
+        """)
+        
         // ✅ STREAM B UPDATE: Enhanced sync queue with priority and compression
         try db.execute(sql: """
             CREATE TABLE IF NOT EXISTS sync_queue (
@@ -432,6 +456,25 @@ public final class GRDBManager {
                 updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (buildingId) REFERENCES buildings(id),
                 FOREIGN KEY (assignedTo) REFERENCES workers(id)
+            )
+        """)
+        
+        // Cached insights for offline AI capability
+        try db.execute(sql: """
+            CREATE TABLE IF NOT EXISTS cached_insights (
+                id TEXT PRIMARY KEY,
+                title TEXT NOT NULL,
+                description TEXT NOT NULL,
+                type TEXT NOT NULL,
+                priority TEXT NOT NULL,
+                building_id TEXT,
+                category TEXT,
+                context_data TEXT,
+                confidence_score REAL DEFAULT 1.0,
+                generated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                expires_at TEXT,
+                is_active INTEGER DEFAULT 1,
+                FOREIGN KEY (building_id) REFERENCES buildings(id)
             )
         """)
         

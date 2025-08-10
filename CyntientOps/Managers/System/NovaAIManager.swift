@@ -18,7 +18,7 @@ import AVFoundation
 
 @MainActor
 public final class NovaAIManager: ObservableObject {
-    public static let shared = NovaAIManager()
+    // REMOVED: Singleton pattern - now managed by ServiceContainer
     
     // MARK: - Persistent Image Architecture
     
@@ -63,8 +63,8 @@ public final class NovaAIManager: ObservableObject {
     
     // MARK: - Private Properties
     
-    private var animationTimer: Timer?
-    private var particleTimer: Timer?
+    private var animationTask: Task<Void, Never>?
+    private var particleTask: Task<Void, Never>?
     private var imageLoadingTask: Task<Void, Never>? = nil
     private var holographicProcessingTask: Task<Void, Never>? = nil  
     private let imageCache = NSCache<NSString, UIImage>()
@@ -78,7 +78,7 @@ public final class NovaAIManager: ObservableObject {
     private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
     private var recognitionTask: SFSpeechRecognitionTask?
     private var audioEngine: AVAudioEngine?
-    private var waveformTimer: Timer?
+    private var waveformTask: Task<Void, Never>?
     
     // MARK: - Computed Properties
     
@@ -115,7 +115,7 @@ public final class NovaAIManager: ObservableObject {
     
     // MARK: - Initialization
     
-    private init() {
+    public init() {
         setupImageCache()
         loadPersistentNovaImage()
         startPersistentAnimations()
@@ -272,17 +272,21 @@ public final class NovaAIManager: ObservableObject {
     
     // MARK: - Persistent Animations
     private func startPersistentAnimations() {
-        // Main animation timer for breathing and rotation
-        animationTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { _ in
-            Task { @MainActor in
-                self.updateAnimations()
+        // Main animation task for breathing and rotation
+        animationTask = Task { @MainActor [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
+                guard !Task.isCancelled else { break }
+                self?.updateAnimations()
             }
         }
         
-        // Particle animation timer for thinking state
-        particleTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { _ in
-            Task { @MainActor in
-                self.updateThinkingParticles()
+        // Particle animation task for thinking state
+        particleTask = Task { @MainActor [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
+                guard !Task.isCancelled else { break }
+                self?.updateThinkingParticles()
             }
         }
     }
@@ -567,10 +571,10 @@ public final class NovaAIManager: ObservableObject {
         guard let channelData = buffer.floatChannelData?[0] else { return }
         
         let frameLength = Int(buffer.frameLength)
-        let stride = max(1, frameLength / 20) // Sample down to 20 points
+        let sampleStride = max(1, frameLength / 20) // Sample down to 20 points
         
         var waveformSamples: [Float] = []
-        for i in stride(from: 0, to: frameLength, by: stride) {
+        for i in stride(from: 0, to: frameLength, by: sampleStride) {
             let sample = abs(channelData[i])
             waveformSamples.append(sample)
         }
@@ -606,15 +610,19 @@ public final class NovaAIManager: ObservableObject {
     }
     
     private func startWaveformProcessing() {
-        waveformTimer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { [weak self] _ in
-            // Real-time waveform updates are handled in processAudioBuffer
-            // This timer can be used for additional waveform processing if needed
+        waveformTask = Task { @MainActor [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 50_000_000) // 0.05 seconds
+                guard !Task.isCancelled else { break }
+                // Real-time waveform updates are handled in processAudioBuffer
+                // This task can be used for additional waveform processing if needed
+            }
         }
     }
     
     private func stopWaveformProcessing() {
-        waveformTimer?.invalidate()
-        waveformTimer = nil
+        waveformTask?.cancel()
+        waveformTask = nil
         
         // Reset waveform data
         voiceWaveformData = Array(repeating: 0.0, count: 20)
@@ -743,9 +751,9 @@ public final class NovaAIManager: ObservableObject {
     // MARK: - Cleanup
     
     deinit {
-        animationTimer?.invalidate()
-        particleTimer?.invalidate()
-        waveformTimer?.invalidate()
+        animationTask?.cancel()
+        particleTask?.cancel()
+        waveformTask?.cancel()
         imageLoadingTask?.cancel()
         holographicProcessingTask?.cancel()
         

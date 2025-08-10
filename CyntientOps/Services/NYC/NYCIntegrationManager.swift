@@ -186,28 +186,16 @@ public final class NYCIntegrationManager: ObservableObject {
             )
         """
         
-        // Create compliance issues table if it doesn't exist
-        let createComplianceTable = """
-            CREATE TABLE IF NOT EXISTS compliance_issues (
-                id TEXT PRIMARY KEY,
-                building_id TEXT NOT NULL,
-                building_name TEXT,
-                type TEXT NOT NULL,
-                severity TEXT NOT NULL,
-                status TEXT NOT NULL,
-                title TEXT NOT NULL,
-                description TEXT,
-                reported_date REAL NOT NULL,
-                due_date REAL,
-                resolved_date REAL,
-                assigned_to TEXT,
-                notes TEXT,
-                source TEXT,
-                external_id TEXT,
-                created_at REAL DEFAULT (datetime('now')),
-                updated_at REAL DEFAULT (datetime('now'))
-            )
-        """
+        // NOTE: compliance_issues table already exists in GRDBManager with different schema
+        // We'll work with the existing schema: buildingId (camelCase), no source column
+        // Add missing columns to existing table if they don't exist
+        let alterTableQueries = [
+            "ALTER TABLE compliance_issues ADD COLUMN source TEXT",
+            "ALTER TABLE compliance_issues ADD COLUMN external_id TEXT",
+            "ALTER TABLE compliance_issues ADD COLUMN notes TEXT",
+            "ALTER TABLE compliance_issues ADD COLUMN reported_date REAL",
+            "ALTER TABLE compliance_issues ADD COLUMN resolved_date REAL"
+        ]
         
         // Add compliance score column to buildings if it doesn't exist
         let addComplianceScore = """
@@ -222,15 +210,19 @@ public final class NYCIntegrationManager: ObservableObject {
         
         // Execute schema updates
         try await database.execute(createCacheTable)
-        try await database.execute(createComplianceTable)
+        
+        // Add missing columns (may fail if already exist - that's okay)
+        for alterQuery in alterTableQueries {
+            try? await database.execute(alterQuery)
+        }
         
         // These may fail if columns already exist - that's okay
         try? await database.execute(addComplianceScore)
         try? await database.execute(addLastComplianceUpdate)
         
-        // Create indexes for performance
+        // Create indexes for performance using existing column names
         let createIndexes = [
-            "CREATE INDEX IF NOT EXISTS idx_compliance_building ON compliance_issues(building_id)",
+            "CREATE INDEX IF NOT EXISTS idx_compliance_building ON compliance_issues(buildingId)",
             "CREATE INDEX IF NOT EXISTS idx_compliance_severity ON compliance_issues(severity)",
             "CREATE INDEX IF NOT EXISTS idx_compliance_status ON compliance_issues(status)",
             "CREATE INDEX IF NOT EXISTS idx_compliance_source ON compliance_issues(source)"

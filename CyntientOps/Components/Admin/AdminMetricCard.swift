@@ -12,8 +12,30 @@ struct AdminMetricCard: View {
     let title: String
     let value: String
     let color: Color
+    let onTap: (() -> Void)?
+    
+    init(icon: String, title: String, value: String, color: Color, onTap: (() -> Void)? = nil) {
+        self.icon = icon
+        self.title = title
+        self.value = value
+        self.color = color
+        self.onTap = onTap
+    }
     
     var body: some View {
+        Group {
+            if let onTap = onTap {
+                Button(action: onTap) {
+                    cardContent
+                }
+                .buttonStyle(PlainButtonStyle())
+            } else {
+                cardContent
+            }
+        }
+    }
+    
+    private var cardContent: some View {
         VStack(spacing: 12) {
             // Icon
             ZStack {
@@ -46,12 +68,14 @@ struct AdminMetricCard: View {
         .padding(.horizontal, 12)
         .background(
             RoundedRectangle(cornerRadius: 16)
-                .fill(Color.white.opacity(0.05))
+                .fill(Color.white.opacity(onTap != nil ? 0.08 : 0.05))
                 .overlay(
                     RoundedRectangle(cornerRadius: 16)
-                        .stroke(color.opacity(0.3), lineWidth: 1)
+                        .stroke(color.opacity(onTap != nil ? 0.4 : 0.3), lineWidth: 1)
                 )
         )
+        .scaleEffect(onTap != nil ? 1.0 : 1.0)
+        .animation(.easeInOut(duration: 0.1), value: onTap != nil)
     }
 }
 

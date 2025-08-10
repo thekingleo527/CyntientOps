@@ -80,7 +80,7 @@ public class NewAuthManager: ObservableObject {
     private var sessionTimer: Timer?
     
     // Keychain keys
-    private let keychainService = "com.francosphere.auth"
+    private let keychainService = "com.cyntientops.auth"
     private let sessionTokenKey = "sessionToken"
     private let refreshTokenKey = "refreshToken"
     private let biometricEnabledKey = "biometricEnabled"
@@ -120,11 +120,28 @@ public class NewAuthManager: ObservableObject {
         defer { isLoading = false }
         
         do {
+            print("🔍 DEBUG: Attempting authentication for email: \(email)")
+            
             // Get user from database
             let userRows = try await grdbManager.query(
                 "SELECT * FROM workers WHERE email = ? AND isActive = 1",
                 [email]
             )
+            
+            print("🔍 DEBUG: Found \(userRows.count) users for email \(email)")
+            if userRows.isEmpty {
+                // Debug: Let's see what users are in the database
+                let allUsers = try await grdbManager.query("SELECT id, name, email, isActive FROM workers LIMIT 10")
+                print("🔍 DEBUG: Available users in database:")
+                for user in allUsers {
+                    if let id = user["id"] as? String,
+                       let name = user["name"] as? String,
+                       let userEmail = user["email"] as? String,
+                       let isActive = user["isActive"] as? Int64 {
+                        print("  - \(name) (\(userEmail)) - Active: \(isActive == 1) - ID: \(id)")
+                    }
+                }
+            }
             
             guard let userRow = userRows.first else {
                 loginAttempts += 1
@@ -137,10 +154,13 @@ public class NewAuthManager: ObservableObject {
                 throw NewAuthError.authenticationFailed("Invalid user data")
             }
             
+            print("🔍 DEBUG: Stored password hash length: \(storedPasswordHash.count)")
+            print("🔍 DEBUG: Entered password: \(password)")
+            
             // For migration: Check if password is still plain text
             if storedPasswordHash == password {
                 // Migrate to hashed password
-                print("⚠️ Migrating plain text password for user: \(email)")
+                print("✅ DEBUG: Plain text password match! Migrating for user: \(email)")
                 let hashedPassword = try await hashPassword(password, for: email)
                 try await grdbManager.execute(
                     "UPDATE workers SET password = ? WHERE id = ?",
@@ -148,7 +168,9 @@ public class NewAuthManager: ObservableObject {
                 )
             } else {
                 // Verify hashed password
+                print("🔍 DEBUG: Attempting to verify hashed password...")
                 let isValid = try await verifyPassword(password, hash: storedPasswordHash, for: email)
+                print("🔍 DEBUG: Password verification result: \(isValid)")
                 guard isValid else {
                     loginAttempts += 1
                     throw NewAuthError.authenticationFailed("Invalid credentials")
@@ -756,12 +778,34 @@ public class NewAuthManager: ObservableObject {
     }
     
     private func clearKeychain() {
-        let query: [String: Any] = [
+        let keys = [sessionTokenKey, refreshTokenKey, "session"]
+        for key in keys {
+            let query: [String: Any] = [
+                kSecClass as String: kSecClassGenericPassword,
+                kSecAttrService as String: keychainService,
+                kSecAttrAccount as String: key
+            ]
+            let status = SecItemDelete(query as CFDictionary)
+            if status == errSecSuccess {
+                print("  ✅ Keychain item '\(key)' deleted successfully.")
+            } else if status == errSecItemNotFound {
+                print("  ⚠️ Keychain item '\(key)' not found, skipping.")
+            } else {
+                print("  ❌ Error deleting keychain item '\(key)': \(status)")
+            }
+        }
+
+        // Also run the broad delete just in case other items were stored
+        let broadQuery: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: keychainService
         ]
-        
-        SecItemDelete(query as CFDictionary)
+        let status = SecItemDelete(broadQuery as CFDictionary)
+        if status == errSecSuccess {
+            print("  ✅ Keychain service '\(keychainService)' cleared.")
+        } else if status != errSecItemNotFound {
+            print("  ❌ Error clearing keychain service: \(status)")
+        }
     }
 }
 

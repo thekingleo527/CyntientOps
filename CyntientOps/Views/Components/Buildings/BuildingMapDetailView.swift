@@ -13,7 +13,7 @@ import SwiftUI
 import Foundation
 
 struct BuildingMapDetailView: View {
-    let building: NamedCoordinate
+    let building: CoreTypes.NamedCoordinate
     @Environment(\.dismiss) private var dismiss
     @StateObject private var contextAdapter = WorkerContextEngineAdapter.shared
     
@@ -310,7 +310,7 @@ struct BuildingMapDetailView: View {
 // MARK: - Building Task Row Component
 
 struct BuildingTaskRow: View {
-    let task: ContextualTask
+    let task: CoreTypes.ContextualTask
     
     var body: some View {
         HStack(spacing: 16) {
@@ -430,7 +430,7 @@ struct BuildingMapDetailView_Previews: PreviewProvider {
     static var previews: some View {
         NavigationStack {
             BuildingMapDetailView(
-                building: NamedCoordinate(
+                building: CoreTypes.NamedCoordinate(
                     id: "14",
                     name: "Rubin Museum",
                     address: "150 W 17th St, New York, NY 10011",

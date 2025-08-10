@@ -43,7 +43,7 @@ struct MaintenanceHistoryView: View {
         
         var color: Color {
             switch self {
-            case .all: return CyntientOpsDesign.DashboardColors.accent
+            case .all: return CyntientOpsDesign.DashboardColors.primaryAction
             case .cleaning: return .blue
             case .maintenance: return .orange
             case .repairs: return .red
@@ -138,7 +138,7 @@ struct MaintenanceHistoryView: View {
                     }
                 } label: {
                     Image(systemName: "ellipsis.circle")
-                        .foregroundColor(CyntientOpsDesign.DashboardColors.accent)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryAction)
                 }
             }
         }
@@ -187,7 +187,7 @@ struct MaintenanceHistoryView: View {
                     title: "Total Cost",
                     value: totalCost.formatted(.currency(code: "USD")),
                     icon: "dollarsign.circle.fill",
-                    color: CyntientOpsDesign.DashboardColors.accent
+                    color: CyntientOpsDesign.DashboardColors.primaryAction
                 )
             }
             .padding(.horizontal)
@@ -217,8 +217,12 @@ struct MaintenanceHistoryView: View {
             }
             .padding(14)
             .background(
-                CyntientOpsDesign.glassMorphism()
-                    .overlay(CyntientOpsDesign.glassBorder())
+                RoundedRectangle(cornerRadius: CyntientOpsDesign.CornerRadius.md)
+                    .fill(CyntientOpsDesign.DashboardColors.glassOverlay)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: CyntientOpsDesign.CornerRadius.md)
+                            .stroke(CyntientOpsDesign.DashboardColors.borderSubtle, lineWidth: 1)
+                    )
             )
             .padding(.horizontal)
             
@@ -245,7 +249,7 @@ struct MaintenanceHistoryView: View {
                 HStack {
                     Image(systemName: dateRange.icon)
                         .font(.caption)
-                        .foregroundColor(CyntientOpsDesign.DashboardColors.accent)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryAction)
                     
                     Text(formatDateRange())
                         .font(.caption)
@@ -259,13 +263,13 @@ struct MaintenanceHistoryView: View {
                     }) {
                         Text("Reset")
                             .font(.caption)
-                            .foregroundColor(CyntientOpsDesign.DashboardColors.accent)
+                            .foregroundColor(CyntientOpsDesign.DashboardColors.primaryAction)
                     }
                 }
                 .padding(.horizontal)
                 .padding(.vertical, 8)
                 .background(
-                    CyntientOpsDesign.DashboardColors.accent.opacity(0.1)
+                    CyntientOpsDesign.DashboardColors.primaryAction.opacity(0.1)
                         .cornerRadius(8)
                 )
                 .padding(.horizontal)
@@ -273,8 +277,12 @@ struct MaintenanceHistoryView: View {
         }
         .padding(.vertical, 8)
         .background(
-            CyntientOpsDesign.glassMorphism()
-                .overlay(CyntientOpsDesign.glassBorder())
+            RoundedRectangle(cornerRadius: CyntientOpsDesign.CornerRadius.md)
+                .fill(CyntientOpsDesign.DashboardColors.glassOverlay)
+                .overlay(
+                    RoundedRectangle(cornerRadius: CyntientOpsDesign.CornerRadius.md)
+                        .stroke(CyntientOpsDesign.DashboardColors.borderSubtle, lineWidth: 1)
+                )
         )
     }
     
@@ -282,7 +290,7 @@ struct MaintenanceHistoryView: View {
         VStack(spacing: 20) {
             ProgressView()
                 .scaleEffect(1.2)
-                .tint(CyntientOpsDesign.DashboardColors.accent)
+                .tint(CyntientOpsDesign.DashboardColors.primaryAction)
             
             Text("Loading maintenance records...")
                 .font(.headline)
@@ -322,7 +330,7 @@ struct MaintenanceHistoryView: View {
                     .foregroundColor(.white)
                     .padding(.horizontal, 24)
                     .padding(.vertical, 12)
-                    .background(CyntientOpsDesign.DashboardGradients.accentGradient)
+                    .background(CyntientOpsDesign.DashboardColors.primaryAction)
                     .cornerRadius(10)
             }
             .padding(.top)
@@ -370,13 +378,13 @@ struct MaintenanceHistoryView: View {
         }
         
         // Sort by date (newest first)
-        return records.sorted { $0.completedDate > $1.completedDate }
+        return records.sorted { $0.completedAt > $1.completedAt }
     }
     
     private var recordsThisWeek: [CoreTypes.MaintenanceRecord] {
         let calendar = Calendar.current
         let weekAgo = calendar.date(byAdding: .day, value: -7, to: Date()) ?? Date()
-        return maintRecords.filter { $0.completedDate >= weekAgo }
+        return maintRecords.filter { $0.completedAt >= weekAgo }
     }
     
     private var repairCount: Int {
@@ -386,7 +394,7 @@ struct MaintenanceHistoryView: View {
     }
     
     private var totalCost: Double {
-        maintRecords.reduce(0) { $0 + $1.cost }
+        maintRecords.reduce(0) { $0 + ($1.cost ?? 0) }
     }
     
     private func matchesCategory(record: CoreTypes.MaintenanceRecord, category: FilterOption) -> Bool {
@@ -513,13 +521,14 @@ struct MaintenanceHistoryView: View {
                     }()
                     
                     return CoreTypes.MaintenanceRecord(
-                        id: UUID().uuidString,
+                        buildingId: buildingID,
                         taskId: task.id,
-                        description: task.description ?? task.title,
-                        completedDate: completedDate,
                         workerId: workerId,
-                        cost: cost,
-                        category: task.category?.rawValue ?? "General"
+                        category: task.category ?? .maintenance,
+                        description: task.description ?? task.title,
+                        completedAt: completedDate,
+                        duration: TimeInterval.random(in: 1800...7200), // 30min to 2hrs
+                        cost: cost
                     )
                 }
                 
@@ -697,7 +706,7 @@ struct MaintenanceRecordCard: View {
                                 .font(.caption)
                                 .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
                             
-                            Label(formatDate(record.completedDate), systemImage: "calendar")
+                            Label(formatDate(record.completedAt), systemImage: "calendar")
                                 .font(.caption)
                                 .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
                         }
@@ -706,9 +715,9 @@ struct MaintenanceRecordCard: View {
                     Spacer()
                     
                     // Cost badge
-                    if record.cost > 0 {
+                    if let cost = record.cost, cost > 0 {
                         VStack(alignment: .trailing, spacing: 4) {
-                            Text(record.cost.formatted(.currency(code: "USD")))
+                            Text(cost.formatted(.currency(code: "USD")))
                                 .font(.headline)
                                 .foregroundColor(CyntientOpsDesign.DashboardColors.success)
                             
@@ -740,7 +749,7 @@ struct MaintenanceRecordCard: View {
                         HStack(spacing: 16) {
                             InfoBadge(
                                 label: "Category",
-                                value: record.category,
+                                value: record.category.rawValue,
                                 icon: "tag",
                                 color: CyntientOpsDesign.DashboardColors.info
                             )
@@ -749,7 +758,7 @@ struct MaintenanceRecordCard: View {
                                 label: "Duration",
                                 value: "N/A",
                                 icon: "clock",
-                                color: CyntientOpsDesign.DashboardColors.accent
+                                color: CyntientOpsDesign.DashboardColors.primaryAction
                             )
                             
                             Spacer()
@@ -830,7 +839,7 @@ struct DatePickerSheet: View {
                         displayedComponents: .date
                     )
                     .datePickerStyle(.graphical)
-                    .tint(CyntientOpsDesign.DashboardColors.accent)
+                    .tint(CyntientOpsDesign.DashboardColors.primaryAction)
                     .padding()
                     .francoDarkCardBackground()
                     .padding()
@@ -845,7 +854,7 @@ struct DatePickerSheet: View {
                     Button("Cancel") {
                         dismiss()
                     }
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.accent)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryAction)
                 }
                 
                 ToolbarItem(placement: .confirmationAction) {
@@ -853,7 +862,7 @@ struct DatePickerSheet: View {
                         onSelect(selectedDate)
                         dismiss()
                     }
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.accent)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryAction)
                 }
             }
         }
@@ -979,7 +988,7 @@ struct ExportOptionsView: View {
                             }
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(CyntientOpsDesign.DashboardGradients.accentGradient)
+                            .background(CyntientOpsDesign.DashboardColors.primaryAction)
                             .foregroundColor(.white)
                             .cornerRadius(12)
                         }
@@ -995,7 +1004,7 @@ struct ExportOptionsView: View {
                     Button("Cancel") {
                         dismiss()
                     }
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.accent)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryAction)
                 }
             }
         }
@@ -1039,7 +1048,7 @@ struct ExportFormatButton: View {
             .padding()
             .background(
                 isSelected ?
-                CyntientOpsDesign.DashboardGradients.accentGradient :
+                CyntientOpsDesign.DashboardColors.primaryAction :
                 Color.white.opacity(0.05)
             )
             .cornerRadius(12)
@@ -1065,7 +1074,7 @@ struct ToggleRow: View {
                 .font(.subheadline)
                 .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
         }
-        .tint(CyntientOpsDesign.DashboardColors.accent)
+        .tint(CyntientOpsDesign.DashboardColors.primaryAction)
     }
 }
 

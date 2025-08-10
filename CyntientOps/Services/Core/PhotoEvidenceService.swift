@@ -383,7 +383,7 @@ public class PhotoEvidenceService: ObservableObject {
             try await simulateUpload(photoData: photoData)
             
             // Update database with remote URL
-            let remoteUrl = "https://api.francosphere.com/photos/\(photoId)"
+            let remoteUrl = "https://api.cyntientops.com/photos/\(photoId)"
             try await grdbManager.execute("""
                 UPDATE photo_evidence
                 SET remote_url = ?, uploaded_at = ?

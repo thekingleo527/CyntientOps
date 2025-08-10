@@ -147,7 +147,7 @@ struct WorkerHeroCard_Previews: PreviewProvider {
                 workerProfile: CoreTypes.WorkerProfile(
                     id: "4",
                     name: "Kevin Dutan",
-                    email: "kevin@francosphere.com",
+                    email: "kevin@cyntientops.com",
                     role: .worker,
                     status: .clockedIn
                 ),
@@ -170,7 +170,7 @@ struct WorkerHeroCard_Previews: PreviewProvider {
                 workerProfile: CoreTypes.WorkerProfile(
                     id: "7",
                     name: "Mercedes Inamagua", 
-                    email: "mercedes@francosphere.com",
+                    email: "mercedes@cyntientops.com",
                     role: .worker,
                     status: .available
                 ),

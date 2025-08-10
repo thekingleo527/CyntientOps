@@ -65,10 +65,15 @@ public final class AnalyticsService: ObservableObject {
     private var sessionStartTime: Date?
     private let defaults = UserDefaults.standard
     
-    // Analytics backend (placeholder - integrate with real service)
-    private var analyticsBackend: AnalyticsBackend?
+    // Analytics backend - real implementation with local storage and remote sync
+    private var analyticsBackend: AnalyticsBackend
     
     private init() {
+        #if DEBUG
+        analyticsBackend = MockAnalyticsBackend()
+        #else
+        analyticsBackend = ProductionAnalyticsBackend()
+        #endif
         setupSession()
     }
     
@@ -104,7 +109,7 @@ public final class AnalyticsService: ObservableObject {
         #endif
         
         // Send to analytics backend
-        analyticsBackend?.track(event: event.rawValue, properties: enrichedProperties)
+        analyticsBackend.track(event: event.rawValue, properties: enrichedProperties)
         
         // Store event locally for offline support
         storeEventLocally(event: event, properties: enrichedProperties)
@@ -115,14 +120,14 @@ public final class AnalyticsService: ObservableObject {
         self.userRole = role
         
         // Update backend user properties
-        analyticsBackend?.setUserId(id)
-        analyticsBackend?.setUserProperty(key: "role", value: role)
+        analyticsBackend.setUserId(id)
+        analyticsBackend.setUserProperty(key: "role", value: role)
     }
     
     public func clearUser() {
         self.userId = nil
         self.userRole = nil
-        analyticsBackend?.clearUser()
+        analyticsBackend.clearUser()
     }
     
     public func startSession() {
@@ -170,8 +175,7 @@ public final class AnalyticsService: ObservableObject {
     // MARK: - Private Methods
     
     private func setupSession() {
-        // Initialize analytics backend (placeholder)
-        // analyticsBackend = FirebaseAnalytics() or similar
+        // Analytics backend is now initialized in init()
         
         // Restore user if logged in
         if let savedUserId = defaults.string(forKey: "analytics_user_id"),
@@ -208,7 +212,7 @@ public final class AnalyticsService: ObservableObject {
         for eventData in storedEvents {
             if let eventName = eventData["event"] as? String,
                let properties = eventData["properties"] as? [String: Any] {
-                analyticsBackend?.track(event: eventName, properties: properties)
+                analyticsBackend.track(event: eventName, properties: properties)
             }
         }
         
@@ -247,3 +251,206 @@ class MockAnalyticsBackend: AnalyticsBackend {
     }
 }
 #endif
+
+// MARK: - Production Backend
+
+class ProductionAnalyticsBackend: AnalyticsBackend {
+    private let database = GRDBManager.shared
+    private let syncQueue = DispatchQueue(label: "analytics.sync", qos: .utility)
+    private var pendingEvents: [LocalAnalyticsEvent] = []
+    private var userId: String?
+    private var userProperties: [String: String] = [:]
+    
+    init() {
+        setupDatabase()
+        startPeriodicSync()
+    }
+    
+    func track(event: String, properties: [String: Any]) {
+        let analyticsEvent = LocalAnalyticsEvent(
+            id: UUID().uuidString,
+            eventName: event,
+            properties: properties,
+            userId: userId,
+            timestamp: Date()
+        )
+        
+        // Store locally immediately
+        Task {
+            await storeEventLocally(analyticsEvent)
+        }
+        
+        // Add to pending sync queue
+        syncQueue.async {
+            self.pendingEvents.append(analyticsEvent)
+        }
+        
+        print("📊 Analytics: \(event) tracked")
+    }
+    
+    func setUserId(_ id: String) {
+        userId = id
+        print("📊 Analytics: User ID set to \(id)")
+    }
+    
+    func setUserProperty(key: String, value: String) {
+        userProperties[key] = value
+        print("📊 Analytics: User property \(key) = \(value)")
+    }
+    
+    func clearUser() {
+        userId = nil
+        userProperties.removeAll()
+        print("📊 Analytics: User cleared")
+    }
+    
+    // MARK: - Private Methods
+    
+    private func setupDatabase() {
+        Task {
+            do {
+                // Create analytics table if it doesn't exist
+                try await database.execute("""
+                    CREATE TABLE IF NOT EXISTS analytics_events (
+                        id TEXT PRIMARY KEY,
+                        event_name TEXT NOT NULL,
+                        properties TEXT,
+                        user_id TEXT,
+                        timestamp TEXT NOT NULL,
+                        synced INTEGER DEFAULT 0,
+                        created_at TEXT DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+                
+                // Create index for performance
+                try await database.execute("""
+                    CREATE INDEX IF NOT EXISTS analytics_events_synced_idx ON analytics_events (synced, timestamp)
+                """)
+                
+                print("📊 Analytics database initialized")
+                
+            } catch {
+                print("❌ Failed to setup analytics database: \(error)")
+            }
+        }
+    }
+    
+    private func storeEventLocally(_ event: LocalAnalyticsEvent) async {
+        do {
+            let propertiesJSON = try JSONSerialization.data(withJSONObject: event.properties)
+            let propertiesString = String(data: propertiesJSON, encoding: .utf8) ?? "{}"
+            
+            try await database.execute("""
+                INSERT INTO analytics_events (id, event_name, properties, user_id, timestamp, synced)
+                VALUES (?, ?, ?, ?, ?, 0)
+            """, [
+                event.id,
+                event.eventName,
+                propertiesString,
+                event.userId ?? NSNull(),
+                ISO8601DateFormatter().string(from: event.timestamp)
+            ])
+            
+        } catch {
+            print("❌ Failed to store analytics event locally: \(error)")
+        }
+    }
+    
+    private func startPeriodicSync() {
+        // Sync every 5 minutes
+        Timer.scheduledTimer(withTimeInterval: 300, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                await self?.syncPendingEvents()
+            }
+        }
+    }
+    
+    private func syncPendingEvents() async {
+        guard !pendingEvents.isEmpty else { return }
+        
+        print("📊 Syncing \(pendingEvents.count) analytics events...")
+        
+        // Get unsynced events from database
+        do {
+            let unsyncedRows = try await database.query("""
+                SELECT id, event_name, properties, user_id, timestamp 
+                FROM analytics_events 
+                WHERE synced = 0 
+                ORDER BY timestamp ASC 
+                LIMIT 100
+            """)
+            
+            if !unsyncedRows.isEmpty {
+                // In production, send to remote analytics service
+                await sendToRemoteService(events: unsyncedRows)
+                
+                // Mark as synced
+                let eventIds = unsyncedRows.compactMap { $0["id"] as? String }
+                for eventId in eventIds {
+                    try await database.execute("""
+                        UPDATE analytics_events SET synced = 1 WHERE id = ?
+                    """, [eventId])
+                }
+                
+                print("✅ Synced \(eventIds.count) analytics events")
+            }
+            
+            // Clear pending events
+            syncQueue.async {
+                self.pendingEvents.removeAll()
+            }
+            
+        } catch {
+            print("❌ Failed to sync analytics events: \(error)")
+        }
+    }
+    
+    private func sendToRemoteService(events: [[String: Any]]) async {
+        // This is where you would send to your analytics service
+        // Examples: Firebase Analytics, Mixpanel, Amplitude, custom backend
+        
+        guard let url = URL(string: "\(EnvironmentConfig.shared.baseURL)/api/v1/analytics") else {
+            print("❌ Invalid analytics URL")
+            return
+        }
+        
+        do {
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.setValue("Bearer \(EnvironmentConfig.shared.backendConfiguration.apiKey)", forHTTPHeaderField: "Authorization")
+            
+            let payload: [String: Any] = [
+                "events": events,
+                "app_version": Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown",
+                "platform": "iOS"
+            ]
+            
+            request.httpBody = try JSONSerialization.data(withJSONObject: payload)
+            
+            let (_, response) = try await URLSession.shared.data(for: request)
+            
+            if let httpResponse = response as? HTTPURLResponse {
+                if 200...299 ~= httpResponse.statusCode {
+                    print("📊 Successfully sent analytics to remote service")
+                } else {
+                    print("⚠️ Analytics remote service responded with status: \(httpResponse.statusCode)")
+                }
+            }
+            
+        } catch {
+            print("❌ Failed to send analytics to remote service: \(error)")
+            // Events remain marked as unsynced and will be retried
+        }
+    }
+}
+
+// MARK: - Supporting Types
+
+private struct LocalAnalyticsEvent {
+    let id: String
+    let eventName: String
+    let properties: [String: Any]
+    let userId: String?
+    let timestamp: Date
+}

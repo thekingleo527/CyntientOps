@@ -83,7 +83,7 @@ public class NetworkMonitor: ObservableObject {
     // MARK: - Private Properties
     
     private let monitor = NWPathMonitor()
-    private let queue = DispatchQueue(label: "com.francosphere.networkmonitor")
+    private let queue = DispatchQueue(label: "com.cyntientops.networkmonitor")
     private var cancellables = Set<AnyCancellable>()
     
     // Connection history for predictive analysis

@@ -63,7 +63,7 @@ public class RealTimeMonitoringService: ObservableObject {
         nycCompliance: NYCComplianceService,
         violationPredictor: ViolationPredictor,
         costIntelligence: CostIntelligenceService,
-        novaAI: NovaAIManager = NovaAIManager.shared
+        novaAI: NovaAIManager
     ) {
         self.database = database
         self.nycCompliance = nycCompliance

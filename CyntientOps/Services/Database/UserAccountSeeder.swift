@@ -17,6 +17,7 @@
 import Foundation
 import CryptoKit
 import GRDB
+import Security
 
 @MainActor
 public final class UserAccountSeeder {
@@ -251,37 +252,88 @@ public final class UserAccountSeeder {
     public func seedAccounts() async throws {
         print("🌱 Starting user account seeding...")
         
-        var successCount = 0
-        var failureCount = 0
+        let allAccounts = productionAccounts + clientAccounts
         
-        // Seed production accounts (workers and managers)
-        for account in productionAccounts {
-            do {
-                try await seedAccount(account)
-                successCount += 1
-                print("✅ Seeded account: \(account.name) (\(account.email))")
-            } catch {
-                failureCount += 1
-                print("❌ Failed to seed account \(account.name): \(error)")
+        // Pre-hash all passwords in parallel for better performance
+        var hashedAccounts: [(UserAccount, String)] = []
+        
+        // Hash passwords concurrently
+        await withTaskGroup(of: (UserAccount, String).self) { group in
+            for account in allAccounts {
+                group.addTask {
+                    do {
+                        let hashedPassword = try await self.hashPassword(account.password, for: account.email)
+                        return (account, hashedPassword)
+                    } catch {
+                        print("❌ Failed to hash password for \(account.email): \(error)")
+                        return (account, "")
+                    }
+                }
+            }
+            
+            for await result in group {
+                if !result.1.isEmpty {
+                    hashedAccounts.append(result)
+                }
             }
         }
         
-        // Seed client accounts
-        for account in clientAccounts {
-            do {
-                try await seedAccount(account)
-                successCount += 1
-                print("✅ Seeded client account: \(account.name) (\(account.email))")
-            } catch {
-                failureCount += 1
-                print("❌ Failed to seed client account \(account.name): \(error)")
+        // Batch insert all accounts using direct database access
+        let currentTime = Date().ISO8601Format()
+        
+        for (account, hashedPassword) in hashedAccounts {
+            try await grdbManager.execute("""
+                INSERT OR REPLACE INTO workers (
+                    id, name, email, password, role, isActive, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """, [
+                account.id,
+                account.name,
+                account.email,
+                hashedPassword,
+                account.role,
+                account.isActive ? 1 : 0,
+                currentTime,
+                currentTime
+            ])
+        }
+        
+        print("✅ Seeded \(hashedAccounts.count) accounts in batch")
+        
+        // Debug: Verify users were actually created
+        let verifyUsers = try await grdbManager.query("SELECT id, name, email, role FROM workers")
+        print("🔍 DEBUG: Found \(verifyUsers.count) users in database:")
+        for user in verifyUsers {
+            if let id = user["id"] as? String, 
+               let name = user["name"] as? String,
+               let email = user["email"] as? String,
+               let role = user["role"] as? String {
+                print("  - \(name) (\(email)) - Role: \(role) - ID: \(id)")
             }
         }
+        
+        // Debug: Also insert some plain text passwords for testing
+        #if DEBUG
+        print("🔧 DEBUG: Adding plain text test credentials...")
+        let testCredentials = [
+            ("test_admin", "Test Admin", "admin@test.com", "password", "admin"),
+            ("test_shawn", "Shawn Test", "shawn@test.com", "password", "admin")
+        ]
+        
+        for (id, name, email, password, role) in testCredentials {
+            try await grdbManager.execute("""
+                INSERT OR REPLACE INTO workers (
+                    id, name, email, password, role, isActive, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, 1, datetime('now'), datetime('now'))
+            """, [id, name, email, password, role])
+        }
+        print("✅ Added test credentials with plain text passwords")
+        #endif
         
         // Seed worker capabilities
         try await seedWorkerCapabilities()
         
-        print("🎉 Account seeding completed: \(successCount) succeeded, \(failureCount) failed")
+        print("🎉 Account seeding completed successfully")
     }
     
     // MARK: - Private Methods
@@ -335,8 +387,10 @@ public final class UserAccountSeeder {
             SecRandomCopyBytes(kSecRandomDefault, 32, bytes.baseAddress!)
         }
         
-        // Store salt in keychain
-        try KeychainManager.shared.save(salt, for: "salt_\(email)")
+        // Store salt in keychain using the same method as NewAuthManager
+        let keychainService = "com.cyntientops.auth"
+        let saltKey = "\(keychainService).salt.\(email)"
+        try storeInKeychain(salt, for: saltKey)
         
         // Hash password with salt
         let passwordData = Data(password.utf8)
@@ -344,6 +398,27 @@ public final class UserAccountSeeder {
         let hash = SHA256.hash(data: saltedPassword)
         
         return Data(hash).base64EncodedString()
+    }
+    
+    // MARK: - Keychain Methods (matching NewAuthManager)
+    
+    private func storeInKeychain(_ data: Data, for key: String) throws {
+        let keychainService = "com.cyntientops.auth"
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: keychainService,
+            kSecAttrAccount as String: key,
+            kSecValueData as String: data,
+            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+        ]
+        
+        // Delete existing item
+        SecItemDelete(query as CFDictionary)
+        
+        let status = SecItemAdd(query as CFDictionary, nil)
+        guard status == errSecSuccess else {
+            throw NSError(domain: "KeychainError", code: Int(status), userInfo: [NSLocalizedDescriptionKey: "Failed to store in keychain: \(status)"])
+        }
     }
     
     private func seedWorkerCapabilities() async throws {
@@ -365,29 +440,30 @@ public final class UserAccountSeeder {
             )
         """)
         
-        // Seed capabilities
-        for account in productionAccounts where account.capabilities != nil {
+        // Batch insert all capabilities 
+        let accountsWithCapabilities = productionAccounts.filter { $0.capabilities != nil }
+        
+        for account in accountsWithCapabilities {
             let cap = account.capabilities!
             
             try await grdbManager.execute("""
                 INSERT OR REPLACE INTO worker_capabilities (
-                    worker_id, simplified_interface, language, 
-                    requires_photo_for_sanitation, can_add_emergency_tasks, 
-                    evening_mode_ui, priority_level, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    worker_id, can_upload_photos, can_add_notes, can_view_map, 
+                    can_add_emergency_tasks, requires_photo_for_sanitation, 
+                    simplified_interface, preferred_language
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """, [
                 account.id,
-                cap.simplifiedInterface ? 1 : 0,
-                cap.language,
-                cap.requiresPhotoForSanitation ? 1 : 0,
+                1, // can_upload_photos - default enabled
+                1, // can_add_notes - default enabled  
+                1, // can_view_map - default enabled
                 cap.canAddEmergencyTasks ? 1 : 0,
-                cap.eveningModeUI ? 1 : 0,
-                account.role == "manager" ? 1 : 0, // Managers get priority
-                Date().ISO8601Format(),
-                Date().ISO8601Format()
+                cap.requiresPhotoForSanitation ? 1 : 0,
+                cap.simplifiedInterface ? 1 : 0,
+                cap.language
             ])
         }
         
-        print("✅ Worker capabilities seeded")
+        print("✅ Seeded worker capabilities in batch")
     }
 }

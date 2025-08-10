@@ -191,9 +191,8 @@ public class ViolationPredictor: ObservableObject {
     
     private func getAllBuildings() async throws -> [CoreTypes.NamedCoordinate] {
         let rows = try await database.query("""
-            SELECT id, name, address, latitude, longitude, type, bin, bbl
+            SELECT id, name, address, latitude, longitude, bin_number, bbl
             FROM buildings
-            WHERE isActive = 1
         """)
         
         return rows.compactMap { row -> CoreTypes.NamedCoordinate? in
@@ -201,15 +200,15 @@ public class ViolationPredictor: ObservableObject {
                   let name = row["name"] as? String,
                   let address = row["address"] as? String,
                   let lat = row["latitude"] as? Double,
-                  let lon = row["longitude"] as? Double,
-                  let typeStr = row["type"] as? String else {
+                  let lon = row["longitude"] as? Double else {
                 return nil
             }
             
-            let buildingType = CoreTypes.BuildingType(rawValue: typeStr) ?? .residential
+            // Default to residential since we don't have type column
+            let buildingType = CoreTypes.BuildingType.residential
             
             var metadata: [String: Any] = [:]
-            if let bin = row["bin"] as? String { metadata["bin"] = bin }
+            if let bin = row["bin_number"] as? String { metadata["bin"] = bin }
             if let bbl = row["bbl"] as? String { metadata["bbl"] = bbl }
             
             return CoreTypes.NamedCoordinate(
@@ -309,8 +308,8 @@ public class ViolationPredictor: ObservableObject {
             let rows = try await database.query("""
                 SELECT source, severity, reported_date, resolved_date
                 FROM compliance_issues
-                WHERE building_id = ?
-                AND reported_date > date('now', '-2 years')
+                WHERE buildingId = ?
+                AND reported_date > strftime('%s', 'now', '-2 years')
                 ORDER BY reported_date DESC
             """, [buildingId])
             
@@ -382,12 +381,12 @@ public class ViolationPredictor: ObservableObject {
             
             let recentCount = try await database.query("""
                 SELECT COUNT(*) as count FROM compliance_issues
-                WHERE building_id = ? AND reported_date > ?
+                WHERE buildingId = ? AND reported_date > ?
             """, [buildingId, sixMonthsAgo.timeIntervalSince1970]).first?["count"] as? Int64 ?? 0
             
             let olderCount = try await database.query("""
                 SELECT COUNT(*) as count FROM compliance_issues
-                WHERE building_id = ? AND reported_date BETWEEN ? AND ?
+                WHERE buildingId = ? AND reported_date BETWEEN ? AND ?
             """, [buildingId, oneYearAgo.timeIntervalSince1970, sixMonthsAgo.timeIntervalSince1970]).first?["count"] as? Int64 ?? 0
             
             if olderCount == 0 {

@@ -3,7 +3,7 @@
 //  CyntientOps (formerly CyntientOps) v6.0
 //
 //  ✅ PHASE 0-2 INTEGRATED: ServiceContainer + Nova AI + Existing Features
-//  ✅ PRESERVED: All Sentry, database init, migration, and daily ops functionality
+//  ✅ PRESERVED: All Sentry, database init, and daily ops functionality
 //  ✅ ENHANCED: Added ServiceContainer architecture and Nova AI persistence
 //  ✅ PRODUCTION READY: Complete initialization flow maintained
 //
@@ -16,8 +16,7 @@ struct CyntientOpsApp: App {
     // MARK: - State Management & Services
     
     // Phase 0-2 Additions
-    @StateObject private var novaAI = NovaAIManager.shared
-    @StateObject private var coordinator = AppStartupCoordinator()
+    @StateObject private var coordinator = AppStartupCoordinator.shared
     @State private var serviceContainer: ServiceContainer?
     
     // Existing Services (keeping for compatibility during transition)
@@ -49,12 +48,11 @@ struct CyntientOpsApp: App {
                 // ensuring the correct view is shown at each stage of the launch sequence.
                 if showingSplash {
                     SplashView()
-                        .onAppear {
+                        .task {
                             // Show splash for a brief period then transition.
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                                withAnimation(.easeInOut(duration: 0.5)) {
-                                    showingSplash = false
-                                }
+                            try? await Task.sleep(nanoseconds: 2_000_000_000)
+                            withAnimation(.easeInOut(duration: 0.5)) {
+                                showingSplash = false
                             }
                         }
                 } else if !databaseInitializer.isInitialized {
@@ -71,10 +69,6 @@ struct CyntientOpsApp: App {
                                 }
                             }
                         }
-                } else if dailyOps.needsMigration() {
-                    // Step 2: If the DB is initialized but legacy data needs migrating.
-                    MigrationView()
-                        .transition(.opacity)
                 } else if !hasCompletedOnboarding {
                     // Step 3: Show the onboarding flow for first-time users.
                     OnboardingView(onComplete: {
@@ -90,8 +84,9 @@ struct CyntientOpsApp: App {
                             .environmentObject(locationManager)
                             .environmentObject(contextEngine)
                             .environmentObject(databaseInitializer)
-                            .environmentObject(novaAI) // Phase 0: Nova AI persistence
                             .environmentObject(container) // Phase 2: Service Container
+                            .environmentObject(container.novaManager) // Nova AI from Container
+                            .environmentObject(container.dashboardSync) // Dashboard Sync Service
                             .transition(.opacity)
                     } else {
                         // Show loading while container initializes
@@ -117,7 +112,6 @@ struct CyntientOpsApp: App {
             // Animate transitions between the major app states for a smoother experience.
             .animation(.easeInOut(duration: 0.3), value: showingSplash)
             .animation(.easeInOut(duration: 0.3), value: databaseInitializer.isInitialized)
-            .animation(.easeInOut(duration: 0.3), value: dailyOps.needsMigration())
             .animation(.easeInOut(duration: 0.3), value: hasCompletedOnboarding)
             .animation(.easeInOut(duration: 0.3), value: authManager.isAuthenticated)
             .animation(.easeInOut(duration: 0.3), value: serviceContainer != nil)
@@ -150,10 +144,6 @@ struct CyntientOpsApp: App {
             
             // Create service container
             let container = try await ServiceContainer()
-            
-            // Connect Nova AI to intelligence service (bidirectional)
-            container.setNovaManager(novaAI)
-            novaAI.setServiceContainer(container)
             
             // Set container
             await MainActor.run {
@@ -234,7 +224,6 @@ struct CyntientOpsApp: App {
             scope.setTag(value: UIDevice.current.systemVersion, key: "ios.version")
             scope.setContext(value: [
                 "initialized": databaseInitializer.isInitialized,
-                "migrationNeeded": dailyOps.needsMigration(),
                 "onboardingCompleted": hasCompletedOnboarding,
                 "environment": ProductionConfiguration.environment.rawValue
             ], key: "app_state")
@@ -309,19 +298,53 @@ struct CyntientOpsApp: App {
         }
         
         // Phase 0A: Seed user accounts if needed
+        print("🔍 DEBUG: Current environment: \(ProductionConfiguration.environment.rawValue)")
         if ProductionConfiguration.environment == .development {
+            print("🌱 DEBUG: Starting development seeding...")
             Task {
                 do {
                     let seeder = UserAccountSeeder()
-                    await seeder.seedAccounts()
+                    print("🌱 DEBUG: About to call seedAccounts...")
+                    try await seeder.seedAccounts()
+                    print("✅ DEBUG: seedAccounts completed")
+                    
+                    // Wait for daily operations to complete before seeding client structure
+                    // This ensures buildings exist before creating client-building relationships
+                    await waitForDailyOperations()
                     
                     let clientSeeder = ClientBuildingSeeder()
-                    await clientSeeder.seedClientStructure()
+                    try await clientSeeder.seedClientStructure()
                 } catch {
-                    print("⚠️ Seeding error: \(error)")
+                    print("❌ Seeding error: \(error)")
                 }
             }
+        } else {
+            print("⚠️ DEBUG: Not in development environment, seeding skipped")
         }
+    }
+    
+    private func waitForDailyOperations() async {
+        // Wait up to 30 seconds for daily operations to complete
+        let timeout = 30.0
+        let checkInterval = 0.5
+        let maxChecks = Int(timeout / checkInterval)
+        
+        for _ in 0..<maxChecks {
+            // Check if buildings exist (indicating daily operations completed)
+            do {
+                let buildingCount = try await GRDBManager.shared.query("SELECT COUNT(*) as count FROM buildings")
+                if let count = buildingCount.first?["count"] as? Int64, count > 0 {
+                    print("✅ Daily operations completed - found \(count) buildings")
+                    return
+                }
+            } catch {
+                // Database might not be ready yet
+            }
+            
+            try? await Task.sleep(nanoseconds: UInt64(checkInterval * 1_000_000_000))
+        }
+        
+        print("⚠️ Daily operations timeout - proceeding with client seeding anyway")
     }
     
     private func checkDailyOperations() {
@@ -403,6 +426,7 @@ struct CyntientOpsApp: App {
 
 // MARK: - Sentry Crash Reporter Wrapper (PRESERVED)
 
+@MainActor
 enum CrashReporter {
     static func captureError(_ error: Error, context: [String: Any]? = nil) {
         SentrySDK.capture(error: error) { scope in

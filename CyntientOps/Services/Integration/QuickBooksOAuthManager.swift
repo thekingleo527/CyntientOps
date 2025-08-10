@@ -45,7 +45,7 @@ public actor QuickBooksOAuthManager {
     
     // MARK: - OAuth URLs
     private var redirectURI: String {
-        return "francosphere://oauth/quickbooks"
+        return "cyntientops://oauth/quickbooks"
     }
     
     private var authorizationURL: String {
@@ -249,7 +249,7 @@ public actor QuickBooksOAuthManager {
         return try await withCheckedThrowingContinuation { continuation in
             let session = ASWebAuthenticationSession(
                 url: url,
-                callbackURLScheme: "francosphere"
+                callbackURLScheme: "cyntientops"
             ) { callbackURL, error in
                 if let error = error {
                     continuation.resume(throwing: QuickBooksOAuthError.authenticationFailed(error.localizedDescription))

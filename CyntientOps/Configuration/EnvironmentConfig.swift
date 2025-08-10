@@ -18,9 +18,9 @@ enum AppEnvironment: String {
         case .development:
             return "http://localhost:8080"
         case .staging:
-            return "https://staging-api.francosphere.com"
+            return "https://staging-api.cyntientops.com"
         case .production:
-            return "https://api.francosphere.com"
+            return "https://api.cyntientops.com"
         }
     }
     
@@ -29,9 +29,9 @@ enum AppEnvironment: String {
         case .development:
             return "ws://localhost:8080/sync"
         case .staging:
-            return "wss://staging-api.francosphere.com/sync"
+            return "wss://staging-api.cyntientops.com/sync"
         case .production:
-            return "wss://api.francosphere.com/sync"
+            return "wss://api.cyntientops.com/sync"
         }
     }
     

@@ -10,21 +10,76 @@
 import SwiftUI
 import Combine
 
-// MARK: - Maintenance History Card (Already exists in BuildingDetailComponents)
-// Using extension to add functionality without redeclaration
+// MARK: - Supporting Types (using BuildingDetailViewModel types)
+// MaintenanceRecord types are defined in BuildingDetailViewModel as BDMaintenanceRecord
 
-extension MaintenanceHistoryCard {
-    func withFiltering() -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            self
+struct MaintenanceRecordRow: View {
+    let record: BDMaintenanceRecord
+    
+    var body: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(record.title)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                
+                Text(record.description)
+                    .font(.caption)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                    .lineLimit(2)
+            }
             
-            // Add filter options
-            HistoryFilterBar(
-                onFilterChanged: { filter in
-                    // Apply filter logic
+            Spacer()
+            
+            VStack(alignment: .trailing, spacing: 4) {
+                Text(record.date, style: .date)
+                    .font(.caption)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                
+                if let cost = record.cost {
+                    Text("$\(cost.doubleValue, specifier: "%.2f")")
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryAction)
                 }
-            )
+            }
         }
+        .padding(.vertical, 8)
+        .padding(.horizontal, 12)
+        .background(CyntientOpsDesign.DashboardColors.cardBackground.opacity(0.3))
+        .cornerRadius(8)
+    }
+}
+
+// MARK: - Maintenance History Card
+
+struct MaintenanceHistoryCard: View {
+    let maintenanceRecords: [BDMaintenanceRecord]
+    let buildingId: String
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            // Header
+            HStack {
+                Label("Maintenance History", systemImage: "wrench.and.screwdriver")
+                    .font(.headline)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                
+                Spacer()
+                
+                Text("\(maintenanceRecords.count) records")
+                    .font(.caption)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+            }
+            
+            // Records list
+            ForEach(maintenanceRecords.prefix(5), id: \.id) { record in
+                MaintenanceRecordRow(record: record)
+            }
+        }
+        .francoCardPadding()
+        .francoGlassBackground()
     }
 }
 
@@ -481,7 +536,8 @@ struct HistoryFilterBar: View {
                     ForEach(FilterType.allCases, id: \.self) { type in
                         FilterChip(
                             title: type.rawValue,
-                            isSelected: selectedType == type,
+                            isActive: selectedType == type,
+                            count: getFilterCount(for: type),
                             action: {
                                 selectedType = type
                                 applyFilters()
@@ -497,7 +553,8 @@ struct HistoryFilterBar: View {
                     ForEach(DateRange.allCases, id: \.self) { range in
                         FilterChip(
                             title: range.rawValue,
-                            isSelected: selectedDateRange == range,
+                            isActive: selectedDateRange == range,
+                            count: getDateRangeCount(for: range),
                             action: {
                                 selectedDateRange = range
                                 applyFilters()
@@ -519,6 +576,38 @@ struct HistoryFilterBar: View {
             searchText: searchText
         )
         onFilterChanged(filter)
+    }
+    
+    private func getFilterCount(for type: FilterType) -> Int {
+        // Return estimated count - would be based on actual data in real implementation
+        switch type {
+        case .all:
+            return 25
+        case .maintenance:
+            return 8
+        case .compliance:
+            return 12
+        case .issues:
+            return 5
+        case .vendors:
+            return 3
+        }
+    }
+    
+    private func getDateRangeCount(for range: DateRange) -> Int {
+        // Return estimated count - would be based on actual data in real implementation
+        switch range {
+        case .today:
+            return 3
+        case .lastWeek:
+            return 8
+        case .lastMonth:
+            return 15
+        case .lastQuarter:
+            return 22
+        case .lastYear:
+            return 25
+        }
     }
 }
 

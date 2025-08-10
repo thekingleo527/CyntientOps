@@ -82,16 +82,19 @@ class WorkerRoutineViewModel: ObservableObject {
         do {
             // Calculate efficiency based on completed tasks
             let completedTasks = await getCompletedTasksCount()
+            let totalTasks = await getTotalTasksCount()
             let averageTime = await getAverageCompletionTime()
             let qualityScore = await calculateQualityScore()
             let efficiency = calculateEfficiency()
             
-            // Using correct PerformanceMetrics initializer
+            // Using correct PerformanceMetrics initializer with proper parameter order
             performanceMetrics = CoreTypes.PerformanceMetrics(
+                avgTaskTime: averageTime,
                 efficiency: efficiency,
-                tasksCompleted: completedTasks,
-                averageTime: averageTime,
-                qualityScore: qualityScore
+                qualityScore: qualityScore,
+                punctualityScore: 0.8,
+                totalTasks: totalTasks,
+                completedTasks: completedTasks
             )
         } catch {
             errorMessage = "Failed to load performance metrics: \(error.localizedDescription)"
@@ -105,6 +108,17 @@ class WorkerRoutineViewModel: ObservableObject {
             return tasks.filter { $0.isCompleted }.count
         } catch {
             print("❌ Failed to get completed tasks count: \(error)")
+            return 0
+        }
+    }
+    
+    private func getTotalTasksCount() async -> Int {
+        // Get total tasks from TaskService
+        do {
+            let tasks = try await taskService.getAllTasks()
+            return tasks.count
+        } catch {
+            print("❌ Failed to get total tasks count: \(error)")
             return 0
         }
     }
@@ -127,12 +141,8 @@ class WorkerRoutineViewModel: ObservableObject {
     
     // MARK: - Route Management
     func loadDailyRoutes() async {
-        do {
-            // Load routes from real data
-            dailyRoutes = await fetchRoutesFromDatabase()
-        } catch {
-            errorMessage = "Failed to load daily routes: \(error.localizedDescription)"
-        }
+        // Load routes from real data
+        dailyRoutes = await fetchRoutesFromDatabase()
     }
     
     private func fetchRoutesFromDatabase() async -> [CoreTypes.WorkerDailyRoute] {
@@ -154,10 +164,19 @@ class WorkerRoutineViewModel: ObservableObject {
             }
             
             if !assignedBuildings.isEmpty {
+                let namedCoordinates = assignedBuildings.map { building in
+                    CoreTypes.NamedCoordinate(
+                        id: building.id,
+                        name: building.name,
+                        address: building.address,
+                        latitude: building.latitude,
+                        longitude: building.longitude
+                    )
+                }
                 let route = CoreTypes.WorkerDailyRoute(
                     workerId: workerId,
                     date: Date(),
-                    buildings: assignedBuildings.map { $0.id },
+                    buildings: namedCoordinates,
                     estimatedDuration: TimeInterval(assignedBuildings.count * 1800) // 30 min per building
                 )
                 return [route]
@@ -184,9 +203,10 @@ class WorkerRoutineViewModel: ObservableObject {
             
             // Using correct RouteOptimization initializer
             let optimization = CoreTypes.RouteOptimization(
-                optimizedRoute: optimizedBuildings,
+                algorithm: "nearest_neighbor",
+                distanceSaved: timeSaved, // Using time saved as distance proxy
                 timeSaved: timeSaved,
-                efficiency: efficiency
+                fuelSaved: timeSaved * 0.1 // Estimate fuel savings
             )
             
             // Store optimization record
@@ -255,10 +275,10 @@ class WorkerRoutineViewModel: ObservableObject {
         
         // Using correct PerformanceMetrics initializer
         let performanceMetrics = CoreTypes.PerformanceMetrics(
+            avgTaskTime: averageTime,
             efficiency: efficiency,
-            tasksCompleted: completedTasks,
-            averageTime: averageTime,
-            qualityScore: qualityScore
+            qualityScore: qualityScore,
+            completedTasks: completedTasks
         )
         
         return DailySummary(from: performanceMetrics)
@@ -283,7 +303,7 @@ class WorkerRoutineViewModel: ObservableObject {
     // MARK: - Worker Analytics
     func analyzeWorkerPerformance(for workerId: String) async -> WorkerAnalytics {
         let routes = dailyRoutes.filter { $0.workerId == workerId }
-        let totalBuildings = routes.flatMap { $0.buildings }.count
+        let totalBuildings = routes.compactMap { $0.buildings }.flatMap { $0 }.count
         let averageTime = routes.isEmpty ? 0 : routes.reduce(0) { $0 + $1.estimatedDuration } / Double(routes.count)
         
         return WorkerAnalytics(
@@ -352,7 +372,8 @@ class WorkerRoutineViewModel: ObservableObject {
         let routes = dailyRoutes.filter { $0.workerId == workerId }
         guard let currentRoute = routes.first else { return nil }
         
-        let optimization = await optimizeRoute(for: workerId, buildings: currentRoute.buildings)
+        let buildingIds = currentRoute.buildings?.map { $0.id } ?? []
+        let optimization = await optimizeRoute(for: workerId, buildings: buildingIds)
         
         return WorkerRouteData(
             route: currentRoute,
@@ -430,7 +451,8 @@ class WorkerRoutineViewModel: ObservableObject {
     private func refreshOptimizations() async {
         await loadDailyRoutes()
         if let currentRoute = dailyRoutes.first {
-            _ = await optimizeRoute(for: currentRoute.workerId, buildings: currentRoute.buildings)
+            let buildingIds = currentRoute.buildings?.map { $0.id } ?? []
+            _ = await optimizeRoute(for: currentRoute.workerId, buildings: buildingIds)
         }
     }
 }
@@ -466,7 +488,7 @@ extension WorkerService {
             return CoreTypes.WorkerAssignment(
                 workerId: workerId,
                 buildingId: buildingId,
-                assignedDate: assignedDate
+                startTime: assignedDate
             )
         }
     }

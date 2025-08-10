@@ -205,12 +205,7 @@ public final class ClientBuildingSeeder {
             """)
         }
         
-        // Deactivate building 2
-        try await grdbManager.execute("""
-            UPDATE buildings 
-            SET isActive = 0, updated_at = ?
-            WHERE id = '2'
-        """, [Date().ISO8601Format()])
+        // Note: Building 2 management is handled elsewhere - no isActive column in buildings table
         
         // Add building 21 if it doesn't exist
         let building21Exists = try await grdbManager.query(
@@ -220,18 +215,14 @@ public final class ClientBuildingSeeder {
         if building21Exists.isEmpty {
             try await grdbManager.execute("""
                 INSERT INTO buildings (
-                    id, name, address, latitude, longitude, 
-                    isActive, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    id, name, address, latitude, longitude
+                ) VALUES (?, ?, ?, ?, ?)
             """, [
                 "21",
                 "148 Chambers Street",
                 "148 Chambers Street, New York, NY 10007",
                 40.7155, // Approximate coordinates
-                -74.0086,
-                1,
-                Date().ISO8601Format(),
-                Date().ISO8601Format()
+                -74.0086
             ])
         }
         
@@ -241,63 +232,57 @@ public final class ClientBuildingSeeder {
     private func seedClients() async throws {
         print("🌱 Seeding client data...")
         
+        // Batch insert all clients
+        let currentTime = Date().ISO8601Format()
+        
         for client in clients {
-            // Check if client exists
-            let existing = try await grdbManager.query(
-                "SELECT id FROM clients WHERE id = ?",
-                [client.id]
-            )
-            
-            if existing.isEmpty {
-                // Insert new client
-                try await grdbManager.execute("""
-                    INSERT INTO clients (
-                        id, name, short_name, contact_email, contact_phone,
-                        address, is_active, created_at, updated_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, [
-                    client.id,
-                    client.name,
-                    client.shortName,
-                    client.contactEmail,
-                    client.contactPhone,
-                    client.address,
-                    client.isActive ? 1 : 0,
-                    Date().ISO8601Format(),
-                    Date().ISO8601Format()
-                ])
-                
-                print("✅ Created client: \(client.name)")
-            } else {
-                // Update existing client
-                try await grdbManager.execute("""
-                    UPDATE clients 
-                    SET name = ?, short_name = ?, contact_email = ?, 
-                        contact_phone = ?, address = ?, is_active = ?, updated_at = ?
-                    WHERE id = ?
-                """, [
-                    client.name,
-                    client.shortName,
-                    client.contactEmail,
-                    client.contactPhone,
-                    client.address,
-                    client.isActive ? 1 : 0,
-                    Date().ISO8601Format(),
-                    client.id
-                ])
-                
-                print("✅ Updated client: \(client.name)")
-            }
+            try await grdbManager.execute("""
+                INSERT OR REPLACE INTO clients (
+                    id, name, short_name, contact_email, contact_phone,
+                    address, is_active, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, [
+                client.id,
+                client.name,
+                client.shortName,
+                client.contactEmail,
+                client.contactPhone,
+                client.address,
+                client.isActive ? 1 : 0,
+                currentTime,
+                currentTime
+            ])
         }
+        
+        print("✅ Seeded \(clients.count) clients in batch")
     }
     
     private func createClientBuildingRelationships() async throws {
         print("🔗 Creating client-building relationships...")
         
+        // First, verify all referenced buildings exist in batch
+        let allBuildingIds = Set(clients.flatMap { $0.buildings })
+        let existingBuildingsResult = try await grdbManager.query(
+            "SELECT id FROM buildings WHERE id IN (\(allBuildingIds.map { _ in "?" }.joined(separator: ",")))",
+            Array(allBuildingIds)
+        )
+        
+        let existingBuildingSet = Set(existingBuildingsResult.compactMap { $0["id"] as? String })
+        
+        for client in clients {
+            for buildingId in client.buildings {
+                if !existingBuildingSet.contains(buildingId) {
+                    print("⚠️ Building \(buildingId) referenced by client \(client.name) does not exist")
+                    throw ClientStructureError.missingBuilding(buildingId: buildingId, clientName: client.name)
+                }
+            }
+        }
+        
         // Clear existing relationships
         try await grdbManager.execute("DELETE FROM client_buildings")
         
-        // Create new relationships
+        // Create all relationships
+        let currentTime = Date().ISO8601Format()
         for client in clients {
             for (index, buildingId) in client.buildings.enumerated() {
                 try await grdbManager.execute("""
@@ -308,12 +293,13 @@ public final class ClientBuildingSeeder {
                     client.id,
                     buildingId,
                     index == 0 ? 1 : 0, // First building is primary
-                    Date().ISO8601Format()
+                    currentTime
                 ])
             }
-            
-            print("✅ Linked \(client.buildings.count) buildings to \(client.name)")
         }
+        
+        let totalRelationships = clients.reduce(0) { $0 + $1.buildings.count }
+        print("✅ Created \(totalRelationships) client-building relationships in batch")
     }
     
     private func linkClientUsers() async throws {
@@ -330,14 +316,24 @@ public final class ClientBuildingSeeder {
             ("jennifer@corbelproperty.com", "COR", "admin")
         ]
         
+        // Get all user emails and IDs in one query
+        let emailList = userClientMap.map { $0.email }
+        let userResults = try await grdbManager.query(
+            "SELECT id, email FROM workers WHERE email IN (\(emailList.map { _ in "?" }.joined(separator: ",")))",
+            emailList
+        )
+        
+        var emailToIdMap: [String: String] = [:]
+        for row in userResults {
+            if let id = row["id"] as? String, let email = row["email"] as? String {
+                emailToIdMap[email] = id
+            }
+        }
+        
+        // Insert all client user relationships
+        let currentTime = Date().ISO8601Format()
         for mapping in userClientMap {
-            // Get user ID from email
-            let userResult = try await grdbManager.query(
-                "SELECT id FROM workers WHERE email = ?",
-                [mapping.email]
-            )
-            
-            if let userId = userResult.first?["id"] as? String {
+            if let userId = emailToIdMap[mapping.email] {
                 try await grdbManager.execute("""
                     INSERT OR REPLACE INTO client_users (
                         user_id, client_id, role, can_view_financials, 
@@ -349,12 +345,12 @@ public final class ClientBuildingSeeder {
                     mapping.role,
                     1, // Admins can view financials
                     mapping.role == "admin" ? 1 : 0, // Only admins can edit
-                    Date().ISO8601Format()
+                    currentTime
                 ])
-                
-                print("✅ Linked user \(mapping.email) to client \(mapping.clientId)")
             }
         }
+        
+        print("✅ Linked \(userClientMap.count) client users in batch")
     }
     
     private func verifyClientStructure() async throws {
@@ -401,6 +397,7 @@ public final class ClientBuildingSeeder {
 enum ClientStructureError: LocalizedError {
     case buildingCountMismatch(client: String, expected: Int, found: Int)
     case missingRubinMuseum
+    case missingBuilding(buildingId: String, clientName: String)
     
     var errorDescription: String? {
         switch self {
@@ -408,6 +405,8 @@ enum ClientStructureError: LocalizedError {
             return "\(client) should have \(expected) buildings but has \(found)"
         case .missingRubinMuseum:
             return "JM Realty is missing Rubin Museum assignment"
+        case .missingBuilding(let buildingId, let clientName):
+            return "Building \(buildingId) referenced by client \(clientName) does not exist in buildings table"
         }
     }
 }

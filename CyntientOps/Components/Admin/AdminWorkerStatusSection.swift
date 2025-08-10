@@ -147,7 +147,7 @@ struct AdminActiveWorkerCard: View {
         Button(action: onTap) {
             HStack(spacing: 8) {
                 // Worker Avatar
-                WorkerAvatar(name: worker.name, size: 24)
+                WorkerAvatar(workerName: worker.name, size: .small)
                 
                 // Worker Info
                 VStack(alignment: .leading, spacing: 1) {

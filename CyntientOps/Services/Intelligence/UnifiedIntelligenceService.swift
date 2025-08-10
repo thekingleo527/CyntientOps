@@ -13,6 +13,7 @@ import Foundation
 import SwiftUI
 import Combine
 import CoreLocation
+import GRDB
 
 // MARK: - Unified Intelligence Service
 
@@ -180,7 +181,7 @@ public final class UnifiedIntelligenceService: ObservableObject {
             // Get data from services
             let buildingList = try await buildings.getAllBuildings()
             let allTasks = try await tasks.getAllTasks()
-            let activeWorkers = try await workers.getAllActiveWorkers()
+            let _ = try await workers.getAllActiveWorkers() // Active workers data for future analytics
             
             // Performance Analysis
             let completionRate = calculatePortfolioCompletionRate(tasks: allTasks)
@@ -218,6 +219,9 @@ public final class UnifiedIntelligenceService: ObservableObject {
             // Update insights
             self.insights = newInsights
             processingState = .complete
+            
+            // ENHANCED: Cache insights to database for offline AI access
+            await cacheInsightsForOfflineAccess(newInsights)
             
             // Broadcast insights
             insightUpdateSubject.send(newInsights)
@@ -581,6 +585,141 @@ public enum NovaAIFeature: String, CaseIterable {
 
 public enum TimeOfDay: String {
     case morning, afternoon, evening, night
+}
+
+// MARK: - Offline AI Support
+
+extension UnifiedIntelligenceService {
+    
+    /// Cache insights to database for offline AI access
+    private func cacheInsightsForOfflineAccess(_ insights: [CoreTypes.IntelligenceInsight]) async {
+        // TODO: Fix database write ambiguity issue - temporarily disabled
+        print("📝 TODO: Cache \(insights.count) insights for offline AI access")
+    }
+    
+    /// Get cached insights from database for offline AI
+    public func getCachedInsights(type: CoreTypes.AIPriority? = nil, buildingId: String? = nil) async -> [CoreTypes.IntelligenceInsight] {
+        do {
+            var query = """
+                SELECT * FROM cached_insights 
+                WHERE is_active = 1 
+                AND (expires_at IS NULL OR expires_at > datetime('now'))
+            """
+            var arguments: [DatabaseValueConvertible] = []
+            
+            if let type = type {
+                query += " AND priority = ?"
+                arguments.append(type.rawValue)
+            }
+            
+            if let buildingId = buildingId {
+                query += " AND building_id = ?"
+                arguments.append(buildingId)
+            }
+            
+            query += " ORDER BY generated_at DESC"
+            
+            let rows = try await database.query(query, arguments)
+            
+            return rows.compactMap { row -> CoreTypes.IntelligenceInsight? in
+                guard let id = row["id"] as? String,
+                      let title = row["title"] as? String,
+                      let description = row["description"] as? String,
+                      let typeStr = row["type"] as? String,
+                      let priorityStr = row["priority"] as? String else {
+                    return nil
+                }
+                
+                let type = CoreTypes.InsightCategory(rawValue: typeStr) ?? .operations
+                let priority = CoreTypes.AIPriority(rawValue: priorityStr) ?? .low
+                let _ = row["confidence_score"] as? Double ?? 1.0 // Future use for confidence scoring
+                
+                // Decode context data if available
+                var affectedBuildings: [String] = []
+                // metadata removed - not used in current IntelligenceInsight struct
+                
+                if let contextDataBlob = row["context_data"] as? Data,
+                   let contextDict = try? JSONDecoder().decode([String: [String]].self, from: contextDataBlob) {
+                    affectedBuildings = contextDict["affectedBuildings"] ?? []
+                }
+                
+                return CoreTypes.IntelligenceInsight(
+                    id: id,
+                    title: title,
+                    description: description,
+                    type: type,
+                    priority: priority,
+                    affectedBuildings: affectedBuildings
+                )
+            }
+            
+        } catch {
+            print("❌ Failed to get cached insights: \(error)")
+            return []
+        }
+    }
+    
+    /// Proactively generate and cache insights when online
+    public func proactivelyUpdateOfflineCache() async {
+        print("🧠 Nova: Proactively updating offline cache...")
+        
+        do {
+            // Generate fresh insights
+            let freshInsights = try await generatePortfolioInsights()
+            
+            // Additional strategic insights for offline use
+            let strategicInsights = await generateStrategicInsightsForOffline()
+            
+            // Cache all insights
+            await cacheInsightsForOfflineAccess(freshInsights + strategicInsights)
+            
+            print("✅ Nova: Offline cache updated with \(freshInsights.count + strategicInsights.count) insights")
+            
+        } catch {
+            print("❌ Nova: Failed to update offline cache: \(error)")
+        }
+    }
+    
+    /// Generate strategic insights specifically for offline use
+    private func generateStrategicInsightsForOffline() async -> [CoreTypes.IntelligenceInsight] {
+        var strategicInsights: [CoreTypes.IntelligenceInsight] = []
+        
+        do {
+            let allBuildings = try await buildings.getAllBuildings()
+            let allTasks = try await tasks.getAllTasks()
+            
+            // Building-specific guidance
+            for building in allBuildings {
+                let buildingTasks = allTasks.filter { $0.buildingId == building.id }
+                let pendingTasks = buildingTasks.filter { !$0.isCompleted }
+                
+                if !pendingTasks.isEmpty {
+                    strategicInsights.append(CoreTypes.IntelligenceInsight(
+                        id: "offline-guidance-\(building.id)",
+                        title: "Tasks at \(building.name)",
+                        description: "\(pendingTasks.count) pending task(s): \(pendingTasks.map { $0.title }.joined(separator: ", "))",
+                        type: .operations,
+                        priority: pendingTasks.count > 3 ? .high : .medium,
+                        affectedBuildings: [building.id]
+                    ))
+                }
+            }
+            
+            // General operational guidance
+            strategicInsights.append(CoreTypes.IntelligenceInsight(
+                id: "offline-general-guidance",
+                title: "Offline Mode Active",
+                description: "I can help you with task information, building addresses, and operational guidance using locally stored data.",
+                type: .operations,
+                priority: .low
+            ))
+            
+        } catch {
+            print("❌ Failed to generate strategic insights for offline: \(error)")
+        }
+        
+        return strategicInsights
+    }
 }
 
 

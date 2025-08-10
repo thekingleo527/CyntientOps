@@ -212,9 +212,8 @@ public final class NYCComplianceService: ObservableObject {
     
     private func getBuildingsFromDatabase() async throws -> [CoreTypes.NamedCoordinate] {
         let query = """
-            SELECT id, name, address, latitude, longitude, type, bin, bbl 
-            FROM buildings 
-            WHERE isActive = 1
+            SELECT id, name, address, latitude, longitude, bin_number, bbl 
+            FROM buildings
         """
         
         let rows = try await database.query(query)
@@ -224,15 +223,15 @@ public final class NYCComplianceService: ObservableObject {
                   let name = row["name"] as? String,
                   let address = row["address"] as? String,
                   let lat = row["latitude"] as? Double,
-                  let lon = row["longitude"] as? Double,
-                  let typeStr = row["type"] as? String else {
+                  let lon = row["longitude"] as? Double else {
                 return nil
             }
             
-            let buildingType = CoreTypes.BuildingType(rawValue: typeStr) ?? .residential
+            // Default to residential since we don't have type column
+            let buildingType = CoreTypes.BuildingType.residential
             
             var metadata: [String: Any] = [:]
-            if let bin = row["bin"] as? String { metadata["bin"] = bin }
+            if let bin = row["bin_number"] as? String { metadata["bin"] = bin }
             if let bbl = row["bbl"] as? String { metadata["bbl"] = bbl }
             
             return CoreTypes.NamedCoordinate(
@@ -279,27 +278,27 @@ public final class NYCComplianceService: ObservableObject {
     private func saveComplianceIssue(_ issue: CoreTypes.ComplianceIssue) async throws {
         let query = """
             INSERT OR REPLACE INTO compliance_issues 
-            (id, building_id, building_name, type, severity, status, title, description, 
-             reported_date, due_date, resolved_date, assigned_to, notes, source, external_id)
+            (id, buildingId, title, description, severity, status, type, dueDate, assignedTo, 
+             created_at, updated_at, source, external_id, notes, reported_date)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """
         
         let params: [Any?] = [
             issue.id,
             issue.buildingId,
-            issue.buildingName,
-            issue.type.rawValue,
-            issue.severity.rawValue,
-            issue.status.rawValue,
             issue.title,
             issue.description,
-            issue.reportedDate.timeIntervalSince1970,
-            issue.dueDate?.timeIntervalSince1970,
-            nil, // resolved_date placeholder
+            issue.severity.rawValue,
+            issue.status.rawValue,
+            issue.type.rawValue,
+            issue.dueDate?.ISO8601Format(),
             issue.assignedTo,
+            issue.createdAt.ISO8601Format(),
+            Date().ISO8601Format(),
+            "NYC", // source
+            issue.id, // external_id = id
             "", // notes placeholder
-            "NYC", // source placeholder
-            issue.id // external_id = id
+            issue.reportedDate.timeIntervalSince1970 // reported_date
         ]
         
         try await database.execute(query, params)

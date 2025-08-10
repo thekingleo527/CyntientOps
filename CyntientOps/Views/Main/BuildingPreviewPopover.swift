@@ -14,7 +14,7 @@ import Foundation
 import MapKit
 
 struct BuildingPreviewPopover: View {
-    let building: NamedCoordinate
+    let building: CoreTypes.NamedCoordinate
     let onDetails: () -> Void
     let onDismiss: () -> Void
     
@@ -482,7 +482,7 @@ struct BuildingPreviewPopover_Previews: PreviewProvider {
             VStack(spacing: 30) {
                 // Rubin Museum preview
                 BuildingPreviewPopover(
-                    building: NamedCoordinate(
+                    building: CoreTypes.NamedCoordinate(
                         id: "14",
                         name: "Rubin Museum",
                         address: "150 W 17th St, New York, NY 10011",
@@ -499,7 +499,7 @@ struct BuildingPreviewPopover_Previews: PreviewProvider {
                 
                 // Stuyvesant Cove Park preview
                 BuildingPreviewPopover(
-                    building: NamedCoordinate(
+                    building: CoreTypes.NamedCoordinate(
                         id: "park",
                         name: "Stuyvesant Cove Park",
                         address: "E 20th St & FDR Dr, New York, NY 10009",

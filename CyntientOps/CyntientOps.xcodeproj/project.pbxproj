@@ -64,7 +64,6 @@
 		231932602E42E92900640977 /* WorkerRoutineViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231932542E42E92900640977 /* WorkerRoutineViewModel.swift */; };
 		231932612E42E92900640977 /* TaskDetailViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231932532E42E92900640977 /* TaskDetailViewModel.swift */; };
 		231932672E42E94900640977 /* StringExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231932652E42E94900640977 /* StringExtensions.swift */; };
-		231932682E42E94900640977 /* SchemaMigrationPatch.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231932632E42E94900640977 /* SchemaMigrationPatch.swift */; };
 		231932692E42E94900640977 /* DatabaseSchemaVerifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231932622E42E94900640977 /* DatabaseSchemaVerifier.swift */; };
 		2319326E2E42E99C00640977 /* CriticalDataIntegrityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2319326A2E42E99C00640977 /* CriticalDataIntegrityTests.swift */; };
 		2319326F2E42E99C00640977 /* ProductionReadinessTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2319326B2E42E99C00640977 /* ProductionReadinessTests.swift */; };
@@ -91,7 +90,6 @@
 		231932D82E42E9CD00640977 /* ComplianceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231932812E42E9CD00640977 /* ComplianceService.swift */; };
 		231932D92E42E9CD00640977 /* CacheManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231932732E42E9CD00640977 /* CacheManager.swift */; };
 		231932DA2E42E9CD00640977 /* IntelligenceService_Legacy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2319329F2E42E9CD00640977 /* IntelligenceService_Legacy.swift */; };
-		231932DB2E42E9CD00640977 /* MigrationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231932AC2E42E9CD00640977 /* MigrationView.swift */; };
 		231932DC2E42E9CD00640977 /* TelemetryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231932B92E42E9CD00640977 /* TelemetryService.swift */; };
 		231932DD2E42E9CD00640977 /* WorkerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2319328D2E42E9CD00640977 /* WorkerService.swift */; };
 		231932DE2E42E9CD00640977 /* BuildingFeatureConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2319327A2E42E9CD00640977 /* BuildingFeatureConfiguration.swift */; };
@@ -104,7 +102,6 @@
 		231932E52E42E9CD00640977 /* TimeBasedTaskFilter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231932BA2E42E9CD00640977 /* TimeBasedTaskFilter.swift */; };
 		231932E62E42E9CD00640977 /* ProductionConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2319327C2E42E9CD00640977 /* ProductionConfiguration.swift */; };
 		231932E72E42E9CD00640977 /* TaskService+OperationalFallback.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231932B82E42E9CD00640977 /* TaskService+OperationalFallback.swift */; };
-		231932E82E42E9CD00640977 /* TestMigrationFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231932AD2E42E9CD00640977 /* TestMigrationFlow.swift */; };
 		231932E92E42E9CD00640977 /* UnifiedDataService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2319328C2E42E9CD00640977 /* UnifiedDataService.swift */; };
 		231932EA2E42E9CD00640977 /* ViolationPredictor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231932A52E42E9CD00640977 /* ViolationPredictor.swift */; };
 		231932EB2E42E9CD00640977 /* KeychainManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2319327B2E42E9CD00640977 /* KeychainManager.swift */; };
@@ -129,7 +126,6 @@
 		231932FE2E42E9CD00640977 /* WeatherDataAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231932982E42E9CD00640977 /* WeatherDataAdapter.swift */; };
 		231932FF2E42E9CD00640977 /* NYCComplianceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231932B12E42E9CD00640977 /* NYCComplianceService.swift */; };
 		231933012E42E9CD00640977 /* AnalyticsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2319329A2E42E9CD00640977 /* AnalyticsService.swift */; };
-		231933022E42E9CD00640977 /* MigrationV2.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231932AB2E42E9CD00640977 /* MigrationV2.swift */; };
 		231933032E42E9CD00640977 /* CommandChainManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231932772E42E9CD00640977 /* CommandChainManager.swift */; };
 		231933042E42E9CD00640977 /* DashboardSyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231932832E42E9CD00640977 /* DashboardSyncService.swift */; };
 		231933052E42E9CD00640977 /* ClientService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231932752E42E9CD00640977 /* ClientService.swift */; };
@@ -258,7 +254,6 @@
 		231934322E42EC7200640977 /* WeatherTasksSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231933DB2E42EC7200640977 /* WeatherTasksSection.swift */; };
 		231934332E42EC7200640977 /* GlassDeckContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231933EA2E42EC7200640977 /* GlassDeckContainer.swift */; };
 		231934342E42EC7200640977 /* PropertyCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231933C92E42EC7200640977 /* PropertyCard.swift */; };
-		231934352E42EC7200640977 /* InitializationStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231933D22E42EC7200640977 /* InitializationStatus.swift */; };
 		231934362E42EC7200640977 /* WorkerAssignmentGlassCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231933F32E42EC7200640977 /* WorkerAssignmentGlassCard.swift */; };
 		231934372E42EC7200640977 /* AdminBuildingPerformanceSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231933C02E42EC7200640977 /* AdminBuildingPerformanceSection.swift */; };
 		231934382E42EC7200640977 /* BuildingIntelligencePanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231933D02E42EC7200640977 /* BuildingIntelligencePanel.swift */; };
@@ -271,7 +266,6 @@
 		2319343F2E42EC7200640977 /* Building.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231933CF2E42EC7200640977 /* Building.swift */; };
 		231934402E42EC7200640977 /* GlassCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231933E92E42EC7200640977 /* GlassCard.swift */; };
 		231934412E42EC7200640977 /* SyncStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231933F72E42EC7200640977 /* SyncStatusView.swift */; };
-		231934442E42ECD600640977 /* TestMigrationFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231934422E42ECD600640977 /* TestMigrationFlow.swift */; };
 		231934452E42ECD600640977 /* TestRealDataIntegration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231934432E42ECD600640977 /* TestRealDataIntegration.swift */; };
 		231934482E42ED2600640977 /* CyntientOps-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 231934472E42ED2600640977 /* CyntientOps-Info.plist */; };
 		2319344A2E42ED3900640977 /* CyntientOpsApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231934492E42ED3900640977 /* CyntientOpsApp.swift */; };
@@ -356,7 +350,6 @@
 		231932562E42E92900640977 /* InitializationViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InitializationViewModel.swift; sourceTree = "<group>"; };
 		231932572E42E92900640977 /* SiteDepartureViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SiteDepartureViewModel.swift; sourceTree = "<group>"; };
 		231932622E42E94900640977 /* DatabaseSchemaVerifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatabaseSchemaVerifier.swift; sourceTree = "<group>"; };
-		231932632E42E94900640977 /* SchemaMigrationPatch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SchemaMigrationPatch.swift; sourceTree = "<group>"; };
 		231932652E42E94900640977 /* StringExtensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StringExtensions.swift; sourceTree = "<group>"; };
 		2319326A2E42E99C00640977 /* CriticalDataIntegrityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CriticalDataIntegrityTests.swift; sourceTree = "<group>"; };
 		2319326B2E42E99C00640977 /* ProductionReadinessTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProductionReadinessTests.swift; sourceTree = "<group>"; };
@@ -407,9 +400,6 @@
 		231932A72E42E9CD00640977 /* WorkerMetricsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkerMetricsService.swift; sourceTree = "<group>"; };
 		231932A92E42E9CD00640977 /* .gitkeep */ = {isa = PBXFileReference; lastKnownFileType = text; path = .gitkeep; sourceTree = "<group>"; };
 		231932AA2E42E9CD00640977 /* DSNYMigrationOneShot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DSNYMigrationOneShot.swift; sourceTree = "<group>"; };
-		231932AB2E42E9CD00640977 /* MigrationV2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MigrationV2.swift; sourceTree = "<group>"; };
-		231932AC2E42E9CD00640977 /* MigrationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MigrationView.swift; sourceTree = "<group>"; };
-		231932AD2E42E9CD00640977 /* TestMigrationFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestMigrationFlow.swift; sourceTree = "<group>"; };
 		231932AE2E42E9CD00640977 /* WorkerAssignmentEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkerAssignmentEngine.swift; sourceTree = "<group>"; };
 		231932B02E42E9CD00640977 /* NYCAPIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NYCAPIService.swift; sourceTree = "<group>"; };
 		231932B12E42E9CD00640977 /* NYCComplianceService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NYCComplianceService.swift; sourceTree = "<group>"; };
@@ -519,7 +509,6 @@
 		231933CF2E42EC7200640977 /* Building.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Building.swift; sourceTree = "<group>"; };
 		231933D02E42EC7200640977 /* BuildingIntelligencePanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuildingIntelligencePanel.swift; sourceTree = "<group>"; };
 		231933D12E42EC7200640977 /* ImagePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePicker.swift; sourceTree = "<group>"; };
-		231933D22E42EC7200640977 /* InitializationStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InitializationStatus.swift; sourceTree = "<group>"; };
 		231933D32E42EC7200640977 /* MyAssignedBuildingsSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MyAssignedBuildingsSection.swift; sourceTree = "<group>"; };
 		231933D42E42EC7200640977 /* ProfileBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileBadge.swift; sourceTree = "<group>"; };
 		231933D52E42EC7200640977 /* RoutinePriority.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutinePriority.swift; sourceTree = "<group>"; };
@@ -563,7 +552,6 @@
 		231934012E42EC7200640977 /* WorkerHeroCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkerHeroCard.swift; sourceTree = "<group>"; };
 		231934022E42EC7200640977 /* WorkerTodaysTasksSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkerTodaysTasksSection.swift; sourceTree = "<group>"; };
 		231934032E42EC7200640977 /* WorkerUrgentTasksSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkerUrgentTasksSection.swift; sourceTree = "<group>"; };
-		231934422E42ECD600640977 /* TestMigrationFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestMigrationFlow.swift; sourceTree = "<group>"; };
 		231934432E42ECD600640977 /* TestRealDataIntegration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestRealDataIntegration.swift; sourceTree = "<group>"; };
 		231934462E42ECF300640977 /* CyntientOpsTests-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "CyntientOpsTests-Bridging-Header.h"; sourceTree = "<group>"; };
 		231934472E42ED2600640977 /* CyntientOps-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "CyntientOps-Info.plist"; sourceTree = "<group>"; };
@@ -756,7 +744,6 @@
 			isa = PBXGroup;
 			children = (
 				231932622E42E94900640977 /* DatabaseSchemaVerifier.swift */,
-				231932632E42E94900640977 /* SchemaMigrationPatch.swift */,
 			);
 			path = Database;
 			sourceTree = "<group>";
@@ -774,7 +761,6 @@
 			isa = PBXGroup;
 			children = (
 				231934462E42ECF300640977 /* CyntientOpsTests-Bridging-Header.h */,
-				231934422E42ECD600640977 /* TestMigrationFlow.swift */,
 				231934432E42ECD600640977 /* TestRealDataIntegration.swift */,
 				2319326A2E42E99C00640977 /* CriticalDataIntegrityTests.swift */,
 				2319326B2E42E99C00640977 /* ProductionReadinessTests.swift */,
@@ -912,9 +898,6 @@
 			children = (
 				231932A92E42E9CD00640977 /* .gitkeep */,
 				231932AA2E42E9CD00640977 /* DSNYMigrationOneShot.swift */,
-				231932AB2E42E9CD00640977 /* MigrationV2.swift */,
-				231932AC2E42E9CD00640977 /* MigrationView.swift */,
-				231932AD2E42E9CD00640977 /* TestMigrationFlow.swift */,
 				231932AE2E42E9CD00640977 /* WorkerAssignmentEngine.swift */,
 			);
 			path = Migration;
@@ -1289,7 +1272,6 @@
 				231933CF2E42EC7200640977 /* Building.swift */,
 				231933D02E42EC7200640977 /* BuildingIntelligencePanel.swift */,
 				231933D12E42EC7200640977 /* ImagePicker.swift */,
-				231933D22E42EC7200640977 /* InitializationStatus.swift */,
 				231933D32E42EC7200640977 /* MyAssignedBuildingsSection.swift */,
 				231933D42E42EC7200640977 /* ProfileBadge.swift */,
 				231933D52E42EC7200640977 /* RoutinePriority.swift */,
@@ -1631,7 +1613,6 @@
 				2319322A2E42E91200640977 /* TaskTimelineView.swift in Sources */,
 				2319322B2E42E91200640977 /* ComplianceOverviewView.swift in Sources */,
 				231932672E42E94900640977 /* StringExtensions.swift in Sources */,
-				231932682E42E94900640977 /* SchemaMigrationPatch.swift in Sources */,
 				231932692E42E94900640977 /* DatabaseSchemaVerifier.swift in Sources */,
 				2319322C2E42E91200640977 /* BuildingTeamComponents.swift in Sources */,
 				2319322D2E42E91200640977 /* WorkerDashboardMainView.swift in Sources */,
@@ -1718,7 +1699,6 @@
 				231934322E42EC7200640977 /* WeatherTasksSection.swift in Sources */,
 				231934332E42EC7200640977 /* GlassDeckContainer.swift in Sources */,
 				231934342E42EC7200640977 /* PropertyCard.swift in Sources */,
-				231934352E42EC7200640977 /* InitializationStatus.swift in Sources */,
 				231934362E42EC7200640977 /* WorkerAssignmentGlassCard.swift in Sources */,
 				231934372E42EC7200640977 /* AdminBuildingPerformanceSection.swift in Sources */,
 				231934382E42EC7200640977 /* BuildingIntelligencePanel.swift in Sources */,
@@ -1787,7 +1767,6 @@
 				231932D82E42E9CD00640977 /* ComplianceService.swift in Sources */,
 				231932D92E42E9CD00640977 /* CacheManager.swift in Sources */,
 				231932DA2E42E9CD00640977 /* IntelligenceService_Legacy.swift in Sources */,
-				231932DB2E42E9CD00640977 /* MigrationView.swift in Sources */,
 				231932DC2E42E9CD00640977 /* TelemetryService.swift in Sources */,
 				231932DD2E42E9CD00640977 /* WorkerService.swift in Sources */,
 				231932DE2E42E9CD00640977 /* BuildingFeatureConfiguration.swift in Sources */,
@@ -1802,7 +1781,6 @@
 				231932E52E42E9CD00640977 /* TimeBasedTaskFilter.swift in Sources */,
 				231932E62E42E9CD00640977 /* ProductionConfiguration.swift in Sources */,
 				231932E72E42E9CD00640977 /* TaskService+OperationalFallback.swift in Sources */,
-				231932E82E42E9CD00640977 /* TestMigrationFlow.swift in Sources */,
 				231932E92E42E9CD00640977 /* UnifiedDataService.swift in Sources */,
 				231932EA2E42E9CD00640977 /* ViolationPredictor.swift in Sources */,
 				231932EB2E42E9CD00640977 /* KeychainManager.swift in Sources */,
@@ -1830,7 +1808,6 @@
 				231932FE2E42E9CD00640977 /* WeatherDataAdapter.swift in Sources */,
 				231932FF2E42E9CD00640977 /* NYCComplianceService.swift in Sources */,
 				231933012E42E9CD00640977 /* AnalyticsService.swift in Sources */,
-				231933022E42E9CD00640977 /* MigrationV2.swift in Sources */,
 				231933032E42E9CD00640977 /* CommandChainManager.swift in Sources */,
 				231933042E42E9CD00640977 /* DashboardSyncService.swift in Sources */,
 				231933052E42E9CD00640977 /* ClientService.swift in Sources */,
@@ -1842,7 +1819,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				2319326E2E42E99C00640977 /* CriticalDataIntegrityTests.swift in Sources */,
-				231934442E42ECD600640977 /* TestMigrationFlow.swift in Sources */,
 				231934452E42ECD600640977 /* TestRealDataIntegration.swift in Sources */,
 				2319326F2E42E99C00640977 /* ProductionReadinessTests.swift in Sources */,
 			);

@@ -14,5 +14,9 @@
 	<string>CyntientOps uses location services to verify worker proximity to assigned buildings and track work site attendance.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>CyntientOps accesses the photo library to allow workers to select images for task evidence and maintenance documentation.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>CyntientOps uses speech recognition for voice-activated task reporting and hands-free operation while performing maintenance work.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>CyntientOps uses the microphone for voice notes, task reporting, and hands-free operation during maintenance activities.</string>
 </dict>
 </plist>

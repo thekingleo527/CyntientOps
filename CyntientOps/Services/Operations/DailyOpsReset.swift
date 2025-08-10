@@ -39,12 +39,16 @@ public class DailyOpsReset: ObservableObject {
     @Published var totalSteps = 7
     @Published var migrationError: Error?
     
+    // MARK: - Migration Lock
+    private static var migrationInProgress = false
+    
     // MARK: - Custom Error Type
     enum DailyOpsError: LocalizedError {
         case backupFailed(String)
         case dataIntegrityFailed(String)
         case importFailed(String)
         case databaseError(String)
+        case migrationFailed(String)
         
         var errorDescription: String? {
             switch self {
@@ -56,22 +60,75 @@ public class DailyOpsReset: ObservableObject {
                 return "Import failed: \(reason)"
             case .databaseError(let reason):
                 return "Database error: \(reason)"
+            case .migrationFailed(let reason):
+                return "Migration failed: \(reason)"
             }
         }
     }
     
     private init() {}
     
+    /// Force reset migration flags (for debugging)
+    public func resetMigrationFlags() {
+        UserDefaults.standard.set(false, forKey: migrationKeys.hasImportedWorkers)
+        UserDefaults.standard.set(false, forKey: migrationKeys.hasImportedBuildings)
+        UserDefaults.standard.set(false, forKey: migrationKeys.hasImportedTemplates)
+        UserDefaults.standard.set(false, forKey: migrationKeys.hasCreatedAssignments)
+        UserDefaults.standard.set(false, forKey: migrationKeys.hasSetupCapabilities)
+        UserDefaults.standard.set(0, forKey: migrationKeys.migrationVersion)
+        print("🔄 Migration flags reset - next run will perform full migration")
+    }
+    
     // MARK: - Public Interface
     
     /// Check if migration is needed
     func needsMigration() -> Bool {
         let currentVersion = UserDefaults.standard.integer(forKey: migrationKeys.migrationVersion)
-        return currentVersion < migrationKeys.currentVersion
+        let hasImportedBuildings = UserDefaults.standard.bool(forKey: migrationKeys.hasImportedBuildings)
+        
+        // Force migration if version is outdated OR buildings are missing
+        if currentVersion < migrationKeys.currentVersion {
+            print("🔧 Migration needed - version \(currentVersion) < \(migrationKeys.currentVersion)")
+            return true
+        }
+        
+        if !hasImportedBuildings {
+            print("🔧 Migration needed - buildings not imported")
+            return true
+        }
+        
+        // Additional check: if buildings were supposedly imported but we have too few
+        // This handles cases where the flag was set but import actually failed
+        do {
+            let buildingCount = try GRDBManager.shared.database.read { db in
+                try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM buildings") ?? 0
+            }
+            
+            if buildingCount < 19 {
+                print("🔧 Force migration needed - only \(buildingCount) buildings found, expected 19+")
+                // Reset flags to force complete re-migration
+                UserDefaults.standard.set(false, forKey: migrationKeys.hasImportedBuildings)
+                UserDefaults.standard.set(false, forKey: migrationKeys.hasImportedTemplates)
+                UserDefaults.standard.set(false, forKey: migrationKeys.hasCreatedAssignments)
+                return true
+            }
+            
+            print("✅ Migration check passed - \(buildingCount) buildings found")
+            return false
+        } catch {
+            print("⚠️ Could not check building count: \(error) - forcing migration")
+            return true
+        }
     }
     
     /// Perform one-time migration from OperationalDataManager to database
     func performOneTimeMigration() async throws {
+        // Check if another migration is already in progress (actor-safe)
+        if Self.migrationInProgress {
+            print("⚠️ Migration already in progress - skipping duplicate attempt")
+            return
+        }
+        
         guard needsMigration() else {
             print("✅ Migration already completed (version \(migrationKeys.currentVersion))")
             return
@@ -79,12 +136,15 @@ public class DailyOpsReset: ObservableObject {
         
         print("🚀 Starting one-time operational data migration...")
         
+        // Set migration in progress flags
+        Self.migrationInProgress = true
         isMigrating = true
         migrationProgress = 0.0
         currentStep = 0
         migrationError = nil
         
         defer {
+            Self.migrationInProgress = false
             isMigrating = false
         }
         
@@ -110,11 +170,13 @@ public class DailyOpsReset: ObservableObject {
             
             // Mark migration complete
             UserDefaults.standard.set(migrationKeys.currentVersion, forKey: migrationKeys.migrationVersion)
+            UserDefaults.standard.synchronize() // Force immediate write to disk
             
             migrationProgress = 1.0
             migrationStatus = "Migration completed successfully!"
             
-            print("✅ ONE-TIME MIGRATION COMPLETED SUCCESSFULLY")
+            print("✅ ONE-TIME MIGRATION COMPLETED SUCCESSFULLY - Version: \(migrationKeys.currentVersion)")
+            print("🔧 Migration flags - Version: \(UserDefaults.standard.integer(forKey: migrationKeys.migrationVersion)), Buildings: \(UserDefaults.standard.bool(forKey: migrationKeys.hasImportedBuildings))")
             print("   - Workers imported: ✓")
             print("   - Buildings imported: ✓")
             print("   - Templates created: ✓")
@@ -148,14 +210,36 @@ public class DailyOpsReset: ObservableObject {
             UserDefaults.standard.set(true, forKey: migrationKeys.hasImportedWorkers)
         }
         
+        // Always fix role mappings (in case they were incorrect before)
+        try await fixRoleMappingsAsync()
+        
         // Step 4: Import buildings
-        if !UserDefaults.standard.bool(forKey: migrationKeys.hasImportedBuildings) {
+        // Always check if buildings actually exist, even if flag says they were imported
+        let buildingCount = try await GRDBManager.shared.query("SELECT COUNT(*) as count FROM buildings")
+        let actualBuildingCount = (buildingCount.first?["count"] as? Int64) ?? 0
+        
+        if !UserDefaults.standard.bool(forKey: migrationKeys.hasImportedBuildings) || actualBuildingCount < 19 {
             currentStep = 4
             migrationStatus = "Importing buildings..."
             migrationProgress = 0.4
             
+            print("🏢 Building import needed - current count: \(actualBuildingCount), expected: 19+")
             try await importBuildingsAsync()
-            UserDefaults.standard.set(true, forKey: migrationKeys.hasImportedBuildings)
+            
+            // Verify import succeeded before setting flag
+            let newBuildingCount = try await GRDBManager.shared.query("SELECT COUNT(*) as count FROM buildings")
+            let finalCount = (newBuildingCount.first?["count"] as? Int64) ?? 0
+            
+            if finalCount >= 19 {
+                UserDefaults.standard.set(true, forKey: migrationKeys.hasImportedBuildings)
+                UserDefaults.standard.synchronize()
+                print("✅ Building import verified: \(finalCount) buildings imported")
+            } else {
+                print("❌ Building import failed: only \(finalCount) buildings found")
+                throw DailyOpsError.migrationFailed("Building import verification failed")
+            }
+        } else {
+            print("✅ Buildings already imported: \(actualBuildingCount) buildings found")
         }
         
         // Step 5: Import routine templates
@@ -275,8 +359,33 @@ public class DailyOpsReset: ObservableObject {
     }
     
     private func importBuildingsAsync() async throws {
-        try await GRDBManager.shared.database.write { db in
-            try self.importBuildings(db: db)
+        print("🚀 Starting building import transaction...")
+        
+        do {
+            // Force clear existing buildings to ensure clean import
+            try await GRDBManager.shared.database.write { db in
+                try db.execute(sql: "DELETE FROM buildings")
+                print("🏢 Cleared existing buildings for fresh import")
+            }
+            
+            // Import all buildings
+            try await GRDBManager.shared.database.write { db in
+                try self.forceImportAllBuildings(db: db)
+            }
+            
+            // Verify buildings were imported successfully outside the transaction
+            let verifyCount = try await GRDBManager.shared.database.read { db in
+                try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM buildings") ?? 0
+            }
+            print("✅ Building import completed - verified count: \(verifyCount)")
+            
+            if verifyCount < 19 {
+                throw DailyOpsError.importFailed("Building import failed: only \(verifyCount) buildings imported, expected 19")
+            }
+            
+        } catch {
+            print("❌ Building import transaction failed: \(error)")
+            throw error
         }
     }
     
@@ -301,6 +410,12 @@ public class DailyOpsReset: ObservableObject {
     private func setupWorkerCapabilitiesAsync() async throws {
         try await GRDBManager.shared.database.write { db in
             try self.setupWorkerCapabilities(db: db)
+        }
+    }
+    
+    private func fixRoleMappingsAsync() async throws {
+        try await GRDBManager.shared.database.write { db in
+            try self.fixRoleMappings(db: db)
         }
     }
     
@@ -341,7 +456,7 @@ public class DailyOpsReset: ObservableObject {
             """, arguments: [
                 id,
                 name,
-                "\(name.lowercased().replacingOccurrences(of: " ", with: "."))@francosphere.com",
+                "\(name.lowercased().replacingOccurrences(of: " ", with: "."))@cyntientops.com",
                 getWorkerRole(id),
                 1, // isActive
                 getWorkerShift(id),
@@ -356,6 +471,10 @@ public class DailyOpsReset: ObservableObject {
     
     private nonisolated func importBuildings(db: Database) throws {
         print("🏢 Importing buildings...")
+        
+        // First check what buildings exist before import
+        let existingCount = try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM buildings") ?? 0
+        print("   📊 Buildings before import: \(existingCount)")
         
         var imported = 0
         
@@ -377,7 +496,9 @@ public class DailyOpsReset: ObservableObject {
             ("14", "Rubin Museum", "150 West 17th Street, New York, NY 10011", "cultural", 7, true, true, 40.7390, -73.9975),
             ("15", "29-31 East 20th Street", "29-31 East 20th Street, New York, NY 10003", "commercial", 5, true, false, 40.7388, -73.9889),
             ("16", "Stuyvesant Cove Park", "Stuyvesant Cove Park, New York, NY 10009", "park", 1, false, false, 40.7338, -73.9738),
-            ("17", "178 Spring Street", "178 Spring Street, New York, NY 10012", "mixed", 5, true, false, 40.7247, -74.0023)
+            ("17", "178 Spring Street", "178 Spring Street, New York, NY 10012", "mixed", 5, true, false, 40.7247, -74.0023),
+            ("18", "104 Franklin Street Annex", "104 Franklin Street Annex, New York, NY 10013", "commercial", 6, true, false, 40.7171, -74.0095),
+            ("21", "148 Chambers Street", "148 Chambers Street, New York, NY 10007", "commercial", 8, true, true, 40.7159, -74.0076)
         ]
         
         for (id, name, address, type, floors, hasElevator, hasDoorman, latitude, longitude) in buildingDetails {
@@ -393,29 +514,99 @@ public class DailyOpsReset: ObservableObject {
             
             try db.execute(sql: """
                 INSERT INTO buildings (
-                    id, name, address, type, floors,
-                    has_elevator, has_doorman, latitude, longitude,
-                    is_active, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    id, name, address, latitude, longitude, specialNotes
+                ) VALUES (?, ?, ?, ?, ?, ?)
             """, arguments: [
                 id,
                 name,
                 address,
-                type,
-                floors,
-                hasElevator ? 1 : 0,
-                hasDoorman ? 1 : 0,
                 latitude,
                 longitude,
-                1, // is_active
-                Date().ISO8601Format(),
-                Date().ISO8601Format()
+                "Type: \(type), Floors: \(floors), Elevator: \(hasElevator ? "Yes" : "No"), Doorman: \(hasDoorman ? "Yes" : "No")"
             ])
             
             imported += 1
         }
         
-        print("   ✓ Imported \(imported) buildings")
+        // Check final count after import
+        let finalCount = try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM buildings") ?? 0
+        print("   📊 Buildings after import: \(finalCount)")
+        print("   ✓ Imported \(imported) buildings, final total: \(finalCount)")
+        
+        // List all buildings for debugging
+        let buildings = try Row.fetchAll(db, sql: "SELECT id, name FROM buildings ORDER BY id")
+        for building in buildings {
+            print("   📋 Building: \(building["id"] as? String ?? "?") - \(building["name"] as? String ?? "?")")
+        }
+    }
+    
+    /// Force import all buildings - clears existing buildings first and imports all 19
+    private nonisolated func forceImportAllBuildings(db: Database) throws {
+        print("🔥 Force importing all buildings...")
+        
+        // First, clear all existing buildings to ensure clean import
+        let existingCount = try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM buildings") ?? 0
+        print("   📊 Clearing \(existingCount) existing buildings")
+        try db.execute(sql: "DELETE FROM buildings")
+        
+        var imported = 0
+        
+        // All 19 building details (exact same as importBuildings function)
+        let buildingDetails: [(id: String, name: String, address: String, type: String, floors: Int, hasElevator: Bool, hasDoorman: Bool, latitude: Double, longitude: Double)] = [
+            ("1", "12 West 18th Street", "12 West 18th Street, New York, NY 10011", "commercial", 6, true, false, 40.7388, -73.9939),
+            ("2", "36 Walker Street", "36 Walker Street, New York, NY 10013", "residential", 5, true, false, 40.7178, -74.0020),
+            ("3", "41 Elizabeth Street", "41 Elizabeth Street, New York, NY 10013", "mixed", 4, false, false, 40.7166, -73.9964),
+            ("4", "68 Perry Street", "68 Perry Street, New York, NY 10014", "residential", 4, false, true, 40.7355, -74.0045),
+            ("5", "104 Franklin Street", "104 Franklin Street, New York, NY 10013", "commercial", 8, true, false, 40.7170, -74.0094),
+            ("6", "112 West 18th Street", "112 West 18th Street, New York, NY 10011", "residential", 5, true, false, 40.7398, -73.9972),
+            ("7", "117 West 17th Street", "117 West 17th Street, New York, NY 10011", "commercial", 12, true, true, 40.7385, -73.9968),
+            ("8", "123 1st Avenue", "123 1st Avenue, New York, NY 10003", "mixed", 6, true, false, 40.7272, -73.9844),
+            ("9", "131 Perry Street", "131 Perry Street, New York, NY 10014", "residential", 3, false, false, 40.7352, -74.0075),
+            ("10", "133 East 15th Street", "133 East 15th Street, New York, NY 10003", "residential", 6, true, true, 40.7338, -73.9868),
+            ("11", "135 West 17th Street", "135 West 17th Street, New York, NY 10011", "residential", 4, false, false, 40.7384, -73.9975),
+            ("12", "136 West 17th Street", "136 West 17th Street, New York, NY 10011", "residential", 4, false, false, 40.7383, -73.9976),
+            ("13", "138 West 17th Street", "138 West 17th Street, New York, NY 10011", "residential", 4, false, false, 40.7382, -73.9977),
+            ("14", "Rubin Museum", "150 West 17th Street, New York, NY 10011", "cultural", 7, true, true, 40.7390, -73.9975),
+            ("15", "29-31 East 20th Street", "29-31 East 20th Street, New York, NY 10003", "commercial", 5, true, false, 40.7388, -73.9889),
+            ("16", "Stuyvesant Cove Park", "Stuyvesant Cove Park, New York, NY 10009", "park", 1, false, false, 40.7338, -73.9738),
+            ("17", "178 Spring Street", "178 Spring Street, New York, NY 10012", "mixed", 5, true, false, 40.7247, -74.0023),
+            ("18", "104 Franklin Street Annex", "104 Franklin Street Annex, New York, NY 10013", "commercial", 6, true, false, 40.7171, -74.0095),
+            ("21", "148 Chambers Street", "148 Chambers Street, New York, NY 10007", "commercial", 8, true, true, 40.7159, -74.0076)
+        ]
+        
+        // Force insert all buildings
+        for (id, name, address, type, floors, hasElevator, hasDoorman, latitude, longitude) in buildingDetails {
+            try db.execute(sql: """
+                INSERT INTO buildings (
+                    id, name, address, latitude, longitude, specialNotes
+                ) VALUES (?, ?, ?, ?, ?, ?)
+            """, arguments: [
+                id,
+                name,
+                address,
+                latitude,
+                longitude,
+                "Type: \(type), Floors: \(floors), Elevator: \(hasElevator ? "Yes" : "No"), Doorman: \(hasDoorman ? "Yes" : "No")"
+            ])
+            
+            imported += 1
+            print("   ✅ Force imported: \(name)")
+        }
+        
+        // Verify final count
+        let finalCount = try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM buildings") ?? 0
+        print("   🎯 FORCE IMPORT COMPLETE: \(imported) buildings imported, final total: \(finalCount)")
+        
+        // List all buildings for verification
+        let buildings = try Row.fetchAll(db, sql: "SELECT id, name FROM buildings ORDER BY id")
+        print("   📋 All buildings after force import:")
+        for building in buildings {
+            print("     - ID \(building["id"] as? String ?? "?"):  \(building["name"] as? String ?? "?")")
+        }
+        
+        if finalCount != 19 {
+            throw DailyOpsError.importFailed("Expected 19 buildings but got \(finalCount)")
+        }
     }
     
     private nonisolated func importRoutineTemplates(db: Database, tasks: [OperationalDataTaskAssignment]) throws {
@@ -476,6 +667,97 @@ public class DailyOpsReset: ObservableObject {
         }
         
         print("   ✓ Imported \(imported) routine templates (skipped \(skipped) invalid)")
+        
+        // Add specific routines for new 148 Chambers Street contract
+        try create148ChambersRoutines(db: db)
+    }
+    
+    private nonisolated func create148ChambersRoutines(db: Database) throws {
+        print("🏢 Creating 148 Chambers Street routines...")
+        
+        let chambersTemplates = [
+            // Angel - Garbage collection on DSNY Mon/Wed/Fri schedule
+            (
+                workerId: "7", // Angel Guirachocha
+                buildingId: "21", // 148 Chambers Street
+                title: "Garbage Collection - DSNY Schedule",
+                description: "Collect and stage garbage for DSNY pickup on designated collection days",
+                category: "sanitation",
+                frequency: "weekly",
+                estimatedDuration: 45,
+                requiresPhoto: true,
+                priority: "high",
+                startHour: 18, // 6:00 PM (Angel's shift starts at 6 PM)
+                endHour: 22, // 10:00 PM (Angel's shift ends at 10 PM)
+                daysOfWeek: "mon,wed,fri" // DSNY schedule
+            ),
+            
+            // Edwin - Morning cleaning after park duties
+            (
+                workerId: "2", // Edwin Lema
+                buildingId: "21", // 148 Chambers Street
+                title: "Morning Cleaning Service",
+                description: "Complete cleaning routines including common areas, lobby, and floors",
+                category: "cleaning",
+                frequency: "daily",
+                estimatedDuration: 90,
+                requiresPhoto: true,
+                priority: "high",
+                startHour: 9, // 9:00 AM (after finishing park duties)
+                endHour: 15, // 3:00 PM (within Edwin's shift)
+                daysOfWeek: "mon,tue,wed,thu,fri" // Weekdays
+            ),
+            
+            // Edwin - Weekly deep cleaning
+            (
+                workerId: "2", // Edwin Lema
+                buildingId: "21", // 148 Chambers Street
+                title: "Weekly Deep Cleaning",
+                description: "Thorough deep cleaning including restrooms, stairwells, and detailed floor care",
+                category: "cleaning",
+                frequency: "weekly",
+                estimatedDuration: 120,
+                requiresPhoto: true,
+                priority: "medium",
+                startHour: 9, // 9:00 AM
+                endHour: 15, // 3:00 PM
+                daysOfWeek: "fri" // Friday deep cleaning
+            )
+        ]
+        
+        var created = 0
+        for template in chambersTemplates {
+            let templateId = UUID().uuidString
+            
+            try db.execute(sql: """
+                INSERT OR IGNORE INTO routine_templates (
+                    id, worker_id, building_id, title, description,
+                    category, frequency, estimated_duration, requires_photo,
+                    priority, start_hour, end_hour, days_of_week,
+                    created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, arguments: [
+                templateId,
+                template.workerId,
+                template.buildingId,
+                template.title,
+                template.description,
+                template.category,
+                template.frequency,
+                template.estimatedDuration,
+                template.requiresPhoto ? 1 : 0,
+                template.priority,
+                template.startHour,
+                template.endHour,
+                template.daysOfWeek,
+                Date().ISO8601Format(),
+                Date().ISO8601Format()
+            ])
+            
+            created += 1
+        }
+        
+        print("   ✓ Created \(created) routine templates for 148 Chambers Street")
     }
     
     private nonisolated func createWorkerAssignments(db: Database, tasks: [OperationalDataTaskAssignment]) throws {
@@ -513,6 +795,39 @@ public class DailyOpsReset: ObservableObject {
         }
         
         print("   ✓ Created \(created) worker-building assignments")
+        
+        // Add specific assignments for 148 Chambers Street
+        try create148ChambersAssignments(db: db)
+    }
+    
+    private nonisolated func create148ChambersAssignments(db: Database) throws {
+        print("🔗 Creating 148 Chambers Street worker assignments...")
+        
+        let chambersAssignments = [
+            (workerId: "7", buildingId: "21", role: "sanitation"), // Angel - Garbage collection
+            (workerId: "2", buildingId: "21", role: "cleaning")    // Edwin - Cleaning services
+        ]
+        
+        var created = 0
+        for assignment in chambersAssignments {
+            try db.execute(sql: """
+                INSERT OR IGNORE INTO worker_assignments (
+                    id, worker_id, building_id, role,
+                    is_primary, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, arguments: [
+                UUID().uuidString,
+                assignment.workerId,
+                assignment.buildingId,
+                assignment.role,
+                true, // Primary assignment
+                Date().ISO8601Format(),
+                Date().ISO8601Format()
+            ])
+            created += 1
+        }
+        
+        print("   ✓ Created \(created) worker assignments for 148 Chambers Street")
     }
     
     private nonisolated func setupWorkerCapabilities(db: Database) throws {
@@ -596,9 +911,8 @@ public class DailyOpsReset: ObservableObject {
                 INSERT OR REPLACE INTO worker_capabilities (
                     worker_id, can_upload_photos, can_add_notes,
                     can_view_map, can_add_emergency_tasks,
-                    requires_photo_for_sanitation, simplified_interface,
-                    created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    requires_photo_for_sanitation, simplified_interface
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
             """, arguments: [
                 capability.workerId,
                 capability.canUploadPhotos ? 1 : 0,
@@ -606,13 +920,42 @@ public class DailyOpsReset: ObservableObject {
                 capability.canViewMap ? 1 : 0,
                 capability.canAddEmergencyTasks ? 1 : 0,
                 capability.requiresPhotoForSanitation ? 1 : 0,
-                capability.simplifiedInterface ? 1 : 0,
-                Date().ISO8601Format(),
-                Date().ISO8601Format()
+                capability.simplifiedInterface ? 1 : 0
             ])
         }
         
         print("   ✓ Set up capabilities for \(capabilities.count) workers")
+    }
+    
+    private nonisolated func fixRoleMappings(db: Database) throws {
+        print("🔧 Fixing worker role mappings...")
+        
+        // Update worker roles to match CoreTypes.UserRole enum values
+        let roleUpdates = [
+            ("1", "worker"), // Greg
+            ("2", "worker"), // Edwin
+            ("4", "worker"), // Kevin  
+            ("5", "worker"), // Mercedes
+            ("6", "worker"), // Luis
+            ("7", "worker"), // Angel
+            ("8", "admin")   // Shawn - Admin access
+        ]
+        
+        var updated = 0
+        for (workerId, correctRole) in roleUpdates {
+            try db.execute(sql: """
+                UPDATE workers 
+                SET role = ?, updated_at = ? 
+                WHERE id = ?
+            """, arguments: [
+                correctRole,
+                Date().ISO8601Format(),
+                workerId
+            ])
+            updated += 1
+        }
+        
+        print("   ✓ Fixed role mappings for \(updated) workers")
     }
     
     // MARK: - Daily Operations
@@ -668,14 +1011,13 @@ public class DailyOpsReset: ObservableObject {
                     
                     try db.execute(sql: """
                         INSERT INTO routine_tasks (
-                            id, template_id, building_id, worker_id,
+                            id, buildingId, workerId,
                             title, description, category, priority,
-                            status, frequency, estimated_duration,
-                            requires_photo, scheduled_date, created_at, updated_at
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            status, estimatedDuration,
+                            requires_photo, scheduledDate
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """, arguments: [
                         taskId,
-                        templateId,
                         buildingId,
                         workerId,
                         title,
@@ -683,12 +1025,9 @@ public class DailyOpsReset: ObservableObject {
                         category,
                         priority,
                         "pending",
-                        frequency,
                         estimatedDuration,
                         requiresPhoto,
-                        date.ISO8601Format(),
-                        Date().ISO8601Format(),
-                        Date().ISO8601Format()
+                        date.ISO8601Format()
                     ])
                     
                     generatedCount += 1
@@ -834,14 +1173,14 @@ public class DailyOpsReset: ObservableObject {
     
     private nonisolated func getWorkerRole(_ workerId: String) -> String {
         switch workerId {
-        case "1": return "Maintenance"
-        case "2": return "Cleaning"
-        case "4": return "Cleaning"
-        case "5": return "Cleaning"
-        case "6": return "Maintenance"
-        case "7": return "Sanitation"
-        case "8": return "Management"
-        default: return "General"
+        case "1": return "worker" // Greg - Maintenance worker
+        case "2": return "worker" // Edwin - Cleaning worker  
+        case "4": return "worker" // Kevin - Cleaning worker
+        case "5": return "worker" // Mercedes - Cleaning worker
+        case "6": return "worker" // Luis - Maintenance worker
+        case "7": return "worker" // Angel - Sanitation worker
+        case "8": return "admin"  // Shawn - Admin/Manager role
+        default: return "worker"
         }
     }
     

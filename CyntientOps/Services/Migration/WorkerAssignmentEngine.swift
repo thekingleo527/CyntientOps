@@ -54,9 +54,10 @@ actor WorkerAssignmentEngine {
         // FIXED: Use GRDBManager execute method (no Async suffix, no parameters label)
         try await grdbManager.execute("""
             INSERT OR REPLACE INTO worker_building_assignments
-            (worker_id, building_id, assignment_type, start_date, is_active)
-            VALUES (?, ?, ?, ?, 1)
+            (id, worker_id, building_id, role, assigned_date, is_active)
+            VALUES (?, ?, ?, ?, ?, 1)
         """, [
+            UUID().uuidString,
             workerId,
             buildingId,
             role,
@@ -85,8 +86,8 @@ actor WorkerAssignmentEngine {
                 wba.id,
                 wba.worker_id,
                 wba.building_id,
-                wba.assignment_type,
-                wba.start_date,
+                wba.role,
+                wba.assigned_date,
                 wba.is_active,
                 w.name as worker_name,
                 b.name as building_name
@@ -94,7 +95,7 @@ actor WorkerAssignmentEngine {
             LEFT JOIN workers w ON CAST(wba.worker_id AS TEXT) = CAST(w.id AS TEXT)
             LEFT JOIN buildings b ON CAST(wba.building_id AS TEXT) = CAST(b.id AS TEXT)
             WHERE wba.worker_id = ? AND wba.is_active = 1
-            ORDER BY wba.start_date DESC
+            ORDER BY wba.assigned_date DESC
         """, [workerId])
 
         return rows.compactMap { row -> BuildingWorkerAssignment? in
@@ -103,8 +104,8 @@ actor WorkerAssignmentEngine {
                   let buildingId = Int64(buildingIdString),
                   let workerIdString = row["worker_id"] as? String,
                   let workerIdInt = Int64(workerIdString),
-                  let role = row["assignment_type"] as? String,
-                  let dateString = row["start_date"] as? String,
+                  let role = row["role"] as? String,
+                  let dateString = row["assigned_date"] as? String,
                   let date = ISO8601DateFormatter().date(from: dateString)
             else {
                 print("⚠️ Skipping malformed assignment row")
@@ -128,20 +129,20 @@ actor WorkerAssignmentEngine {
         let rows = try await grdbManager.query("""
             SELECT 
                 wba.worker_id,
-                wba.assignment_type,
-                wba.start_date,
+                wba.role as assignment_role,
+                wba.assigned_date,
                 w.name as worker_name,
                 w.email as worker_email,
                 w.role as worker_role
             FROM worker_building_assignments wba
             LEFT JOIN workers w ON CAST(wba.worker_id AS TEXT) = CAST(w.id AS TEXT)
             WHERE wba.building_id = ? AND wba.is_active = 1
-            ORDER BY wba.start_date ASC
+            ORDER BY wba.assigned_date ASC
         """, [buildingId])
         
         return rows.compactMap { row -> WorkerAssignmentInfo? in
             guard let workerIdString = row["worker_id"] as? String,
-                  let assignmentType = row["assignment_type"] as? String,
+                  let assignmentType = row["assignment_role"] as? String,
                   let workerName = row["worker_name"] as? String
             else { return nil }
             

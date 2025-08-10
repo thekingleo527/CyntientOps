@@ -242,7 +242,7 @@ actor WebSocketManager {
         #if DEBUG
         return URL(string: "ws://localhost:8080/sync")
         #else
-        return URL(string: "wss://api.francosphere.com/sync")
+        return URL(string: "wss://api.cyntientops.com/sync")
         #endif
     }
     

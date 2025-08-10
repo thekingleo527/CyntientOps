@@ -277,8 +277,7 @@ public class TaskDetailViewModel: ObservableObject {
             
             let evidence = CoreTypes.ActionEvidence(
                 description: notes ?? "Task completed via mobile app",
-                photoURLs: photoLocalPath != nil ? [URL(fileURLWithPath: photoLocalPath!)] : [],
-                photoData: nil,
+                photoURLs: photoLocalPath != nil ? [photoLocalPath!] : [],
                 timestamp: Date()
             )
             
@@ -370,7 +369,7 @@ public class TaskDetailViewModel: ObservableObject {
     // MARK: - Private Methods
     
     private func setupLocationManager() {
-        locationManager.requestLocation()
+        locationManager.startUpdatingLocation()
     }
     
     private func loadBuildingInfo() async {

@@ -20,6 +20,7 @@ struct AdminDashboardHeader: View {
         case .syncing: return .orange
         case .synced: return .green
         case .error: return .red
+        case .failed: return .red
         case .offline: return .gray
         }
     }
@@ -28,15 +29,29 @@ struct AdminDashboardHeader: View {
         HStack(spacing: 16) {
             // Admin Info Section
             HStack(spacing: 12) {
-                // Admin Avatar
+                // CyntientOps Logo
                 ZStack {
                     Circle()
-                        .fill(Color.blue.opacity(0.2))
+                        .stroke(
+                            LinearGradient(
+                                colors: [.blue, .cyan],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 2
+                        )
                         .frame(width: 44, height: 44)
                     
-                    Image(systemName: "person.circle.fill")
-                        .font(.system(size: 24))
-                        .foregroundColor(.blue)
+                    // Stylized "CO" for CyntientOps
+                    Text("CO")
+                        .font(.system(size: 18, weight: .bold, design: .rounded))
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [.white, .gray.opacity(0.8)],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
                 }
                 
                 // Admin Details

@@ -48,7 +48,7 @@
 // MARK: - Tasks
 "Task" = "Tarea";
 "Tasks" = "Tareas";
-"Complete" = "Completar";
+"Complete" = "Complete";
 "Completed" = "Completado";
 "Pending" = "Pendiente";
 "Overdue" = "Atrasado";
@@ -57,7 +57,7 @@
 "Photo Required" = "Se Requiere Foto";
 "Take Photo" = "Tomar Foto";
 "Task marked as complete." = "Tarea marcada como completada.";
-"Complete Task" = "Completar Tarea";
+"Complete Task" = "Complete Task";
 
 // MARK: - Urgency
 "Urgent" = "Urgente";

@@ -81,7 +81,7 @@ class WeatherDataAdapter: ObservableObject {
     // Weather API configuration - Using OpenMeteo (free, no API key needed)
     private let openMeteoBaseURL = "https://api.open-meteo.com/v1/forecast"
 
-    private init() {
+    public init() {
         print("🌤️ WeatherDataAdapter initialized with unified error handling")
         loadCacheFromDisk()
     }
@@ -93,6 +93,11 @@ class WeatherDataAdapter: ObservableObject {
         Task {
             await fetchWeatherForBuildingAsync(building)
         }
+    }
+    
+    /// Fetch weather data by coordinates - returns data directly
+    public func fetchWeatherData(latitude: Double, longitude: Double) async throws -> [CoreTypes.WeatherData] {
+        return try await fetchFromAPI(latitude: latitude, longitude: longitude)
     }
     
     /// Async version with proper error handling
@@ -177,7 +182,7 @@ class WeatherDataAdapter: ObservableObject {
     
     // MARK: - OpenMeteo API Integration
     
-    private func fetchFromAPI(latitude: Double, longitude: Double) async throws -> [CoreTypes.WeatherData] {
+    public func fetchFromAPI(latitude: Double, longitude: Double) async throws -> [CoreTypes.WeatherData] {
         return try await fetchFromOpenMeteoAPI(latitude: latitude, longitude: longitude)
     }
     

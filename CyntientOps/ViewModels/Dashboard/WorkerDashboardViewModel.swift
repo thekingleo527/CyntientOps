@@ -50,7 +50,7 @@ public class WorkerDashboardViewModel: ObservableObject {
     
     // Core State
     @Published public private(set) var isLoading = false
-    @Published public private(set) var errorMessage: String?
+    @Published public var errorMessage: String?
     @Published public private(set) var workerProfile: CoreTypes.WorkerProfile?
     @Published public private(set) var workerCapabilities: WorkerCapabilities?
     
@@ -203,7 +203,7 @@ public class WorkerDashboardViewModel: ObservableObject {
             self.updateClockInState(
                 building: building,
                 time: Date(),
-                location: self.locationManager.currentLocation
+                location: self.locationManager.location
             )
             
             // Load weather and tasks
@@ -211,7 +211,7 @@ public class WorkerDashboardViewModel: ObservableObject {
             await self.loadBuildingTasks(workerId: workerId, buildingId: building.id)
             
             // Broadcast update
-            self.broadcastClockIn(workerId: workerId, building: building, hasLocation: self.locationManager.currentLocation != nil)
+            self.broadcastClockIn(workerId: workerId, building: building, hasLocation: self.locationManager.location != nil)
             
             print("✅ Clocked in at \(building.name)")
         }
@@ -287,7 +287,7 @@ public class WorkerDashboardViewModel: ObservableObject {
     public func startTask(_ task: CoreTypes.ContextualTask) async {
         guard let workerId = currentWorkerId else { return }
         
-        broadcastTaskStart(task: task, workerId: workerId, location: locationManager.currentLocation)
+        broadcastTaskStart(task: task, workerId: workerId, location: locationManager.location)
         print("✅ Task started: \(task.title)")
     }
     
@@ -321,6 +321,23 @@ public class WorkerDashboardViewModel: ObservableObject {
             try? await Task.sleep(nanoseconds: 1_000_000_000) // 1 second delay
             await self.refreshData()
         }
+    }
+    
+    // MARK: - Computed Properties for UI
+    
+    /// Count of completed tasks today
+    public var completedTasksCount: Int {
+        todaysTasks.filter { $0.isCompleted }.count
+    }
+    
+    /// Whether worker is currently clocked in
+    public var isCurrentlyClockedIn: Bool {
+        isClockedIn
+    }
+    
+    /// Count of urgent tasks today
+    public var urgentTasks: [CoreTypes.ContextualTask] {
+        todaysTasks.filter { $0.urgency == .urgent || $0.urgency == .critical }
     }
     
     // MARK: - Public Accessors
@@ -359,7 +376,7 @@ public class WorkerDashboardViewModel: ObservableObject {
     
     private func loadWorkerProfile(workerId: String) async {
         do {
-            workerProfile = try await container.workers.getWorkerProfile(id: workerId)
+            workerProfile = try await container.workers.getWorkerProfile(for: workerId)
         } catch {
             print("⚠️ Failed to load worker profile: \(error)")
         }
@@ -414,16 +431,29 @@ public class WorkerDashboardViewModel: ObservableObject {
     }
     
     private func loadWeatherData(for building: CoreTypes.NamedCoordinate) async {
-        // TODO: Replace with actual weather service when available
-        weatherData = CoreTypes.WeatherData(
-            temperature: 72,
-            condition: .partlyCloudy,  // Changed from "Partly Cloudy" string
-            humidity: 0.65,
-            windSpeed: 10,
-            outdoorWorkRisk: .low,
-            timestamp: Date()
-        )
-        outdoorWorkRisk = weatherData?.outdoorWorkRisk ?? .low
+        do {
+            let adapter = WeatherDataAdapter()
+            let weatherArray = try await adapter.fetchWeatherData(
+                latitude: building.coordinate.latitude,
+                longitude: building.coordinate.longitude
+            )
+            if let currentWeather = weatherArray.first {
+                weatherData = currentWeather
+                outdoorWorkRisk = currentWeather.outdoorWorkRisk
+            }
+        } catch {
+            print("❌ Failed to load weather data: \(error)")
+            // Fallback to default weather data
+            weatherData = CoreTypes.WeatherData(
+                temperature: 70,
+                condition: .clear,
+                humidity: 0.60,
+                windSpeed: 8,
+                outdoorWorkRisk: .low,
+                timestamp: Date()
+            )
+            outdoorWorkRisk = .low
+        }
     }
     
     private func loadBuildingTasks(workerId: String, buildingId: String) async {
@@ -513,10 +543,50 @@ public class WorkerDashboardViewModel: ObservableObject {
     private func calculateHoursWorkedToday() async {
         guard let workerId = currentWorkerId else { return }
         
-        // TODO: Implement actual hours calculation from time clock entries
-        // For now, calculate from current session
-        if let clockInTime = clockInTime {
-            hoursWorkedToday = Date().timeIntervalSince(clockInTime) / 3600.0
+        do {
+            // Get today's clock entries from the database
+            let todayStart = Calendar.current.startOfDay(for: Date())
+            let todayEnd = Calendar.current.date(byAdding: .day, value: 1, to: todayStart) ?? Date()
+            
+            let entries = try await container.database.query("""
+                SELECT * FROM clock_entries 
+                WHERE worker_id = ? 
+                AND created_at >= ? 
+                AND created_at < ?
+                ORDER BY created_at ASC
+            """, [workerId, ISO8601DateFormatter().string(from: todayStart), ISO8601DateFormatter().string(from: todayEnd)])
+            
+            var totalHours: Double = 0.0
+            var lastClockInTime: Date?
+            
+            for entry in entries {
+                guard let actionString = entry["action"] as? String,
+                      let timestampString = entry["created_at"] as? String,
+                      let timestamp = ISO8601DateFormatter().date(from: timestampString) else {
+                    continue
+                }
+                
+                if actionString == "clock_in" {
+                    lastClockInTime = timestamp
+                } else if actionString == "clock_out", let clockInTime = lastClockInTime {
+                    totalHours += timestamp.timeIntervalSince(clockInTime) / 3600.0
+                    lastClockInTime = nil
+                }
+            }
+            
+            // Add current session if still clocked in
+            if let currentClockIn = lastClockInTime {
+                totalHours += Date().timeIntervalSince(currentClockIn) / 3600.0
+            }
+            
+            hoursWorkedToday = totalHours
+            
+        } catch {
+            print("❌ Failed to calculate hours worked: \(error)")
+            // Fallback to session calculation
+            if let clockInTime = clockInTime {
+                hoursWorkedToday = Date().timeIntervalSince(clockInTime) / 3600.0
+            }
         }
     }
     
@@ -589,8 +659,8 @@ public class WorkerDashboardViewModel: ObservableObject {
             data: [
                 "taskId": task.id,
                 "completionTime": ISO8601DateFormatter().string(from: Date()),
-                "evidence": evidence.description,
-                "photoCount": String(evidence.photoURLs.count),
+                "evidence": evidence.description ?? "",
+                "photoCount": String(evidence.photoURLs?.count ?? 0),
                 "requiresPhoto": String(workerCapabilities?.requiresPhotoForSanitation ?? false)
             ]
         )
@@ -662,7 +732,7 @@ public class WorkerDashboardViewModel: ObservableObject {
     }
     
     private func setupLocationTracking() {
-        locationManager.requestLocation()
+        // locationManager.requestLocation() // Method not available
         
         locationManager.$location
             .receive(on: DispatchQueue.main)
@@ -767,8 +837,11 @@ public class WorkerDashboardViewModel: ObservableObject {
 #if DEBUG
 extension WorkerDashboardViewModel {
     static func preview(container: ServiceContainer? = nil) -> WorkerDashboardViewModel {
-        // Use provided container or create a mock one
-        let viewModel = WorkerDashboardViewModel(container: container ?? ServiceContainer.preview())
+        // Use provided container (for previews, assume one exists)
+        guard let container = container else {
+            fatalError("ServiceContainer required for preview")
+        }
+        let viewModel = WorkerDashboardViewModel(container: container)
         
         // Configure with sample data
         viewModel.assignedBuildings = [
@@ -785,7 +858,7 @@ extension WorkerDashboardViewModel {
             CoreTypes.ContextualTask(
                 title: "HVAC Inspection",
                 description: "Check HVAC system in main gallery",
-                isCompleted: false,
+                status: .pending,
                 scheduledDate: nil,
                 dueDate: Date().addingTimeInterval(3600),
                 category: .maintenance,
@@ -802,7 +875,7 @@ extension WorkerDashboardViewModel {
         
         viewModel.weatherData = CoreTypes.WeatherData(
             temperature: 32,
-            condition: "Snowy",
+            condition: .snowy,
             humidity: 0.85,
             windSpeed: 15,
             outdoorWorkRisk: .high,

@@ -37,6 +37,7 @@ struct AdminDashboardMainView: View {
     @State private var showingProfile = false
     @State private var showingSettings = false
     @State private var refreshID = UUID()
+    @State private var isMapRevealed = false
     
     // MARK: - App Storage
     @AppStorage("adminShowPhotoCompliance") private var showPhotoCompliance = true
@@ -73,13 +74,241 @@ struct AdminDashboardMainView: View {
         viewModel.getAdminPortfolioSummary()
     }
     
-    var body: some View {
-        ZStack {
-            // Background
-            Color.black.ignoresSafeArea()
+    // MARK: - Tab Content View
+    @ViewBuilder
+    private var tabContentView: some View {
+        switch selectedTab {
+        case .overview:
+            overviewTabContent
             
-            // Main Content with Phase 4 Exact Structure
-            VStack(spacing: 0) {
+        case .buildings:
+            adminBuildingsTab
+            
+        case .workers:
+            AdminWorkerManagementView()
+            
+        case .tasks:
+            adminTasksTab
+            
+        case .insights:
+            adminInsightsTab
+        }
+    }
+    
+    // MARK: - Individual Tab Content Views
+    @ViewBuilder
+    private var adminBuildingsTab: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                Text("All Buildings")
+                    .font(.headline)
+                    .foregroundColor(.white)
+                    .padding(.horizontal)
+                
+                LazyVStack(spacing: 8) {
+                    ForEach(viewModel.buildings) { building in
+                        AdminBuildingRowCard(
+                            building: building,
+                            metrics: viewModel.buildingMetrics[building.id],
+                            onTap: { 
+                                selectedBuildingId = building.id
+                                showingBuildingDetail = true
+                            }
+                        )
+                    }
+                }
+                .padding(.horizontal)
+                
+                // Bottom spacing for Nova Panel
+                Spacer()
+                    .frame(height: 80)
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private var adminTasksTab: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                // Photo Compliance Summary
+                if let stats = viewModel.photoComplianceStats {
+                    PhotoComplianceCard(stats: stats)
+                        .padding(.horizontal)
+                }
+                
+                // Recent Completed Tasks
+                if !viewModel.completedTasks.isEmpty {
+                    Text("Recently Completed")
+                        .font(.headline)
+                        .foregroundColor(.white)
+                        .padding(.horizontal)
+                    
+                    LazyVStack(spacing: 8) {
+                        ForEach(viewModel.completedTasks) { task in
+                            AdminTaskRowCard(
+                                task: task,
+                                showPhotoIndicator: task.requiresPhoto ?? false,
+                                onTap: {
+                                    selectedTaskForPhoto = task
+                                    showingPhotoEvidence = true
+                                }
+                            )
+                        }
+                    }
+                    .padding(.horizontal)
+                }
+                
+                // All Tasks
+                Text("All Tasks")
+                    .font(.headline)
+                    .foregroundColor(.white)
+                    .padding(.horizontal)
+                
+                LazyVStack(spacing: 8) {
+                    ForEach(viewModel.tasks) { task in
+                        AdminTaskRowCard(
+                            task: task,
+                            showPhotoIndicator: task.requiresPhoto ?? false,
+                            onTap: {
+                                selectedTaskForPhoto = task
+                                showingPhotoEvidence = true
+                            }
+                        )
+                    }
+                }
+                .padding(.horizontal)
+                
+                // Bottom spacing for Nova Panel
+                Spacer()
+                    .frame(height: 80)
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private var adminInsightsTab: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                if viewModel.isLoadingInsights {
+                    ProgressView("Loading insights...")
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .foregroundColor(.white)
+                } else {
+                    // Portfolio Insights
+                    if !viewModel.portfolioInsights.isEmpty {
+                        Text("Portfolio Insights")
+                            .font(.headline)
+                            .foregroundColor(.white)
+                            .padding(.horizontal)
+                        
+                        LazyVStack(spacing: 8) {
+                            ForEach(viewModel.portfolioInsights) { insight in
+                                AdminInsightCard(insight: insight)
+                            }
+                        }
+                        .padding(.horizontal)
+                    } else {
+                        VStack(spacing: 16) {
+                            Image(systemName: "lightbulb")
+                                .font(.system(size: 60))
+                                .foregroundColor(.gray)
+                            
+                            Text("No insights available")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                            
+                            Text("Insights will appear here as your portfolio data is analyzed")
+                                .font(.caption)
+                                .foregroundColor(.gray)
+                                .multilineTextAlignment(.center)
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .padding()
+                    }
+                }
+                
+                // Bottom spacing for Nova Panel
+                Spacer()
+                    .frame(height: 80)
+            }
+        }
+    }
+    
+    // MARK: - Overview Tab Content (Hero Card + Preview Sections)
+    @ViewBuilder
+    private var overviewTabContent: some View {
+        ScrollView {
+            LazyVStack(spacing: 0) {
+                // Hero Metrics Card (200px)
+                AdminHeroMetricsCard(
+                    portfolioSummary: portfolioSummary,
+                    buildingMetrics: viewModel.buildingMetrics,
+                    onDrillDown: { selectedTab = .overview }
+                )
+                .frame(height: 200)
+                .padding(.horizontal, 16)
+                .padding(.top, 12)
+                
+                // Real-time Activity Section (Preview)
+                if !viewModel.crossDashboardUpdates.isEmpty {
+                    AdminRealtimeSection(
+                        updates: viewModel.crossDashboardUpdates,
+                        onViewAll: { selectedTab = .tasks }
+                    )
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                }
+                
+                // Building Performance Grid (Preview - first 6)
+                AdminBuildingPerformanceSection(
+                    buildings: viewModel.buildings.prefix(6).map { $0 },
+                    buildingMetrics: viewModel.buildingMetrics,
+                    onBuildingTap: { building in
+                        selectedBuildingId = building.id
+                        showingBuildingDetail = true
+                    },
+                    onViewAll: { selectedTab = .buildings }
+                )
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                
+                // Worker Status Overview (Preview)
+                AdminWorkerStatusSection(
+                    activeWorkers: viewModel.activeWorkers,
+                    allWorkers: viewModel.workers,
+                    onWorkerTap: { worker in
+                        selectedWorker = worker
+                        showingWorkerDetail = true
+                    },
+                    onViewAll: { selectedTab = .workers }
+                )
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                
+                // Bottom spacing for Nova Panel
+                Spacer()
+                    .frame(height: 80)
+            }
+        }
+    }
+    
+    var body: some View {
+        MapRevealContainer(
+            buildings: viewModel.buildings,
+            currentBuildingId: nil, // Admin doesn't have a "current" building
+            focusBuildingId: selectedBuildingId,
+            isRevealed: $isMapRevealed,
+            onBuildingTap: { building in
+                selectedBuildingId = building.id
+                showingBuildingDetail = true
+            }
+        ) {
+            ZStack {
+                // Background
+                Color.black.ignoresSafeArea()
+                
+                // Main Content with Phase 4 Exact Structure
+                VStack(spacing: 0) {
                 // Header (80px) - Fixed
                 AdminDashboardHeader(
                     adminName: authManager.currentUser?.name ?? "Administrator",
@@ -90,70 +319,31 @@ struct AdminDashboardMainView: View {
                 )
                 .frame(height: 80)
                 
-                // Scrollable Content
-                ScrollView {
-                    LazyVStack(spacing: 0) {
-                        // Hero Metrics Card (200px)
-                        AdminHeroMetricsCard(
-                            portfolioSummary: portfolioSummary,
-                            buildingMetrics: viewModel.buildingMetrics,
-                            onDrillDown: { selectedTab = .overview }
-                        )
-                        .frame(height: 200)
-                        .padding(.horizontal, 16)
-                        .padding(.top, 12)
-                        
-                        // Real-time Activity Section
-                        if !viewModel.crossDashboardUpdates.isEmpty {
-                            AdminRealtimeSection(
-                                updates: viewModel.crossDashboardUpdates,
-                                onViewAll: { selectedTab = .tasks }
-                            )
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 12)
-                        }
-                        
-                        // Building Performance Grid
-                        AdminBuildingPerformanceSection(
-                            buildings: viewModel.buildings.prefix(6).map { $0 },
-                            buildingMetrics: viewModel.buildingMetrics,
-                            onBuildingTap: { building in
-                                selectedBuildingId = building.id
-                                showingBuildingDetail = true
-                            },
-                            onViewAll: { selectedTab = .buildings }
-                        )
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 12)
-                        
-                        // Worker Status Overview
-                        AdminWorkerStatusSection(
-                            activeWorkers: viewModel.activeWorkers,
-                            allWorkers: viewModel.workers,
-                            onWorkerTap: { worker in
-                                selectedWorker = worker
-                                showingWorkerDetail = true
-                            },
-                            onViewAll: { selectedTab = .workers }
-                        )
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 12)
-                        
-                        // Bottom spacing
-                        Spacer()
-                            .frame(height: 80)
-                    }
-                }
+                // Tab Content Switching
+                tabContentView
+                
+                // Tab Bar (fixed at bottom of content area)
+                AdminMainTabBar(selectedTab: $selectedTab)
             }
             
-            // Nova Intelligence Bar (bottom overlay)
+            // Nova Intelligence Bar (bottom overlay) - 4-Tab Enhanced Version
             VStack {
                 Spacer()
-                NovaAdminIntelligenceBar(
-                    container: container,
-                    adminContext: generateAdminContext()
+                AdminNovaIntelligenceBar(
+                    novaState: .active,
+                    insights: viewModel.portfolioInsights,
+                    isExpanded: .constant(false),
+                    onTap: {
+                        // Handle Nova panel expansion
+                        print("Nova panel tapped")
+                    },
+                    onClose: nil,
+                    onSelectMapTab: {
+                        withAnimation(.spring()) {
+                            isMapRevealed = true
+                        }
+                    }
                 )
-                .frame(height: 60)
             }
         }
         .task {
@@ -203,7 +393,8 @@ struct AdminDashboardMainView: View {
                 autoRefresh: $autoRefresh
             )
         }
-    }
+        }
+        }
     
     // MARK: - Helper Methods
     

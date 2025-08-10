@@ -344,22 +344,22 @@ struct LoginView: View {
                             
                             VStack(spacing: 12) {
                                 quickAccessButton(
-                                    email: "dutankevin1@gmail.com",
+                                    email: "kevin.dutan@cyntientops.com",
                                     name: "Kevin (Worker)",
                                     icon: "wrench.and.screwdriver",
                                     color: .blue
                                 )
                                 
                                 quickAccessButton(
-                                    email: "shawn@fme-llc.com",
+                                    email: "shawn.magloire@cyntientops.com",
                                     name: "Shawn (Admin)",
                                     icon: "shield.checkmark",
                                     color: .purple
                                 )
                                 
                                 quickAccessButton(
-                                    email: "francosphere@francomanagementgroup.com",
-                                    name: "Client Access",
+                                    email: "edwin.lema@cyntientops.com",
+                                    name: "Edwin (Worker)",
                                     icon: "person.text.rectangle",
                                     color: .green
                                 )
@@ -417,7 +417,17 @@ struct LoginView: View {
         Button(action: {
             withAnimation(Animation.easeInOut(duration: 0.2)) {
                 self.email = email
-                self.password = "password" // Default test password
+                // Set correct password based on user
+                switch email {
+                case "kevin.dutan@cyntientops.com":
+                    self.password = "KevinRubin2025!"
+                case "shawn.magloire@cyntientops.com":
+                    self.password = "ShawnHVAC2025!"
+                case "edwin.lema@cyntientops.com":
+                    self.password = "EdwinPark2025!"
+                default:
+                    self.password = "password"
+                }
             }
             Task {
                 await performLogin()

@@ -464,7 +464,7 @@ public actor QuickBooksPayrollExporter {
         // In production, this would make an API call to QuickBooks
         // For now, return hardcoded mapping
         return [
-            QBEmployee(id: "1", name: "Greg Hutson", email: "greg.hutson@francosphere.com"),
+            QBEmployee(id: "1", name: "Greg Hutson", email: "greg.hutson@cyntientops.com"),
             QBEmployee(id: "2", name: "Edwin Lema", email: "edwin.lema@francosphere.com"),
             QBEmployee(id: "4", name: "Kevin Dutan", email: "kevin.dutan@francosphere.com"),
             QBEmployee(id: "5", name: "Mercedes Inamagua", email: "mercedes.inamagua@francosphere.com"),

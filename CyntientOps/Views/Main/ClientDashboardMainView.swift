@@ -97,8 +97,18 @@ struct ClientDashboardMainView: View {
                 // Header with tab selector
                 clientDashboardHeader
                 
-                // Tab Content
-                tabContentView
+                // Add the MapRevealContainer here
+                MapRevealContainer(
+                    buildings: contextEngine.clientBuildings,
+                    isRevealed: .constant(false),
+                    onBuildingTap: { building in
+                        selectedBuildingId = building.id
+                        // You would need a state variable to show a detail sheet, e.g., showingBuildingDetail = true
+                    }
+                ) {
+                    // Tab Content
+                    tabContentView
+                }
                 
                 // Bottom Tab Bar
                 clientTabBar

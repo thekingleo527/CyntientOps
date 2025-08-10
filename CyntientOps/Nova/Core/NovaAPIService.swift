@@ -39,7 +39,7 @@ public actor NovaAPIService {
     
     // MARK: - Public API
     
-    /// Process a Nova prompt and generate intelligent response
+    /// Process a Nova prompt and generate intelligent response (HYBRID ONLINE/OFFLINE)
     public func processPrompt(_ prompt: NovaPrompt) async throws -> NovaResponse {
         guard !isProcessing else {
             throw NovaAPIError.processingInProgress
@@ -48,21 +48,15 @@ public actor NovaAPIService {
         isProcessing = true
         defer { isProcessing = false }
         
-        do {
-            print("🧠 Processing Nova prompt: \(prompt.text)")
-            
-            // Get context for the prompt
-            let context = await getOrCreateContext(for: prompt)
-            
-            // Generate response based on prompt type and context
-            let response = try await generateResponse(for: prompt, context: context)
-            
-            print("✅ Nova response generated successfully")
-            return response
-            
-        } catch {
-            print("❌ Nova processing failed: \(error)")
-            throw error
+        print("🧠 Processing Nova prompt: \(prompt.text)")
+        
+        // HYBRID ROUTING: Check network status first
+        if await NetworkMonitor.shared.isConnected {
+            print("🌐 Nova: Online mode - using full AI capabilities")
+            return try await processPromptOnline(prompt)
+        } else {
+            print("📱 Nova: Offline mode - using local data search")
+            return await processPromptOffline(prompt)
         }
     }
     
@@ -74,6 +68,193 @@ public actor NovaAPIService {
     /// Get processing queue status
     public func getQueueStatus() -> Int {
         return processingQueue.count
+    }
+    
+    // MARK: - Hybrid Processing Methods
+    
+    /// Process prompt when online - can call Supabase/LLM (placeholder for now)
+    private func processPromptOnline(_ prompt: NovaPrompt) async throws -> NovaResponse {
+        // TODO: Replace this with real Supabase Edge Function call
+        // This is a placeholder that still uses the existing logic but marks it for replacement
+        
+        do {
+            print("🌐 Nova: Processing prompt online (using enhanced local logic)")
+            
+            // Get context for the prompt
+            let context = await getOrCreateContext(for: prompt)
+            
+            // FOR NOW: Use the existing generateResponse logic (to be replaced with Supabase)
+            let response = try await generateResponse(for: prompt, context: context)
+            
+            // TODO: When implementing Supabase, replace above with:
+            // let response = try await callSupabaseEdgeFunction(prompt, context: context)
+            
+            print("✅ Nova: Online response generated successfully")
+            return response
+            
+        } catch {
+            print("❌ Nova: Online processing failed, falling back to offline: \(error)")
+            // Fallback to offline processing if online fails
+            return await processPromptOffline(prompt)
+        }
+    }
+    
+    /// Process prompt when offline - uses local database search
+    private func processPromptOffline(_ prompt: NovaPrompt) async -> NovaResponse {
+        let query = prompt.text.lowercased()
+        var responseMessage = "I'm currently offline, but I can help you with information from my local database."
+        var foundData = false
+        
+        print("📱 Nova: Searching local data for: '\(query)'")
+        
+        do {
+            // 1. TASK QUERIES
+            if query.contains("task") || query.contains("what's next") || query.contains("to do") {
+                let allTasks = try await taskService.getAllTasks()
+                let pendingTasks = allTasks.filter { $0.status != .completed }
+                
+                if !pendingTasks.isEmpty {
+                    let taskList = pendingTasks.prefix(5).map { "• \($0.title)" }.joined(separator: "\n")
+                    responseMessage = "📋 You have \(pendingTasks.count) pending task(s):\n\n\(taskList)"
+                    if pendingTasks.count > 5 {
+                        responseMessage += "\n\n...and \(pendingTasks.count - 5) more tasks."
+                    }
+                    foundData = true
+                } else {
+                    responseMessage = "✅ Great news! You have no pending tasks right now."
+                    foundData = true
+                }
+            }
+            
+            // 2. BUILDING QUERIES
+            else if query.contains("building") || query.contains("address") || query.contains("location") {
+                let buildings = try await buildingService.getAllBuildings()
+                
+                // Try to find specific building mentioned
+                for building in buildings {
+                    if query.contains(building.name.lowercased()) {
+                        responseMessage = "🏢 \(building.name)\n📍 Address: \(building.address)\n\nThis is one of your portfolio buildings."
+                        foundData = true
+                        break
+                    }
+                }
+                
+                // If no specific building found, show general info
+                if !foundData {
+                    let buildingList = buildings.prefix(3).map { "• \($0.name)" }.joined(separator: "\n")
+                    responseMessage = "🏢 You manage \(buildings.count) building(s):\n\n\(buildingList)"
+                    if buildings.count > 3 {
+                        responseMessage += "\n...and \(buildings.count - 3) more buildings."
+                    }
+                    foundData = true
+                }
+            }
+            
+            // 3. WORKER/TEAM QUERIES
+            else if query.contains("worker") || query.contains("team") || query.contains("staff") {
+                let workers = try await workerService.getAllActiveWorkers()
+                
+                if !workers.isEmpty {
+                    let workerList = workers.prefix(3).map { "• \($0.name)" }.joined(separator: "\n")
+                    responseMessage = "👥 Your active team (\(workers.count) worker(s)):\n\n\(workerList)"
+                    if workers.count > 3 {
+                        responseMessage += "\n...and \(workers.count - 3) more team members."
+                    }
+                    foundData = true
+                } else {
+                    responseMessage = "👥 No active workers found in the system."
+                    foundData = true
+                }
+            }
+            
+            // 4. INSIGHTS/RECOMMENDATIONS QUERIES
+            else if query.contains("insight") || query.contains("recommendation") || query.contains("advice") {
+                // Get cached insights from the database
+                let cachedInsights = await getCachedInsights()
+                
+                if !cachedInsights.isEmpty {
+                    let insightsList = cachedInsights.prefix(3).map { "• \($0.title): \($0.description)" }.joined(separator: "\n\n")
+                    responseMessage = "💡 Here are some insights I prepared earlier:\n\n\(insightsList)"
+                    foundData = true
+                } else {
+                    responseMessage = "💡 I don't have cached insights available right now. When you're back online, I can generate fresh insights for you."
+                    foundData = true
+                }
+            }
+            
+            // 5. STATUS/SUMMARY QUERIES
+            else if query.contains("status") || query.contains("summary") || query.contains("overview") {
+                let allTasks = try await taskService.getAllTasks()
+                let buildings = try await buildingService.getAllBuildings()
+                let workers = try await workerService.getAllActiveWorkers()
+                
+                let pendingTasks = allTasks.filter { $0.status != .completed }
+                let completedTasks = allTasks.filter { $0.status == .completed }
+                
+                responseMessage = """
+                📊 PORTFOLIO STATUS (Offline Mode)
+                
+                🏢 Buildings: \(buildings.count) properties
+                👥 Active Workers: \(workers.count) team members
+                📋 Tasks: \(completedTasks.count) completed, \(pendingTasks.count) pending
+                
+                📱 I'm currently offline but can access all your local data.
+                """
+                foundData = true
+            }
+            
+            // DEFAULT: Helpful offline guidance
+            if !foundData {
+                responseMessage = """
+                📱 I'm currently offline, but I can still help you with:
+                
+                • "What are my tasks?" - View your pending tasks
+                • "Show me buildings" - List your properties
+                • "Team status" - See active workers
+                • "Give me insights" - Cached recommendations
+                • "What's the status?" - Portfolio overview
+                
+                Ask me any of these questions!
+                """
+            }
+            
+        } catch {
+            responseMessage = """
+            📱 I'm offline and encountered an issue accessing local data: \(error.localizedDescription)
+            
+            Please check your device storage and try again.
+            """
+            print("❌ Nova offline processing error: \(error)")
+        }
+        
+        print("✅ Nova: Offline response generated")
+        
+        return NovaResponse(
+            success: true,
+            message: responseMessage,
+            context: prompt.context,
+            metadata: [
+                "mode": "offline",
+                "dataSource": "local_database",
+                "foundData": String(foundData)
+            ]
+        )
+    }
+    
+    /// Get cached insights for offline use
+    private func getCachedInsights() async -> [CoreTypes.IntelligenceInsight] {
+        // This calls the UnifiedIntelligenceService method we just created
+        if let intelligenceService = try? await UnifiedIntelligenceService(
+            database: GRDBManager.shared,
+            workers: workerService,
+            buildings: buildingService,
+            tasks: taskService,
+            metrics: BuildingMetricsService.shared,
+            compliance: ComplianceService.shared
+        ) {
+            return await intelligenceService.getCachedInsights()
+        }
+        return []
     }
     
     // MARK: - Context Management (Enhanced without NovaContextEngine)

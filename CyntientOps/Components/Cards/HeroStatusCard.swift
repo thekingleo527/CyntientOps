@@ -47,7 +47,7 @@ struct HeroStatusCard: View {
     }
     
     // MARK: - Properties
-    let worker: WorkerProfile?
+    let worker: CoreTypes.WorkerProfile?
     let building: NamedCoordinate?
     let weather: CoreTypes.WeatherData?
     let progress: CoreTypes.TaskProgress
@@ -103,7 +103,7 @@ struct HeroStatusCard: View {
 // MARK: - Standard View
 
 private struct StandardHeroView: View {
-    let worker: WorkerProfile?
+    let worker: CoreTypes.WorkerProfile?
     let building: NamedCoordinate?
     let weather: CoreTypes.WeatherData?
     let progress: CoreTypes.TaskProgress
@@ -198,7 +198,7 @@ private struct StandardHeroView: View {
 // MARK: - Simplified View
 
 private struct SimplifiedHeroView: View {
-    let worker: WorkerProfile?
+    let worker: CoreTypes.WorkerProfile?
     let progress: CoreTypes.TaskProgress
     let clockInStatus: HeroStatusCard.ClockInStatus
     let capabilities: HeroStatusCard.WorkerCapabilities?
@@ -452,7 +452,7 @@ private struct HeroTaskTimelineMarkers: View {
 }
 
 private struct HeroHeaderSection: View {
-    let worker: WorkerProfile?
+    let worker: CoreTypes.WorkerProfile?
     let clockInStatus: HeroStatusCard.ClockInStatus
     let language: String
     let hasPhotoRequirement: Bool
@@ -579,7 +579,7 @@ private struct HeroWorkerStatusBadge: View {
         case .clockedIn:
             colors = [CyntientOpsDesign.DashboardColors.success, CyntientOpsDesign.DashboardColors.success.opacity(0.6)]
         case .onBreak:
-            colors = [CyntientOpsDesign.DashboardColors.warning, Color(hex: "fbbf24")]
+            colors = [CyntientOpsDesign.DashboardColors.warning, Color.yellow]
         case .clockedOut:
             colors = [CyntientOpsDesign.DashboardColors.info, CyntientOpsDesign.DashboardColors.info.opacity(0.6)]
         }
@@ -642,12 +642,16 @@ private struct HeroWeatherCard: View {
     private var weatherIcon: String {
         switch weather.condition {
         case .clear: return "sun.max.fill"
+        case .sunny: return "sun.max.fill"
         case .cloudy: return "cloud.fill"
+        case .overcast: return "cloud.fill"
         case .rain: return "cloud.rain.fill"
-        case .snow: return "cloud.snow.fill"
+        case .snow, .snowy: return "cloud.snow.fill"
         case .storm: return "cloud.bolt.fill"
-        case .fog: return "cloud.fog.fill"
+        case .fog, .foggy: return "cloud.fog.fill"
         case .windy: return "wind"
+        case .hot: return "sun.max.fill"
+        case .cold: return "thermometer.snowflake"
         }
     }
     
@@ -655,16 +659,20 @@ private struct HeroWeatherCard: View {
         let colors: [Color]
         
         switch weather.condition {
-        case .clear:
-            colors = [Color(hex: "fbbf24"), CyntientOpsDesign.DashboardColors.warning]
-        case .cloudy:
+        case .clear, .sunny:
+            colors = [Color.yellow, CyntientOpsDesign.DashboardColors.warning]
+        case .cloudy, .overcast:
             colors = [CyntientOpsDesign.DashboardColors.inactive, CyntientOpsDesign.DashboardColors.inactive.opacity(0.6)]
         case .rain, .storm:
             colors = [CyntientOpsDesign.DashboardColors.info, CyntientOpsDesign.DashboardColors.info.opacity(0.6)]
-        case .snow:
+        case .snow, .snowy:
             colors = [CyntientOpsDesign.DashboardColors.primaryText, CyntientOpsDesign.DashboardColors.info.opacity(0.3)]
-        case .fog, .windy:
+        case .fog, .foggy, .windy:
             colors = [CyntientOpsDesign.DashboardColors.info, CyntientOpsDesign.DashboardColors.workerAccent]
+        case .hot:
+            colors = [Color.orange, Color.red]
+        case .cold:
+            colors = [Color.blue, Color.cyan]
         }
         
         return LinearGradient(colors: colors, startPoint: .topLeading, endPoint: .bottomTrailing)
@@ -712,7 +720,7 @@ private struct HeroStatusGrid: View {
         switch progressPercentage {
         case 0..<0.3: return CyntientOpsDesign.DashboardColors.critical
         case 0.3..<0.6: return CyntientOpsDesign.DashboardColors.warning
-        case 0.6..<0.9: return Color(hex: "fbbf24")
+        case 0.6..<0.9: return Color.yellow
         default: return CyntientOpsDesign.DashboardColors.success
         }
     }
@@ -1097,7 +1105,7 @@ private struct HeroProgressBar: View {
         switch percentage {
         case 0..<0.3: return CyntientOpsDesign.DashboardColors.critical
         case 0.3..<0.6: return CyntientOpsDesign.DashboardColors.warning
-        case 0.6..<0.9: return Color(hex: "fbbf24")
+        case 0.6..<0.9: return Color.yellow
         default: return CyntientOpsDesign.DashboardColors.success
         }
     }

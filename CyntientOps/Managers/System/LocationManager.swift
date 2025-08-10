@@ -48,8 +48,14 @@ public final class LocationManager: NSObject, ObservableObject {
     
     // Private initializer for singleton pattern.
     override private init() {
-        self.authorizationStatus = coreLocationManager.authorizationStatus
+        // Initialize with default value first
+        self.authorizationStatus = .notDetermined
+        
+        // Call super.init() before using self
         super.init()
+        
+        // Now we can safely access properties and set up delegates
+        self.authorizationStatus = coreLocationManager.authorizationStatus
         setupLocationManager()
         setupObservers()
     }
@@ -180,10 +186,45 @@ public final class LocationManager: NSObject, ObservableObject {
         coreLocationManager.delegate = self
         coreLocationManager.activityType = .otherNavigation
         coreLocationManager.pausesLocationUpdatesAutomatically = true
-        coreLocationManager.allowsBackgroundLocationUpdates = true
-        coreLocationManager.showsBackgroundLocationIndicator = false
+        
+        // Only enable background location updates if we have proper permissions and entitlements
+        setupBackgroundLocationIfAvailable()
         
         configureLocationManager(for: locationAccuracy)
+    }
+    
+    private func setupBackgroundLocationIfAvailable() {
+        // For now, disable background location to prevent crashes
+        // This can be enabled later when proper entitlements are configured
+        print("📍 Background location disabled for stability - app works with foreground location")
+        
+        // Future implementation when entitlements are properly configured:
+        /*
+        // Check if app has background location entitlements
+        guard hasBackgroundLocationEntitlements() else {
+            print("📍 Background location not available - missing entitlements")
+            return
+        }
+        
+        // Only attempt background location if we have "Always" permission
+        guard authorizationStatus == .authorizedAlways else {
+            print("📍 Background location not available - requires 'Always' permission")
+            return
+        }
+        
+        // Safe to enable background location updates
+        coreLocationManager.allowsBackgroundLocationUpdates = true
+        coreLocationManager.showsBackgroundLocationIndicator = false
+        print("✅ Background location updates enabled")
+        */
+    }
+    
+    private func hasBackgroundLocationEntitlements() -> Bool {
+        // Check if app has the required background location entitlements
+        guard let entitlements = Bundle.main.object(forInfoDictionaryKey: "UIBackgroundModes") as? [String] else {
+            return false
+        }
+        return entitlements.contains("location")
     }
     
     private func setupObservers() {

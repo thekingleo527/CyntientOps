@@ -29,7 +29,7 @@ public struct SiteDepartureView: View {
             }
             .navigationTitle("Leaving \(viewModel.currentBuilding.name)")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
+            .toolbar(content: {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") { dismiss() }
                         .foregroundColor(.white)
@@ -38,14 +38,17 @@ public struct SiteDepartureView: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     emergencyDepartureButton
                 }
-            }
+            })
         }
         .preferredColorScheme(.dark)
         .task {
             await viewModel.loadChecklist()
         }
         .sheet(isPresented: $showPhotoCapture) {
-            ImagePicker(selectedImage: $viewModel.capturedPhoto)
+            FrancoImagePicker(
+                image: $viewModel.capturedPhoto,
+                sourceType: .camera
+            )
         }
         .alert("Emergency Departure", isPresented: $showEmergencyConfirmation) {
             Button("Confirm Emergency", role: .destructive) {

@@ -21,6 +21,7 @@ struct InventoryCategoryCard: View {
     @State private var showingAddItem = false
     @State private var showingReorderRequest = false
     @EnvironmentObject private var dashboardSync: DashboardSyncService
+    @EnvironmentObject private var authManager: AuthManager
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -47,8 +48,8 @@ struct InventoryCategoryCard: View {
             if isExpanded {
                 VStack(spacing: 8) {
                     // Critical alerts first
-                    if let criticalItems = items.filter({ $0.needsRestock && $0.stockLevel < 0.2 }),
-                       !criticalItems.isEmpty {
+                    let criticalItems = items.filter({ $0.needsRestock && $0.stockLevel < 0.2 })
+                    if !criticalItems.isEmpty {
                         LowStockAlertBanner(
                             items: criticalItems,
                             onReorder: { showingReorderRequest = true }
@@ -67,7 +68,7 @@ struct InventoryCategoryCard: View {
                     }
                     
                     // Add item button (admin only)
-                    if dashboardSync.currentUserRole == .admin {
+                    if authManager.userRole == .admin {
                         Button(action: { showingAddItem = true }) {
                             HStack {
                                 Image(systemName: "plus.circle.fill")
@@ -119,7 +120,7 @@ struct InventoryCategoryCard: View {
                     source: .worker,
                     type: .inventoryUpdated,
                     buildingId: buildingId,
-                    workerId: dashboardSync.currentUserId ?? "",
+                    workerId: authManager.workerId ?? "",
                     data: [
                         "itemId": item.id,
                         "itemName": item.name,
@@ -214,7 +215,7 @@ struct BuildingInventoryItemRow: View {
             StockLevelIndicator(
                 current: currentQuantity,
                 minimum: item.minimumStock,
-                maximum: item.maxStock ?? (item.minimumStock * 3)
+                maximum: item.maxStock > 0 ? item.maxStock : (item.minimumStock * 3)
             )
             .frame(width: 60)
             
@@ -430,6 +431,7 @@ struct ReorderRequestView: View {
     @State private var isSubmitting = false
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var dashboardSync: DashboardSyncService
+    @EnvironmentObject private var authManager: AuthManager
     
     var body: some View {
         NavigationView {
@@ -540,9 +542,9 @@ struct ReorderRequestView: View {
             // Broadcast to admin dashboard
             let update = CoreTypes.DashboardUpdate(
                 source: .worker,
-                type: .custom,
+                type: .inventoryUpdated,
                 buildingId: buildingId,
-                workerId: dashboardSync.currentUserId ?? "",
+                workerId: authManager.workerId ?? "",
                 data: [
                     "type": "reorderRequest",
                     "requestId": requestId,
@@ -663,7 +665,6 @@ struct AddInventoryItemSheet: View {
                             minimumStock: minimumStock,
                             maxStock: maxStock,
                             unit: unit,
-                            buildingId: buildingId,
                             lastRestocked: nil
                         )
                         onSave(newItem)
@@ -852,17 +853,6 @@ struct InventoryHistoryPoint: Identifiable {
     let itemsUsed: Int
     let usagePercentage: Double
 }
-    
-    var displayName: String {
-        switch self {
-        case .cleaning: return "Cleaning Supplies"
-        case .equipment: return "Equipment"
-        case .building: return "Building Supplies"
-        case .sanitation: return "Sanitation"
-        case .office: return "Office Supplies"
-        case .seasonal: return "Seasonal Items"
-        }
-    }
 
 extension CoreTypes.InventoryItem {
     var stockLevel: Double {

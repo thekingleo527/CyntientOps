@@ -92,7 +92,7 @@ struct TaskScheduleView: View {
         .onChange(of: visibleMonth) { oldValue, newValue in
             updateMonthDates()
         }
-        .sheet(item: $selectedTask) { task in
+        .sheet(item: $showTaskDetail) { task in
             NavigationView {
                 UnifiedTaskDetailView(task: task, mode: .worker)
             }
@@ -100,13 +100,13 @@ struct TaskScheduleView: View {
         .sheet(isPresented: $showAddTask) {
             // ✅ FIXED: Use existing TaskFormView with correct constructor
             TaskFormView(buildingID: buildingID) { (newTask: CoreTypes.MaintenanceTask) in
-                // Convert MaintenanceTask to ContextualTask if needed
+                // Convert MaintenanceTask to CoreTypes.ContextualTask if needed
                 let contextualTask = CoreTypes.ContextualTask(
                     id: UUID().uuidString,
                     title: newTask.title,
                     description: newTask.description,
-                    isCompleted: false,
-                    completedDate: nil,
+                    status: .pending,
+                    completedAt: nil,
                     dueDate: newTask.dueDate,
                     category: newTask.category,
                     urgency: newTask.urgency,
@@ -475,7 +475,7 @@ struct TaskScheduleView: View {
         case .critical, .emergency: return 5
         case .urgent:               return 4
         case .high:                 return 3
-        case .medium:               return 2
+        case .normal, .medium:      return 2
         case .low:                  return 1
         }
     }
@@ -707,6 +707,7 @@ struct TaskRow: View {
         case .renovation:      return "building.2"
         case .sanitation:      return "trash"
         case .administrative:  return "folder"
+        case .compliance:      return "checkmark.shield"
         }
     }
 }
@@ -819,6 +820,7 @@ struct FilterView: View {
         case .renovation:      return .brown
         case .sanitation:      return .mint
         case .administrative:  return .gray
+        case .compliance:      return .cyan
         }
     }
     
@@ -836,6 +838,7 @@ struct FilterView: View {
         case .renovation:      return "building.2"
         case .sanitation:      return "trash"
         case .administrative:  return "folder"
+        case .compliance:      return "checkmark.shield"
         }
     }
 }

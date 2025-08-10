@@ -536,7 +536,8 @@ struct PhotoAnnotationTool: View {
                 path: currentPath,
                 color: selectedColor,
                 startPoint: value.startLocation,
-                endPoint: value.location
+                endPoint: value.location,
+                text: nil
             )
             annotations.append(annotation)
             isDrawing = false

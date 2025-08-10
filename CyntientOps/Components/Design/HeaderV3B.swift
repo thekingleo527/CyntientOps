@@ -115,12 +115,12 @@ struct HeaderV3B: View {
                 
                 // Or text logo if image not found
                 if UIImage(named: "CyntientOpsLogo") == nil {
-                    VStack(alignment: .leading, spacing: 0) {
-                        Text("FRANCO")
-                            .font(.system(size: 14, weight: .bold, design: .rounded))
+                    HStack(spacing: 4) {
+                        Text("CYNTIENT")
+                            .font(.system(size: 13, weight: .bold, design: .rounded))
                             .foregroundColor(.white)
-                        Text("SPHERE")
-                            .font(.system(size: 10, weight: .medium, design: .rounded))
+                        Text("OPS")
+                            .font(.system(size: 13, weight: .medium, design: .rounded))
                             .foregroundColor(.white.opacity(0.8))
                     }
                 }

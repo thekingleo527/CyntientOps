@@ -118,7 +118,7 @@ struct ForgotPasswordView: View {
                                     
                                     // Icon for password reset
                                     ZStack {
-                                        AbstractCyntientOpsLogo(size: 60)
+                                        SimpleCyntientOpsLogo(size: 60)
                                             .opacity(0.3)
                                         
                                         Image(systemName: "lock.rotation")

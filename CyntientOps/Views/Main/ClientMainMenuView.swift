@@ -875,13 +875,13 @@ struct ClientComplianceIssueDetailSheet: View {
                             Label("Contact Property Manager", systemImage: "phone")
                                 .frame(maxWidth: .infinity)
                         }
-                        .buttonStyle(GlassButtonStyle(style: .primary))
+                        .buttonStyle(.borderedProminent)
                         
                         Button(action: {}) {
                             Label("View Documentation", systemImage: "doc.text")
                                 .frame(maxWidth: .infinity)
                         }
-                        .buttonStyle(GlassButtonStyle(style: .secondary))
+                        .buttonStyle(.bordered)
                     }
                     .padding()
                 }
@@ -972,48 +972,7 @@ struct ClientBuildingDetailViewPlaceholder: View {
 
 struct ClientMainMenuView_Previews: PreviewProvider {
     static var previews: some View {
-        Group {
-            ClientMainMenuViewV6()
-                .preferredColorScheme(.dark)
-                .previewDisplayName("Main Menu")
-            
-            ClientBuildingsListView(
-                buildings: [
-                    CoreTypes.NamedCoordinate(
-                        id: "1",
-                        name: "123 Main Street",
-                        address: "123 Main St, New York, NY",
-                        latitude: 40.7128,
-                        longitude: -74.0060
-                    ),
-                    CoreTypes.NamedCoordinate(
-                        id: "2",
-                        name: "456 Park Avenue",
-                        address: "456 Park Ave, New York, NY",
-                        latitude: 40.7589,
-                        longitude: -73.9851
-                    )
-                ],
-                performanceMap: [
-                    "1": 0.85,
-                    "2": 0.65
-                ],
-                onSelectBuilding: { _ in }
-            )
+        ClientMainMenuViewV6()
             .preferredColorScheme(.dark)
-            .previewDisplayName("Buildings List")
-            
-            ClientComplianceOverview(
-                complianceOverview: CoreTypes.ComplianceOverview(
-                    overallScore: 0.85,
-                    criticalViolations: 2,
-                    pendingInspections: 3
-                ),
-                issues: CoreTypes.ComplianceIssue.previewSet,
-                selectedIssue: nil
-            )
-            .preferredColorScheme(.dark)
-            .previewDisplayName("Compliance Overview")
-        }
     }
 }

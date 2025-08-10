@@ -27,7 +27,7 @@ public actor ComplianceService {
         let query = """
             SELECT ci.*, b.name as building_name
             FROM compliance_issues ci
-            LEFT JOIN buildings b ON ci.building_id = b.id
+            LEFT JOIN buildings b ON ci.buildingId = b.id
             ORDER BY 
                 CASE ci.severity 
                     WHEN 'critical' THEN 1
@@ -53,7 +53,7 @@ public actor ComplianceService {
                 return nil
             }
             
-            let buildingId = row["building_id"] as? String ?? (row["building_id"] as? Int64).map(String.init)
+            let buildingId = row["buildingId"] as? String ?? (row["buildingId"] as? Int64).map(String.init)
             let buildingName = row["building_name"] as? String
             let assignedTo = row["assigned_to"] as? String
             
@@ -100,7 +100,7 @@ public actor ComplianceService {
     func createComplianceIssue(_ issue: CoreTypes.ComplianceIssue) async throws {
         let query = """
             INSERT INTO compliance_issues 
-            (id, title, description, severity, building_id, status, type, 
+            (id, title, description, severity, buildingId, status, type, 
              due_date, assigned_to, created_at, reported_date)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """
@@ -188,7 +188,7 @@ public actor ComplianceService {
         let query = """
             SELECT t.*, b.name as building_name
             FROM routine_tasks t
-            LEFT JOIN buildings b ON t.building_id = b.id
+            LEFT JOIN buildings b ON t.buildingId = b.id
             WHERE t.category = 'inspection' 
                 AND t.status != 'completed'
                 AND date(t.due_date) < date('now')
@@ -199,7 +199,7 @@ public actor ComplianceService {
         for row in rows {
             guard let taskId = row["id"] as? String ?? (row["id"] as? Int64).map(String.init),
                   let title = row["title"] as? String,
-                  let buildingId = row["building_id"] as? String ?? (row["building_id"] as? Int64).map(String.init),
+                  let buildingId = row["buildingId"] as? String ?? (row["buildingId"] as? Int64).map(String.init),
                   let buildingName = row["building_name"] as? String else {
                 continue
             }
@@ -233,7 +233,7 @@ public actor ComplianceService {
             SELECT COUNT(*) as total,
                    SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed
             FROM routine_tasks
-            WHERE building_id = ?
+            WHERE buildingId = ?
                 AND category = 'sanitation'
                 AND title LIKE '%trash%'
                 AND date(scheduled_date) >= date('now', '-7 days')

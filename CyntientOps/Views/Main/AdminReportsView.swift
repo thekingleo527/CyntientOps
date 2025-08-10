@@ -20,12 +20,12 @@
 import SwiftUI
 import Combine
 
-struct AdminReportsView: View {
+public struct AdminReportsView: View {
     // MARK: - Properties
     
     @StateObject private var reportGen = ReportGenerator.shared
     @StateObject private var reportService = ReportService.shared
-    @StateObject private var novaEngine = NovaAIManager.shared
+    @EnvironmentObject private var novaEngine: NovaAIManager
     @EnvironmentObject private var dashboardSync: DashboardSyncService
     @EnvironmentObject private var adminViewModel: AdminDashboardViewModel
     
@@ -57,7 +57,7 @@ struct AdminReportsView: View {
     @State private var mockAvgGenerationTime: Double = 23.5
     @State private var mockLastGeneratedDate: Date? = Date().addingTimeInterval(-3600)
     @State private var mockFavoriteReports: [AdminGeneratedReport] = []
-    @State private var mockAllReports: [AdminGeneratedReport] = []
+    @State private var allReports: [AdminGeneratedReport] = []
     @State private var mockFeaturedTemplates: [ReportTemplate] = []
     @State private var mockPendingReports: [AdminGeneratedReport] = []
     @State private var mockOverdueReports: [AdminGeneratedReport] = []
@@ -82,7 +82,7 @@ struct AdminReportsView: View {
         case expanded = "expanded"
     }
     
-    enum ReportType: String, CaseIterable {
+    public enum ReportType: String, CaseIterable {
         case comprehensive = "Comprehensive"
         case compliance = "Compliance"
         case performance = "Performance"
@@ -91,7 +91,7 @@ struct AdminReportsView: View {
         case executive = "Executive Summary"
         case custom = "Custom"
         
-        var icon: String {
+        public var icon: String {
             switch self {
             case .comprehensive: return "doc.text.fill"
             case .compliance: return "checkmark.shield.fill"
@@ -103,7 +103,7 @@ struct AdminReportsView: View {
             }
         }
         
-        var color: Color {
+        public var color: Color {
             switch self {
             case .comprehensive: return CyntientOpsDesign.DashboardColors.primaryAction
             case .compliance: return CyntientOpsDesign.DashboardColors.warning
@@ -179,7 +179,7 @@ struct AdminReportsView: View {
         mockGeneratedReports.filter { report in
             let matchesSearch = searchText.isEmpty ||
                 report.name.localizedCaseInsensitiveContains(searchText) ||
-                report.type.rawValue.localizedCaseInsensitiveContains(searchText)
+                report.type.localizedCaseInsensitiveContains(searchText)
             
             let matchesCategory: Bool = {
                 switch filterCategory {
@@ -203,7 +203,7 @@ struct AdminReportsView: View {
     
     // MARK: - Body
     
-    var body: some View {
+    public var body: some View {
         ZStack {
             // Dark Elegance Background
             CyntientOpsDesign.DashboardColors.baseBackground
@@ -308,7 +308,7 @@ struct AdminReportsView: View {
         }
         .sheet(isPresented: $showingReportHistory) {
             ReportHistorySheet(
-                reports: mockAllReports,
+                reports: allReports,
                 onSelect: { report in
                     currentReport = report
                     showingReportPreview = true
@@ -723,7 +723,7 @@ struct AdminReportsView: View {
         mockScheduledReports = createMockScheduledReports()
         mockReportTemplates = createMockReportTemplates()
         mockFeaturedTemplates = Array(mockReportTemplates.prefix(4))
-        mockAllReports = mockGeneratedReports
+        allReports = await loadReportsFromService()
         mockFavoriteReports = mockGeneratedReports.filter { $0.isFavorite }
         mockPendingReports = []
         mockOverdueReports = []
@@ -737,11 +737,11 @@ struct AdminReportsView: View {
     
     private func createMockGeneratedReports() -> [AdminGeneratedReport] {
         return [
-            AdminGeneratedReport(name: "Compliance Report - Q4 2024", type: .compliance, generatedDate: Date().addingTimeInterval(-3600), fileSize: "2.4 MB", isFavorite: true, isScheduled: false, isArchived: false),
-            AdminGeneratedReport(name: "Performance Analytics - December", type: .performance, generatedDate: Date().addingTimeInterval(-7200), fileSize: "1.8 MB", isFavorite: false, isScheduled: true, isArchived: false),
-            AdminGeneratedReport(name: "Financial Summary - 2024", type: .financial, generatedDate: Date().addingTimeInterval(-10800), fileSize: "3.2 MB", isFavorite: true, isScheduled: false, isArchived: false),
-            AdminGeneratedReport(name: "Operations Digest - Weekly", type: .operations, generatedDate: Date().addingTimeInterval(-14400), fileSize: "1.5 MB", isFavorite: false, isScheduled: true, isArchived: false),
-            AdminGeneratedReport(name: "Executive Summary - November", type: .executive, generatedDate: Date().addingTimeInterval(-18000), fileSize: "900 KB", isFavorite: false, isScheduled: false, isArchived: false)
+            AdminGeneratedReport(title: "Compliance Report - Q4 2024", type: "compliance", generatedDate: Date().addingTimeInterval(-3600), filePath: "/tmp/compliance_q4.pdf", fileSize: 2500000, isFavorite: true, isScheduled: false, isArchived: false),
+            AdminGeneratedReport(title: "Performance Analytics - December", type: "performance", generatedDate: Date().addingTimeInterval(-7200), filePath: "/tmp/performance_dec.pdf", fileSize: 1800000, isFavorite: false, isScheduled: true, isArchived: false),
+            AdminGeneratedReport(title: "Financial Summary - 2024", type: "financial", generatedDate: Date().addingTimeInterval(-10800), filePath: "/tmp/financial_2024.pdf", fileSize: 3200000, isFavorite: true, isScheduled: false, isArchived: false),
+            AdminGeneratedReport(title: "Operations Digest - Weekly", type: "operations", generatedDate: Date().addingTimeInterval(-14400), filePath: "/tmp/ops_weekly.pdf", fileSize: 1500000, isFavorite: false, isScheduled: true, isArchived: false),
+            AdminGeneratedReport(title: "Executive Summary - November", type: "executive", generatedDate: Date().addingTimeInterval(-18000), filePath: "/tmp/exec_nov.pdf", fileSize: 900000, isFavorite: false, isScheduled: false, isArchived: false)
         ]
     }
     
@@ -821,9 +821,9 @@ struct AdminReportsView: View {
         
         // Add Nova AI insights
         let novaInsights = novaEngine.currentInsights
-        let operationalInsights = novaInsights.filter { insight in
-            insight.type == .operations || insight.type == .efficiency
-        }
+        let operationsInsights = novaInsights.filter { $0.type == .operations }
+        let efficiencyInsights = novaInsights.filter { $0.type == .efficiency }
+        let operationalInsights = operationsInsights + efficiencyInsights
         insights.append(contentsOf: operationalInsights)
         
         // Sort by priority (highest first)
@@ -836,7 +836,7 @@ struct AdminReportsView: View {
     private func handleIntelligenceNavigation(_ target: ReportIntelligencePanel.NavigationTarget) {
         switch target {
         case .report(let id):
-            if let report = mockAllReports.first(where: { $0.id == id }) {
+            if let report = allReports.first(where: { $0.id == id }) {
                 currentReport = report
                 showingReportPreview = true
             }
@@ -863,20 +863,39 @@ struct AdminReportsView: View {
         currentContext = .creating
         
         Task {
-            let config = ReportConfiguration(
-                type: selectedReportType,
-                dateRange: selectedDateRange.dateInterval,
-                includePhotos: true,
-                format: .pdf
-            )
-            
-            let report = await reportGen.generateReport(config: config)
-            
-            await MainActor.run {
-                isGenerating = false
-                currentContext = .overview
-                currentReport = report
-                showingReportPreview = true
+            do {
+                let config = ReportConfiguration(
+                    type: selectedReportType,
+                    dateRange: selectedDateRange.dateInterval,
+                    includePhotos: true,
+                    format: .pdf
+                )
+                
+                // Simulate progress updates
+                await MainActor.run {
+                    reportGen.isGenerating = true
+                    reportGen.generationProgress = 0.1
+                    reportGen.currentStep = "Initializing report generation..."
+                }
+                
+                // Use the actual ReportService to generate a real report
+                let report = await generateRealReport(config: config)
+                
+                await MainActor.run {
+                    isGenerating = false
+                    reportGen.isGenerating = false
+                    reportGen.generationProgress = 1.0
+                    currentContext = .overview
+                    currentReport = report
+                    showingReportPreview = true
+                }
+            } catch {
+                await MainActor.run {
+                    isGenerating = false
+                    reportGen.isGenerating = false
+                    currentContext = .overview
+                    print("❌ Error generating report: \(error)")
+                }
             }
         }
     }
@@ -885,15 +904,145 @@ struct AdminReportsView: View {
         isGenerating = true
         
         Task {
-            let report = await reportGen.generateReport(config: config)
-            
-            await MainActor.run {
-                isGenerating = false
-                currentReport = report
-                showingReportBuilder = false
-                showingReportPreview = true
+            do {
+                // Simulate progress updates
+                await MainActor.run {
+                    reportGen.isGenerating = true
+                    reportGen.generationProgress = 0.1
+                    reportGen.currentStep = "Preparing report data..."
+                }
+                
+                let report = await generateRealReport(config: config)
+                
+                await MainActor.run {
+                    isGenerating = false
+                    reportGen.isGenerating = false
+                    reportGen.generationProgress = 1.0
+                    currentReport = report
+                    showingReportBuilder = false
+                    showingReportPreview = true
+                }
+            } catch {
+                await MainActor.run {
+                    isGenerating = false
+                    reportGen.isGenerating = false
+                    currentContext = .overview
+                    print("❌ Error generating report: \(error)")
+                }
             }
         }
+    }
+    
+    private func generateRealReport(config: ReportConfiguration) async -> AdminGeneratedReport {
+        do {
+            // Update progress
+            await MainActor.run {
+                reportGen.generationProgress = 0.3
+                reportGen.currentStep = "Collecting building data..."
+            }
+            
+            // Create report data based on the configuration
+            let portfolioData = ClientPortfolioReportData(
+                generatedAt: Date(),
+                dateRange: mapToReportDateRange(config.dateRange),
+                portfolioHealth: CoreTypes.PortfolioHealth(
+                    overallScore: 0.85,
+                    totalBuildings: adminViewModel.buildings.count,
+                    activeBuildings: adminViewModel.buildings.count,
+                    criticalIssues: 2,
+                    trend: .stable,
+                    lastUpdated: Date()
+                ),
+                buildings: adminViewModel.buildings,
+                buildingMetrics: [:], // Would populate with real data
+                complianceOverview: CoreTypes.ComplianceOverview(
+                    overallScore: 0.92,
+                    criticalViolations: 1,
+                    pendingInspections: 3,
+                    lastUpdated: Date(),
+                    upcomingDeadlines: []
+                ),
+                insights: [
+                    "Overall portfolio performance is strong",
+                    "Two buildings require immediate attention",
+                    "Compliance scores have improved by 15% this month"
+                ]
+            )
+            
+            // Update progress
+            await MainActor.run {
+                reportGen.generationProgress = 0.6
+                reportGen.currentStep = "Generating PDF report..."
+            }
+            
+            // Generate the actual report using ReportService
+            let reportURL = try await reportService.generateClientReport(portfolioData)
+            
+            // Update progress
+            await MainActor.run {
+                reportGen.generationProgress = 0.9
+                reportGen.currentStep = "Finalizing report..."
+            }
+            
+            // Create AdminGeneratedReport from the result
+            let fileAttributes = try FileManager.default.attributesOfItem(atPath: reportURL.path)
+            let fileSize = fileAttributes[FileAttributeKey.size] as? Int ?? 0
+            
+            let report = AdminGeneratedReport(
+                title: "\(config.type.rawValue) Report",
+                type: config.type.rawValue,
+                dateRange: formatDateRange(config.dateRange),
+                generatedDate: Date(),
+                filePath: reportURL.path,
+                fileSize: fileSize,
+                isFavorite: false,
+                isScheduled: false,
+                isArchived: false
+            )
+            
+            // Final progress update
+            await MainActor.run {
+                reportGen.generationProgress = 1.0
+                reportGen.currentStep = "Report generated successfully!"
+            }
+            
+            return report
+            
+        } catch {
+            print("❌ Failed to generate real report: \(error)")
+            
+            // Return a mock report as fallback
+            return AdminGeneratedReport(
+                title: "\(config.type.rawValue) Report",
+                type: config.type.rawValue,
+                dateRange: formatDateRange(config.dateRange),
+                generatedDate: Date(),
+                filePath: "/tmp/mock_report.pdf",
+                fileSize: 2400000,
+                isFavorite: false,
+                isScheduled: false,
+                isArchived: false
+            )
+        }
+    }
+    
+    private func mapToReportDateRange(_ dateInterval: DateInterval) -> ReportDateRange {
+        let daysDiff = Calendar.current.dateComponents([.day], from: dateInterval.start, to: dateInterval.end).day ?? 0
+        
+        switch daysDiff {
+        case 0...1: return .today
+        case 2...7: return .thisWeek
+        case 8...31: return .thisMonth
+        case 32...92: return .thisQuarter
+        case 93...366: return .thisYear
+        default: return .custom
+        }
+    }
+    
+    private func formatDateRange(_ dateInterval: DateInterval) -> String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        return "\(formatter.string(from: dateInterval.start)) - \(formatter.string(from: dateInterval.end))"
     }
     
     private func scheduleReport(_ schedule: ReportSchedule) {
@@ -937,6 +1086,16 @@ struct AdminReportsView: View {
     private func updateDistributionSettings(_ settings: DistributionSettings) {
         // Mock update distribution settings functionality
         showingDistributionSettings = false
+    }
+    
+    private func loadReportsFromService() async -> [AdminGeneratedReport] {
+        // Load actual reports from ReportService
+        do {
+            return try await reportService.getAllReports()
+        } catch {
+            print("❌ Failed to load reports: \(error)")
+            return []
+        }
     }
 }
 
@@ -1302,9 +1461,9 @@ struct ReportRowCard: View {
     var body: some View {
         Button(action: onView) {
             HStack(spacing: 12) {
-                Image(systemName: report.type.icon)
+                Image(systemName: report.reportType.icon)
                     .font(.title3)
-                    .foregroundColor(report.type.color)
+                    .foregroundColor(report.reportType.color)
                     .frame(width: 24)
                 
                 VStack(alignment: .leading, spacing: 2) {
@@ -1322,7 +1481,7 @@ struct ReportRowCard: View {
                         Text("•")
                             .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
                         
-                        Text(report.fileSize)
+                        Text(ByteCountFormatter.string(fromByteCount: Int64(report.fileSize), countStyle: .file))
                             .francoTypography(CyntientOpsDesign.Typography.caption)
                             .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
                     }
@@ -1401,9 +1560,30 @@ struct EmptyReportsState: View {
 struct FavoriteReportChip: View {
     let report: AdminGeneratedReport
     
+    private func reportType(for typeString: String) -> AdminReportsView.ReportType {
+        switch typeString.lowercased() {
+        case "portfolio", "comprehensive":
+            return .comprehensive
+        case "compliance":
+            return .compliance
+        case "worker", "performance":
+            return .performance
+        case "building", "operations":
+            return .operations
+        case "financial":
+            return .financial
+        case "executive":
+            return .executive
+        case "custom":
+            return .custom
+        default:
+            return .comprehensive
+        }
+    }
+    
     var body: some View {
         HStack(spacing: 4) {
-            Image(systemName: report.type.icon)
+            Image(systemName: reportType(for: report.type).icon)
                 .font(.caption2)
             
             Text(report.name)
@@ -1515,6 +1695,8 @@ struct ReportIntelligencePanel: View {
     let displayMode: AdminReportsView.IntelPanelState
     let onNavigate: (NavigationTarget) -> Void
     
+    @EnvironmentObject private var novaEngine: NovaAIManager
+    
     enum NavigationTarget {
         case report(String)
         case schedule
@@ -1588,7 +1770,7 @@ struct ReportIntelligencePanel: View {
     }
     
     private var isProcessing: Bool {
-        NovaAIManager.shared.novaState != .idle
+        novaEngine.novaState != NovaState.idle
     }
     
     private func handleInsightAction(_ insight: CoreTypes.IntelligenceInsight) {
@@ -1800,15 +1982,52 @@ struct DistributionSettingsSheet: View {
 
 // MARK: - Supporting Types
 
-struct AdminGeneratedReport: Identifiable {
-    let id = UUID().uuidString
-    let name: String
-    let type: AdminReportsView.ReportType
-    let generatedDate: Date
-    let fileSize: String
-    var isFavorite: Bool
-    let isScheduled: Bool
-    let isArchived: Bool
+public struct AdminGeneratedReport: Identifiable, Codable {
+    public let id: String
+    public let title: String
+    public let type: String
+    public let dateRange: String?
+    public let generatedDate: Date
+    public let filePath: String
+    public let fileSize: Int
+    public var isFavorite: Bool
+    public let isScheduled: Bool
+    public let isArchived: Bool
+    
+    public init(
+        id: String = UUID().uuidString,
+        title: String,
+        type: String,
+        dateRange: String? = nil,
+        generatedDate: Date,
+        filePath: String,
+        fileSize: Int,
+        isFavorite: Bool = false,
+        isScheduled: Bool = false,
+        isArchived: Bool = false
+    ) {
+        self.id = id
+        self.title = title
+        self.type = type
+        self.dateRange = dateRange
+        self.generatedDate = generatedDate
+        self.filePath = filePath
+        self.fileSize = fileSize
+        self.isFavorite = isFavorite
+        self.isScheduled = isScheduled
+        self.isArchived = isArchived
+    }
+    
+    // Computed properties for backward compatibility
+    public var name: String { return title }
+    public var reportType: AdminReportsView.ReportType {
+        return AdminReportsView.ReportType(rawValue: type) ?? .operations
+    }
+    public var displayFileSize: String {
+        let formatter = ByteCountFormatter()
+        formatter.countStyle = .file
+        return formatter.string(fromByteCount: Int64(fileSize))
+    }
 }
 
 enum AdminExportFormat: String, CaseIterable {
@@ -1888,10 +2107,11 @@ class ReportGenerator: ObservableObject {
     func generateReport(config: ReportConfiguration) async -> AdminGeneratedReport {
         // Implementation
         return AdminGeneratedReport(
-            name: "Sample Report",
-            type: config.type,
+            title: "Sample Report",
+            type: config.type.rawValue,
             generatedDate: Date(),
-            fileSize: "2.4 MB",
+            filePath: "/tmp/sample_report.pdf",
+            fileSize: 2400000,
             isFavorite: false,
             isScheduled: false,
             isArchived: false

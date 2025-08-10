@@ -1847,7 +1847,7 @@ public class OperationalDataManager: ObservableObject {
     private func refreshBuildingCache() async {
         do {
             let buildings = try await grdbManager.query("""
-                SELECT id, name, address FROM buildings WHERE is_active = 1
+                SELECT id, name, address FROM buildings
             """)
             
             for building in buildings {
@@ -2038,23 +2038,22 @@ public class OperationalDataManager: ObservableObject {
                     currentStatus = "Importing task \(index + 1)/\(realWorldTasks.count) with GRDB"
                     
                     let externalId = generateExternalId(for: operationalTask, index: index)
+                    let dueDate = calculateDueDate(for: operationalTask.recurrence, from: today)
+                    let buildingId = try await mapBuildingNameToId(operationalTask.building)
+                    
+                    let workerId: String? = if !operationalTask.assignedWorker.isEmpty {
+                        try? await mapWorkerNameToId(operationalTask.assignedWorker)
+                    } else {
+                        nil
+                    }
                     
                     let existingTasks = try await grdbManager.query("""
-                        SELECT id FROM tasks WHERE external_id = ?
-                        """, [externalId])
+                        SELECT id FROM tasks WHERE name = ? AND buildingId = ? AND workerId = ?
+                        """, [operationalTask.taskName, buildingId, workerId])
                     
                     if !existingTasks.isEmpty {
                         print("⏭️ Skipping duplicate task: \(operationalTask.taskName)")
                         continue
-                    }
-                    
-                    let dueDate = calculateDueDate(for: operationalTask.recurrence, from: today)
-                    let buildingId = try await mapBuildingNameToId(operationalTask.building)
-                    
-                    let workerId: Int? = if !operationalTask.assignedWorker.isEmpty {
-                        try? await mapWorkerNameToId(operationalTask.assignedWorker)
-                    } else {
-                        nil
                     }
                     
                     guard let validWorkerId = workerId else {
@@ -2079,22 +2078,18 @@ public class OperationalDataManager: ObservableObject {
                     try await grdbManager.execute("""
                         INSERT INTO tasks (
                             name, description, buildingId, workerId, isCompleted,
-                            scheduledDate, recurrence, urgencyLevel, category,
-                            startTime, endTime, external_id
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            scheduledDate, dueDate, category, urgency
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                         """, [
                             operationalTask.taskName,
-                            "Imported from current active worker schedule",
+                            "Imported from current active worker schedule. Recurrence: \(operationalTask.recurrence). Times: \(startTime ?? "N/A")-\(endTime ?? "N/A")",
                             "\(buildingId)",
                             "\(validWorkerId)",
                             "0",
                             dueDate.iso8601String,
-                            operationalTask.recurrence,
-                            urgencyLevel,
+                            dueDate.iso8601String,
                             operationalTask.category,
-                            startTime ?? "",
-                            endTime ?? "",
-                            externalId
+                            urgencyLevel
                         ])
                     
                     importedCount += 1
@@ -2241,7 +2236,7 @@ public class OperationalDataManager: ObservableObject {
         }
     }
     
-    private func mapBuildingNameToId(_ buildingName: String) async throws -> Int {
+    private func mapBuildingNameToId(_ buildingName: String) async throws -> String {
         let buildings = try await BuildingService.shared.getAllBuildings()
         
         let cleanedName = buildingName
@@ -2249,21 +2244,90 @@ public class OperationalDataManager: ObservableObject {
             .replacingOccurrences(of: "—", with: "-")
             .trimmingCharacters(in: .whitespaces)
         
-        if cleanedName.lowercased().contains("rubin") {
-            return 14
+        // Special case mappings for known building aliases
+        let buildingAliases: [String: String] = [
+            // Address variations and ranges
+            "135-139 West 17th Street": "135 West 17th Street",
+            "135-139 W 17th": "135 West 17th Street",
+            "135-139 W 17th St": "135 West 17th Street",
+            "139 West 17th Street": "135 West 17th Street", // Map to building 11
+            
+            // Ensure exact building names are preserved (these should exist in database)
+            "136 West 17th Street": "136 West 17th Street", // ID 12 - keep exact match
+            "138 West 17th Street": "138 West 17th Street", // ID 13 - keep exact match
+            "131 Perry Street": "131 Perry Street", // ID 9 - keep exact match
+            "68 Perry Street": "68 Perry Street", // ID 4 - keep exact match
+            "178 Spring Street": "178 Spring Street", // ID 17 - keep exact match
+            "104 Franklin Street": "104 Franklin Street", // ID 5 - keep exact match
+            "104 Franklin Street Annex": "104 Franklin Street Annex", // ID 18 - keep exact match
+            
+            // Company/office mappings
+            "CyntientOps HQ": "117 West 17th Street", // Map to existing building ID 7
+            "115 7th Avenue": "123 1st Avenue", // Map to existing building ID 8
+            
+            // Museum and cultural sites  
+            "150 West 17th Street": "Rubin Museum", // Map address to museum name
+            
+            // New building
+            "148 Chambers Street": "148 Chambers Street" // ID 21 - keep exact match
+        ]
+        
+        // Check for alias mappings first
+        let searchName = buildingAliases[cleanedName] ?? cleanedName
+        
+        if searchName.lowercased().contains("rubin") || cleanedName.lowercased().contains("rubin") {
+            return "14"
         }
         
+        // Try exact match first
         if let building = buildings.first(where: { building in
+            building.name.compare(searchName, options: .caseInsensitive) == .orderedSame ||
             building.name.compare(cleanedName, options: .caseInsensitive) == .orderedSame ||
             building.name.compare(buildingName, options: .caseInsensitive) == .orderedSame
-        }), let id = Int(building.id) {
-            return id
+        }) {
+            return building.id
+        }
+        
+        // Try partial/fuzzy matching with address numbers
+        if let building = buildings.first(where: { building in
+            let buildingWords = building.name.lowercased().components(separatedBy: .whitespaces)
+            let searchWords = searchName.lowercased().components(separatedBy: .whitespaces)
+            
+            // Check if main address numbers match
+            let buildingNumbers = buildingWords.filter { $0.range(of: #"\d+"#, options: .regularExpression) != nil }
+            let searchNumbers = searchWords.filter { $0.range(of: #"\d+"#, options: .regularExpression) != nil }
+            
+            return !buildingNumbers.isEmpty && !searchNumbers.isEmpty && 
+                   buildingNumbers.contains { num in searchNumbers.contains { $0.contains(num) } }
+        }) {
+            return building.id
+        }
+        
+        // Try contains matching for special cases
+        if let building = buildings.first(where: { building in
+            building.name.lowercased().contains(searchName.lowercased()) ||
+            searchName.lowercased().contains(building.name.lowercased())
+        }) {
+            return building.id
+        }
+        
+        // Enhanced debug logging before throwing error
+        print("❌ Building mapping failed for: '\(buildingName)'")
+        print("   Cleaned name: '\(cleanedName)'")
+        print("   Search name: '\(searchName)'")
+        print("   Available buildings:")
+        for (index, building) in buildings.enumerated() {
+            print("     \(building.id): \(building.name)")
+            if index > 10 { // Limit output
+                print("     ... and \(buildings.count - index - 1) more buildings")
+                break
+            }
         }
         
         throw OperationalError.buildingNotFound(buildingName)
     }
     
-    private func mapWorkerNameToId(_ workerName: String) async throws -> Int {
+    private func mapWorkerNameToId(_ workerName: String) async throws -> String {
         if workerName.contains("Jose") || workerName.contains("Santos") {
             throw OperationalError.workerNotFound("Jose Santos is no longer with the company")
         }
@@ -2272,12 +2336,9 @@ public class OperationalDataManager: ObservableObject {
             SELECT id FROM workers WHERE name = ?
         """, [workerName])
         
-        if let worker = workerResults.first {
-            if let workerId = worker["id"] as? Int64 {
-                return Int(workerId)
-            } else if let workerId = worker["id"] as? Int {
-                return workerId
-            }
+        if let worker = workerResults.first,
+           let workerId = worker["id"] as? String {
+            return workerId
         }
         
         throw OperationalError.workerNotFound(workerName)
@@ -2437,8 +2498,8 @@ public class OperationalDataManager: ObservableObject {
             do {
                 try await grdbManager.execute("""
                     INSERT OR IGNORE INTO worker_assignments 
-                    (worker_id, building_id, worker_name, assignment_type, start_date, is_active) 
-                    VALUES (?, ?, ?, 'regular', datetime('now'), 1)
+                    (worker_id, building_id, worker_name, is_active) 
+                    VALUES (?, ?, ?, 1)
                 """, [workerId, buildingId, workerName])
                 insertedCount += 1
                 
@@ -2587,8 +2648,8 @@ public class OperationalDataManager: ObservableObject {
             if let buildingId = buildingResults.first?["id"] as? String {
                 try await grdbManager.execute("""
                     INSERT OR REPLACE INTO worker_assignments 
-                    (worker_id, building_id, worker_name, assignment_type, start_date, is_active) 
-                    VALUES (?, ?, ?, 'dynamic_operational', datetime('now'), 1)
+                    (worker_id, building_id, worker_name, is_active) 
+                    VALUES (?, ?, ?, 1)
                 """, [workerId, buildingId, name])
                 
                 print("  ✅ Assigned \(name) to building \(building) (ID: \(buildingId)) with GRDB")
@@ -2666,7 +2727,32 @@ public class OperationalDataManager: ObservableObject {
             ON routine_schedules(building_id, worker_id, name)
         """)
         
+        var skippedRoutines = 0
+        
         for routine in routineSchedules {
+            // Validate that building and worker exist before creating routine
+            let buildingExists = try await grdbManager.query(
+                "SELECT id FROM buildings WHERE id = ?", 
+                [routine.buildingId]
+            )
+            
+            if buildingExists.isEmpty {
+                print("⚠️ Skipping routine '\(routine.name)' - building \(routine.buildingId) does not exist")
+                skippedRoutines += 1
+                continue
+            }
+            
+            let workerExists = try await grdbManager.query(
+                "SELECT id FROM workers WHERE id = ?", 
+                [routine.workerId]
+            )
+            
+            if workerExists.isEmpty {
+                print("⚠️ Skipping routine '\(routine.name)' - worker \(routine.workerId) does not exist")
+                skippedRoutines += 1
+                continue
+            }
+            
             let id = "routine_\(routine.buildingId)_\(routine.workerId)_\(routine.name.hashValue.magnitude)"
             let weatherDependent = routine.category == "Cleaning" ? 1 : 0
             
@@ -2680,6 +2766,10 @@ public class OperationalDataManager: ObservableObject {
             if routine.workerId == "4" && routine.buildingId == "14" {
                 print("✅ PRESERVED: Added Kevin's Rubin Museum routine with GRDB: \(routine.name) (building ID 14)")
             }
+        }
+        
+        if skippedRoutines > 0 {
+            print("⚠️ Skipped \(skippedRoutines) routines due to missing building/worker references")
         }
         
         try await grdbManager.execute("""

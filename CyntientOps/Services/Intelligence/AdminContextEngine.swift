@@ -105,6 +105,12 @@ public final class AdminContextEngine: ObservableObject, AdminContextEngineProto
         }
     }
     
+    public nonisolated func setContainer(_ container: ServiceContainer) {
+        Task { @MainActor in
+            self.container = container
+        }
+    }
+    
     // MARK: - Public Methods
     
     /// Refresh all admin context data

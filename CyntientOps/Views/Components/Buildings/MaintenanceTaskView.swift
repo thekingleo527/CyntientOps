@@ -18,6 +18,7 @@ struct MaintenanceTaskView: View {
         switch urgency {
         case .low:       return .green
         case .medium:    return .yellow
+        case .normal:    return .blue
         case .high:      return .orange
         case .urgent:    return .purple
         case .critical:  return .red
@@ -125,7 +126,7 @@ struct MaintenanceTaskView: View {
             // ✅ FIXED: Use isRecurring instead of recurrence
             HStack {
                 Image(systemName: "repeat").foregroundColor(.blue)
-                Text("Type: \(task.isRecurring ? "Recurring" : "One-time")").font(.subheadline)
+                Text("Task Category").font(.subheadline)
             }
         }
     }
@@ -290,6 +291,7 @@ struct StatusBadge: View {
         switch urgency {
         case .low:       return .green
         case .medium:    return .yellow
+        case .normal:    return .blue
         case .high:      return .orange
         case .urgent:    return .purple
         case .critical:  return .red
@@ -319,8 +321,7 @@ struct MaintenanceTaskView_Previews: PreviewProvider {
                 urgency: .medium,
                 buildingId: "1",
                 assignedWorkerId: "4",
-                dueDate: Date(),
-                isRecurring: true  // ✅ FIXED: Use isRecurring instead of recurrence
+                dueDate: Date()
             ))
         }
         .preferredColorScheme(.dark)

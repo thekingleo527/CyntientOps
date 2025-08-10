@@ -15,8 +15,8 @@ import MapKit
 struct MapRevealContainer<Content: View>: View {
     @ViewBuilder let content: () -> Content
     
-    // Map state
-    @State private var isMapRevealed = false
+    // Map state (can be controlled externally)
+    @Binding var isRevealed: Bool
     @State private var dragOffset: CGFloat = 0
     @State private var showHint = true
     @State private var selectedBuildingForPreview: NamedCoordinate?
@@ -43,12 +43,14 @@ struct MapRevealContainer<Content: View>: View {
         buildings: [NamedCoordinate],
         currentBuildingId: String? = nil,
         focusBuildingId: String? = nil,
+        isRevealed: Binding<Bool>,
         onBuildingTap: @escaping (NamedCoordinate) -> Void,
         @ViewBuilder content: @escaping () -> Content
     ) {
         self.buildings = buildings
         self.currentBuildingId = currentBuildingId
         self.focusBuildingId = focusBuildingId
+        self._isRevealed = isRevealed
         self.onBuildingTap = onBuildingTap
         self.content = content
         
@@ -67,12 +69,12 @@ struct MapRevealContainer<Content: View>: View {
     var body: some View {
         ZStack {
             // Ambient mode: Blurred map background
-            if !isMapRevealed {
+            if !isRevealed {
                 ambientMapBackground
             }
             
             // Interactive mode: Full map
-            if isMapRevealed {
+            if isRevealed {
                 interactiveMap
                     .transition(.asymmetric(
                         insertion: .move(edge: .bottom).combined(with: .opacity),
@@ -83,12 +85,12 @@ struct MapRevealContainer<Content: View>: View {
             // Main content overlay
             content()
                 .offset(y: dragOffset)
-                .offset(y: isMapRevealed ? UIScreen.main.bounds.height * 0.75 : 0)
+                .offset(y: isRevealed ? UIScreen.main.bounds.height * 0.75 : 0)
                 .gesture(swipeGesture)
-                .animation(.spring(response: 0.6, dampingFraction: 0.8), value: isMapRevealed)
+                .animation(.spring(response: 0.6, dampingFraction: 0.8), value: isRevealed)
             
             // Map controls when revealed
-            if isMapRevealed {
+            if isRevealed {
                 mapControls
                     .transition(.opacity)
             }
@@ -99,7 +101,7 @@ struct MapRevealContainer<Content: View>: View {
             }
             
             // Swipe hint
-            if showHint && !isMapRevealed {
+            if showHint && !isRevealed {
                 MapInteractionHint.automatic(showHint: $showHint)
             }
         }
@@ -283,10 +285,10 @@ struct MapRevealContainer<Content: View>: View {
             .onChanged { value in
                 let translation = value.translation.height
                 
-                if !isMapRevealed && translation < 0 {
+                if !isRevealed && translation < 0 {
                     // Swiping up to reveal map
                     dragOffset = max(translation, -UIScreen.main.bounds.height * 0.75)
-                } else if isMapRevealed && translation > 0 {
+                } else if isRevealed && translation > 0 {
                     // Swiping down to hide map
                     dragOffset = min(translation, UIScreen.main.bounds.height * 0.75)
                 }
@@ -295,13 +297,13 @@ struct MapRevealContainer<Content: View>: View {
                 withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
                     let threshold: CGFloat = 100
                     
-                    if !isMapRevealed && value.translation.height < -threshold {
+                    if !isRevealed && value.translation.height < -threshold {
                         // Reveal map
-                        isMapRevealed = true
+                        isRevealed = true
                         showHint = false
-                    } else if isMapRevealed && value.translation.height > threshold {
+                    } else if isRevealed && value.translation.height > threshold {
                         // Hide map
-                        isMapRevealed = false
+                        isRevealed = false
                         selectedBuildingForPreview = nil
                     }
                     
@@ -327,7 +329,7 @@ struct MapRevealContainer<Content: View>: View {
     
     private func closeMap() {
         withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
-            isMapRevealed = false
+            isRevealed = false
             selectedBuildingForPreview = nil
             hoveredBuildingId = nil
         }
@@ -408,12 +410,12 @@ struct MapBuildingBubble: View {
                         .blur(radius: 2)
                 }
                 
-                // Main bubble with building image when focused
-                if isFocused && !isSelected {
-                    // Show building image when focused
+                // Always show building image if available, otherwise show icon
+                if buildingAssetMap[building.id] != nil {
+                    // Show building image bubble (default)
                     buildingImageBubble
                 } else {
-                    // Show icon bubble for normal/selected state
+                    // Show icon bubble as fallback
                     iconBubble
                 }
                 
@@ -458,6 +460,10 @@ struct MapBuildingBubble: View {
                         Circle()
                             .stroke(borderColor, lineWidth: 2)
                     )
+                    .overlay(
+                        // Selection overlay
+                        selectedOverlay
+                    )
             } else {
                 // Fallback to icon bubble
                 iconBubbleContent
@@ -493,6 +499,22 @@ struct MapBuildingBubble: View {
                 Image(systemName: buildingIcon)
                     .font(.system(size: 20))
                     .foregroundColor(iconColor)
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private var selectedOverlay: some View {
+        if isSelected {
+            ZStack {
+                Circle()
+                    .fill(.black.opacity(0.4))
+                    .frame(width: 50, height: 50)
+                
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.title2)
+                    .foregroundColor(.green)
+                    .background(Circle().fill(.white).frame(width: 24, height: 24))
             }
         }
     }
@@ -613,6 +635,7 @@ struct MapRevealContainer_Previews: PreviewProvider {
         MapRevealContainer(
             buildings: buildings,
             currentBuildingId: "14",
+            isRevealed: .constant(false),
             onBuildingTap: { building in
                 print("Navigate to: \(building.name)")
             }

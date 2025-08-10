@@ -114,9 +114,9 @@ public class SiteDepartureViewModel: ObservableObject {
                     id: "departure-\(currentBuilding.id)-\(Date().timeIntervalSince1970)",
                     title: "Site Departure - \(currentBuilding.name)",
                     description: "Departure verification photo",
-                    isCompleted: true,
+                    status: .completed,
                     dueDate: Date(),
-                    category: .verification,
+                    category: .administrative,
                     urgency: .medium,
                     buildingId: currentBuilding.id
                 )
@@ -124,7 +124,7 @@ public class SiteDepartureViewModel: ObservableObject {
                 let worker = CoreTypes.WorkerProfile(
                     id: workerId,
                     name: "Worker \(workerId)", // Would be fetched from context
-                    email: nil,
+                    email: "",
                     phone: nil,
                     role: .worker,
                     isActive: true
@@ -134,7 +134,7 @@ public class SiteDepartureViewModel: ObservableObject {
                     image: photo,
                     for: departureTask,
                     worker: worker,
-                    location: locationManager.currentLocation,
+                    location: locationManager.location,
                     notes: "Departure photo for \(currentBuilding.name)"
                 )
                 
@@ -150,7 +150,7 @@ public class SiteDepartureViewModel: ObservableObject {
                 notes: departureNotes.isEmpty ? nil : departureNotes,
                 nextDestination: selectedNextDestination?.id,
                 departureMethod: method,
-                location: locationManager.currentLocation
+                location: locationManager.location
             )
             
             print("✅ Departure log created: \(logId)")

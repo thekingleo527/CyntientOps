@@ -186,82 +186,9 @@ struct BuildingPhotoThumbnail: View {
 
 // MARK: - Maintenance Components
 
-struct MaintenanceHistoryCard: View {
-    let records: [BuildingMaintenanceRecord]
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Label("Recent Maintenance", systemImage: "wrench.fill")
-                .font(.headline)
-                .foregroundColor(.white)
-            
-            if records.isEmpty {
-                Text("No recent maintenance")
-                    .font(.subheadline)
-                    .foregroundColor(.white.opacity(0.6))
-                    .padding(.vertical)
-            } else {
-                VStack(spacing: 12) {
-                    ForEach(records.prefix(5)) { record in
-                        MaintenanceRecordRow(record: record)
-                    }
-                }
-            }
-        }
-        .padding()
-        .background(Color.white.opacity(0.05))
-        .cornerRadius(16)
-    }
-}
+// MaintenanceHistoryCard is defined in BuildingHistoryComponents.swift
 
-struct MaintenanceRecordRow: View {
-    let record: BuildingMaintenanceRecord
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Text(record.type)
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                    .foregroundColor(.white)
-                
-                Spacer()
-                
-                Text(record.date.formatted(date: .abbreviated, time: .omitted))
-                    .font(.caption)
-                    .foregroundColor(.white.opacity(0.6))
-            }
-            
-            if let vendor = record.vendor {
-                Text(vendor)
-                    .font(.caption)
-                    .foregroundColor(.white.opacity(0.7))
-            }
-            
-            Text(record.description)
-                .font(.caption)
-                .foregroundColor(.white.opacity(0.8))
-                .lineLimit(2)
-            
-            HStack {
-                MaintenanceStatusBadge(status: record.status)
-                
-                Spacer()
-                
-                if let cost = record.cost {
-                    Text("$\(cost.formatted())")
-                        .font(.caption)
-                        .fontWeight(.medium)
-                        .foregroundColor(.green)
-                }
-            }
-        }
-        .padding(.vertical, 4)
-        .padding(.horizontal, 8)
-        .background(Color.white.opacity(0.03))
-        .cornerRadius(8)
-    }
-}
+// MaintenanceRecordRow is defined in BuildingHistoryComponents.swift
 
 struct MaintenanceStatusBadge: View {
     let status: String

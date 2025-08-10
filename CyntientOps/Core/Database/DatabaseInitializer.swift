@@ -38,6 +38,7 @@ public class DatabaseInitializer: ObservableObject {
     private var hasVerifiedData = false
     private var cancellables = Set<AnyCancellable>()
     
+    
     public enum DataStatus {
         case unknown
         case empty
@@ -117,13 +118,23 @@ public class DatabaseInitializer: ObservableObject {
         
         initializationProgress = 0.1
         
-        // Create additional tables
-        try await createAdditionalTables()
-        initializationProgress = 0.2
+        // Run database migrations using the new migration system
+        currentStep = "Running database migrations..."
         
-        // Run migrations
-        try await runMigrationsIfNeeded()
+        // Simplified migration - create basic schema directly until DatabaseMigrator import is resolved
+        print("✅ Running inline database schema setup...")
+        
+        // For now, just ensure basic tables exist by calling createBasicSchema
+        // This will be replaced with proper migrator once import issue is resolved
+        try await createBasicSchema()
+        
+        print("✅ Database schema setup completed")
+        
         initializationProgress = 0.3
+        
+        // Legacy table creation (will be removed once all migrations are in place)
+        try await createAdditionalTables()
+        initializationProgress = 0.35
         
         // Seed authentication data
         try await seedAuthenticationData()
@@ -349,8 +360,8 @@ public class DatabaseInitializer: ObservableObject {
         for (id, name, address, lat, lng, imageAsset) in buildings {
             try await grdbManager.execute("""
                 INSERT OR IGNORE INTO buildings 
-                (id, name, address, latitude, longitude, imageAssetName, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+                (id, name, address, latitude, longitude, imageAssetName)
+                VALUES (?, ?, ?, ?, ?, ?)
             """, [id, name, address, lat, lng, imageAsset])
         }
         
@@ -395,8 +406,8 @@ public class DatabaseInitializer: ObservableObject {
             try await grdbManager.execute("""
                 INSERT INTO routine_tasks 
                 (title, description, buildingId, workerId, category, urgency, 
-                 isCompleted, scheduledDate, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, 0, date('now'), datetime('now'), datetime('now'))
+                 isCompleted, scheduledDate)
+                VALUES (?, ?, ?, ?, ?, ?, 0, date('now'))
             """, [title, desc, buildingId, workerId, category, urgency])
         }
         
@@ -445,11 +456,11 @@ public class DatabaseInitializer: ObservableObject {
                     continue
                 }
                 
-                let externalId = "op_task_\(workerId)_\(buildingId)_\(operationalTask.taskName.hash)"
+                let _ = "op_task_\(workerId)_\(buildingId)_\(operationalTask.taskName.hash)" // Unused external ID
                 
                 let existing = try await grdbManager.query(
-                    "SELECT id FROM routine_tasks WHERE external_id = ?",
-                    [externalId]
+                    "SELECT id FROM routine_tasks WHERE title = ? AND buildingId = ? AND workerId = ?",
+                    [operationalTask.taskName, buildingId, workerId]
                 )
                 
                 if !existing.isEmpty {
@@ -459,20 +470,15 @@ public class DatabaseInitializer: ObservableObject {
                 
                 try await grdbManager.execute("""
                     INSERT INTO routine_tasks (
-                        worker_id, building_id, task_name, category, skill_level,
-                        recurrence, start_time, end_time, is_active, external_id,
-                        created_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, datetime('now'))
+                        workerId, buildingId, title, category, recurrence, notes
+                    ) VALUES (?, ?, ?, ?, ?, ?)
                 """, [
                     workerId,
                     buildingId,
                     operationalTask.taskName,
                     operationalTask.category,
-                    operationalTask.skillLevel,
                     operationalTask.recurrence,
-                    operationalTask.startHour.map { String($0) } ?? NSNull(),
-                    operationalTask.endHour.map { String($0) } ?? NSNull(),
-                    externalId
+                    "Skill Level: \(operationalTask.skillLevel) | Hours: \(operationalTask.startHour?.description ?? "N/A")-\(operationalTask.endHour?.description ?? "N/A")"
                 ])
                 
                 converted += 1
@@ -488,19 +494,122 @@ public class DatabaseInitializer: ObservableObject {
     
     // MARK: - Migration Management
     
-    private func runMigrationsIfNeeded() async throws {
-        print("🔄 Checking for pending migrations...")
+    /// Get database schema version info for debugging
+    private func getDatabaseVersionInfo() async -> String {
+        // Simplified version info until DatabaseMigrator import is resolved
+        return "Database version: inline setup (migrations temporarily disabled)"
+    }
+    
+    /// Create basic database schema - temporary solution until DatabaseMigrator is accessible
+    private func createBasicSchema() async throws {
+        print("🔧 Creating basic database schema...")
         
+        // Create workers table if it doesn't exist
         try await grdbManager.execute("""
-            CREATE TABLE IF NOT EXISTS schema_migrations (
-                version INTEGER PRIMARY KEY,
-                applied_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            CREATE TABLE IF NOT EXISTS workers (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                email TEXT UNIQUE NOT NULL,
+                password TEXT DEFAULT 'password',
+                role TEXT NOT NULL DEFAULT 'worker',
+                phone TEXT,
+                hourlyRate REAL DEFAULT 25.0,
+                skills TEXT,
+                isActive INTEGER NOT NULL DEFAULT 1,
+                profileImagePath TEXT,
+                address TEXT,
+                emergencyContact TEXT,
+                notes TEXT,
+                shift TEXT,
+                lastLogin TEXT,
+                loginAttempts INTEGER DEFAULT 0,
+                lockedUntil TEXT,
+                display_name TEXT,
+                timezone TEXT DEFAULT 'America/New_York',
+                notification_preferences TEXT,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT DEFAULT CURRENT_TIMESTAMP
             )
         """)
         
-        // Future migrations would go here
+        // Create buildings table if it doesn't exist
+        try await grdbManager.execute("""
+            CREATE TABLE IF NOT EXISTS buildings (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                address TEXT NOT NULL,
+                latitude REAL,
+                longitude REAL,
+                imageAssetName TEXT,
+                numberOfUnits INTEGER,
+                propertyManager TEXT,
+                emergencyContact TEXT,
+                accessInstructions TEXT,
+                notes TEXT,
+                isActive INTEGER DEFAULT 1,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
         
-        print("✅ Migrations complete")
+        // Create routine_tasks table if it doesn't exist
+        try await grdbManager.execute("""
+            CREATE TABLE IF NOT EXISTS routine_tasks (
+                id TEXT PRIMARY KEY,
+                title TEXT NOT NULL,
+                description TEXT,
+                buildingId TEXT,
+                workerId TEXT,
+                scheduledDate TEXT,
+                dueDate TEXT,
+                completedDate TEXT,
+                isCompleted INTEGER DEFAULT 0,
+                category TEXT,
+                urgency TEXT,
+                requiresPhoto INTEGER DEFAULT 0,
+                photoPath TEXT,
+                notes TEXT,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (buildingId) REFERENCES buildings(id),
+                FOREIGN KEY (workerId) REFERENCES workers(id)
+            )
+        """)
+        
+        // Create worker_building_assignments table if it doesn't exist
+        try await grdbManager.execute("""
+            CREATE TABLE IF NOT EXISTS worker_building_assignments (
+                id TEXT PRIMARY KEY,
+                worker_id TEXT NOT NULL,
+                building_id TEXT NOT NULL,
+                role TEXT NOT NULL,
+                assigned_date TEXT DEFAULT CURRENT_TIMESTAMP,
+                is_active INTEGER DEFAULT 1,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (worker_id) REFERENCES workers(id),
+                FOREIGN KEY (building_id) REFERENCES buildings(id),
+                UNIQUE(worker_id, building_id, role)
+            )
+        """)
+        
+        // Create inventory_items table if it doesn't exist
+        try await grdbManager.execute("""
+            CREATE TABLE IF NOT EXISTS inventory_items (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                category TEXT NOT NULL,
+                currentStock INTEGER DEFAULT 0,
+                minimumStock INTEGER DEFAULT 0,
+                maxStock INTEGER DEFAULT 100,
+                unit TEXT DEFAULT 'units',
+                buildingId TEXT,
+                lastRestocked TEXT,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (buildingId) REFERENCES buildings(id)
+            )
+        """)
+        
+        print("✅ Basic database schema created successfully")
     }
     
     // MARK: - Verification Methods
@@ -518,15 +627,24 @@ public class DatabaseInitializer: ObservableObject {
         let hasKevinRubin = (kevinRubinCheck.first?["count"] as? Int64 ?? 0) > 0
         
         if !hasKevinRubin {
-            print("⚠️ Creating Kevin Dutan's Rubin Museum assignment...")
+            // Check if both worker and building exist before creating assignment
+            let workerExists = try await grdbManager.query("SELECT id FROM workers WHERE id = '4'")
+            let buildingExists = try await grdbManager.query("SELECT id FROM buildings WHERE id = '14'")
             
-            try await grdbManager.execute("""
-                INSERT OR REPLACE INTO worker_building_assignments 
-                (worker_id, building_id, role, assigned_date, is_active)
-                VALUES ('4', '14', 'maintenance', datetime('now'), 1)
-            """)
-            
-            print("✅ Kevin Dutan's Rubin Museum assignment created")
+            if !workerExists.isEmpty && !buildingExists.isEmpty {
+                print("⚠️ Creating Kevin Dutan's Rubin Museum assignment...")
+                
+                try await grdbManager.execute("""
+                    INSERT OR REPLACE INTO worker_building_assignments 
+                    (worker_id, building_id, role, assigned_date, is_active)
+                    VALUES ('4', '14', 'maintenance', datetime('now'), 1)
+                """)
+                
+                print("✅ Kevin Dutan's Rubin Museum assignment created")
+            } else {
+                print("⚠️ Cannot create Kevin's Rubin assignment - Worker exists: \(!workerExists.isEmpty), Building exists: \(!buildingExists.isEmpty)")
+                print("   This assignment will be created after buildings are imported")
+            }
         }
         
         print("✅ Critical relationships verified")
@@ -807,14 +925,17 @@ public class DatabaseInitializer: ObservableObject {
             id: "op_\(operationalTask.taskName.hash)_\(workerId)",
             title: operationalTask.taskName,
             description: generateTaskDescription(operationalTask),
-            isCompleted: false,
-            completedDate: nil,
+            status: .pending,
+            completedAt: nil,
+            scheduledDate: nil,
             dueDate: calculateDueDate(for: operationalTask),
             category: mapToTaskCategory(operationalTask.category),
             urgency: mapToTaskUrgency(operationalTask.skillLevel),
             building: nil,
             worker: nil,
             buildingId: buildingId,
+            buildingName: nil,
+            assignedWorkerId: workerId,
             priority: mapToTaskUrgency(operationalTask.skillLevel)
         )
     }

@@ -24,7 +24,7 @@ struct BuildingSelectionView: View {
     @State private var searchText = ""
     @State private var viewMode: ViewMode = .list
     @State private var buildingMetrics: [String: BuildingMetrics] = [:]
-    @State private var selectedBuilding: NamedCoordinate?
+    @State private var selectedBuilding: CoreTypes.NamedCoordinate?
     @State private var region = MKCoordinateRegion(
         center: CLLocationCoordinate2D(latitude: 40.7401, longitude: -73.9978),
         span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
@@ -267,7 +267,7 @@ struct BuildingSelectionView: View {
         }
     }
     
-    private func handleSelection(_ building: NamedCoordinate) {
+    private func handleSelection(_ building: CoreTypes.NamedCoordinate) {
         onSelect(building)
         dismiss()
     }
@@ -309,7 +309,7 @@ struct BuildingSelectionView: View {
 // MARK: - Selectable Building Card
 
 struct SelectableBuildingCard: View {
-    let building: NamedCoordinate
+    let building: CoreTypes.NamedCoordinate
     let metrics: BuildingMetrics?
     let purpose: BuildingSelectionView.SelectionPurpose
     let onSelect: () -> Void
@@ -367,7 +367,7 @@ struct SelectableBuildingCard: View {
 // MARK: - Selected Building Overlay (for Map View)
 
 struct SelectedBuildingOverlay: View {
-    let building: NamedCoordinate
+    let building: CoreTypes.NamedCoordinate
     let metrics: BuildingMetrics?
     let purpose: BuildingSelectionView.SelectionPurpose
     let onSelect: () -> Void
@@ -382,10 +382,11 @@ struct SelectedBuildingOverlay: View {
                 .padding(.top, 8)
             
             // Building card
-            MySitesCard(
+            PropertyCard(
                 building: building,
                 metrics: metrics,
-                style: .hero
+                mode: .admin,
+                onTap: onSelect
             )
             
             // Action button
@@ -425,7 +426,7 @@ struct SelectedBuildingOverlay: View {
 // MARK: - Building Selection Map Pin (Renamed from BuildingMapPin to avoid conflict)
 
 struct BuildingSelectionMapPin: View {
-    let building: NamedCoordinate
+    let building: CoreTypes.NamedCoordinate
     let isSelected: Bool
     let onTap: () -> Void
     
@@ -464,14 +465,14 @@ struct BuildingSelectionMapPin: View {
 #Preview("List View") {
     BuildingSelectionView(
         buildings: [
-            NamedCoordinate(
+            CoreTypes.NamedCoordinate(
                 id: "1",
                 name: "12 West 18th Street",
                 address: "12 West 18th Street, New York, NY",
                 latitude: 40.7389,
                 longitude: -73.9936
             ),
-            NamedCoordinate(
+            CoreTypes.NamedCoordinate(
                 id: "14",
                 name: "Rubin Museum",
                 address: "150 W 17th St, New York, NY 10011",
@@ -490,28 +491,28 @@ struct BuildingSelectionMapPin: View {
 #Preview("Map View") {
     BuildingSelectionView(
         buildings: [
-            NamedCoordinate(
+            CoreTypes.NamedCoordinate(
                 id: "1",
                 name: "12 West 18th Street",
                 address: "12 West 18th Street, New York, NY",
                 latitude: 40.7389,
                 longitude: -73.9936
             ),
-            NamedCoordinate(
+            CoreTypes.NamedCoordinate(
                 id: "14",
                 name: "Rubin Museum",
                 address: "150 W 17th St, New York, NY 10011",
                 latitude: 40.7401,
                 longitude: -73.9978
             ),
-            NamedCoordinate(
+            CoreTypes.NamedCoordinate(
                 id: "2",
                 name: "111 West 19th Street",
                 address: "111 West 19th Street, New York, NY",
                 latitude: 40.7412,
                 longitude: -73.9951
             ),
-            NamedCoordinate(
+            CoreTypes.NamedCoordinate(
                 id: "3",
                 name: "205 East 12th Street",
                 address: "205 East 12th Street, New York, NY",

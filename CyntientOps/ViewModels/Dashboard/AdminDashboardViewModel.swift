@@ -26,6 +26,40 @@ class AdminDashboardViewModel: ObservableObject {
     @Published var buildingMetrics: [String: CoreTypes.BuildingMetrics] = [:]
     @Published var portfolioInsights: [CoreTypes.IntelligenceInsight] = []
     
+    // MARK: - Portfolio & Admin Properties  
+    @Published var portfolioMetrics: CoreTypes.PortfolioMetrics = CoreTypes.PortfolioMetrics(
+        totalBuildings: 0, 
+        activeWorkers: 0, 
+        overallCompletionRate: 0.0, 
+        criticalIssues: 0, 
+        complianceScore: 0.0
+    )
+    @Published var criticalAlerts: [CoreTypes.AdminAlert] = []
+    
+    // Computed property for sync status - using CoreTypes.DashboardSyncStatus
+    @Published var dashboardSyncStatus: CoreTypes.DashboardSyncStatus = .synced
+    
+    // Conversion computed property for UI components
+    var syncStatus: AdminHeroStatusCard.SyncStatus {
+        switch dashboardSyncStatus {
+        case .synced:
+            return .synced
+        case .syncing:
+            return .syncing(progress: 0.5) // Default progress
+        case .failed, .error:
+            return .error("Sync failed")
+        case .offline:
+            return .error("Offline")
+        }
+    }
+    
+    // Refresh method for UI components
+    func refresh() {
+        Task {
+            await loadDashboardData()
+        }
+    }
+    
     // MARK: - Photo Evidence Properties
     @Published var recentCompletedTasks: [CoreTypes.ContextualTask] = []
     @Published var completedTasks: [CoreTypes.ContextualTask] = []
@@ -45,9 +79,12 @@ class AdminDashboardViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var lastUpdateTime: Date?
     
-    // MARK: - Cross-Dashboard Integration
-    @Published var dashboardSyncStatus: CoreTypes.DashboardSyncStatus = .synced
+    // MARK: - Cross-Dashboard Integration  
     @Published var crossDashboardUpdates: [CoreTypes.DashboardUpdate] = []
+    
+    // MARK: - Admin Dashboard Specific Properties
+    @Published var recentActivity: [AdminActivity] = []
+    @Published var todaysTaskCount: Int = 0
     
     // MARK: - Worker Capabilities
     @Published var workerCapabilities: [String: WorkerCapabilities] = [:]
@@ -125,6 +162,13 @@ class AdminDashboardViewModel: ObservableObject {
             await countTodaysPhotos()
             await loadPhotoComplianceStats()
             
+            // Calculate portfolio metrics
+            await calculatePortfolioMetrics()
+            
+            // Load recent activity and today's task count
+            await loadRecentActivity()
+            calculateTodaysTaskCount()
+            
             self.lastUpdateTime = Date()
             
             let successMessage = NSLocalizedString("Admin dashboard loaded successfully", comment: "Dashboard load success")
@@ -142,6 +186,11 @@ class AdminDashboardViewModel: ObservableObject {
     
     /// Refresh dashboard data (for pull-to-refresh)
     func refreshDashboardData() async {
+        await loadDashboardData()
+    }
+    
+    /// Initialize the AdminDashboardViewModel
+    func initialize() async {
         await loadDashboardData()
     }
     
@@ -421,7 +470,8 @@ class AdminDashboardViewModel: ObservableObject {
             data: [
                 "buildingIds": Array(metrics.keys).joined(separator: ","),
                 "totalBuildings": String(metrics.count)
-            ]
+            ],
+            description: "Portfolio metrics refreshed - \(metrics.count) buildings analyzed"
         )
         broadcastAdminUpdate(update)
     }
@@ -444,14 +494,15 @@ class AdminDashboardViewModel: ObservableObject {
             // Create and broadcast update
             let update = CoreTypes.DashboardUpdate(
                 source: .admin,
-                type: .buildingMetricsChanged,
+                type: .intelligenceGenerated,
                 buildingId: "",
                 workerId: "",
                 data: [
                     "insightCount": String(insights.count),
                     "criticalInsights": String(insights.filter { $0.priority == .critical }.count),
                     "intelligenceGenerated": "true"
-                ]
+                ],
+                description: "AI insights generated - \(insights.count) portfolio insights analyzed"
             )
             broadcastAdminUpdate(update)
             
@@ -493,14 +544,16 @@ class AdminDashboardViewModel: ObservableObject {
             // Create and broadcast update
             let update = CoreTypes.DashboardUpdate(
                 source: .admin,
-                type: .buildingMetricsChanged,
+                type: .intelligenceGenerated,
                 buildingId: buildingId,
                 workerId: "",
                 data: [
                     "buildingInsights": String(buildingInsights.count),
                     "buildingId": buildingId,
-                    "intelligenceGenerated": "true"
-                ]
+                    "intelligenceGenerated": "true",
+                    "buildingName": buildings.first { $0.id == buildingId }?.name ?? "Building"
+                ],
+                description: "Building intelligence updated for \(buildings.first { $0.id == buildingId }?.name ?? "building") - \(buildingInsights.count) insights"
             )
             broadcastAdminUpdate(update)
             
@@ -530,6 +583,7 @@ class AdminDashboardViewModel: ObservableObject {
             print("✅ \(successMessage) \(buildingId)")
             
             // Create and broadcast update
+            let buildingName = buildings.first { $0.id == buildingId }?.name ?? "Building"
             let update = CoreTypes.DashboardUpdate(
                 source: .admin,
                 type: .buildingMetricsChanged,
@@ -538,8 +592,10 @@ class AdminDashboardViewModel: ObservableObject {
                 data: [
                     "buildingId": buildingId,
                     "completionRate": String(metrics.completionRate),
-                    "overdueTasks": String(metrics.overdueTasks)
-                ]
+                    "overdueTasks": String(metrics.overdueTasks),
+                    "buildingName": buildingName
+                ],
+                description: "\(buildingName) metrics updated - \(Int(metrics.completionRate * 100))% completion, \(metrics.overdueTasks) overdue"
             )
             broadcastAdminUpdate(update)
             
@@ -561,16 +617,133 @@ class AdminDashboardViewModel: ObservableObject {
         // Create and broadcast update
         let update = CoreTypes.DashboardUpdate(
             source: .admin,
-            type: .buildingMetricsChanged,
+            type: .portfolioMetricsChanged,
             buildingId: "",
             workerId: "",
             data: [
                 "adminStatus": status,
                 "timestamp": ISO8601DateFormatter().string(from: Date()),
                 "performanceUpdate": "true"
-            ]
+            ],
+            description: "Admin dashboard status updated - \(status.capitalized)"
         )
         broadcastAdminUpdate(update)
+    }
+    
+    /// Calculate portfolio metrics based on current data
+    private func calculatePortfolioMetrics() async {
+        let totalBuildings = buildings.count
+        let activeWorkerCount = activeWorkers.count
+        
+        // Calculate overall completion rate from building metrics
+        let completionRates = buildingMetrics.values.map { $0.completionRate }
+        let overallCompletionRate = completionRates.isEmpty ? 0.0 : 
+            completionRates.reduce(0, +) / Double(completionRates.count)
+        
+        // Count critical issues from building metrics
+        let criticalIssues = buildingMetrics.values.reduce(0) { sum, metrics in
+            sum + (metrics.overdueTasks > 5 ? 1 : 0) + (metrics.completionRate < 0.5 ? 1 : 0)
+        }
+        
+        // Calculate compliance score from photo compliance stats
+        let complianceScore = (photoComplianceStats?.complianceRate ?? 0.0) * 100
+        
+        self.portfolioMetrics = CoreTypes.PortfolioMetrics(
+            totalBuildings: totalBuildings,
+            activeWorkers: activeWorkerCount,
+            overallCompletionRate: overallCompletionRate,
+            criticalIssues: criticalIssues,
+            complianceScore: complianceScore
+        )
+        
+        // Generate critical alerts
+        await generateCriticalAlerts()
+    }
+    
+    /// Generate critical alerts based on current data
+    private func generateCriticalAlerts() async {
+        var alerts: [CoreTypes.AdminAlert] = []
+        
+        // Check for buildings with low completion rates
+        for (buildingId, metrics) in buildingMetrics {
+            if metrics.completionRate < 0.5 {
+                if let building = buildings.first(where: { $0.id == buildingId }) {
+                    let alert = CoreTypes.AdminAlert(
+                        title: "Low completion rate in \(building.name)",
+                        description: "Completion rate is \(Int(metrics.completionRate * 100))%. Review task assignments and worker availability.",
+                        urgency: .high,
+                        type: .building,
+                        affectedBuilding: buildingId,
+                        metadata: ["actionRequired": "Review task assignments and worker availability"]
+                    )
+                    alerts.append(alert)
+                }
+            }
+            
+            // Check for overdue tasks
+            if metrics.overdueTasks > 5 {
+                if let building = buildings.first(where: { $0.id == buildingId }) {
+                    let alert = CoreTypes.AdminAlert(
+                        title: "High overdue task count in \(building.name)",
+                        description: "\(metrics.overdueTasks) tasks are overdue. Immediate action required to reassign tasks and check worker availability.",
+                        urgency: .critical,
+                        type: .task,
+                        affectedBuilding: buildingId,
+                        metadata: ["actionRequired": "Reassign tasks and check worker availability", "overdueCount": String(metrics.overdueTasks)]
+                    )
+                    alerts.append(alert)
+                }
+            }
+        }
+        
+        // Check for compliance issues
+        if let photoStats = photoComplianceStats, photoStats.complianceRate < 0.8 {
+            let alert = CoreTypes.AdminAlert(
+                title: "Photo compliance below threshold",
+                description: "Only \(photoStats.compliancePercentage) of required tasks have photo evidence. Review photo requirements with workers.",
+                urgency: .high,
+                type: .compliance,
+                metadata: ["actionRequired": "Review photo requirements with workers", "complianceRate": photoStats.compliancePercentage]
+            )
+            alerts.append(alert)
+        }
+        
+        self.criticalAlerts = alerts
+    }
+    
+    /// Load recent activity data
+    private func loadRecentActivity() async {
+        var activities: [AdminActivity] = []
+        
+        // Get recent completed tasks
+        for task in recentCompletedTasks.prefix(10) {
+            if let completedAt = task.completedAt {
+                let activity = AdminActivity(
+                    type: .taskCompleted,
+                    description: "Task completed: \(task.title)",
+                    workerName: nil, // Would need to look up from task data
+                    buildingName: task.buildingName,
+                    timestamp: completedAt
+                )
+                activities.append(activity)
+            }
+        }
+        
+        // Sort by timestamp (most recent first)
+        activities.sort { $0.timestamp > $1.timestamp }
+        
+        self.recentActivity = Array(activities.prefix(5))
+    }
+    
+    /// Calculate today's task count
+    private func calculateTodaysTaskCount() {
+        let today = Date()
+        let todaysTasks = tasks.filter { task in
+            guard let scheduledDate = task.scheduledDate else { return false }
+            return Calendar.current.isDate(scheduledDate, inSameDayAs: today)
+        }
+        
+        self.todaysTaskCount = todaysTasks.count
     }
     
     // MARK: - Helper Methods
@@ -611,7 +784,7 @@ class AdminDashboardViewModel: ObservableObject {
             }
         }()
         
-        let averageCompletion = buildingMetrics.values.isEmpty ? 0 :
+        let _ = buildingMetrics.values.isEmpty ? 0 :
             buildingMetrics.values.reduce(0) { $0 + $1.completionRate } / Double(buildingMetrics.count)
         
         return AdminPortfolioSummary(

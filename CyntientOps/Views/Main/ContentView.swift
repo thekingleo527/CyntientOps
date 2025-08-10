@@ -146,11 +146,10 @@ struct UndefinedRoleView: View {
                 }
                 .opacity(0)
                 .animation(.easeIn(duration: 0.3).delay(3), value: isRetrying)
-                .onAppear {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-                        withAnimation {
-                            isRetrying = false
-                        }
+                .task {
+                    try? await Task.sleep(nanoseconds: 3_000_000_000)
+                    withAnimation {
+                        isRetrying = false
                     }
                 }
             }
@@ -258,9 +257,8 @@ struct ContentView_Previews: PreviewProvider {
                     // Simulate worker login for preview
                     Task {
                         try? await workerAuth.authenticate(
-                            username: "worker@example.com",
-                            password: "preview",
-                            role: .worker
+                            email: "worker@example.com",
+                            password: "preview"
                         )
                     }
                 }
@@ -273,9 +271,8 @@ struct ContentView_Previews: PreviewProvider {
                     // Simulate admin login for preview
                     Task {
                         try? await adminAuth.authenticate(
-                            username: "admin@example.com",
-                            password: "preview",
-                            role: .admin
+                            email: "admin@example.com",
+                            password: "preview"
                         )
                     }
                 }
@@ -288,9 +285,8 @@ struct ContentView_Previews: PreviewProvider {
                     // Simulate client login for preview
                     Task {
                         try? await clientAuth.authenticate(
-                            username: "client@example.com",
-                            password: "preview",
-                            role: .client
+                            email: "client@example.com",
+                            password: "preview"
                         )
                     }
                 }
@@ -310,33 +306,31 @@ struct ContentView_Previews: PreviewProvider {
 
 struct AdminDashboardContainerView: View {
     @EnvironmentObject private var authManager: NewAuthManager
+    @EnvironmentObject private var serviceContainer: ServiceContainer
     
     var body: some View {
-        // In the real implementation, this would create and inject the ViewModel
-        AdminDashboardView(viewModel: AdminDashboardViewModel())
+        AdminDashboardView(viewModel: AdminDashboardViewModel(container: serviceContainer))
+            .environmentObject(serviceContainer)
             .environmentObject(authManager)
-            .environmentObject(DashboardSyncService.shared)
     }
 }
 
 struct ClientDashboardContainerView: View {
     @EnvironmentObject private var authManager: NewAuthManager
+    @EnvironmentObject private var serviceContainer: ServiceContainer
     
     var body: some View {
-        // In the real implementation, this would create and inject the ViewModel
-        ClientDashboardView(viewModel: ClientDashboardViewModel())
+        ClientDashboardView(container: serviceContainer)
             .environmentObject(authManager)
-            .environmentObject(DashboardSyncService.shared)
     }
 }
 
 struct WorkerDashboardContainerView: View {
     @EnvironmentObject private var authManager: NewAuthManager
+    @EnvironmentObject private var serviceContainer: ServiceContainer
     
     var body: some View {
-        // In the real implementation, this would create and inject the ViewModel
-        WorkerDashboardView(viewModel: WorkerDashboardViewModel())
+        WorkerDashboardView(container: serviceContainer)
             .environmentObject(authManager)
-            .environmentObject(DashboardSyncService.shared)
     }
 }

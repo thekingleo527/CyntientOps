@@ -190,8 +190,8 @@ struct ClientDashboardPortfolioHeroCard: View {
                 VStack(spacing: 12) {
                     ClientPortfolioMetric(
                         title: "Active Alerts",
-                        value: "\(realtimeMetrics.activeAlerts)",
-                        color: realtimeMetrics.activeAlerts > 0 ? .red : .green
+                        value: "\(realtimeMetrics.criticalIssues)",
+                        color: realtimeMetrics.criticalIssues > 0 ? .red : .green
                     )
                     
                     ClientPortfolioMetric(
@@ -276,8 +276,7 @@ struct ClientBuildingGridSection: View {
                 ForEach(buildings.prefix(4)) { building in
                     ClientBuildingCard(
                         building: building,
-                        metrics: buildingMetrics[building.id],
-                        onTap: { onBuildingTap(building) }
+                        metrics: buildingMetrics[building.id]
                     )
                 }
             }
@@ -468,11 +467,11 @@ struct ClientDashboardComponents_Previews: PreviewProvider {
                         lastUpdated: Date()
                     ),
                     realtimeMetrics: CoreTypes.RealtimePortfolioMetrics(
-                        lastUpdateTime: Date(),
-                        performanceTrend: [0.8, 0.82, 0.85],
-                        recentActivities: [],
-                        activeAlerts: 2,
-                        pendingActions: 3
+                        totalBuildings: 17,
+                        activeWorkers: 7,
+                        overallCompletionRate: 0.85,
+                        criticalIssues: 2,
+                        complianceScore: 92.0
                     ),
                     monthlyMetrics: CoreTypes.MonthlyMetrics(
                         currentSpend: 45000,

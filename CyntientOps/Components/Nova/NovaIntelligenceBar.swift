@@ -17,8 +17,8 @@ struct NovaIntelligenceBar: View {
     @State private var currentInsight: String = "Nova is analyzing your performance..."
     @State private var animationPhase = 0
     
-    // Nova AI Manager reference
-    @StateObject private var novaManager = NovaAIManager.shared
+    // Nova AI Manager reference (passed from container)
+    @ObservedObject var novaManager: NovaAIManager
     
     private let insights = [
         "You're ahead of schedule on 3 tasks today",

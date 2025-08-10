@@ -320,7 +320,7 @@ public class BuildingIntelligenceViewModel: ObservableObject {
         return WorkerProfile(
             id: id,
             name: name,
-            email: "\(name.lowercased().replacingOccurrences(of: " ", with: "."))@francosphere.com",
+            email: "\(name.lowercased().replacingOccurrences(of: " ", with: "."))@cyntientops.com",
             phoneNumber: "(555) 123-4567",
             role: role,
             skills: ["Maintenance", "General"],

@@ -880,7 +880,7 @@ public class DashboardSyncService: ObservableObject {
             let baseRetryDelay = 2.0 // 2 seconds base
             
             try await grdbManager.execute("""
-                INSERT INTO sync_queue (
+                INSERT OR REPLACE INTO sync_queue (
                     id, entity_type, entity_id, action,
                     data, retry_count, priority, is_compressed,
                     retry_delay, created_at, expires_at
