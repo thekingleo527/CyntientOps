@@ -2007,7 +2007,7 @@ class BuildingDetailVM: ObservableObject {
     }
     
     // Routines data
-    @Published var dailyRoutines: [DailyRoutine] = []
+    @Published var dailyRoutines: [DailyRoutineTask] = []
     @Published var completedRoutines: Int = 0
     @Published var totalRoutines: Int = 0
     @Published var assignedWorkers: [AssignedWorker] = []
@@ -2081,7 +2081,7 @@ class BuildingDetailVM: ObservableObject {
     func loadBuildingData() async {}
     func refreshData() async {}
     func savePhoto(_ image: UIImage, category: CoreTypes.FrancoPhotoCategory, notes: String) async {}
-    func toggleRoutineCompletion(_ routine: DailyRoutine) {}
+    func toggleRoutineCompletion(_ routine: DailyRoutineTask) {}
     func exportBuildingReport() {}
     func toggleFavorite() { isFavorite.toggle() }
     func editBuildingInfo() {}

@@ -457,7 +457,9 @@ public struct NovaAvatar: View {
     // MARK: - Animation Methods
     
     private func startBreathingAnimation() {
-        // Natural breathing rhythm
+        let intensity = size.animationIntensity
+        
+        // Natural breathing rhythm - adjusted for size
         withAnimation(
             Animation.easeInOut(duration: 3.0)
                 .repeatForever(autoreverses: true)
@@ -465,12 +467,12 @@ public struct NovaAvatar: View {
             breathe = true
         }
         
-        // Gentle glow pulsing
+        // Gentle glow pulsing - reduced for persistent mode
         withAnimation(
             Animation.easeInOut(duration: 4.0)
                 .repeatForever(autoreverses: true)
         ) {
-            glowOpacity = 0.9
+            glowOpacity = 0.3 + (0.6 * intensity)  // Range: 0.3-0.9 based on intensity
         }
     }
     
@@ -501,15 +503,17 @@ public struct NovaAvatar: View {
 // MARK: - Size Enum
 extension NovaAvatar {
     public enum AvatarSize {
-        case small   // 40x40
-        case medium  // 50x50
-        case large   // 60x60
+        case small      // 40x40
+        case medium     // 50x50  
+        case large      // 60x60
+        case persistent // 35x35 - Optimized for always-available persistent assistant
         
         var dimension: CGFloat {
             switch self {
             case .small: return 40
             case .medium: return 50
             case .large: return 60
+            case .persistent: return 35  // Smaller for persistent presence
             }
         }
         
@@ -526,6 +530,7 @@ extension NovaAvatar {
             case .small: return 8
             case .medium: return 10
             case .large: return 12
+            case .persistent: return 6  // Subtle shadow for persistent mode
             }
         }
         
@@ -534,6 +539,16 @@ extension NovaAvatar {
             case .small: return 2
             case .medium: return 3
             case .large: return 4
+            case .persistent: return 1.5  // Minimal offset for persistent mode
+            }
+        }
+        
+        /// Animation intensity factor for different sizes
+        var animationIntensity: Double {
+            switch self {
+            case .persistent: return 0.6  // Reduced animations for persistent presence
+            case .small: return 0.8
+            case .medium, .large: return 1.0
             }
         }
     }

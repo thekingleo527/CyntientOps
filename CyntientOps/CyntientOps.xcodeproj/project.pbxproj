@@ -222,17 +222,13 @@
 		231934122E42EC7200640977 /* GlassStatusBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231933EE2E42EC7200640977 /* GlassStatusBadge.swift */; };
 		231934132E42EC7200640977 /* BuildingHeaderGlassOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231933E52E42EC7200640977 /* BuildingHeaderGlassOverlay.swift */; };
 		231934142E42EC7200640977 /* NovaClientIntelligenceBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231933FA2E42EC7200640977 /* NovaClientIntelligenceBar.swift */; };
-		231934152E42EC7200640977 /* WorkerUrgentTasksSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231934032E42EC7200640977 /* WorkerUrgentTasksSection.swift */; };
-		231934162E42EC7200640977 /* WorkerTodaysTasksSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231934022E42EC7200640977 /* WorkerTodaysTasksSection.swift */; };
 		231934172E42EC7200640977 /* IntelligencePreviewPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231933F52E42EC7200640977 /* IntelligencePreviewPanel.swift */; };
 		231934182E42EC7200640977 /* ClientHeroCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231933C72E42EC7200640977 /* ClientHeroCard.swift */; };
 		231934192E42EC7200640977 /* CyntientOpsDesign.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231933E02E42EC7200640977 /* CyntientOpsDesign.swift */; };
 		2319341A2E42EC7200640977 /* MyAssignedBuildingsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231933D32E42EC7200640977 /* MyAssignedBuildingsSection.swift */; };
-		2319341B2E42EC7200640977 /* WorkerCurrentBuildingSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231933FF2E42EC7200640977 /* WorkerCurrentBuildingSection.swift */; };
 		2319341C2E42EC7200640977 /* WorkersInlineList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231933DE2E42EC7200640977 /* WorkersInlineList.swift */; };
 		2319341D2E42EC7200640977 /* RoutinePriority.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231933D52E42EC7200640977 /* RoutinePriority.swift */; };
 		2319341E2E42EC7200640977 /* HeaderV3B.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231933E22E42EC7200640977 /* HeaderV3B.swift */; };
-		2319341F2E42EC7200640977 /* WorkerHeroCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231934012E42EC7200640977 /* WorkerHeroCard.swift */; };
 		231934202E42EC7200640977 /* GlassNavigationBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231933ED2E42EC7200640977 /* GlassNavigationBar.swift */; };
 		231934212E42EC7200640977 /* NovaIntelligenceBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231933FB2E42EC7200640977 /* NovaIntelligenceBar.swift */; };
 		231934222E42EC7200640977 /* ProfileBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231933D42E42EC7200640977 /* ProfileBadge.swift */; };
@@ -246,7 +242,6 @@
 		2319342A2E42EC7200640977 /* SyncStatusComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231933F62E42EC7200640977 /* SyncStatusComponents.swift */; };
 		2319342B2E42EC7200640977 /* WorkerAvatar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231933DD2E42EC7200640977 /* WorkerAvatar.swift */; };
 		2319342C2E42EC7200640977 /* StatusPill.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231933D62E42EC7200640977 /* StatusPill.swift */; };
-		2319342D2E42EC7200640977 /* WorkerDashboardHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231934002E42EC7200640977 /* WorkerDashboardHeader.swift */; };
 		2319342E2E42EC7200640977 /* AdminRealtimeSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231933C42E42EC7200640977 /* AdminRealtimeSection.swift */; };
 		2319342F2E42EC7200640977 /* WeatherDashboardComponent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231933DA2E42EC7200640977 /* WeatherDashboardComponent.swift */; };
 		231934302E42EC7200640977 /* AdaptiveGlassModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231933CE2E42EC7200640977 /* AdaptiveGlassModifier.swift */; };
@@ -547,11 +542,6 @@
 		231933FA2E42EC7200640977 /* NovaClientIntelligenceBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NovaClientIntelligenceBar.swift; sourceTree = "<group>"; };
 		231933FB2E42EC7200640977 /* NovaIntelligenceBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NovaIntelligenceBar.swift; sourceTree = "<group>"; };
 		231933FD2E42EC7200640977 /* EmergencyContactsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmergencyContactsSheet.swift; sourceTree = "<group>"; };
-		231933FF2E42EC7200640977 /* WorkerCurrentBuildingSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkerCurrentBuildingSection.swift; sourceTree = "<group>"; };
-		231934002E42EC7200640977 /* WorkerDashboardHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkerDashboardHeader.swift; sourceTree = "<group>"; };
-		231934012E42EC7200640977 /* WorkerHeroCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkerHeroCard.swift; sourceTree = "<group>"; };
-		231934022E42EC7200640977 /* WorkerTodaysTasksSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkerTodaysTasksSection.swift; sourceTree = "<group>"; };
-		231934032E42EC7200640977 /* WorkerUrgentTasksSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkerUrgentTasksSection.swift; sourceTree = "<group>"; };
 		231934432E42ECD600640977 /* TestRealDataIntegration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestRealDataIntegration.swift; sourceTree = "<group>"; };
 		231934462E42ECF300640977 /* CyntientOpsTests-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "CyntientOpsTests-Bridging-Header.h"; sourceTree = "<group>"; };
 		231934472E42ED2600640977 /* CyntientOps-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "CyntientOps-Info.plist"; sourceTree = "<group>"; };
@@ -1352,11 +1342,6 @@
 		231934042E42EC7200640977 /* Worker */ = {
 			isa = PBXGroup;
 			children = (
-				231933FF2E42EC7200640977 /* WorkerCurrentBuildingSection.swift */,
-				231934002E42EC7200640977 /* WorkerDashboardHeader.swift */,
-				231934012E42EC7200640977 /* WorkerHeroCard.swift */,
-				231934022E42EC7200640977 /* WorkerTodaysTasksSection.swift */,
-				231934032E42EC7200640977 /* WorkerUrgentTasksSection.swift */,
 			);
 			path = Worker;
 			sourceTree = "<group>";
@@ -1667,17 +1652,13 @@
 				231934122E42EC7200640977 /* GlassStatusBadge.swift in Sources */,
 				231934132E42EC7200640977 /* BuildingHeaderGlassOverlay.swift in Sources */,
 				231934142E42EC7200640977 /* NovaClientIntelligenceBar.swift in Sources */,
-				231934152E42EC7200640977 /* WorkerUrgentTasksSection.swift in Sources */,
-				231934162E42EC7200640977 /* WorkerTodaysTasksSection.swift in Sources */,
 				231934172E42EC7200640977 /* IntelligencePreviewPanel.swift in Sources */,
 				231934182E42EC7200640977 /* ClientHeroCard.swift in Sources */,
 				231934192E42EC7200640977 /* CyntientOpsDesign.swift in Sources */,
 				2319341A2E42EC7200640977 /* MyAssignedBuildingsSection.swift in Sources */,
-				2319341B2E42EC7200640977 /* WorkerCurrentBuildingSection.swift in Sources */,
 				2319341C2E42EC7200640977 /* WorkersInlineList.swift in Sources */,
 				2319341D2E42EC7200640977 /* RoutinePriority.swift in Sources */,
 				2319341E2E42EC7200640977 /* HeaderV3B.swift in Sources */,
-				2319341F2E42EC7200640977 /* WorkerHeroCard.swift in Sources */,
 				231934202E42EC7200640977 /* GlassNavigationBar.swift in Sources */,
 				231934212E42EC7200640977 /* NovaIntelligenceBar.swift in Sources */,
 				231934222E42EC7200640977 /* ProfileBadge.swift in Sources */,
@@ -1691,7 +1672,6 @@
 				2319342A2E42EC7200640977 /* SyncStatusComponents.swift in Sources */,
 				2319342B2E42EC7200640977 /* WorkerAvatar.swift in Sources */,
 				2319342C2E42EC7200640977 /* StatusPill.swift in Sources */,
-				2319342D2E42EC7200640977 /* WorkerDashboardHeader.swift in Sources */,
 				2319342E2E42EC7200640977 /* AdminRealtimeSection.swift in Sources */,
 				2319342F2E42EC7200640977 /* WeatherDashboardComponent.swift in Sources */,
 				231934302E42EC7200640977 /* AdaptiveGlassModifier.swift in Sources */,

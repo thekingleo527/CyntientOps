@@ -54,14 +54,32 @@ struct MapRevealContainer<Content: View>: View {
         self.onBuildingTap = onBuildingTap
         self.content = content
         
-        // Initialize map position
-        let center = buildings.first?.coordinate ??
-                    CLLocationCoordinate2D(latitude: 40.7589, longitude: -73.9851)
+        // Initialize map position - Focus on Chelsea/Lower Manhattan portfolio area
+        let portfolioCenter: CLLocationCoordinate2D
+        
+        if !buildings.isEmpty {
+            // Calculate the centroid of portfolio buildings for better focus
+            let latSum = buildings.map { $0.coordinate.latitude }.reduce(0, +)
+            let lonSum = buildings.map { $0.coordinate.longitude }.reduce(0, +)
+            portfolioCenter = CLLocationCoordinate2D(
+                latitude: latSum / Double(buildings.count),
+                longitude: lonSum / Double(buildings.count)
+            )
+        } else {
+            // Default to Chelsea neighborhood center (optimal for Manhattan portfolio)
+            portfolioCenter = CLLocationCoordinate2D(
+                latitude: 40.7450, // Chelsea area - 23rd Street vicinity
+                longitude: -73.9950  // Between 8th and 9th Avenue
+            )
+        }
         
         self._position = State(initialValue: .region(
             MKCoordinateRegion(
-                center: center,
-                span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
+                center: portfolioCenter,
+                span: MKCoordinateSpan(
+                    latitudeDelta: 0.025,  // Tighter zoom for neighborhood focus
+                    longitudeDelta: 0.020  // Optimized for Manhattan's aspect ratio
+                )
             )
         ))
     }
