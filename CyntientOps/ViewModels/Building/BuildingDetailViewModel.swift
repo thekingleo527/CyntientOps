@@ -520,7 +520,7 @@ public class BuildingDetailViewModel: ObservableObject {
             
             guard let building = buildingData.first else {
                 // Fallback to operational data manager
-                if let cachedBuilding = operationalDataManager.getBuilding(byId: buildingId) {
+                if operationalDataManager.getBuilding(byId: buildingId) != nil {
                     await MainActor.run {
                         self.buildingType = "Residential"
                         self.buildingSize = 25000
@@ -865,7 +865,7 @@ public class BuildingDetailViewModel: ObservableObject {
     private func loadSpaceThumbnails() async {
         for (index, space) in spaces.enumerated() {
             do {
-                let photos = try await photoEvidenceService.loadBuildingPhotos(buildingId: buildingId)
+                let photos = try await photoEvidenceService.getRecentPhotos(buildingId: buildingId, limit: 20)
                 let spacePhotoIds = photos.filter { photo in
                     // Simplified filtering - category property not available
                     return true

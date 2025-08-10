@@ -401,7 +401,7 @@ public final class ClientDashboardViewModel: ObservableObject {
             let workers = try await container.workers.getAllActiveWorkers()
             
             var activeCount = 0
-            for worker in workers {
+            for _ in workers {
                 // Check if worker is assigned to any of the client's buildings
                 // For now, use a simplified approach since getWorkerBuildings may not exist
                 if !clientBuildingIds.isEmpty {
@@ -618,15 +618,6 @@ public final class ClientDashboardViewModel: ObservableObject {
             let _ = await countActiveWorkers()
             
         case .buildingMetricsChanged:
-            if let updatedMetrics = try? await container.metrics.calculateMetrics(for: update.buildingId) {
-                buildingMetrics[update.buildingId] = updatedMetrics
-                updateComputedMetrics()
-            }
-            
-        case .complianceStatusChanged:
-            await generateComplianceIssues()
-            
-        case .buildingMetricsChanged:
             // Handle photo updates specifically
             if let action = update.data["action"], action == "photoBatch" || action == "urgentPhoto" {
                 await loadRecentPhotos(for: update.buildingId)
@@ -637,6 +628,9 @@ public final class ClientDashboardViewModel: ObservableObject {
                 buildingMetrics[update.buildingId] = updatedMetrics
                 updateComputedMetrics()
             }
+            
+        case .complianceStatusChanged:
+            await generateComplianceIssues()
             
         case .criticalUpdate:
             // Handle urgent photos (safety/DSNY compliance)
@@ -662,7 +656,7 @@ public final class ClientDashboardViewModel: ObservableObject {
     /// Load recent photos for specific building
     private func loadRecentPhotos(for buildingId: String) async {
         do {
-            let photos = try await container.photoEvidence.getPhotosForBuilding(buildingId, limit: 10)
+            let photos = try await container.photos.getRecentPhotos(buildingId: buildingId, limit: 10)
             
             await MainActor.run {
                 // Update recent photos for this specific building
@@ -689,7 +683,7 @@ public final class ClientDashboardViewModel: ObservableObject {
             var categoryBreakdown: [String: Int] = [:]
             
             for buildingId in clientBuildingIds {
-                let buildingPhotos = try await container.photoEvidence.getPhotosForBuilding(buildingId, limit: 50)
+                let buildingPhotos = try await container.photos.getRecentPhotos(buildingId: buildingId, limit: 50)
                 
                 // Count today's photos
                 let today = Calendar.current.startOfDay(for: Date())
@@ -718,18 +712,11 @@ public final class ClientDashboardViewModel: ObservableObject {
               let photoCategory = update.data["category"] as? String else { return }
         
         let alert = CoreTypes.IntelligenceInsight(
-            id: UUID().uuidString,
             title: "Urgent Photo Documentation",
             description: "New \(photoCategory) photo uploaded at \(buildingName) requires immediate review",
-            category: .safety,
+            type: .safety,
             priority: .critical,
-            confidence: 1.0,
-            actionableSteps: [
-                "Review photo documentation immediately",
-                "Contact building management if compliance action needed",
-                "Update client records with photo evidence"
-            ],
-            affectedBuildings: [update.buildingId]
+            actionRequired: true
         )
         
         await MainActor.run {

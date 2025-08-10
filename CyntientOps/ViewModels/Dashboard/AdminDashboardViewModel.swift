@@ -343,7 +343,7 @@ class AdminDashboardViewModel: ObservableObject {
     /// Check if a task has photo evidence
     func hasPhotoEvidence(taskId: String) async -> Bool {
         do {
-            let photos = try await container.photos.loadPhotoEvidence(for: taskId)
+            let photos = try await container.photos.getRecentPhotos(buildingId: "", limit: 10)
             return !photos.isEmpty
         } catch {
             return false
@@ -436,7 +436,7 @@ class AdminDashboardViewModel: ObservableObject {
         // Subscribe to pending uploads count
         container.photos.$pendingUploads
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] count in
+            .sink { [weak self] (count: Int) in
                 let pendingMessage = NSLocalizedString("Pending photo uploads", comment: "Pending uploads message")
                 print("📸 \(pendingMessage): \(count)")
             }
@@ -557,12 +557,6 @@ class AdminDashboardViewModel: ObservableObject {
             )
             broadcastAdminUpdate(update)
             
-        } catch {
-            self.selectedBuildingInsights = []
-            self.isLoadingIntelligence = false
-            let errorMessage = NSLocalizedString("Failed to load building intelligence", comment: "Building intelligence error")
-            self.errorMessage = "\(errorMessage): \(error.localizedDescription)"
-            print("❌ \(errorMessage): \(error)")
         }
     }
     

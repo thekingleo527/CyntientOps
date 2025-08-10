@@ -240,15 +240,15 @@ public class TaskDetailViewModel: ObservableObject {
         
         if let task = currentTask, let worker = workerProfile {
             do {
-                let evidence = try await photoEvidenceService.captureEvidence(
+                let evidence = try await photoEvidenceService.captureQuick(
                     image: image,
-                    for: task,
-                    worker: worker,
-                    location: locationManager.location,
-                    notes: nil
+                    category: .afterWork,
+                    buildingId: task.buildingId ?? "",
+                    workerId: worker.id,
+                    notes: ""
                 )
                 
-                photoLocalPath = evidence.localPath
+                photoLocalPath = evidence.filePath
                 photoData = image.jpegData(compressionQuality: photoCompressionQuality)
                 
                 print("✅ Photo evidence captured: \(evidence.id)")

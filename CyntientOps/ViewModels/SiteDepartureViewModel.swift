@@ -130,11 +130,11 @@ public class SiteDepartureViewModel: ObservableObject {
                     isActive: true
                 )
                 
-                let evidence = try await PhotoEvidenceService.shared.captureEvidence(
+                let evidence = try await PhotoEvidenceService.shared.captureQuick(
                     image: photo,
-                    for: departureTask,
-                    worker: worker,
-                    location: locationManager.location,
+                    category: .afterWork,
+                    buildingId: currentBuilding.id,
+                    workerId: worker.id,
                     notes: "Departure photo for \(currentBuilding.name)"
                 )
                 
