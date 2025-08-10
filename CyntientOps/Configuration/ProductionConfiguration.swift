@@ -52,6 +52,13 @@ public final class ProductionConfiguration {
         #endif
     }
     
+    // MARK: - Compatibility Property
+    
+    /// Compatibility property for existing code that references ProductionConfiguration.environment
+    public static var environment: Environment {
+        return currentEnvironment
+    }
+    
     // MARK: - Feature Flags
     
     public struct FeatureFlags {
@@ -106,5 +113,23 @@ public final class ProductionConfiguration {
         public static var isEnabled: Bool {
             return currentEnvironment == .production
         }
+    }
+    
+    // MARK: - Analytics Configuration (Compatibility)
+    
+    public struct Analytics {
+        public static let sentryDSN = Monitoring.sentryDSN
+    }
+    
+    // MARK: - Helper Methods
+    
+    /// Log current configuration settings
+    public static func logConfiguration() {
+        print("🔧 ProductionConfiguration:")
+        print("   Environment: \(environment.rawValue)")
+        print("   Base URL: \(environment.baseURL)")
+        print("   NYC API Enabled: \(FeatureFlags.isNYCAPIEnabled)")
+        print("   Nova AI Enabled: \(FeatureFlags.isNovaAIEnabled)")
+        print("   Monitoring Enabled: \(Monitoring.isEnabled)")
     }
 }
