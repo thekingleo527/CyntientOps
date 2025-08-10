@@ -3175,7 +3175,7 @@ struct DSNYScheduleRow: View {
 }
 
 struct SanitationTaskRow: View {
-    let routine: BDDailyRoutine
+    let routine: DailyRoutineTask
     let onToggle: () -> Void
     
     var body: some View {
