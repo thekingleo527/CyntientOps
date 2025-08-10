@@ -250,9 +250,9 @@ public final class EmergencyContactService: ObservableObject {
                 type: .company
             ),
             EmergencyContact(
-                name: "Greg Hutson (Manager)",
+                name: "Greg Hutson (Building Worker)",
                 phoneNumber: "917-555-0001", // Placeholder
-                type: .manager
+                type: .worker
             ),
             EmergencyContact(
                 name: "Shawn Magloire (Technical)",
@@ -289,10 +289,10 @@ public final class EmergencyContactService: ObservableObject {
         // In production, this would send push notifications, emails, etc.
         print("📧 Notifying management of emergency: \(emergency.reason?.rawValue ?? "Unknown")")
         
-        // Auto-notify Greg Hutson (Manager)
+        // Auto-notify Shawn Magloire (Manager)
         let managerContact = EmergencyContact(
-            name: "Greg Hutson (Manager)",
-            phoneNumber: "917-555-0001", // Placeholder
+            name: "Shawn Magloire (Manager)",
+            phoneNumber: "917-555-0008", // Placeholder
             type: .manager
         )
         

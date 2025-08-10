@@ -58,13 +58,13 @@ public final class UserAccountSeeder {
             capabilities: nil
         ),
         
-        // Managers
+        // Workers
         UserAccount(
             id: "1",
-            name: "Greg Hutson",
+            name: "Greg Hutson", 
             email: "greg.hutson@cyntientops.com",
-            password: "GregManager2025!",
-            role: "manager",
+            password: "GregWorker2025!",
+            role: "worker",
             isActive: true,
             capabilities: WorkerCapabilities(
                 simplifiedInterface: false,

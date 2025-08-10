@@ -89,11 +89,17 @@ public class DatabaseMigrator {
             print("🔧 Running migration v5: Adding user preferences...")
             try addUserPreferencesTable(db)
         }
+        
+        // MIGRATION v6: Add Photos Table (Dec 2024)
+        migrator.registerMigration("v6_AddPhotosTable") { db in
+            print("🔧 Running migration v6: Adding photos table for building documentation...")
+            try addPhotosTable(db)
+        }
     }
     
     /// Get total number of registered migrations
     private func getTotalMigrationsCount() -> Int {
-        return 5 // Update this as you add more migrations
+        return 6 // Update this as you add more migrations
     }
 }
 
@@ -308,6 +314,49 @@ public enum DatabaseMigrationError: LocalizedError {
         case .rollbackFailed(let message):
             return "Database rollback failed: \(message)"
         }
+    }
+    
+    /// MIGRATION v6: Add photos table for streamlined building documentation
+    private static func addPhotosTable(_ db: Database) throws {
+        print("📸 Creating photos table for building documentation...")
+        
+        try db.execute(sql: """
+            CREATE TABLE IF NOT EXISTS photos (
+                id TEXT PRIMARY KEY,
+                building_id TEXT NOT NULL,
+                category TEXT NOT NULL,
+                worker_id TEXT NOT NULL,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                file_path TEXT NOT NULL,
+                thumbnail_path TEXT NOT NULL,
+                file_size INTEGER DEFAULT 0,
+                notes TEXT DEFAULT '',
+                retention_days INTEGER DEFAULT 30,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                
+                FOREIGN KEY (building_id) REFERENCES buildings(id),
+                FOREIGN KEY (worker_id) REFERENCES workers(id)
+            )
+        """)
+        
+        // Create indices for efficient querying
+        try db.execute(sql: """
+            CREATE INDEX IF NOT EXISTS idx_photos_building_id ON photos(building_id)
+        """)
+        
+        try db.execute(sql: """
+            CREATE INDEX IF NOT EXISTS idx_photos_category ON photos(category)
+        """)
+        
+        try db.execute(sql: """
+            CREATE INDEX IF NOT EXISTS idx_photos_timestamp ON photos(timestamp)
+        """)
+        
+        try db.execute(sql: """
+            CREATE INDEX IF NOT EXISTS idx_photos_retention ON photos(retention_days, timestamp)
+        """)
+        
+        print("✅ Photos table created with indices for efficient categorization and retrieval")
     }
 }
 
