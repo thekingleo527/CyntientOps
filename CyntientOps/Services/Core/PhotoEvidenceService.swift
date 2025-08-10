@@ -155,7 +155,7 @@ public class PhotoEvidenceService: ObservableObject {
             throw PhotoError.invalidDSNYTiming("Cannot set out trash before 8:00 PM")
         }
         
-        var batch = createBatch(buildingId: buildingId, category: .dsnyCompliance, workerId: workerId)
+        var batch = createBatch(buildingId: buildingId, category: .compliance, workerId: workerId)
         batch.notes = isSetOut ? "DSNY_SETOUT" : "DSNY_PICKUP"
         
         for image in images {
