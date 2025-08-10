@@ -40,9 +40,30 @@ public final class UserAccountSeeder {
     private struct WorkerCapabilities {
         let simplifiedInterface: Bool
         let language: String
+        let languageToggle: Bool // Can switch languages (default: false)
         let requiresPhotoForSanitation: Bool
+        let canUploadPhotos: Bool // Can optionally upload photos (default: true)
         let canAddEmergencyTasks: Bool
         let eveningModeUI: Bool
+        
+        // Default initializer
+        init(
+            simplifiedInterface: Bool = false,
+            language: String = "en",
+            languageToggle: Bool = false,
+            requiresPhotoForSanitation: Bool = true,
+            canUploadPhotos: Bool = true,
+            canAddEmergencyTasks: Bool = false,
+            eveningModeUI: Bool = false
+        ) {
+            self.simplifiedInterface = simplifiedInterface
+            self.language = language
+            self.languageToggle = languageToggle
+            self.requiresPhotoForSanitation = requiresPhotoForSanitation
+            self.canUploadPhotos = canUploadPhotos
+            self.canAddEmergencyTasks = canAddEmergencyTasks
+            self.eveningModeUI = eveningModeUI
+        }
     }
     
     // MARK: - Production User Accounts
@@ -67,10 +88,12 @@ public final class UserAccountSeeder {
             role: "worker",
             isActive: true,
             capabilities: WorkerCapabilities(
-                simplifiedInterface: false,
+                simplifiedInterface: false, // Full dashboard
                 language: "en",
-                requiresPhotoForSanitation: false,
-                canAddEmergencyTasks: true,
+                languageToggle: false,
+                requiresPhotoForSanitation: true,
+                canUploadPhotos: true,
+                canAddEmergencyTasks: false,
                 eveningModeUI: false
             )
         ),
@@ -82,10 +105,12 @@ public final class UserAccountSeeder {
             role: "manager",
             isActive: true,
             capabilities: WorkerCapabilities(
-                simplifiedInterface: false,
-                language: "en",
-                requiresPhotoForSanitation: false,
-                canAddEmergencyTasks: true,
+                simplifiedInterface: false, // Full management dashboard
+                language: "en", // English interface
+                languageToggle: false,
+                requiresPhotoForSanitation: false, // Manager doesn't need photo requirements
+                canUploadPhotos: true,
+                canAddEmergencyTasks: true, // Can create emergency tasks
                 eveningModeUI: false
             )
         ),
@@ -99,9 +124,11 @@ public final class UserAccountSeeder {
             role: "worker",
             isActive: true,
             capabilities: WorkerCapabilities(
-                simplifiedInterface: false,
-                language: "en",
-                requiresPhotoForSanitation: true,
+                simplifiedInterface: false, // Full dashboard - standard worker
+                language: "en", // English primary with Spanish toggle
+                languageToggle: true, // Can switch to Spanish
+                requiresPhotoForSanitation: true, // Required for maintenance tasks
+                canUploadPhotos: true,
                 canAddEmergencyTasks: false,
                 eveningModeUI: false
             )
@@ -114,9 +141,11 @@ public final class UserAccountSeeder {
             role: "worker",
             isActive: true,
             capabilities: WorkerCapabilities(
-                simplifiedInterface: false,
-                language: "en",
-                requiresPhotoForSanitation: true, // Required for sanitation tasks
+                simplifiedInterface: false, // Full dashboard - high task volume (38 tasks)
+                language: "es", // Spanish primary with English toggle
+                languageToggle: true, // Can switch to English
+                requiresPhotoForSanitation: true, // Required for his extensive sanitation tasks
+                canUploadPhotos: true,
                 canAddEmergencyTasks: false,
                 eveningModeUI: false
             )
@@ -129,9 +158,11 @@ public final class UserAccountSeeder {
             role: "worker",
             isActive: true,
             capabilities: WorkerCapabilities(
-                simplifiedInterface: true, // Simplified Spanish UI
-                language: "es",
-                requiresPhotoForSanitation: true,
+                simplifiedInterface: true, // Simplified dashboard - clock in/out + basic tasks
+                language: "es", // Spanish interface
+                languageToggle: false,
+                requiresPhotoForSanitation: false, // Optional photos, not required
+                canUploadPhotos: true, // Can optionally add photos for database updates
                 canAddEmergencyTasks: false,
                 eveningModeUI: false
             )
@@ -144,9 +175,11 @@ public final class UserAccountSeeder {
             role: "worker",
             isActive: true,
             capabilities: WorkerCapabilities(
-                simplifiedInterface: false,
-                language: "en",
+                simplifiedInterface: false, // Full dashboard
+                language: "en", // English primary with Spanish toggle
+                languageToggle: true, // Can switch to Spanish
                 requiresPhotoForSanitation: true,
+                canUploadPhotos: true,
                 canAddEmergencyTasks: false,
                 eveningModeUI: false
             )
@@ -159,11 +192,13 @@ public final class UserAccountSeeder {
             role: "worker",
             isActive: true,
             capabilities: WorkerCapabilities(
-                simplifiedInterface: false,
-                language: "en",
-                requiresPhotoForSanitation: true,
+                simplifiedInterface: false, // Full dashboard - evening shift worker
+                language: "en", // English primary with Spanish toggle
+                languageToggle: true, // Can switch to Spanish
+                requiresPhotoForSanitation: true, // Required for DSNY tasks
+                canUploadPhotos: true,
                 canAddEmergencyTasks: false,
-                eveningModeUI: true // Evening shift UI
+                eveningModeUI: true // Evening shift UI theme
             )
         )
     ]
@@ -182,6 +217,15 @@ public final class UserAccountSeeder {
         ),
         UserAccount(
             id: "101",
+            name: "David Johnson", 
+            email: "David@jmrealty.org",
+            password: "DavidJM2025!",
+            role: "client",
+            isActive: true,
+            capabilities: nil
+        ),
+        UserAccount(
+            id: "102",
             name: "Sarah Johnson",
             email: "sarah@jmrealty.com",
             password: "SarahJM2025!",
@@ -192,7 +236,7 @@ public final class UserAccountSeeder {
         
         // Weber Farhat
         UserAccount(
-            id: "102",
+            id: "103",
             name: "David Weber",
             email: "david@weberfarhat.com",
             password: "WeberFarhat2025!",
@@ -203,7 +247,7 @@ public final class UserAccountSeeder {
         
         // Solar One
         UserAccount(
-            id: "103",
+            id: "104",
             name: "Maria Rodriguez",
             email: "maria@solarone.org",
             password: "SolarOne2025!",
@@ -214,7 +258,7 @@ public final class UserAccountSeeder {
         
         // Grand Elizabeth
         UserAccount(
-            id: "104",
+            id: "105",
             name: "Robert Chen",
             email: "robert@grandelizabeth.com",
             password: "GrandEliz2025!",
@@ -225,7 +269,7 @@ public final class UserAccountSeeder {
         
         // Citadel Realty
         UserAccount(
-            id: "105",
+            id: "106",
             name: "Alex Thompson",
             email: "alex@citadelrealty.com",
             password: "Citadel2025!",
@@ -236,7 +280,7 @@ public final class UserAccountSeeder {
         
         // Corbel Property
         UserAccount(
-            id: "106",
+            id: "107",
             name: "Jennifer Lee",
             email: "jennifer@corbelproperty.com",
             password: "Corbel2025!",

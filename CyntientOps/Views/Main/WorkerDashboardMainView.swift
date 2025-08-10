@@ -22,6 +22,7 @@ struct WorkerDashboardMainView: View {
     
     // MARK: - Environment Objects
     @EnvironmentObject private var authManager: NewAuthManager
+    @EnvironmentObject private var session: Session
     @EnvironmentObject private var dashboardSync: DashboardSyncService
     
     // MARK: - State Management
@@ -43,7 +44,7 @@ struct WorkerDashboardMainView: View {
     
     init(container: ServiceContainer) {
         self.container = container
-        self._viewModel = StateObject(wrappedValue: WorkerDashboardViewModel(container: container))
+        self._viewModel = StateObject(wrappedValue: WorkerDashboardViewModel(session: Session.shared, container: container))
     }
     
     var body: some View {
@@ -111,7 +112,7 @@ struct WorkerDashboardMainView: View {
                         }
                         
                         ProgressView(value: calculateTodaysProgress())
-                            .progressViewStyle(LinearProgressViewStyle(tint: .blue))
+                            .progressViewStyle(LinearProgressViewStyle(tint: CyntientOpsDesign.DashboardColors.workerSecondary))
                     }
                 }
                 .padding()
@@ -292,7 +293,7 @@ struct WorkerDashboardMainView: View {
                                 Text("Tasks Completed:")
                                 Spacer()
                                 Text("\(viewModel.todaysTasks.filter { $0.isCompleted }.count)")
-                                    .foregroundColor(.green)
+                                    .foregroundColor(CyntientOpsDesign.DashboardColors.success)
                             }
                         }
                     }

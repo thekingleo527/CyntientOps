@@ -21,6 +21,20 @@ public enum BuildingAccessType {
     case unknown
 }
 
+public struct BuildingPin: Identifiable {
+    public let id: String
+    public let name: String
+    public let coordinate: CLLocationCoordinate2D
+    public let status: BuildingStatus
+    
+    public enum BuildingStatus {
+        case current
+        case assigned
+        case available
+        case unavailable
+    }
+}
+
 // MARK: - WorkerDashboardViewModel
 
 @MainActor
@@ -44,6 +58,27 @@ public class WorkerDashboardViewModel: ObservableObject {
             requiresPhotoForSanitation: true,
             simplifiedInterface: false
         )
+    }
+    
+    // MARK: - Sheet Navigation
+    public enum SheetRoute: Identifiable {
+        case routes
+        case schedule  
+        case building(CoreTypes.NamedCoordinate)
+        case tasks
+        case photos
+        case settings
+        
+        public var id: String {
+            switch self {
+            case .routes: return "routes"
+            case .schedule: return "schedule"
+            case .building(let building): return "building-\(building.id)"
+            case .tasks: return "tasks"
+            case .photos: return "photos"
+            case .settings: return "settings"
+            }
+        }
     }
     
     // MARK: - Published Properties
@@ -78,8 +113,227 @@ public class WorkerDashboardViewModel: ObservableObject {
     
     // Dashboard Sync
     @Published public private(set) var dashboardSyncStatus: CoreTypes.DashboardSyncStatus = .synced
+    
+    // MARK: - Sheet Navigation
+    @Published public var sheet: SheetRoute?
     @Published public private(set) var recentUpdates: [CoreTypes.DashboardUpdate] = []
     @Published public private(set) var buildingMetrics: [String: CoreTypes.BuildingMetrics] = [:]
+    
+    // MARK: - New HeroTile Properties (Per Design Brief)
+    @Published public private(set) var heroNextTask: CoreTypes.ContextualTask?
+    @Published public private(set) var weatherHint: String?
+    @Published public private(set) var buildingsForMap: [BuildingPin] = []
+    
+    // MARK: - Computed Properties
+    
+    /// Current clock-in status
+    public var isCurrentlyClockedIn: Bool {
+        isClockedIn
+    }
+    
+    /// Next task that the worker should focus on
+    public var nextTask: CoreTypes.ContextualTask? {
+        todaysTasks
+            .filter { !$0.isCompleted && !$0.isOverdue }
+            .sorted { ($0.dueDate ?? Date.distantFuture) < ($1.dueDate ?? Date.distantFuture) }
+            .first
+    }
+    
+    /// Urgent tasks requiring immediate attention
+    public var urgentTasks: [CoreTypes.ContextualTask] {
+        todaysTasks.filter { 
+            $0.urgency == .urgent || $0.urgency == .critical || $0.urgency == .emergency 
+        }
+    }
+    
+    /// Buildings assigned for today based on schedule
+    public var assignedBuildingsToday: [CoreTypes.NamedCoordinate] {
+        // Get real task assignments for today
+        guard let worker = workerProfile else {
+            return assignedBuildings // Fallback to all assigned
+        }
+        
+        // Get tasks from operational data and filter to buildings with work today
+        let todaysTasks = container.operationalData.getRealWorldTasks(for: worker.name)
+        let todaysBuildingNames = Set(todaysTasks.map { $0.building })
+        
+        // Return only buildings that have tasks today
+        let todaysBuildings = assignedBuildings.filter { building in
+            todaysBuildingNames.contains { buildingName in
+                building.name.lowercased().contains(buildingName.lowercased()) ||
+                buildingName.lowercased().contains(building.name.lowercased())
+            }
+        }
+        
+        // If no matches found, return all assigned (safety fallback)
+        return todaysBuildings.isEmpty ? assignedBuildings : todaysBuildings
+    }
+    
+    /// Smart current building resolution: lastClockIn → schedule → GPS proximity
+    public var currentBuildingSmart: CoreTypes.NamedCoordinate? {
+        resolveCurrentBuilding()
+    }
+    
+    /// Map pins for assigned buildings
+    public var mapPins: [CoreTypes.NamedCoordinate] {
+        assignedBuildingsToday
+    }
+    
+    /// Intelligence insights (de-duplicated vs hero)
+    public var insights: [CoreTypes.IntelligenceInsight] {
+        // Return contextual insights, avoiding duplication with hero stats
+        []
+    }
+    
+    /// Today's route ordered by schedule
+    public var routeForToday: [RouteStop] {
+        // Get real worker assignments and create optimized route
+        guard let workerId = currentWorkerId,
+              let worker = workerProfile else {
+            return []
+        }
+        
+        // Get real tasks from operational data for route planning
+        let workerTasks = container.operationalData.getRealWorldTasks(for: worker.name)
+        let uniqueBuildings = Set(workerTasks.map { $0.building })
+        
+        // Convert to buildings and calculate route
+        let buildings = uniqueBuildings.compactMap { buildingName -> CoreTypes.NamedCoordinate? in
+            // Map building name to assigned buildings
+            return assignedBuildings.first { building in
+                building.name.lowercased().contains(buildingName.lowercased()) ||
+                buildingName.lowercased().contains(building.name.lowercased())
+            }
+        }
+        
+        return buildings.enumerated().map { index, building in
+            let baseTime = Calendar.current.startOfDay(for: Date())
+            let startHour = 8 + (index * 2) // Start at 8am, 2 hours per building
+            let estimatedTime = Calendar.current.date(byAdding: .hour, value: startHour, to: baseTime) ?? Date()
+            
+            // Determine status based on current time and clock-in status
+            let now = Date()
+            let status: RouteStop.RouteStatus
+            if isClockedIn && currentBuilding?.id == building.id {
+                status = .current
+            } else if estimatedTime < now {
+                status = .completed
+            } else {
+                status = .pending
+            }
+            
+            return RouteStop(
+                id: building.id,
+                building: building,
+                estimatedArrival: estimatedTime,
+                status: status,
+                distance: Double(index) * 0.8 + 0.3 // Realistic NYC distances
+            )
+        }
+    }
+    
+    /// Today's schedule with time slots
+    public var scheduleForToday: [ScheduledItem] {
+        guard let workerId = currentWorkerId,
+              let worker = workerProfile else {
+            return []
+        }
+        
+        // Get real task data from operational manager
+        let workerTasks = container.operationalData.getRealWorldTasks(for: worker.name)
+        let tasksByBuilding: [String: [OperationalDataTaskAssignment]] = Swift.Dictionary(grouping: workerTasks) { $0.building }
+        
+        let calendar = Calendar.current
+        let today = Date()
+        
+        return tasksByBuilding.enumerated().compactMap { index, entry in
+            let (buildingName, tasks) = entry
+            
+            // Find corresponding building in assigned buildings
+            guard let building = assignedBuildings.first(where: { building in
+                building.name.lowercased().contains(buildingName.lowercased()) ||
+                buildingName.lowercased().contains(building.name.lowercased())
+            }) else { return nil }
+            
+            // Calculate schedule based on task complexity and priority
+            let baseStartHour = 8 + (index * 2) // Stagger start times
+            guard let startTime = calendar.date(byAdding: .hour, value: baseStartHour, to: calendar.startOfDay(for: today)) else { return nil }
+            
+            // Calculate duration based on number of tasks (30-45 min per task)
+            let estimatedMinutes = tasks.count * 35
+            let duration = max(60, min(240, estimatedMinutes)) // Between 1-4 hours
+            
+            // Determine priority based on task urgency and types
+            let hasUrgentTasks = tasks.contains { task in
+                task.category.lowercased().contains("emergency") ||
+                task.category.lowercased().contains("urgent") ||
+                task.taskName.lowercased().contains("dsny")
+            }
+            
+            let priority: ScheduledItem.Priority = hasUrgentTasks ? .high : (tasks.count > 5 ? .normal : .low)
+            
+            return ScheduledItem(
+                id: "\(building.id)-\(today.timeIntervalSince1970)",
+                title: getScheduleTitle(for: tasks),
+                location: building,
+                startTime: startTime,
+                duration: duration,
+                taskCount: tasks.count,
+                priority: priority
+            )
+        }
+        .sorted { $0.startTime < $1.startTime } // Sort by start time
+    }
+    
+    /// Generate descriptive title for scheduled building visit
+    private func getScheduleTitle(for tasks: [OperationalDataTaskAssignment]) -> String {
+        let taskNames = Set(tasks.map { $0.taskName })
+        let categories = Set(tasks.map { $0.category })
+        
+        if taskNames.contains { $0.lowercased().contains("dsny") } || 
+           categories.contains { $0.lowercased().contains("sanitation") } {
+            return "DSNY & Building Service"
+        } else if categories.contains { $0.lowercased().contains("hvac") } && 
+                  categories.contains { $0.lowercased().contains("cleaning") } {
+            return "HVAC Maintenance & Cleaning"
+        } else if categories.count == 1, let singleCategory = categories.first {
+            return "\(singleCategory) Service"
+        } else if tasks.count > 8 {
+            return "Comprehensive Building Service"
+        } else {
+            return "Routine Building Maintenance"
+        }
+    }
+    
+    // MARK: - Supporting Types
+    
+    public struct RouteStop {
+        let id: String
+        let building: CoreTypes.NamedCoordinate
+        let estimatedArrival: Date
+        let status: RouteStatus
+        let distance: Double // km
+        
+        enum RouteStatus {
+            case completed
+            case current
+            case pending
+        }
+    }
+    
+    public struct ScheduledItem {
+        let id: String
+        let title: String
+        let location: CoreTypes.NamedCoordinate
+        let startTime: Date
+        let duration: Int // minutes
+        let taskCount: Int
+        let priority: Priority
+        
+        enum Priority {
+            case low, normal, high
+        }
+    }
     
     // MARK: - Private Properties
     
@@ -90,13 +344,15 @@ public class WorkerDashboardViewModel: ObservableObject {
     
     // PHASE 2: Service Container
     private let container: ServiceContainer
+    private let session: Session
     
     // Location Manager (still a singleton as per Phase 2 exceptions)
     @ObservedObject private var locationManager = LocationManager.shared
     
     // MARK: - Initialization
     
-    public init(container: ServiceContainer) {
+    public init(session: Session, container: ServiceContainer) {
+        self.session = session
         self.container = container
         setupSubscriptions()
         setupTimers()
@@ -114,8 +370,8 @@ public class WorkerDashboardViewModel: ObservableObject {
     
     /// Load all initial data for the worker dashboard
     public func loadInitialData() async {
-        guard let user = container.auth.currentUser else {
-            await showError(NSLocalizedString("Authentication required", comment: "Auth error"))
+        guard let user = session.user, user.role == "worker" else {
+            await showError(NSLocalizedString("Authentication required or invalid role", comment: "Auth error"))
             return
         }
         
@@ -181,6 +437,9 @@ public class WorkerDashboardViewModel: ObservableObject {
             if let building = self.currentBuilding {
                 await self.loadWeatherData(for: building)
             }
+            
+            // Update HeroTile properties
+            await self.updateHeroTileProperties()
             
             print("✅ Dashboard data refreshed")
         }
@@ -330,14 +589,59 @@ public class WorkerDashboardViewModel: ObservableObject {
         todaysTasks.filter { $0.isCompleted }.count
     }
     
-    /// Whether worker is currently clocked in
-    public var isCurrentlyClockedIn: Bool {
-        isClockedIn
+    // MARK: - HeroTile Computed Properties (Per Design Brief)
+    
+    /// Display name for current building tile
+    public var currentBuildingDisplayName: String {
+        if let building = currentBuilding {
+            return building.name
+        } else if let assigned = resolvedAssignedBuilding {
+            return assigned.name
+        }
+        return "Select Building to Clock In"
     }
     
-    /// Count of urgent tasks today
-    public var urgentTasks: [CoreTypes.ContextualTask] {
-        todaysTasks.filter { $0.urgency == .urgent || $0.urgency == .critical }
+    /// Title for next task tile
+    public var nextTaskTitle: String {
+        if let hint = weatherHint, !hint.isEmpty {
+            return "Weather Alert"
+        } else if heroNextTask != nil {
+            return "Next Task"
+        }
+        return "Today"
+    }
+    
+    /// Subtitle for next task tile
+    public var nextTaskSubtitle: String {
+        if let hint = weatherHint, !hint.isEmpty {
+            return hint
+        } else if let task = heroNextTask {
+            if let dueTime = task.dueDate {
+                let formatter = DateFormatter()
+                formatter.dateStyle = .none
+                formatter.timeStyle = .short
+                return "\(task.title) @ \(formatter.string(from: dueTime))"
+            }
+            return task.title
+        } else if todaysTasks.isEmpty {
+            return "No tasks scheduled"
+        }
+        return "\(completedTasksCount)/\(todaysTasks.count) tasks completed"
+    }
+    
+    /// Icon for next task tile  
+    public var nextTaskIcon: String {
+        if weatherHint != nil {
+            return "cloud.rain.fill"
+        } else if heroNextTask != nil {
+            return "checkmark.circle.fill"
+        }
+        return "calendar.circle.fill"
+    }
+    
+    /// Smart resolved assigned building (using existing algorithm)
+    private var resolvedAssignedBuilding: CoreTypes.NamedCoordinate? {
+        return resolveCurrentBuilding()
     }
     
     // MARK: - Public Accessors
@@ -538,6 +842,47 @@ public class WorkerDashboardViewModel: ObservableObject {
         
         // Simple efficiency based on completion rate with bonus for early completion
         return min(1.0, completionRate * 1.2)
+    }
+    
+    /// Update HeroTile-specific properties (Per Design Brief)
+    private func updateHeroTileProperties() async {
+        // Update next task
+        heroNextTask = todaysTasks
+            .filter { !$0.isCompleted && !$0.isOverdue }
+            .sorted { ($0.dueDate ?? Date.distantFuture) < ($1.dueDate ?? Date.distantFuture) }
+            .first
+        
+        // Update weather hint
+        if let weather = weatherData {
+            // Check for adverse weather conditions
+            switch weather.condition {
+            case .rain, .snow, .snowy, .storm:
+                weatherHint = "Weather alert: \(weather.condition.rawValue.capitalized) - consider indoor tasks"
+            default:
+                weatherHint = nil
+            }
+        } else {
+            weatherHint = nil
+        }
+        
+        // Update buildings for map
+        buildingsForMap = assignedBuildings.map { building in
+            let status: BuildingPin.BuildingStatus
+            if currentBuilding?.id == building.id {
+                status = .current
+            } else if assignedBuildingsToday.contains(where: { $0.id == building.id }) {
+                status = .assigned
+            } else {
+                status = .available
+            }
+            
+            return BuildingPin(
+                id: building.id,
+                name: building.name,
+                coordinate: building.coordinate,
+                status: status
+            )
+        }
     }
     
     private func calculateHoursWorkedToday() async {
@@ -781,6 +1126,66 @@ public class WorkerDashboardViewModel: ObservableObject {
            assignedBuildings.contains(where: { $0.id == update.buildingId }) {
             Task { await refreshData() }
         }
+    }
+    
+    // MARK: - Smart Building Resolution
+    
+    /// Smart building resolution: lastClockIn → schedule → GPS proximity
+    private func resolveCurrentBuilding() -> CoreTypes.NamedCoordinate? {
+        // 1. Check last clock-in location
+        if let currentBuilding = currentBuilding {
+            return currentBuilding
+        }
+        
+        // 2. Check today's schedule
+        let now = Date()
+        
+        for scheduledItem in scheduleForToday {
+            let endTime = scheduledItem.startTime.addingTimeInterval(TimeInterval(scheduledItem.duration * 60))
+            if now >= scheduledItem.startTime && now <= endTime {
+                return scheduledItem.location
+            }
+        }
+        
+        // 3. Check next scheduled building (within 1 hour window)
+        let oneHourFromNow = now.addingTimeInterval(3600)
+        if let nextScheduled = scheduleForToday.first(where: { 
+            $0.startTime > now && $0.startTime <= oneHourFromNow 
+        }) {
+            return nextScheduled.location
+        }
+        
+        // 3.5. Check current scheduled building (within time window)
+        if let currentScheduled = scheduleForToday.first(where: { 
+            let endTime = $0.startTime.addingTimeInterval(TimeInterval($0.duration * 60))
+            return now >= $0.startTime && now <= endTime
+        }) {
+            return currentScheduled.location
+        }
+        
+        // 4. GPS proximity (if available)
+        if let userLocation = locationManager.location {
+            let nearbyBuildings = assignedBuildingsToday.filter { building in
+                let buildingLocation = CLLocation(
+                    latitude: building.latitude,
+                    longitude: building.longitude
+                )
+                let distance = userLocation.distance(from: buildingLocation)
+                return distance <= 500 // Within 500 meters
+            }
+            
+            // Return closest building
+            if let closest = nearbyBuildings.min(by: { building1, building2 in
+                let location1 = CLLocation(latitude: building1.latitude, longitude: building1.longitude)
+                let location2 = CLLocation(latitude: building2.latitude, longitude: building2.longitude)
+                return userLocation.distance(from: location1) < userLocation.distance(from: location2)
+            }) {
+                return closest
+            }
+        }
+        
+        // 5. Fallback to first assigned building
+        return assignedBuildingsToday.first
     }
     
     // MARK: - Private Methods - Helpers

@@ -14,95 +14,118 @@ import MapKit
 import CoreLocation
 
 struct ClientDashboardView: View {
-    // MARK: - View Models & Services (matching Worker/Admin pattern)
+    // MARK: - View Models & Services
     @StateObject private var viewModel: ClientDashboardViewModel
     @EnvironmentObject private var authManager: NewAuthManager
-    @EnvironmentObject private var novaEngine: NovaAIManager // From ServiceContainer
+    @EnvironmentObject private var novaEngine: NovaAIManager
     
     private let container: ServiceContainer
-    
-    // Access DashboardSyncService through container
-    private var dashboardSync: DashboardSyncService {
-        container.dashboardSync
-    }
     
     init(container: ServiceContainer) {
         self.container = container
         self._viewModel = StateObject(wrappedValue: ClientDashboardViewModel(container: container))
     }
     
-    // MARK: - Enums
-    enum Tab {
-        case dashboard
-        case buildings
-        case compliance
-        case reports
-    }
-    enum ViewContext {
-        case dashboard
-        case buildingDetail
-        case compliance
-        case reports
-        case novaChat
-        case emergency
-    }
-    
-    enum IntelPanelState: String {
-        case hidden = "hidden"
-        case minimal = "minimal"
-        case collapsed = "collapsed"
-        case expanded = "expanded"
-        case fullscreen = "fullscreen"
-    }
-
-    // MARK: - State Variables
-    @State private var selectedTab: Tab = .dashboard
-    @State private var isHeroCollapsed = false
-    @State private var showProfileView = false
-    @State private var showNovaAssistant = false
-    @State private var selectedBuilding: CoreTypes.NamedCoordinate?
-    @State private var showBuildingDetail = false
-    @State private var showAllBuildings = false
-    @State private var showComplianceReport = false
-    @State private var showMainMenu = false
-    @State private var refreshID = UUID()
-    @State private var selectedInsight: CoreTypes.IntelligenceInsight?
-    
-    // Intelligence panel state
-    @State private var currentContext: ViewContext = .dashboard
-    @AppStorage("clientPanelPreference") private var userPanelPreference: IntelPanelState = .collapsed
-    
-    // Future phase states
-    @State private var voiceCommandEnabled = false
-    @State private var arModeEnabled = false
-    
-    // Map reveal functionality
-    @State private var isMapRevealed = false
-    
-    // MARK: - Computed Properties
-    private var intelligencePanelState: IntelPanelState {
-        switch currentContext {
-        case .dashboard:
-            return hasUrgentAlerts() ? .expanded : userPanelPreference
-        case .buildingDetail:
-            return .minimal
-        case .compliance:
-            return .minimal
-        case .reports:
-            return .hidden
-        case .novaChat:
-            return .fullscreen
-        case .emergency:
-            return .expanded
+    // MARK: - Client Route Enum
+    enum ClientRoute: Identifiable {
+        case profile, buildings, compliance, reports, logout
+        case buildingDetail(String), chat, map
+        
+        var id: String {
+            switch self {
+            case .profile: return "profile"
+            case .buildings: return "buildings"
+            case .compliance: return "compliance"
+            case .reports: return "reports"
+            case .logout: return "logout"
+            case .buildingDetail(let id): return "building_\(id)"
+            case .chat: return "chat"
+            case .map: return "map"
+            }
         }
     }
     
-    private func hasUrgentAlerts() -> Bool {
-        let hasCriticalInsights = novaEngine.currentInsights.contains { $0.priority == .critical }
-        // TODO: Replace contextEngine with appropriate ServiceContainer intelligence services
-        let hasCriticalViolations = false // Temporarily disabled - needs proper intelligence service integration
-        let hasBehindSchedule = false // Temporarily disabled - needs proper routine metrics integration
-        return hasCriticalInsights || hasCriticalViolations || hasBehindSchedule
+    // MARK: - Intelligence Tab Enum
+    enum IntelTab: String, CaseIterable {
+        case priorities = "Priorities"
+        case portfolio = "Portfolio"
+        case compliance = "Compliance"
+        case chat = "Chat"
+        case map = "Map"
+        
+        var icon: String {
+            switch self {
+            case .priorities: return "exclamationmark.triangle"
+            case .portfolio: return "building.columns"
+            case .compliance: return "checkmark.shield"
+            case .chat: return "bubble.left.and.bubble.right"
+            case .map: return "map"
+            }
+        }
+    }
+    
+    private enum CO {
+        static let primary = CyntientOpsDesign.DashboardColors.primaryText
+        static let secondary = CyntientOpsDesign.DashboardColors.secondaryText
+        static let tertiary = CyntientOpsDesign.DashboardColors.tertiaryText
+        static let blue = CyntientOpsDesign.DashboardColors.clientPrimary
+        static let surface = Color.clear
+        static let hair = CyntientOpsDesign.DashboardColors.borderSubtle
+        static let padding: CGFloat = 16
+        static let radius: CGFloat = CyntientOpsDesign.CornerRadius.md
+    }
+
+    // MARK: - Enums
+    enum Tab {
+        case dashboard, buildings, compliance, reports
+    }
+
+    enum ViewContext {
+        case dashboard, buildingDetail, novaChat, compliance
+    }
+
+    enum IntelPanelState {
+        case hidden, minimal, collapsed, expanded
+    }
+
+    // MARK: - State Variables
+    @State private var isHeroCollapsed = false
+    @State private var selectedIntelTab: IntelTab = .priorities
+    @State private var selectedBuilding: CoreTypes.NamedCoordinate?
+    @State private var currentRoute: ClientRoute?
+    @State private var refreshID = UUID()
+    @State private var isMapRevealed = false
+    @State private var showQuickMenu = false
+    @State private var selectedTab: Tab = .dashboard
+    @State private var showBuildingDetail = false
+    @State private var showAllBuildings = false
+    @State private var showComplianceReport = false
+    @State private var showProfileView = false
+    @State private var showNovaAssistant = false
+    @State private var showMainMenu = false
+    @State private var selectedInsight: CoreTypes.IntelligenceInsight?
+    @State private var currentContext: ViewContext = .dashboard
+    @State private var intelligencePanelState: IntelPanelState = .collapsed
+    @State private var voiceCommandEnabled = false
+    @State private var arModeEnabled = false
+    
+    // MARK: - Computed Properties
+    private var clientName: String {
+        authManager.currentUser?.name ?? "Client Portal"
+    }
+    
+    private var clientInitials: String {
+        let components = clientName.components(separatedBy: " ")
+        if components.count >= 2 {
+            return "\(components[0].prefix(1))\(components[1].prefix(1))"
+        } else {
+            return String(clientName.prefix(2))
+        }
+    }
+    
+    private var hasUrgentItems: Bool {
+        viewModel.complianceOverview.criticalViolations > 0 ||
+        viewModel.realtimeRoutineMetrics.behindScheduleCount > 0
     }
     
     var body: some View {

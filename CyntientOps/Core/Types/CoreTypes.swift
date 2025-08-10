@@ -1397,6 +1397,11 @@ public struct CoreTypes {
     }
     
     // MARK: - Admin Types
+
+    public struct Organization: Codable, Identifiable {
+        public let id: String
+        public let name: String
+    }
     
     public struct AdminAlert: Identifiable, Codable {
         public let id: String

@@ -343,32 +343,70 @@ struct LoginView: View {
                                 .foregroundColor(.orange)
                             
                             VStack(spacing: 12) {
+                                // Admin/Management
+                                quickAccessButton(
+                                    email: "shawn.magloire@cyntientops.com",
+                                    name: "Shawn (Admin)",
+                                    icon: "shield.checkmark",
+                                    color: .purple
+                                )
+                                
+                                // Client Dashboard Access
+                                quickAccessButton(
+                                    email: "David@jmrealty.org",
+                                    name: "David (JM Realty Client)",
+                                    icon: "building.columns.fill",
+                                    color: .teal
+                                )
+                                
+                                Divider().opacity(0.3)
+                                
+                                Text("Workers")
+                                    .font(.caption)
+                                    .foregroundColor(.white.opacity(0.7))
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                
+                                // Workers - Main Team
                                 quickAccessButton(
                                     email: "kevin.dutan@cyntientops.com",
-                                    name: "Kevin (Worker)",
+                                    name: "Kevin (38 tasks)",
                                     icon: "wrench.and.screwdriver",
                                     color: .blue
                                 )
                                 
                                 quickAccessButton(
-                                    email: "shawn.magloire@cyntientops.com",
-                                    name: "Shawn (Manager)",
-                                    icon: "shield.checkmark",
-                                    color: .purple
-                                )
-                                
-                                quickAccessButton(
                                     email: "edwin.lema@cyntientops.com",
-                                    name: "Edwin (Worker)",
+                                    name: "Edwin (12 tasks)",
                                     icon: "person.text.rectangle",
                                     color: .green
                                 )
                                 
                                 quickAccessButton(
                                     email: "greg.hutson@cyntientops.com",
-                                    name: "Greg (Worker)",
+                                    name: "Greg (6 tasks)",
                                     icon: "hammer.fill",
                                     color: .orange
+                                )
+                                
+                                quickAccessButton(
+                                    email: "luis.lopez@cyntientops.com",
+                                    name: "Luis (7 tasks)",
+                                    icon: "building.2.fill",
+                                    color: .cyan
+                                )
+                                
+                                quickAccessButton(
+                                    email: "mercedes.inamagua@cyntientops.com",
+                                    name: "Mercedes (7 tasks)",
+                                    icon: "sparkles",
+                                    color: .pink
+                                )
+                                
+                                quickAccessButton(
+                                    email: "angel.guiracocha@cyntientops.com",
+                                    name: "Angel (5 tasks)",
+                                    icon: "moon.stars.fill",
+                                    color: .indigo
                                 )
                             }
                         }
@@ -426,14 +464,22 @@ struct LoginView: View {
                 self.email = email
                 // Set correct password based on user
                 switch email {
-                case "kevin.dutan@cyntientops.com":
-                    self.password = "KevinRubin2025!"
                 case "shawn.magloire@cyntientops.com":
                     self.password = "ShawnHVAC2025!"
+                case "David@jmrealty.org":
+                    self.password = "DavidJM2025!"
+                case "kevin.dutan@cyntientops.com":
+                    self.password = "KevinRubin2025!"
                 case "edwin.lema@cyntientops.com":
                     self.password = "EdwinPark2025!"
                 case "greg.hutson@cyntientops.com":
                     self.password = "GregWorker2025!"
+                case "luis.lopez@cyntientops.com":
+                    self.password = "LuisBuilding2025!"
+                case "mercedes.inamagua@cyntientops.com":
+                    self.password = "MercedesGlass2025!"
+                case "angel.guiracocha@cyntientops.com":
+                    self.password = "AngelDSNY2025!"
                 default:
                     self.password = "password"
                 }

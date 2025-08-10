@@ -91,6 +91,7 @@ class AdminDashboardViewModel: ObservableObject {
     
     // MARK: - Service Container (REFACTORED)
     private let container: ServiceContainer
+    private let session: Session
     
     // MARK: - Real-time Subscriptions
     private var cancellables = Set<AnyCancellable>()
@@ -109,7 +110,8 @@ class AdminDashboardViewModel: ObservableObject {
     
     // MARK: - Initialization (REFACTORED)
     
-    init(container: ServiceContainer) {
+    init(session: Session, container: ServiceContainer) {
+        self.session = session
         self.container = container
         setupAutoRefresh()
         setupCrossDashboardSync()
@@ -124,6 +126,10 @@ class AdminDashboardViewModel: ObservableObject {
     
     /// Load all dashboard data from real sources
     func loadDashboardData() async {
+        guard let user = session.user, user.role == "admin" else {
+            errorMessage = "Insufficient permissions"
+            return
+        }
         isLoading = true
         errorMessage = nil
         error = nil

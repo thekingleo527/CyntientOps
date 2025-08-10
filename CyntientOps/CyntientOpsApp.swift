@@ -22,6 +22,7 @@ struct CyntientOpsApp: App {
     // Existing Services (keeping for compatibility during transition)
     @StateObject private var dailyOps = DailyOpsReset.shared
     @StateObject private var authManager = NewAuthManager.shared
+    @StateObject private var session = Session()
     @StateObject private var notificationManager = NotificationManager.shared
     @StateObject private var contextEngine = WorkerContextEngine.shared
     private let locationManager = LocationManager.shared
@@ -87,6 +88,7 @@ struct CyntientOpsApp: App {
                             .environmentObject(container) // Phase 2: Service Container
                             .environmentObject(container.novaManager) // Nova AI from Container
                             .environmentObject(container.dashboardSync) // Dashboard Sync Service
+                            .environmentObject(session)
                             .transition(.opacity)
                     } else {
                         // Show loading while container initializes

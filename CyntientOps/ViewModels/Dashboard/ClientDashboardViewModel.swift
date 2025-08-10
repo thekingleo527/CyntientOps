@@ -75,6 +75,7 @@ public final class ClientDashboardViewModel: ObservableObject {
     // MARK: - Service Container (REFACTORED)
     
     private let container: ServiceContainer
+    private let session: Session
     
     // MARK: - Private Properties
     
@@ -111,7 +112,8 @@ public final class ClientDashboardViewModel: ObservableObject {
     
     // MARK: - Initialization (REFACTORED)
     
-    public init(container: ServiceContainer) {
+    public init(session: Session, container: ServiceContainer) {
+        self.session = session
         self.container = container
         setupSubscriptions()
         schedulePeriodicRefresh()
@@ -131,7 +133,7 @@ public final class ClientDashboardViewModel: ObservableObject {
     /// Load client-specific data
     public func loadClientData() async {
         // Get current client user
-        guard let currentUser = container.auth.currentUser,
+        guard let currentUser = session.user,
               currentUser.role == "client" else {
             print("⚠️ No client user logged in")
             return

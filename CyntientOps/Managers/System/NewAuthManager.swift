@@ -102,7 +102,14 @@ public class NewAuthManager: ObservableObject {
     
     private init() {
         setupBiometrics()
+        #if DEBUG
+        // In debug mode, always start with fresh login
+        Task {
+            await clearStoredSession()
+        }
+        #else
         restoreSession()
+        #endif
         setupSessionMonitoring()
     }
     
@@ -199,6 +206,7 @@ public class NewAuthManager: ObservableObject {
             
             // Update state
             self.currentUser = user
+            Session.shared.user = user // Update the shared session
             self.isAuthenticated = true
             self.sessionStatus = .active
             self.loginAttempts = 0
@@ -335,6 +343,7 @@ public class NewAuthManager: ObservableObject {
                     if session.expirationDate > Date() {
                         // Restore user session
                         self.currentUser = session.user
+                        Session.shared.user = session.user // Update the shared session
                         self.sessionToken = session.token
                         self.refreshToken = session.refreshToken
                         self.sessionExpirationDate = session.expirationDate
@@ -406,6 +415,8 @@ public class NewAuthManager: ObservableObject {
         // Clear state
         let previousUser = currentUser
         currentUser = nil
+        Session.shared.user = nil
+        Session.shared.org = nil
         sessionToken = nil
         refreshToken = nil
         sessionExpirationDate = nil
@@ -654,6 +665,7 @@ public class NewAuthManager: ObservableObject {
                     // Validate session
                     if session.expirationDate > Date() {
                         self.currentUser = session.user
+                        Session.shared.user = session.user // Update the shared session
                         self.sessionToken = session.token
                         self.refreshToken = session.refreshToken
                         self.sessionExpirationDate = session.expirationDate
@@ -806,6 +818,19 @@ public class NewAuthManager: ObservableObject {
         } else if status != errSecItemNotFound {
             print("  ❌ Error clearing keychain service: \(status)")
         }
+    }
+    
+    private func clearStoredSession() async {
+        clearKeychain()
+        currentUser = nil
+        Session.shared.user = nil
+        Session.shared.org = nil
+        sessionToken = nil
+        refreshToken = nil
+        sessionExpirationDate = nil
+        isAuthenticated = false
+        sessionStatus = .none
+        print("🧹 DEBUG: Cleared stored session - forcing fresh login")
     }
 }
 

@@ -308,6 +308,7 @@ public final class ClientBuildingSeeder {
         // Map of user emails to client IDs
         let userClientMap: [(email: String, clientId: String, role: String)] = [
             ("jm@jmrealty.com", "JMR", "admin"),
+            ("David@jmrealty.org", "JMR", "admin"),
             ("sarah@jmrealty.com", "JMR", "manager"),
             ("david@weberfarhat.com", "WFR", "admin"),
             ("maria@solarone.org", "SOL", "admin"),

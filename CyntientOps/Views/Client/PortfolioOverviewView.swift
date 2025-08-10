@@ -199,7 +199,7 @@ struct PortfolioOverviewView: View {
                 Text("Portfolio Overview")
                     .font(.title2)
                     .fontWeight(.bold)
-                    .foregroundColor(.white)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                 
                 Text("Executive Dashboard")
                     .font(.caption)
@@ -226,7 +226,7 @@ struct PortfolioOverviewView: View {
                 }
             } label: {
                 Image(systemName: "ellipsis.circle.fill")
-                    .foregroundColor(.blue)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.clientSecondary)
                     .font(.title2)
             }
         }
@@ -305,32 +305,13 @@ struct PortfolioOverviewView: View {
                     title: "Compliance",
                     value: "\(portfolioSummary.complianceScore)%",
                     trend: portfolioSummary.trend,
-                    color: .purple
+                    color: CyntientOpsDesign.DashboardColors.tertiaryAction
                 )
             }
         }
         .padding()
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(
-                    LinearGradient(
-                        colors: [Color.white.opacity(0.08), Color.white.opacity(0.03)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .stroke(
-                            LinearGradient(
-                                colors: [.blue.opacity(0.5), .purple.opacity(0.3)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            ),
-                            lineWidth: 1
-                        )
-                )
-        )
+        .background(Color(UIColor.secondarySystemBackground))
+        .cornerRadius(16)
     }
     
     // MARK: - KPI Dashboard View
@@ -391,7 +372,7 @@ struct PortfolioOverviewView: View {
                     value: "\(portfolioSummary.criticalIssues)",
                     subtitle: "require attention",
                     progress: portfolioSummary.criticalIssues > 0 ? 1.0 : 0.0,
-                    color: portfolioSummary.criticalIssues > 0 ? .red : .green,
+                    color: portfolioSummary.criticalIssues > 0 ? CyntientOpsDesign.DashboardColors.critical : CyntientOpsDesign.DashboardColors.success,
                     icon: "exclamationmark.triangle"
                 )
             }
