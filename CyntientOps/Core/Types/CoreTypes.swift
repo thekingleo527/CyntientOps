@@ -1747,6 +1747,74 @@ public struct CoreTypes {
         case utilities = "utilities"
     }
     
+    // Streamlined photo processing result
+    public struct ProcessedPhoto: Codable, Identifiable {
+        public let id: String
+        public let buildingId: String
+        public let category: String
+        public let workerId: String
+        public let timestamp: Date
+        public let filePath: String
+        public let thumbnailPath: String
+        public let fileSize: Int64
+        public let notes: String
+        public let retentionDays: Int
+        
+        public init(
+            id: String,
+            buildingId: String,
+            category: String,
+            workerId: String,
+            timestamp: Date,
+            filePath: String,
+            thumbnailPath: String,
+            fileSize: Int64,
+            notes: String = "",
+            retentionDays: Int = 30
+        ) {
+            self.id = id
+            self.buildingId = buildingId
+            self.category = category
+            self.workerId = workerId
+            self.timestamp = timestamp
+            self.filePath = filePath
+            self.thumbnailPath = thumbnailPath
+            self.fileSize = fileSize
+            self.notes = notes
+            self.retentionDays = retentionDays
+        }
+        
+        public static func from(dictionary: [String: Any]) -> ProcessedPhoto? {
+            guard let id = dictionary["id"] as? String,
+                  let buildingId = dictionary["building_id"] as? String,
+                  let category = dictionary["category"] as? String,
+                  let workerId = dictionary["worker_id"] as? String,
+                  let timestampString = dictionary["timestamp"] as? String,
+                  let timestamp = ISO8601DateFormatter().date(from: timestampString),
+                  let filePath = dictionary["file_path"] as? String,
+                  let thumbnailPath = dictionary["thumbnail_path"] as? String,
+                  let fileSize = dictionary["file_size"] as? Int64,
+                  let retentionDays = dictionary["retention_days"] as? Int else {
+                return nil
+            }
+            
+            let notes = dictionary["notes"] as? String ?? ""
+            
+            return ProcessedPhoto(
+                id: id,
+                buildingId: buildingId,
+                category: category,
+                workerId: workerId,
+                timestamp: timestamp,
+                filePath: filePath,
+                thumbnailPath: thumbnailPath,
+                fileSize: fileSize,
+                notes: notes,
+                retentionDays: retentionDays
+            )
+        }
+    }
+    
     // MARK: - Building Report Types
     
     public struct BuildingReport: Codable, Identifiable {
