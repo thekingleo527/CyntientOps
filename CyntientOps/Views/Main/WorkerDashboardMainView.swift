@@ -44,7 +44,7 @@ struct WorkerDashboardMainView: View {
     
     init(container: ServiceContainer) {
         self.container = container
-        self._viewModel = StateObject(wrappedValue: WorkerDashboardViewModel(session: Session.shared, container: container))
+        self._viewModel = StateObject(wrappedValue: WorkerDashboardViewModel(container: container))
     }
     
     var body: some View {

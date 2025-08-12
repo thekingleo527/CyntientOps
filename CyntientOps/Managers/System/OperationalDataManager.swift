@@ -46,7 +46,7 @@ import CryptoKit  // For checksum generation
         static let springStreet178 = "17"
         static let walker36 = "18"
         static let seventhAvenue115 = "19"
-        static let francoSphereHQ = "20"
+        static let cyntientOpsHQ = "20"
     }
 
 // MARK: - Date Extension
@@ -999,7 +999,7 @@ public class OperationalDataManager: ObservableObject {
             endHour: 15,
             daysOfWeek: "Mon,Tue,Wed,Thu,Fri",
             workerId: CanonicalIDs.Workers.edwinLema,
-            buildingId: CanonicalIDs.Buildings.francoSphereHQ,
+            buildingId: CanonicalIDs.Buildings.cyntientOpsHQ,
             requiresPhoto: true,
             estimatedDuration: 120
         ),

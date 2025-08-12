@@ -1370,7 +1370,7 @@ class CameraViewModel: NSObject, ObservableObject {
     private var captureCompletionHandler: ((UIImage?) -> Void)?
     
     // Thread-safe access to completion handler
-    private let completionQueue = DispatchQueue(label: "com.francosphere.camera.completion")
+    private let completionQueue = DispatchQueue(label: "com.cyntientops.camera.completion")
     
     private var captureCompletion: ((UIImage?) -> Void)? {
         get {

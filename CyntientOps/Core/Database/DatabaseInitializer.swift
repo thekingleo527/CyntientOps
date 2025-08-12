@@ -292,7 +292,7 @@ public class DatabaseInitializer: ObservableObject {
                 ("6", "Luis Lopez", "luislopez030@yahoo.com", "password", "worker", "917-555-0006", 25.0),
                 ("7", "Angel Guirachocha", "lio.angel71@gmail.com", "password", "worker", "917-555-0007", 26.0),
                 ("8", "Shawn Magloire", "shawn@francomanagementgroup.com", "password", "admin", "917-555-0008", 45.0),
-                ("9", "Shawn Magloire", "francosphere@francomanagementgroup.com", "password", "client", "917-555-0008", 45.0),
+                ("9", "Shawn Magloire", "cyntientops@francomanagementgroup.com", "password", "client", "917-555-0008", 45.0),
                 ("10", "Shawn Magloire", "shawn@fme-llc.com", "password", "admin", "917-555-0008", 45.0),
                 ("100", "Test Worker", "test@franco.com", "password", "worker", "917-555-0100", 25.0),
                 ("101", "Test Admin", "admin@franco.com", "password", "admin", "917-555-0101", 35.0),

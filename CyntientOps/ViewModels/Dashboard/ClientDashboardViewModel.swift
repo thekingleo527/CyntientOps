@@ -112,8 +112,8 @@ public final class ClientDashboardViewModel: ObservableObject {
     
     // MARK: - Initialization (REFACTORED)
     
-    public init(session: Session, container: ServiceContainer) {
-        self.session = session
+    public init(container: ServiceContainer) {
+        self.session = CoreTypes.Session.shared
         self.container = container
         setupSubscriptions()
         schedulePeriodicRefresh()

@@ -77,7 +77,7 @@ public final class WorkerContextEngine: ObservableObject {
                 self.currentWorker = CoreTypes.WorkerProfile(
                     id: workerId,
                     name: workerName,
-                    email: "\(workerId)@francosphere.com",
+                    email: "\(workerId)@cyntientops.com",
                     phoneNumber: "",
                     role: .worker,
                     skills: [],

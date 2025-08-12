@@ -395,7 +395,7 @@ struct AssetDebuggerView_Previews: PreviewProvider {
 extension AssetImageDebugger {
     /// Quick console validation of all systems
     func validateEverything() async {
-        print("\n🚀 FRANCOSPHERE ASSET VALIDATION")
+        print("\n🚀 CYNTIENTOPS ASSET VALIDATION")
         print("=================================")
         
         await debugAllBuildingImages()

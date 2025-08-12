@@ -93,9 +93,9 @@ actor TelemetryService {
     private let maxTaskCompletionTime: TimeInterval = 30.0   // 30 seconds
     
     // MARK: - Logging & Analytics
-    private let logger = Logger(subsystem: "com.francosphere.app", category: "telemetry")
-    private let performanceLogger = Logger(subsystem: "com.francosphere.app", category: "performance")
-    private let memoryLogger = Logger(subsystem: "com.francosphere.app", category: "memory")
+    private let logger = Logger(subsystem: "com.cyntientops.app", category: "telemetry")
+    private let performanceLogger = Logger(subsystem: "com.cyntientops.app", category: "performance")
+    private let memoryLogger = Logger(subsystem: "com.cyntientops.app", category: "memory")
     
     // MARK: - Performance Tracking State
     private var operationMetrics: [String: OperationMetrics] = [:]

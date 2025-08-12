@@ -189,21 +189,21 @@ struct AdminWorkerStatusSection_Previews: PreviewProvider {
             CoreTypes.WorkerProfile(
                 id: "4",
                 name: "Kevin Dutan",
-                email: "kevin@francosphere.com",
+                email: "kevin@cyntientops.com",
                 role: .worker,
                 status: .clockedIn
             ),
             CoreTypes.WorkerProfile(
                 id: "7",
                 name: "Mercedes Inamagua",
-                email: "mercedes@francosphere.com", 
+                email: "mercedes@cyntientops.com", 
                 role: .worker,
                 status: .clockedIn
             ),
             CoreTypes.WorkerProfile(
                 id: "1",
                 name: "Greg Hutson",
-                email: "greg@francosphere.com",
+                email: "greg@cyntientops.com",
                 role: .worker,
                 status: .clockedIn
             )
@@ -213,14 +213,14 @@ struct AdminWorkerStatusSection_Previews: PreviewProvider {
             CoreTypes.WorkerProfile(
                 id: "2",
                 name: "Edwin Lema",
-                email: "edwin@francosphere.com",
+                email: "edwin@cyntientops.com",
                 role: .worker,
                 status: .available
             ),
             CoreTypes.WorkerProfile(
                 id: "3",
                 name: "Luis Lopez",
-                email: "luis@francosphere.com",
+                email: "luis@cyntientops.com",
                 role: .worker,
                 status: .available
             )

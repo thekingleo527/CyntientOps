@@ -392,11 +392,11 @@ struct ForgotPasswordView: View {
                 "g.hutson1989@gmail.com",
                 "edwinlema911@gmail.com",
                 "dutankevin1@gmail.com",
-                "francosphere@francomanagementgroup.com",
+                "cyntientops@francomanagementgroup.com",
                 "shawn@fme-llc.com"
             ]
             
-            if knownEmails.contains(email.lowercased()) || email.contains("@francosphere.com") {
+            if knownEmails.contains(email.lowercased()) || email.contains("@cyntientops.com") {
                 // Success
                 withAnimation(.spring()) {
                     isSuccess = true

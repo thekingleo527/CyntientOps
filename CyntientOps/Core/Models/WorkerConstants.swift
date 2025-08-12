@@ -49,7 +49,7 @@ struct WorkerConstants {
         "6": "luislopez030@yahoo.com",
         "7": "lio.angel71@gmail.com",
         "8": "shawn@francomanagementgroup.com",
-        "9": "francosphere@francomanagementgroup.com",
+        "9": "cyntientops@francomanagementgroup.com",
         "10": "shawn@fme-llc.com"
     ]
     

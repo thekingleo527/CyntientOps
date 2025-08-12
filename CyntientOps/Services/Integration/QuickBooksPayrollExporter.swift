@@ -465,12 +465,12 @@ public actor QuickBooksPayrollExporter {
         // For now, return hardcoded mapping
         return [
             QBEmployee(id: "1", name: "Greg Hutson", email: "greg.hutson@cyntientops.com"),
-            QBEmployee(id: "2", name: "Edwin Lema", email: "edwin.lema@francosphere.com"),
-            QBEmployee(id: "4", name: "Kevin Dutan", email: "kevin.dutan@francosphere.com"),
-            QBEmployee(id: "5", name: "Mercedes Inamagua", email: "mercedes.inamagua@francosphere.com"),
-            QBEmployee(id: "6", name: "Luis Lopez", email: "luis.lopez@francosphere.com"),
-            QBEmployee(id: "7", name: "Angel Guirachocha", email: "angel.guirachocha@francosphere.com"),
-            QBEmployee(id: "8", name: "Shawn Magloire", email: "shawn.magloire@francosphere.com")
+            QBEmployee(id: "2", name: "Edwin Lema", email: "edwin.lema@cyntientops.com"),
+            QBEmployee(id: "4", name: "Kevin Dutan", email: "kevin.dutan@cyntientops.com"),
+            QBEmployee(id: "5", name: "Mercedes Inamagua", email: "mercedes.inamagua@cyntientops.com"),
+            QBEmployee(id: "6", name: "Luis Lopez", email: "luis.lopez@cyntientops.com"),
+            QBEmployee(id: "7", name: "Angel Guirachocha", email: "angel.guirachocha@cyntientops.com"),
+            QBEmployee(id: "8", name: "Shawn Magloire", email: "shawn.magloire@cyntientops.com")
         ]
     }
     

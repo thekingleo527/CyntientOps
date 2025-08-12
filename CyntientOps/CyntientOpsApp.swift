@@ -22,7 +22,7 @@ struct CyntientOpsApp: App {
     // Existing Services (keeping for compatibility during transition)
     @StateObject private var dailyOps = DailyOpsReset.shared
     @StateObject private var authManager = NewAuthManager.shared
-    @StateObject private var session = Session()
+    @ObservedObject private var session = CoreTypes.Session.shared
     @StateObject private var notificationManager = NotificationManager.shared
     @StateObject private var contextEngine = WorkerContextEngine.shared
     private let locationManager = LocationManager.shared

@@ -604,7 +604,7 @@ struct AdminDashboardView: View {
                     showingComplianceCenter = true
                 }
                 .font(.caption)
-                .foregroundColor(.blue)
+                .foregroundColor(CyntientOpsDesign.DashboardColors.adminSecondary)
             }
             
             VStack(spacing: 8) {
@@ -616,10 +616,10 @@ struct AdminDashboardView: View {
             }
         }
         .padding()
-        .background(Color.red.opacity(0.1))
+        .background(CyntientOpsDesign.DashboardColors.critical.opacity(0.1))
         .overlay(
             RoundedRectangle(cornerRadius: 12)
-                .stroke(Color.red.opacity(0.3), lineWidth: 1)
+                .stroke(CyntientOpsDesign.DashboardColors.critical.opacity(0.3), lineWidth: 1)
         )
         .cornerRadius(12)
     }
@@ -874,7 +874,7 @@ struct AdminNovaIntelligenceBar: View {
                         Text(tab.rawValue)
                             .font(.caption2)
                     }
-                    .foregroundColor(selectedTab == tab ? .cyan : .gray)
+                    .foregroundColor(selectedTab == tab ? CyntientOpsDesign.DashboardColors.info : CyntientOpsDesign.DashboardColors.secondaryText)
                     .padding(.vertical, 8)
                 }
             }
@@ -908,10 +908,10 @@ struct AdminInsightRow: View {
     
     private var priorityColor: Color {
         switch insight.priority {
-        case .critical: return .red
-        case .high: return .orange
-        case .medium: return .yellow
-        case .low: return .blue
+        case .critical: return CyntientOpsDesign.DashboardColors.critical
+        case .high: return CyntientOpsDesign.DashboardColors.warning
+        case .medium: return CyntientOpsDesign.DashboardColors.warning
+        case .low: return CyntientOpsDesign.DashboardColors.adminSecondary
         }
     }
     
@@ -1099,10 +1099,10 @@ struct MinimalAdminHeroCard: View {
     }
     
     private var complianceColor: Color {
-        if complianceScore >= 90 { return .green }
-        if complianceScore >= 80 { return .yellow }
-        if complianceScore >= 70 { return .orange }
-        return .red
+        if complianceScore >= 90 { return CyntientOpsDesign.DashboardColors.success }
+        if complianceScore >= 80 { return CyntientOpsDesign.DashboardColors.warning }
+        if complianceScore >= 70 { return CyntientOpsDesign.DashboardColors.warning }
+        return CyntientOpsDesign.DashboardColors.critical
     }
 }
 
@@ -1185,7 +1185,7 @@ struct AdminHeroStatusCard: View {
                     icon: "building.2.fill",
                     title: "Buildings",
                     value: "\(portfolio.totalBuildings)",
-                    color: .blue,
+                    color: CyntientOpsDesign.DashboardColors.adminSecondary,
                     onTap: onBuildingsTap
                 )
                 
@@ -1212,7 +1212,7 @@ struct AdminHeroStatusCard: View {
                     icon: "exclamationmark.triangle.fill",
                     title: "Critical Alerts",
                     value: "\(criticalAlerts.count)",
-                    color: .red,
+                    color: CyntientOpsDesign.DashboardColors.critical,
                     onTap: onAlertsTap
                 )
             }
@@ -1462,10 +1462,10 @@ struct CriticalAlertRow: View {
     
     private var urgencyColor: Color {
         switch alert.urgency {
-        case .critical: return .red
-        case .high: return .orange
-        case .medium: return .yellow
-        case .low: return .green
+        case .critical: return CyntientOpsDesign.DashboardColors.critical
+        case .high: return CyntientOpsDesign.DashboardColors.warning
+        case .medium: return CyntientOpsDesign.DashboardColors.warning
+        case .low: return CyntientOpsDesign.DashboardColors.success
         }
     }
 }
@@ -1484,7 +1484,7 @@ struct LiveIndicator: View {
             Text("LIVE")
                 .font(.caption2)
                 .fontWeight(.semibold)
-                .foregroundColor(.green)
+                .foregroundColor(CyntientOpsDesign.DashboardColors.success)
         }
         .onAppear { isAnimating = true }
     }
@@ -1723,9 +1723,9 @@ struct AdminTaskCard: View {
     let onTap: () -> Void
     
     private var statusColor: Color {
-        if task.status == .completed { return .green }
-        if let dueDate = task.dueDate, dueDate < Date() && task.status != .completed { return .red }
-        return .blue
+        if task.status == .completed { return CyntientOpsDesign.DashboardColors.success }
+        if let dueDate = task.dueDate, dueDate < Date() && task.status != .completed { return CyntientOpsDesign.DashboardColors.critical }
+        return CyntientOpsDesign.DashboardColors.adminSecondary
     }
     
     private var statusText: String {
@@ -1775,10 +1775,10 @@ struct AdminTaskCard: View {
                         HStack(spacing: 4) {
                             Image(systemName: "camera.fill")
                                 .font(.caption2)
-                                .foregroundColor(.blue)
+                                .foregroundColor(CyntientOpsDesign.DashboardColors.adminSecondary)
                             Text("Photo Required")
                                 .font(.caption2)
-                                .foregroundColor(.blue)
+                                .foregroundColor(CyntientOpsDesign.DashboardColors.adminSecondary)
                         }
                     }
                     
@@ -1786,10 +1786,10 @@ struct AdminTaskCard: View {
                         HStack(spacing: 4) {
                             Image(systemName: "building.2")
                                 .font(.caption2)
-                                .foregroundColor(.gray)
+                                .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
                             Text(buildingName)
                                 .font(.caption2)
-                                .foregroundColor(.gray)
+                                .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
                         }
                     }
                     
@@ -1970,7 +1970,7 @@ struct AnalyticsContentView: View {
                         title: "Response Time",
                         value: "12m",
                         icon: "clock.arrow.circlepath",
-                        color: .orange,
+                        color: CyntientOpsDesign.DashboardColors.warning,
                         trend: .down("3m")
                     )
                     
@@ -1978,7 +1978,7 @@ struct AnalyticsContentView: View {
                         title: "Quality Score",
                         value: "4.2",
                         icon: "star.fill",
-                        color: .yellow,
+                        color: CyntientOpsDesign.DashboardColors.warning,
                         trend: .up("0.1")
                     )
                 }
@@ -2082,9 +2082,9 @@ struct NovaAnalyticsCard: View {
         
         var color: Color {
             switch self {
-            case .up: return .green
-            case .down: return .red
-            case .stable: return .gray
+            case .up: return CyntientOpsDesign.DashboardColors.success
+            case .down: return CyntientOpsDesign.DashboardColors.critical
+            case .stable: return CyntientOpsDesign.DashboardColors.secondaryText
             }
         }
         
@@ -2175,7 +2175,7 @@ struct ChatBubble: View {
                     .padding(.vertical, 8)
                     .background(
                         RoundedRectangle(cornerRadius: 16)
-                            .fill(message.isFromUser ? Color.cyan.opacity(0.8) : Color.white.opacity(0.15))
+                            .fill(message.isFromUser ? CyntientOpsDesign.DashboardColors.info.opacity(0.8) : Color.white.opacity(0.15))
                     )
                 
                 Text(message.timestamp, style: .time)

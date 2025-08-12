@@ -38,7 +38,7 @@ import UIKit
 actor SecurityManager {
     static let shared = SecurityManager()
     
-    private let keyPrefix = "francosphere_"
+    private let keyPrefix = "cyntientops_"
     private let photoExpiration: TimeInterval = 24 * 3600 // 24 hours
     private let tokenExpiration: TimeInterval = 7 * 24 * 3600 // 7 days
     

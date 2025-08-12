@@ -206,7 +206,14 @@ public class NewAuthManager: ObservableObject {
             
             // Update state
             self.currentUser = user
-            Session.shared.user = user // Update the shared session
+            CoreTypes.Session.shared.user = user // Update the shared session
+
+            if user.role == "client" {
+                if let clientData = try? await container.client.getClientForUser(email: user.email) {
+                    CoreTypes.Session.shared.org = CoreTypes.Organization(id: clientData.id, name: clientData.name)
+                }
+            }
+            
             self.isAuthenticated = true
             self.sessionStatus = .active
             self.loginAttempts = 0
@@ -343,7 +350,7 @@ public class NewAuthManager: ObservableObject {
                     if session.expirationDate > Date() {
                         // Restore user session
                         self.currentUser = session.user
-                        Session.shared.user = session.user // Update the shared session
+                        CoreTypes.Session.shared.user = session.user // Update the shared session
                         self.sessionToken = session.token
                         self.refreshToken = session.refreshToken
                         self.sessionExpirationDate = session.expirationDate
@@ -415,8 +422,8 @@ public class NewAuthManager: ObservableObject {
         // Clear state
         let previousUser = currentUser
         currentUser = nil
-        Session.shared.user = nil
-        Session.shared.org = nil
+        CoreTypes.Session.shared.user = nil
+        CoreTypes.Session.shared.org = nil
         sessionToken = nil
         refreshToken = nil
         sessionExpirationDate = nil
@@ -453,7 +460,7 @@ public class NewAuthManager: ObservableObject {
             // Update stored session
             if let user = currentUser,
                let token = sessionToken {
-                let session = Session(
+                let session = AuthSession(
                     token: token,
                     refreshToken: refreshToken,
                     expirationDate: newExpirationDate,
@@ -608,7 +615,7 @@ public class NewAuthManager: ObservableObject {
         return true
     }
     
-    private func createSession(for authenticatedWorker: (workerId: String, name: String, email: String, role: String)) async throws -> Session {
+    private func createSession(for authenticatedWorker: (workerId: String, name: String, email: String, role: String)) async throws -> AuthSession {
         // Generate tokens (in production, these would come from the server)
         let sessionToken = UUID().uuidString
         let refreshToken = UUID().uuidString
@@ -624,7 +631,7 @@ public class NewAuthManager: ObservableObject {
         self.refreshToken = refreshToken
         self.sessionExpirationDate = expirationDate
         
-        return Session(
+        return AuthSession(
             token: sessionToken,
             refreshToken: refreshToken,
             expirationDate: expirationDate,
@@ -638,7 +645,7 @@ public class NewAuthManager: ObservableObject {
         )
     }
     
-    private func storeSession(session: Session, user: CoreTypes.User) async throws {
+    private func storeSession(session: AuthSession, user: CoreTypes.User) async throws {
         // Store tokens in keychain
         try storeInKeychain(session.token, for: sessionTokenKey)
         try storeInKeychain(session.refreshToken, for: refreshTokenKey)
@@ -649,13 +656,13 @@ public class NewAuthManager: ObservableObject {
         try storeInKeychain(sessionData, for: "session")
     }
     
-    private func retrieveStoredSession() async throws -> Session? {
+    private func retrieveStoredSession() async throws -> AuthSession? {
         guard let sessionData = try? getFromKeychain(key: "session") as? Data else {
             return nil
         }
         
         let decoder = JSONDecoder()
-        return try decoder.decode(Session.self, from: sessionData)
+        return try decoder.decode(AuthSession.self, from: sessionData)
     }
     
     private func restoreSession() {
@@ -665,7 +672,7 @@ public class NewAuthManager: ObservableObject {
                     // Validate session
                     if session.expirationDate > Date() {
                         self.currentUser = session.user
-                        Session.shared.user = session.user // Update the shared session
+                        CoreTypes.Session.shared.user = session.user // Update the shared session
                         self.sessionToken = session.token
                         self.refreshToken = session.refreshToken
                         self.sessionExpirationDate = session.expirationDate
@@ -823,8 +830,8 @@ public class NewAuthManager: ObservableObject {
     private func clearStoredSession() async {
         clearKeychain()
         currentUser = nil
-        Session.shared.user = nil
-        Session.shared.org = nil
+        CoreTypes.Session.shared.user = nil
+        CoreTypes.Session.shared.org = nil
         sessionToken = nil
         refreshToken = nil
         sessionExpirationDate = nil
@@ -906,7 +913,7 @@ public struct Permission {
     )
 }
 
-private struct Session: Codable {
+private struct AuthSession: Codable {
     let token: String
     let refreshToken: String
     let expirationDate: Date

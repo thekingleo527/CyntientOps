@@ -543,7 +543,7 @@ struct BuildingDetailView: View {
         if let contact = selectedContact, let email = contact.email {
             recipients.append(email)
         } else {
-            recipients = ["david@francosphere.com", "jerry@francosphere.com"]
+            recipients = ["david@cyntientops.com", "jerry@cyntientops.com"]
         }
         
         return recipients

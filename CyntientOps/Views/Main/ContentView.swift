@@ -66,7 +66,7 @@ struct ContentView: View {
         // Pass the authManager down so the container views can use it
         .environmentObject(authManager)
         .preferredColorScheme(.dark)
-        .onChange(of: authManager.userRole) { newRole in
+        .onChange(of: authManager.userRole) { _, newRole in
             handleRoleChange(from: previousRole, to: newRole)
             previousRole = newRole
         }

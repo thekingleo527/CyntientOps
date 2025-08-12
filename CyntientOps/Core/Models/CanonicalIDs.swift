@@ -62,7 +62,7 @@ public struct CanonicalIDs {
         public static let springStreet178 = "17"
         public static let walker36 = "18"
         public static let seventhAvenue115 = "19"
-        public static let francoSphereHQ = "20"
+        public static let cyntientOpsHQ = "20"
         
         // ID to Name mapping
         public static let nameMap: [String: String] = [

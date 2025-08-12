@@ -1307,14 +1307,14 @@ struct PreviewHelpers {
     static let kevinProfile = WorkerProfile(
         id: "4",
         name: "Kevin Dutan",
-        email: "kevin@francosphere.com",
+        email: "kevin@cyntientops.com",
         role: .worker
     )
     
     static let mercedesProfile = WorkerProfile(
         id: "5",
         name: "Mercedes Inamagua",
-        email: "mercedes@francosphere.com",
+        email: "mercedes@cyntientops.com",
         role: .worker
     )
     

@@ -2421,9 +2421,24 @@ public struct CoreTypes {
         }
     }
     
+    // MARK: - Session Management
+    
+    /// One source of truth for "who's signed in"
+    public final class Session: ObservableObject {
+        public static let shared = Session()
+        
+        @Published public var user: CoreTypes.User?
+        @Published public var org: CoreTypes.Organization?
+        
+        private init() {}
+    }
+    
 } // END of CoreTypes namespace
 
 // MARK: - Global Type Aliases for Direct Access
+
+// Session Management
+public typealias Session = CoreTypes.Session
 
 // Essential Worker Types
 public typealias WorkerProfile = CoreTypes.WorkerProfile

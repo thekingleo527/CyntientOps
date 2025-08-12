@@ -305,7 +305,7 @@ extension Notification.Name {
 // MARK: - Preview
 
 struct ProfileBadge_Previews: PreviewProvider {
-    static let sampleWorker = CoreTypes.WorkerProfile(id: "4", name: "Kevin Dutan", email: "kevin@francosphere.com", role: .worker)
+    static let sampleWorker = CoreTypes.WorkerProfile(id: "4", name: "Kevin Dutan", email: "kevin@cyntientops.com", role: .worker)
     
     static var previews: some View {
         VStack(spacing: 32) {

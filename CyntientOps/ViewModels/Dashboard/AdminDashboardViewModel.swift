@@ -110,8 +110,8 @@ class AdminDashboardViewModel: ObservableObject {
     
     // MARK: - Initialization (REFACTORED)
     
-    init(session: Session, container: ServiceContainer) {
-        self.session = session
+    init(container: ServiceContainer) {
+        self.session = CoreTypes.Session.shared
         self.container = container
         setupAutoRefresh()
         setupCrossDashboardSync()
