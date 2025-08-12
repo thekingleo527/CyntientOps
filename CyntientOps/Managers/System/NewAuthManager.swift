@@ -209,9 +209,9 @@ public class NewAuthManager: ObservableObject {
             CoreTypes.Session.shared.user = user // Update the shared session
 
             if user.role == "client" {
-                if let clientData = try? await container.client.getClientForUser(email: user.email) {
-                    CoreTypes.Session.shared.org = CoreTypes.Organization(id: clientData.id, name: clientData.name)
-                }
+                // Client organization data can be loaded later through the service layer
+                // Remove direct container dependency to avoid scope issues
+                print("📋 Client user authenticated - organization data will be loaded by dashboard")
             }
             
             self.isAuthenticated = true
