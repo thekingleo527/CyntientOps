@@ -307,8 +307,8 @@ struct SimplifiedDashboard: View {
             description: taskItem.description,
             status: taskItem.isCompleted ? .completed : .pending,
             dueDate: taskItem.dueDate,
+            category: CoreTypes.TaskCategory(rawValue: taskItem.category) ?? .administrative,
             urgency: convertTaskUrgency(taskItem.urgency),
-            category: CoreTypes.TaskCategory(rawValue: taskItem.category) ?? .general,
             buildingId: taskItem.buildingId
         )
     }

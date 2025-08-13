@@ -130,7 +130,7 @@ struct ClientDashboardView: View {
                 // Header
                 ClientHeaderV3B(
                     clientName: getClientName(),
-                    portfolioValue: viewModel.portfolioValue,
+                    portfolioValue: viewModel.portfolioHealth.healthScore,
                     complianceScore: viewModel.complianceOverview.overallScore,
                     hasAlerts: hasUrgentItems(),
                     onRoute: handleHeaderRoute
@@ -176,7 +176,7 @@ struct ClientDashboardView: View {
                         // Dynamic spacer for intelligence panel
                         Spacer(minLength: getIntelligencePanelTotalHeight())
                     }
-                    .padding(.horizontal, adaptivePadding)
+                    .padding(.horizontal, 20)
                     .padding(.top, 8)
                 }
                 .refreshable {
@@ -245,7 +245,7 @@ struct ClientDashboardView: View {
         case .buildings:
             ClientBuildingsListView(
                 buildings: viewModel.buildingsList,
-                performanceMap: viewModel.buildingPerformanceMap,
+                performanceMap: Dictionary(uniqueKeysWithValues: viewModel.buildingMetrics.map { ($0.key, $0.value.completionRate) }),
                 onSelectBuilding: { building in
                     sheet = .buildingDetail(building.id)
                 }
@@ -292,7 +292,7 @@ struct ClientDashboardView: View {
     
     // MARK: - Helper Methods
     private func getClientName() -> String {
-        return viewModel.clientProfile?.name ?? "Client Portal"
+        return viewModel.clientId ?? "Client Portal"
     }
     
     private func hasUrgentItems() -> Bool {
@@ -471,9 +471,9 @@ struct ClientHeaderV3B: View {
     
     private func getInitials(_ name: String) -> String {
         let components = name.components(separatedBy: " ")
-        let first = components.first?.first ?? "C"
-        let last = components.count > 1 ? components.last?.first : nil
-        return "\(first)\(last ?? "")".uppercased()
+        let first = String(components.first?.first ?? "C")
+        let last = components.count > 1 ? String(components.last?.first ?? "") : ""
+        return "\(first)\(last)".uppercased()
     }
 }
 
@@ -639,7 +639,7 @@ struct ClientRealTimeHeroCard: View {
                             .font(.caption)
                             .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
                     }
-                    .padding(.horizontal, adaptivePadding)
+                    .padding(.horizontal, 20)
                     .padding(.vertical, 12)
                     .francoDarkCardBackground(cornerRadius: 12)
                 }
@@ -1014,7 +1014,7 @@ struct ClientNovaIntelligenceBar: View {
             .francoDarkCardBackground(cornerRadius: 0)
         }
         .francoGlassBackground()
-        .cornerRadius(16, corners: [.topLeft, .topRight])
+        .clipShape(RoundedRectangle(cornerRadius: 16))
     }
     
     // MARK: - Dynamic Panel Height

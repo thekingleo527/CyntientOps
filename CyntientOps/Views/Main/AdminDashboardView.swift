@@ -74,7 +74,7 @@ struct AdminDashboardView: View {
                         .padding(.top, 16)
                     }
                     .refreshable {
-                        await viewModel.refresh()
+                        await viewModel.refreshDashboardData()
                         refreshID = UUID()
                     }
                 }
@@ -441,12 +441,12 @@ struct ActivityRow: View {
                 .frame(width: 6, height: 6)
             
             VStack(alignment: .leading, spacing: 2) {
-                Text(update.description)
+                Text(update.updateType)
                     .font(.caption)
                     .foregroundColor(.white)
                     .lineLimit(1)
                 
-                if let workerName = update.workerName {
+                if let workerName = update.data["workerName"] {
                     Text(workerName)
                         .font(.caption2)
                         .foregroundColor(.white.opacity(0.7))
@@ -463,11 +463,11 @@ struct ActivityRow: View {
     }
     
     private var activityColor: Color {
-        switch update.type {
-        case .taskCompleted: return .green
-        case .workerClockIn: return .blue
-        case .violation: return .red
-        case .photoUploaded: return .purple
+        switch update.updateType.lowercased() {
+        case "task_completed", "taskCompleted": return .green
+        case "worker_clock_in", "workerClockIn": return .blue
+        case "violation": return .red
+        case "photo_uploaded", "photoUploaded": return .purple
         default: return .gray
         }
     }

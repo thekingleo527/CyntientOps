@@ -25,6 +25,7 @@ struct AdminDashboardMainView: View {
     // MARK: - Environment Objects
     @EnvironmentObject private var authManager: NewAuthManager
     @EnvironmentObject private var dashboardSync: DashboardSyncService
+    @EnvironmentObject private var novaManager: NovaAIManager
     
     // MARK: - State Management
     @State private var selectedTab: AdminTab = .overview
@@ -329,18 +330,25 @@ struct AdminDashboardMainView: View {
             // Nova Intelligence Bar (bottom overlay) - 4-Tab Enhanced Version
             VStack {
                 Spacer()
-                AdminNovaIntelligenceBar(
-                    novaState: .active,
-                    insights: viewModel.portfolioInsights,
-                    isExpanded: .constant(false),
-                    onTap: {
-                        // Handle Nova panel expansion
-                        print("Nova panel tapped")
-                    },
-                    onClose: nil,
-                    onSelectMapTab: {
-                        withAnimation(.spring()) {
-                            isMapRevealed = true
+                NovaIntelligenceBar(
+                    container: container,
+                    workerId: nil,
+                    currentContext: generateAdminContext(),
+                    novaManager: novaManager,
+                    onRoute: { route in
+                        switch route {
+                        case .map:
+                            withAnimation(.spring()) {
+                                isMapRevealed = true
+                            }
+                        case .priorities:
+                            selectedTab = .insights
+                        case .tasks:
+                            selectedTab = .tasks
+                        case .analytics:
+                            selectedTab = .insights
+                        case .chat:
+                            print("Nova chat tapped")
                         }
                     }
                 )
@@ -1363,7 +1371,7 @@ struct AdminBuildingDetailSheet: View {  // RENAMED from BuildingDetailSheet
 struct AdminWorkerDetailSheet: View {  // RENAMED from WorkerDetailSheet
     let worker: CoreTypes.WorkerProfile
     let capabilities: AdminDashboardViewModel.WorkerCapabilities?
-    let canPerformAction: (WorkerAction) -> Bool
+    let canPerformAction: (WorkerActionType) -> Bool
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {

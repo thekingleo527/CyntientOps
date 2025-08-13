@@ -1024,7 +1024,7 @@ struct ScheduleDayCard: View {
         .frame(height: 70)
         .background(
             RoundedRectangle(cornerRadius: 8)
-                .fill(isToday ? CyntientOpsDesign.DashboardColors.workerPrimary.opacity(0.1) : Material.ultraThin)
+                .fill(isToday ? CyntientOpsDesign.DashboardColors.workerPrimary.opacity(0.1) : Color.black.opacity(0.1))
                 .overlay(
                     RoundedRectangle(cornerRadius: 8)
                         .stroke(

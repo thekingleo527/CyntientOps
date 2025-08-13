@@ -586,6 +586,170 @@ struct NovaClientIntelligenceBar: View {
         .cornerRadius(6)
     }
     
+    // MARK: - Main Tab Content Views
+    
+    @ViewBuilder
+    private var prioritiesContent: some View {
+        VStack(spacing: 8) {
+            ForEach(getStrategicRecommendations(), id: \.title) { recommendation in
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(recommendation.title)
+                            .font(.caption)
+                            .fontWeight(.medium)
+                            .foregroundColor(.white)
+                        
+                        Text(recommendation.description)
+                            .font(.caption2)
+                            .foregroundColor(.gray)
+                            .lineLimit(2)
+                    }
+                    
+                    Spacer()
+                    
+                    Image(systemName: priorityIcon(recommendation.priority))
+                        .font(.system(size: 12))
+                        .foregroundColor(priorityColor(recommendation.priority))
+                }
+                .padding(8)
+                .background(Color.black.opacity(0.3))
+                .cornerRadius(6)
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private var portfolioContent: some View {
+        VStack(spacing: 0) {
+            // Portfolio sub-tabs
+            HStack(spacing: 0) {
+                ForEach(PortfolioSubTab.allCases, id: \.rawValue) { tab in
+                    Button(action: {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            selectedPortfolioTab = tab
+                        }
+                    }) {
+                        VStack(spacing: 2) {
+                            Image(systemName: tab.icon)
+                                .font(.system(size: 10))
+                                .foregroundColor(selectedPortfolioTab == tab ? .blue : .gray)
+                            
+                            Text(tab.rawValue)
+                                .font(.caption2)
+                                .foregroundColor(selectedPortfolioTab == tab ? .white : .gray)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 6)
+                        .background(
+                            selectedPortfolioTab == tab ?
+                                Color.blue.opacity(0.15) : Color.clear
+                        )
+                        .cornerRadius(6)
+                    }
+                }
+            }
+            .padding(.bottom, 8)
+            
+            // Portfolio sub-content
+            switch selectedPortfolioTab {
+            case .overview:
+                portfolioOverviewContent
+            case .financial:
+                portfolioFinancialContent
+            case .performance:
+                portfolioPerformanceContent
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private var complianceContent: some View {
+        VStack(spacing: 0) {
+            // Compliance sub-tabs
+            HStack(spacing: 0) {
+                ForEach(ComplianceSubTab.allCases, id: \.rawValue) { tab in
+                    Button(action: {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            selectedComplianceTab = tab
+                        }
+                    }) {
+                        VStack(spacing: 2) {
+                            Image(systemName: tab.icon)
+                                .font(.system(size: 10))
+                                .foregroundColor(selectedComplianceTab == tab ? .green : .gray)
+                            
+                            Text(tab.rawValue)
+                                .font(.caption2)
+                                .foregroundColor(selectedComplianceTab == tab ? .white : .gray)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 6)
+                        .background(
+                            selectedComplianceTab == tab ?
+                                Color.green.opacity(0.15) : Color.clear
+                        )
+                        .cornerRadius(6)
+                    }
+                }
+            }
+            .padding(.bottom, 8)
+            
+            // Compliance sub-content
+            switch selectedComplianceTab {
+            case .overview:
+                complianceOverviewContent
+            case .hpd:
+                hpdComplianceContent
+            case .dob:
+                dobComplianceContent
+            case .dsny:
+                dsnyComplianceContent
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private var chatContent: some View {
+        VStack(spacing: 8) {
+            HStack {
+                Image(systemName: "brain.head.profile")
+                    .font(.system(size: 16))
+                    .foregroundColor(.purple)
+                
+                Text("Ask Nova about your portfolio")
+                    .font(.caption)
+                    .foregroundColor(.white)
+                
+                Spacer()
+            }
+            .padding(10)
+            .background(Color.purple.opacity(0.15))
+            .cornerRadius(8)
+            
+            VStack(spacing: 6) {
+                Text("Popular Questions:")
+                    .font(.caption2)
+                    .foregroundColor(.gray)
+                
+                Text("• What buildings need attention?")
+                    .font(.caption2)
+                    .foregroundColor(.white.opacity(0.8))
+                
+                Text("• How can I reduce operating costs?")
+                    .font(.caption2)
+                    .foregroundColor(.white.opacity(0.8))
+                
+                Text("• What violations need resolution?")
+                    .font(.caption2)
+                    .foregroundColor(.white.opacity(0.8))
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(8)
+            .background(Color.black.opacity(0.3))
+            .cornerRadius(6)
+        }
+    }
+    
     // MARK: - Sample Data
     
     private func getSampleBuildings() -> [SampleBuilding] {
