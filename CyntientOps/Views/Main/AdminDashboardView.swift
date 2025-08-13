@@ -446,7 +446,7 @@ struct ActivityRow: View {
                     .foregroundColor(.white)
                     .lineLimit(1)
                 
-                if let workerName = update.workerName {
+                if let workerName = update.data["workerName"] {
                     Text(workerName)
                         .font(.caption2)
                         .foregroundColor(.white.opacity(0.7))

@@ -599,11 +599,11 @@ public class WorkerDashboardViewModel: ObservableObject {
                     id: taskItem.id,
                     title: taskItem.title,
                     description: taskItem.description ?? "",
+                    status: taskItem.isCompleted ? .completed : .pending,
                     buildingId: taskItem.buildingId,
                     dueDate: taskItem.dueDate,
                     urgency: convertTaskUrgencyToCore(taskItem.urgency),
-                    category: CoreTypes.TaskCategory(rawValue: taskItem.category) ?? .general,
-                    isCompleted: taskItem.isCompleted
+                    category: CoreTypes.TaskCategory(rawValue: taskItem.category) ?? .administrative
                 )
             }
             .first
@@ -619,11 +619,11 @@ public class WorkerDashboardViewModel: ObservableObject {
                     id: taskItem.id,
                     title: taskItem.title,
                     description: taskItem.description ?? "",
+                    status: taskItem.isCompleted ? .completed : .pending,
                     buildingId: taskItem.buildingId,
                     dueDate: taskItem.dueDate,
                     urgency: convertTaskUrgencyToCore(taskItem.urgency),
-                    category: CoreTypes.TaskCategory(rawValue: taskItem.category) ?? .general,
-                    isCompleted: taskItem.isCompleted
+                    category: CoreTypes.TaskCategory(rawValue: taskItem.category) ?? .administrative
                 )
             }
     }
@@ -993,9 +993,9 @@ public class WorkerDashboardViewModel: ObservableObject {
             await self.loadBuildingMetrics()
             await self.calculateHoursWorkedToday()
             
-            // Update weather if needed
+            // Update weather if needed  
             if let building = self.currentBuilding {
-                await self.loadWeatherData(for: building)
+                await self.loadWeatherForBuilding(building)
             }
             
             // Update HeroTile properties
@@ -1045,7 +1045,14 @@ public class WorkerDashboardViewModel: ObservableObject {
             guard let self = self else { return }
             
             // Calculate session summary
-            let sessionSummary = self.calculateSessionSummary(building: building)
+            let buildingCoordinate = CoreTypes.NamedCoordinate(
+                id: building.id,
+                name: building.name,
+                address: building.address,
+                latitude: building.coordinate.latitude,
+                longitude: building.coordinate.longitude
+            )
+            let sessionSummary = self.calculateSessionSummary(building: buildingCoordinate)
             
             // Use ClockInService wrapper
             try await self.container.clockIn.clockOut(workerId: workerId)
@@ -1240,7 +1247,18 @@ public class WorkerDashboardViewModel: ObservableObject {
     
     /// Get tasks for a specific building
     public func getTasksForBuilding(_ buildingId: String) -> [CoreTypes.ContextualTask] {
-        todaysTasks.filter { $0.buildingId == buildingId }
+        todaysTasks.filter { $0.buildingId == buildingId }.compactMap { taskItem in
+            CoreTypes.ContextualTask(
+                id: taskItem.id,
+                title: taskItem.title,
+                description: taskItem.description ?? "",
+                status: taskItem.isCompleted ? .completed : .pending,
+                buildingId: taskItem.buildingId,
+                dueDate: taskItem.dueDate,
+                urgency: convertTaskUrgencyToCore(taskItem.urgency),
+                category: CoreTypes.TaskCategory(rawValue: taskItem.category) ?? .administrative
+            )
+        }
     }
     
     /// Get completion rate for a building
@@ -1399,7 +1417,7 @@ public class WorkerDashboardViewModel: ObservableObject {
                 // Convert CoreTypes.WeatherCondition to our local WeatherCondition
                 let condition: WeatherCondition
                 switch currentWeather.condition {
-                case .rain, .rainy:
+                case .rain:
                     condition = .rain
                 case .snow, .snowy:
                     condition = .snow
@@ -1816,7 +1834,7 @@ public class WorkerDashboardViewModel: ObservableObject {
     
     private func updateTaskCompletion(taskId: String) {
         if let index = todaysTasks.firstIndex(where: { $0.id == taskId }) {
-            var updatedTask = todaysTasks[index]
+            let updatedTask = todaysTasks[index]
             // Mark as completed - TaskItem doesn't have completedAt property 
             let completedTask = TaskItem(
                 id: updatedTask.id,
@@ -1921,7 +1939,7 @@ public class WorkerDashboardViewModel: ObservableObject {
             for entry in entries {
                 guard let actionString = entry["action"] as? String,
                       let timestampString = entry["created_at"] as? String,
-                      let timestamp = ISO8601DateFormatter().date(from: timestampString) else {
+                      let _ = ISO8601DateFormatter().date(from: timestampString) else {
                     continue
                 }
                 
@@ -2324,25 +2342,28 @@ public class WorkerDashboardViewModel: ObservableObject {
                 vendorAccessEntries.removeLast()
             }
             
-            // Create vendor info for operational intelligence
-            let vendorInfo = VendorInfo(
-                id: UUID().uuidString,
-                name: vendorName,
-                type: mapToIntelligenceVendorType(vendorType),
-                company: vendorCompany.isEmpty ? vendorName : vendorCompany,
-                contactInfo: "",
-                certifications: []
-            )
-            
-            // Log to AdminOperationalIntelligence service
-            await AdminOperationalIntelligence.shared.logVendorAccess(
-                workerId: workerId,
-                buildingId: buildingId,
-                vendorInfo: vendorInfo,
-                accessType: mapToIntelligenceAccessType(accessType),
-                accessDetails: "\(accessDetails). Notes: \(notes)",
-                photoEvidence: photoEvidence
-            )
+            // NOTE: AdminOperationalIntelligence integration temporarily disabled
+            // TODO: Implement via ServiceContainer.adminIntelligence protocol
+            // 
+            // // Create vendor info for operational intelligence
+            // let vendorInfo = AdminOperationalIntelligence.VendorInfo(
+            //     id: UUID().uuidString,
+            //     name: vendorName,
+            //     type: mapToIntelligenceVendorType(vendorType),
+            //     company: vendorCompany.isEmpty ? vendorName : vendorCompany,
+            //     contactInfo: "",
+            //     certifications: []
+            // )
+            // 
+            // // Log to AdminOperationalIntelligence service
+            // await AdminOperationalIntelligence.shared.logVendorAccess(
+            //     workerId: workerId,
+            //     buildingId: buildingId,
+            //     vendorInfo: vendorInfo,
+            //     accessType: mapToIntelligenceAccessType(accessType),
+            //     accessDetails: "\(accessDetails). Notes: \(notes)",
+            //     photoEvidence: photoEvidence
+            // )
             
             // Store in database for persistence
             try await container.database.execute("""
@@ -2370,7 +2391,7 @@ public class WorkerDashboardViewModel: ObservableObject {
             // Broadcast vendor access update
             let update = CoreTypes.DashboardUpdate(
                 source: .worker,
-                type: .vendorAccess,
+                type: .buildingUpdate,
                 buildingId: buildingId,
                 workerId: workerId,
                 data: [
@@ -2426,7 +2447,7 @@ public class WorkerDashboardViewModel: ObservableObject {
                       let timestampString = row["timestamp"] as? String,
                       let vendorType = VendorType(rawValue: vendorTypeRaw),
                       let accessType = VendorAccessType(rawValue: accessTypeRaw),
-                      let timestamp = ISO8601DateFormatter().date(from: timestampString) else {
+                      let _ = ISO8601DateFormatter().date(from: timestampString) else {
                     return nil
                 }
                 
@@ -2553,7 +2574,7 @@ public class WorkerDashboardViewModel: ObservableObject {
             // Broadcast update
             let update = CoreTypes.DashboardUpdate(
                 source: .worker,
-                type: .workerNote,
+                type: .buildingUpdate,
                 buildingId: currentBuilding.id,
                 workerId: workerId,
                 data: [
@@ -2882,18 +2903,24 @@ public class WorkerDashboardViewModel: ObservableObject {
     
     // MARK: - Helper Methods for Vendor Access
     
-    /// Map VendorType to string for admin intelligence
+    /// Map VendorType to string for admin intelligence  
     private func mapToIntelligenceVendorType(_ vendorType: VendorType) -> String {
         switch vendorType {
-        case .inspector: return "inspector"
-        case .maintenance: return "maintenance"
+        case .sprinklerService: return "hvac"
+        case .elevatorService: return "maintenance"
+        case .spectrumTech: return "utility"
+        case .electrician: return "electrical"
+        case .plumber: return "plumbing"
         case .contractor: return "contractor"
-        case .utility: return "utility"
-        case .pestControl: return "pest_control"
-        case .hvac: return "hvac"
-        case .plumbing: return "plumbing"
-        case .electrical: return "electrical"
-        case .cleaning: return "other"
+        case .dobInspector: return "inspector"
+        case .depInspector: return "inspector"
+        case .conEd: return "utility"
+        case .exterminator: return "pest_control"
+        case .roofer: return "maintenance"
+        case .locksmith: return "maintenance"
+        case .laundryServiceTech: return "other"
+        case .architect: return "other"
+        case .insuranceBankAgent: return "other"
         case .other: return "other"
         }
     }
