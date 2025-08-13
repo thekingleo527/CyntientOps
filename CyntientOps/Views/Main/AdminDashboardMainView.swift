@@ -376,7 +376,20 @@ struct AdminDashboardMainView: View {
                     worker: worker,
                     capabilities: viewModel.workerCapabilities[worker.id],
                     canPerformAction: { action in
-                        viewModel.canWorkerPerformAction(worker.id, action: action)
+                        // Convert WorkerActionType to WorkerAction
+                        let workerAction: AdminDashboardViewModel.WorkerAction
+                        switch action {
+                        case .photoUpload:
+                            workerAction = .uploadPhoto
+                        case .commentUpdate:
+                            workerAction = .addNotes
+                        case .emergencyReport:
+                            workerAction = .addEmergencyTask
+                        default:
+                            // Default to viewMap for unmapped actions
+                            workerAction = .viewMap
+                        }
+                        return viewModel.canWorkerPerformAction(worker.id, action: workerAction)
                     }
                 )
             }
