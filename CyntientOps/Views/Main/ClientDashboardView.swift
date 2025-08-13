@@ -472,7 +472,7 @@ struct ClientHeaderV3B: View {
     private func getInitials(_ name: String) -> String {
         let components = name.components(separatedBy: " ")
         let first = String(components.first?.first ?? "C")
-        let last = components.count > 1 ? String(components.last?.first ?? "") : ""
+        let last = components.count > 1 ? String(components.last?.first ?? "X") : ""
         return "\(first)\(last)".uppercased()
     }
 }
@@ -1233,7 +1233,7 @@ struct ClientPortfolioContent: View {
                 Spacer()
                 
                 VStack(alignment: .trailing, spacing: 4) {
-                    Text("$\(formatLargeNumber(monthlyMetrics.totalRevenue))")
+                    Text("$\(formatLargeNumber(monthlyMetrics.monthlyBudget))")
                         .font(.title2)
                         .fontWeight(.bold)
                         .foregroundColor(CyntientOpsDesign.DashboardColors.success)
