@@ -63,6 +63,7 @@ public struct CanonicalIDs {
         public static let walker36 = "18"
         public static let seventhAvenue115 = "19"
         public static let cyntientOpsHQ = "20"
+        public static let chambers148 = "21"
         
         // ID to Name mapping
         public static let nameMap: [String: String] = [
@@ -84,7 +85,8 @@ public struct CanonicalIDs {
             "17": "178 Spring Street",
             "18": "36 Walker Street",
             "19": "115 7th Avenue",
-            "20": "CyntientOps HQ"
+            "20": "CyntientOps HQ",
+            "21": "148 Chambers Street"
         ]
         
         // Name to ID mapping (for lookups)

@@ -1321,11 +1321,17 @@ public class WorkerDashboardViewModel: ObservableObject {
                         return routine.rrule.contains("DAILY") || routine.rrule.contains("WEEKLY")
                     }
                     
+                    // Get real coordinates from routine data
+                    let coordinate = CLLocationCoordinate2D(
+                        latitude: firstRoutine.buildingLocation.latitude,
+                        longitude: firstRoutine.buildingLocation.longitude
+                    )
+                    
                     return BuildingSummary(
                         id: buildingId,
                         name: firstRoutine.buildingName,
                         address: firstRoutine.buildingAddress,
-                        coordinate: CLLocationCoordinate2D(latitude: 0, longitude: 0), // Default coordinates - would be loaded from buildings table
+                        coordinate: coordinate,
                         status: .assigned,
                         todayTaskCount: todayTasks.count
                     )

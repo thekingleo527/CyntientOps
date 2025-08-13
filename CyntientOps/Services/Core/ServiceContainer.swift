@@ -114,7 +114,7 @@ public final class ServiceContainer: ObservableObject {
     public let operationalData: OperationalDataManager
     
     // MARK: - Layer 1: Core Services (NO SINGLETONS)
-    public let auth: AuthenticationService
+    public let auth: NewAuthManager
     public let workers: WorkerService
     public let buildings: BuildingService
     public let tasks: TaskService
@@ -180,7 +180,7 @@ public final class ServiceContainer: ObservableObject {
         // Layer 1: Core Services (no circular dependencies)
         print("🔧 Layer 1: Initializing core services...")
         
-        self.auth = AuthenticationService(database: database)
+        self.auth = NewAuthManager.shared
         self.workers = WorkerService.shared
         self.buildings = BuildingService.shared
         self.tasks = TaskService.shared

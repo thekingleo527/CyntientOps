@@ -555,22 +555,7 @@ public class OperationalDataManager: ObservableObject {
             estimatedDuration: 60
         ),
         
-        // After-lunch satellite cleans
-        OperationalDataTaskAssignment(
-            building: "29-31 East 20th Street",
-            taskName: "Hallway / Glass / Sidewalk Sweep & Mop",
-            assignedWorker: "Kevin Dutan",
-            category: "Cleaning",
-            skillLevel: "Basic",
-            recurrence: "Weekly",
-            startHour: 13,
-            endHour: 14,
-            daysOfWeek: "Tue",
-            workerId: CanonicalIDs.Workers.kevinDutan,
-            buildingId: CanonicalIDs.Buildings.eastTwentieth29_31,
-            requiresPhoto: false,
-            estimatedDuration: 60
-        ),
+        // After-lunch satellite cleans (29-31 East 20th Street routines removed - no longer active)
         OperationalDataTaskAssignment(
             building: "123 1st Avenue",
             taskName: "Hallway & Curb Clean",
@@ -814,6 +799,23 @@ public class OperationalDataManager: ObservableObject {
             buildingId: CanonicalIDs.Buildings.westSeventeenth117,
             requiresPhoto: true,
             estimatedDuration: 30
+        ),
+        
+        // 148 CHAMBERS STREET - KEVIN'S GARBAGE DUTIES
+        OperationalDataTaskAssignment(
+            building: "148 Chambers Street",
+            taskName: "Garbage & Recycling Collection",
+            assignedWorker: "Kevin Dutan",
+            category: "Sanitation",
+            skillLevel: "Basic",
+            recurrence: "Weekly",
+            startHour: 18,
+            endHour: 19,
+            daysOfWeek: "Sun,Tue,Thu",
+            workerId: CanonicalIDs.Workers.kevinDutan,
+            buildingId: CanonicalIDs.Buildings.chambers148,
+            requiresPhoto: false,
+            estimatedDuration: 60
         ),
         
         // ───────────────────────────────
@@ -1107,6 +1109,101 @@ public class OperationalDataManager: ObservableObject {
             buildingId: CanonicalIDs.Buildings.westSeventeenth117,
             requiresPhoto: false,
             estimatedDuration: 30
+        ),
+        
+        // 148 CHAMBERS STREET - EDWIN'S MORNING ROUTINES
+        // Tuesday & Thursday morning duties
+        OperationalDataTaskAssignment(
+            building: "148 Chambers Street",
+            taskName: "Bring Bins Back Inside",
+            assignedWorker: "Edwin Lema",
+            category: "Sanitation",
+            skillLevel: "Basic",
+            recurrence: "Weekly",
+            startHour: 7,
+            endHour: 7,
+            daysOfWeek: "Tue,Thu",
+            workerId: CanonicalIDs.Workers.edwinLema,
+            buildingId: CanonicalIDs.Buildings.chambers148,
+            requiresPhoto: false,
+            estimatedDuration: 15
+        ),
+        OperationalDataTaskAssignment(
+            building: "148 Chambers Street",
+            taskName: "Hose Sidewalk",
+            assignedWorker: "Edwin Lema",
+            category: "Cleaning",
+            skillLevel: "Basic",
+            recurrence: "Weekly",
+            startHour: 7,
+            endHour: 8,
+            daysOfWeek: "Tue,Thu",
+            workerId: CanonicalIDs.Workers.edwinLema,
+            buildingId: CanonicalIDs.Buildings.chambers148,
+            requiresPhoto: false,
+            estimatedDuration: 30
+        ),
+        OperationalDataTaskAssignment(
+            building: "148 Chambers Street",
+            taskName: "Clean Glass & Windows",
+            assignedWorker: "Edwin Lema",
+            category: "Cleaning",
+            skillLevel: "Basic",
+            recurrence: "Weekly",
+            startHour: 8,
+            endHour: 8,
+            daysOfWeek: "Tue,Thu",
+            workerId: CanonicalIDs.Workers.edwinLema,
+            buildingId: CanonicalIDs.Buildings.chambers148,
+            requiresPhoto: true,
+            estimatedDuration: 30
+        ),
+        OperationalDataTaskAssignment(
+            building: "148 Chambers Street",
+            taskName: "Clean Elevator",
+            assignedWorker: "Edwin Lema",
+            category: "Cleaning",
+            skillLevel: "Basic",
+            recurrence: "Weekly",
+            startHour: 8,
+            endHour: 9,
+            daysOfWeek: "Tue,Thu",
+            workerId: CanonicalIDs.Workers.edwinLema,
+            buildingId: CanonicalIDs.Buildings.chambers148,
+            requiresPhoto: false,
+            estimatedDuration: 15
+        ),
+        
+        // 148 CHAMBERS STREET - EDWIN'S MONTHLY MAINTENANCE
+        OperationalDataTaskAssignment(
+            building: "148 Chambers Street",
+            taskName: "Monthly Stairwell Cleaning",
+            assignedWorker: "Edwin Lema",
+            category: "Cleaning",
+            skillLevel: "Advanced",
+            recurrence: "Monthly",
+            startHour: 9,
+            endHour: 11,
+            daysOfWeek: "First Tue",
+            workerId: CanonicalIDs.Workers.edwinLema,
+            buildingId: CanonicalIDs.Buildings.chambers148,
+            requiresPhoto: true,
+            estimatedDuration: 120
+        ),
+        OperationalDataTaskAssignment(
+            building: "148 Chambers Street",
+            taskName: "Monthly Utility Room Check",
+            assignedWorker: "Edwin Lema",
+            category: "Maintenance",
+            skillLevel: "Advanced",
+            recurrence: "Monthly",
+            startHour: 11,
+            endHour: 12,
+            daysOfWeek: "First Thu",
+            workerId: CanonicalIDs.Workers.edwinLema,
+            buildingId: CanonicalIDs.Buildings.chambers148,
+            requiresPhoto: true,
+            estimatedDuration: 60
         ),
         
         // ───────────────────────────────
@@ -1759,7 +1856,7 @@ public class OperationalDataManager: ObservableObject {
         
         let buildingData: [(id: String, name: String)] = [
             ("1", "12 West 18th Street"),
-            ("2", "29-31 East 20th Street"),
+            // ("2", "29-31 East 20th Street"), // REMOVED - No longer active
             ("3", "135-139 West 17th Street"),
             ("4", "104 Franklin Street"),
             ("5", "138 West 17th Street"),
@@ -3085,7 +3182,7 @@ public class OperationalDataManager: ObservableObject {
             "112 West 18th Street": "7",
             "12 West 18th Street": "1",
             "Rubin Museum (142–148 W 17th)": "14",
-            "29-31 East 20th Street": "2",
+            // "29-31 East 20th Street": "2", // REMOVED - No longer active
             "133 East 15th Street": "15",
             "178 Spring Street": "17",
             "104 Franklin Street": "4",
@@ -3103,7 +3200,7 @@ public class OperationalDataManager: ObservableObject {
     private func getBuildingNameFromId(_ buildingId: String) -> String {
         let reverseBuildingMap = [
             "1": "12 West 18th Street",
-            "2": "29-31 East 20th Street",
+            // "2": "29-31 East 20th Street", // REMOVED - No longer active
             "3": "135-139 West 17th Street",
             "4": "104 Franklin Street",
             "5": "138 West 17th Street",

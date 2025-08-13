@@ -18,6 +18,117 @@ import SwiftUI
 import MapKit
 import CoreLocation
 
+// MARK: - Type Conversion Extensions
+extension WorkerDashboardViewModel.BuildingSummary {
+    var asNamedCoordinate: CoreTypes.NamedCoordinate {
+        return CoreTypes.NamedCoordinate(
+            id: self.id,
+            name: self.name,
+            address: self.address,
+            latitude: self.coordinate.latitude,
+            longitude: self.coordinate.longitude
+        )
+    }
+}
+
+extension WorkerDashboardViewModel.TaskItem: Identifiable {
+    var asContextualTask: CoreTypes.ContextualTask {
+        let urgency: CoreTypes.TaskUrgency? = {
+            switch self.urgency {
+            case .low: return .low
+            case .normal: return .normal
+            case .high: return .high
+            case .urgent: return .urgent
+            case .critical: return .critical
+            case .emergency: return .critical
+            }
+        }()
+        
+        return CoreTypes.ContextualTask(
+            id: self.id,
+            title: self.title,
+            description: self.description,
+            status: self.isCompleted ? .completed : .pending,
+            scheduledDate: self.dueDate,
+            dueDate: self.dueDate,
+            urgency: urgency,
+            buildingId: self.buildingId,
+            buildingName: nil,
+            requiresPhoto: self.requiresPhoto,
+            estimatedDuration: 30
+        )
+    }
+    
+    var isOverdue: Bool {
+        guard let dueDate = self.dueDate else { return false }
+        return dueDate < Date() && !self.isCompleted
+    }
+}
+
+// MARK: - WorkerSimpleHeader
+struct WorkerSimpleHeader: View {
+    let workerName: String
+    let workerId: String
+    let isNovaProcessing: Bool
+    let clockInStatus: ClockInStatus
+    let onLogoTap: () -> Void
+    let onNovaAITap: () -> Void
+    let onProfileTap: () -> Void
+    
+    enum ClockInStatus {
+        case clockedIn(building: String, time: Date)
+        case notClockedIn
+    }
+    
+    var body: some View {
+        HStack {
+            Button(action: onLogoTap) {
+                Image(systemName: "building.2")
+                    .font(.title2)
+                    .foregroundColor(.blue)
+            }
+            
+            Spacer()
+            
+            VStack(spacing: 2) {
+                switch clockInStatus {
+                case .clockedIn(let building, let time):
+                    Text(building)
+                        .font(.caption)
+                        .foregroundColor(Color.secondary)
+                    Text(time, style: .time)
+                        .font(.caption2)
+                        .foregroundColor(Color.secondary.opacity(0.7))
+                case .notClockedIn:
+                    Text("Not Clocked In")
+                        .font(.caption)
+                        .foregroundColor(.orange)
+                }
+            }
+            
+            Spacer()
+            
+            Button(action: onNovaAITap) {
+                Image(systemName: isNovaProcessing ? "brain" : "brain.head.profile")
+                    .font(.title2)
+                    .foregroundColor(.blue)
+                    .symbolEffect(.pulse, value: isNovaProcessing)
+            }
+            
+            Button(action: onProfileTap) {
+                Image(systemName: "person.circle.fill")
+                    .font(.title2)
+                    .foregroundColor(.blue)
+            }
+        }
+        .padding()
+        .background(
+            Color.black.opacity(0.05)
+                .ignoresSafeArea()
+        )
+    }
+}
+
 // MARK: - WorkerRoute Definition
 enum WorkerRoute: Identifiable {
     case routeMap
@@ -157,15 +268,15 @@ struct WorkerDashboardView: View {
         ) {
             ZStack {
                 // Dark Elegance Background
-                CyntientOpsDesign.DashboardColors.baseBackground
+                Color.black
                     .ignoresSafeArea()
                 
                 // Main content
                 VStack(spacing: 0) {
                     // WorkerSimpleHeader - Per Design Brief: Logo, Nova AI, Profile
                     WorkerSimpleHeader(
-                        workerName: authManager.currentUser?.name ?? "Worker",
-                        workerId: authManager.currentUser?.workerId ?? "",
+                        workerName: viewModel.worker?.name ?? "Worker",
+                        workerId: viewModel.worker?.workerId ?? "",
                         isNovaProcessing: novaEngine.isThinking,
                         clockInStatus: viewModel.isClockedIn ? 
                             .clockedIn(
@@ -177,7 +288,7 @@ struct WorkerDashboardView: View {
                             handleHeaderRoute(.mainMenu)
                             providePreciseHapticFeedback()
                         },
-                        onNovaPress: {
+                        onNovaAITap: {
                             // Open Nova chat
                             currentContext = .novaChat
                             providePreciseHapticFeedback()
@@ -185,10 +296,6 @@ struct WorkerDashboardView: View {
                         onProfileTap: {
                             // Open worker profile view
                             viewModel.sheet = .settings
-                            providePreciseHapticFeedback()
-                        },
-                        onClockAction: {
-                            handleClockAction()
                             providePreciseHapticFeedback()
                         }
                     )
@@ -202,7 +309,7 @@ struct WorkerDashboardView: View {
                                 state: $heroState,
                                 currentBuildingTitle: viewModel.currentBuilding?.name ?? "Select Building",
                                 todaySummary: "\(viewModel.completedTasksCount)/\(viewModel.todaysTasks.count) tasks today",
-                                firstName: authManager.currentUser?.name.components(separatedBy: " ").first ?? "Worker",
+                                firstName: viewModel.worker?.name.components(separatedBy: " ").first ?? "Worker",
                                 weather: viewModel.weather,
                                 openBuilding: {
                                     if let currentBuilding = viewModel.currentBuilding {
@@ -225,8 +332,8 @@ struct WorkerDashboardView: View {
                             // Context-aware content loading
                             contextAwareContent
                             
-                            // Spacer for bottom intelligence bar
-                            Spacer(minLength: intelligencePanelState == .hidden ? 20 : 80)
+                            // Bottom spacing
+                            Spacer(minLength: 20)
                         }
                         .padding(.horizontal, 20)
                         .padding(.top, 16)
@@ -236,27 +343,32 @@ struct WorkerDashboardView: View {
                         refreshID = UUID()
                     }
                     
-                    // Nova Intelligence Panel - Per Design Brief: sticky, non-transparent, 5 tabs
-                    if intelligencePanelState != .hidden && hasIntelligenceToShow() {
-                        WorkerNovaIntelligenceBar(
-                            urgentTasks: viewModel.urgentTasks,
-                            todaysTasks: viewModel.todaysTasks,
-                            assignedBuildings: viewModel.assignedBuildings,
-                            performance: viewModel.performance,
-                            selectedTab: $viewModel.novaTab,
-                            onRoute: { novaRoute in
-                                handleNovaRoute(novaRoute)
-                                providePreciseHapticFeedback()
-                            }
-                        )
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                        .animation(CyntientOpsDesign.Animations.spring, value: intelligencePanelState)
-                    }
                 }
+            }
+        }
+        .safeAreaInset(edge: .bottom) {
+            if intelligencePanelState != .hidden && hasIntelligenceToShow() {
+                let urgentTaskItems = viewModel.todaysTasks.filter { 
+                    $0.urgency == .urgent || $0.urgency == .critical || $0.urgency == .emergency 
+                }
+                WorkerNovaIntelligenceBar(
+                    urgentTasks: urgentTaskItems,
+                    todaysTasks: viewModel.todaysTasks,
+                    assignedBuildings: viewModel.assignedBuildings,
+                    performance: viewModel.performance,
+                    selectedTab: $viewModel.novaTab,
+                    onRoute: { novaRoute in
+                        handleNovaRoute(novaRoute)
+                        providePreciseHapticFeedback()
+                    }
+                )
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .animation(CyntientOpsDesign.Animations.spring, value: intelligencePanelState)
             }
         }
         .navigationBarHidden(true)
         .preferredColorScheme(.dark)
+        .environment(\.locale, Locale(identifier: "en_US"))
         .sheet(item: $viewModel.sheet) { sheet in
             switch sheet {
             case .routes:
@@ -310,7 +422,7 @@ struct WorkerDashboardView: View {
                 
             case .buildingDetail(let buildingId):
                 if let building = viewModel.assignedBuildings.first(where: { $0.id == buildingId }) {
-                    BuildingDetailSheet(building: building)
+                    BuildingDetailSheet(building: building.asNamedCoordinate)
                         .presentationDetents([.medium, .large])
                 }
                 
@@ -686,12 +798,16 @@ struct WorkerDashboardView: View {
     
     @ViewBuilder
     private var urgentTasksSection: some View {
+        let urgentTasks = viewModel.todaysTasks.filter { task in
+            task.urgency == .urgent || task.urgency == .critical
+        }
+        
         VStack(alignment: .leading, spacing: 12) {
             Text("🚨 Urgent Tasks")
                 .font(.headline)
-                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                .foregroundColor(Color.primary)
             
-            ForEach(viewModel.todaysTasks.filter { $0.urgency == .urgent || $0.urgency == .critical }.prefix(3), id: \.id) { task in
+            ForEach(Array(urgentTasks.prefix(3)), id: \.id) { task in
                 Button(action: {
                     viewModel.sheet = .tasks
                     providePreciseHapticFeedback()
@@ -704,22 +820,23 @@ struct WorkerDashboardView: View {
                             Text(task.title)
                                 .font(.subheadline)
                                 .fontWeight(.medium)
-                                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                                .foregroundColor(Color.primary)
                             
-                            if let building = task.building {
+                            if let buildingId = task.buildingId,
+                               let building = viewModel.assignedBuildings.first(where: { $0.id == buildingId }) {
                                 Text(building.name)
                                     .font(.caption)
-                                    .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                                    .foregroundColor(Color.secondary)
                             }
                         }
                         
                         Spacer()
                         
                         Image(systemName: "chevron.right")
-                            .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+                            .foregroundColor(Color.secondary.opacity(0.7))
                     }
                     .padding()
-                    .background(CyntientOpsDesign.DashboardColors.cardBackground)
+                    .background(Color.gray.opacity(0.1))
                     .cornerRadius(12)
                 }
                 .buttonStyle(PlainButtonStyle())
@@ -733,15 +850,15 @@ struct WorkerDashboardView: View {
             if let building = contextEngine.currentBuilding {
                 Text("📍 Current Location: \(building.name)")
                     .font(.headline)
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                    .foregroundColor(Color.primary)
                 
                 Text("Active Tasks")
                     .font(.subheadline)
                     .fontWeight(.medium)
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                    .foregroundColor(Color.primary)
                 
-                ForEach(viewModel.todaysTasks.filter { !$0.isCompleted }.prefix(5), id: \.id) { task in
-                    WorkerTaskRowView(task: task) {
+                ForEach(Array(viewModel.todaysTasks.filter { !$0.isCompleted }.prefix(5)), id: \.id) { task in
+                    WorkerTaskRowView(task: task.asContextualTask) {
                         viewModel.sheet = .tasks
                         providePreciseHapticFeedback()
                     }
@@ -755,11 +872,11 @@ struct WorkerDashboardView: View {
         VStack(spacing: 16) {
             Text("📲 Ready to Start Your Day?")
                 .font(.headline)
-                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                .foregroundColor(Color.primary)
             
             Text("Select a building to clock in")
                 .font(.subheadline)
-                .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                .foregroundColor(Color.secondary)
             
             LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 2), spacing: 12) {
                 ForEach(contextEngine.assignedBuildings.prefix(4), id: \.id) { building in
@@ -778,14 +895,14 @@ struct WorkerDashboardView: View {
                             Text(building.name)
                                 .font(.caption)
                                 .fontWeight(.medium)
-                                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                                .foregroundColor(Color.primary)
                                 .lineLimit(2)
                                 .multilineTextAlignment(.center)
                         }
                         .padding()
                         .frame(height: 80)
                         .frame(maxWidth: .infinity)
-                        .background(CyntientOpsDesign.DashboardColors.cardBackground)
+                        .background(Color.gray.opacity(0.1))
                         .cornerRadius(12)
                     }
                     .buttonStyle(PlainButtonStyle())
@@ -817,20 +934,20 @@ struct WorkerTaskRowView: View {
                     Text(task.title)
                         .font(.subheadline)
                         .fontWeight(.medium)
-                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                        .foregroundColor(Color.primary)
                         .lineLimit(1)
                     
                     HStack(spacing: 8) {
                         if let building = task.building {
                             Label(building.name, systemImage: "building.2")
                                 .font(.caption)
-                                .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                                .foregroundColor(Color.secondary)
                         }
                         
                         if let dueDate = task.dueDate {
                             Label(dueDate.formatted(date: .omitted, time: .shortened), systemImage: "clock")
                                 .font(.caption)
-                                .foregroundColor(task.isOverdue ? CyntientOpsDesign.DashboardColors.critical : CyntientOpsDesign.DashboardColors.secondaryText)
+                                .foregroundColor(task.isOverdue ? Color.red : Color.secondary)
                         }
                     }
                 }
@@ -840,10 +957,10 @@ struct WorkerTaskRowView: View {
                 // Status indicator
                 if task.isCompleted {
                     Image(systemName: "checkmark.circle.fill")
-                        .foregroundColor(CyntientOpsDesign.DashboardColors.success)
+                        .foregroundColor(Color.green)
                 } else if task.urgency == .critical || task.urgency == .urgent {
                     Image(systemName: "exclamationmark.circle.fill")
-                        .foregroundColor(CyntientOpsDesign.DashboardColors.warning)
+                        .foregroundColor(Color.orange)
                 }
             }
             .padding(.vertical, 8)
@@ -856,15 +973,15 @@ struct WorkerTaskRowView: View {
         // Use Dark Elegance theme colors
         switch task.urgency ?? .low {
         case .critical, .emergency:
-            return CyntientOpsDesign.DashboardColors.critical
+            return Color.red
         case .urgent, .high:
-            return CyntientOpsDesign.DashboardColors.warning
+            return Color.orange
         case .medium:
             return .orange // Amber equivalent
         case .low, .normal:
-            return CyntientOpsDesign.DashboardColors.info
+            return Color.blue
         @unknown default:
-            return CyntientOpsDesign.DashboardColors.info
+            return Color.blue
         }
     }
 }
@@ -883,23 +1000,23 @@ struct MainMenuView: View {
                     Label("Buildings", systemImage: "building.2")
                     Label("Schedule", systemImage: "calendar")
                 }
-                .listRowBackground(CyntientOpsDesign.DashboardColors.cardBackground)
+                .listRowBackground(Color.gray.opacity(0.1))
                 
                 Section("Tools") {
                     Label("Reports", systemImage: "doc.text")
                     Label("Inventory", systemImage: "shippingbox")
                     Label("Messages", systemImage: "message")
                 }
-                .listRowBackground(CyntientOpsDesign.DashboardColors.cardBackground)
+                .listRowBackground(Color.gray.opacity(0.1))
                 
                 Section("Support") {
                     Label("Help", systemImage: "questionmark.circle")
                     Label("Settings", systemImage: "gear")
                 }
-                .listRowBackground(CyntientOpsDesign.DashboardColors.cardBackground)
+                .listRowBackground(Color.gray.opacity(0.1))
             }
             .scrollContentBackground(.hidden)
-            .background(CyntientOpsDesign.DashboardColors.baseBackground)
+            .background(Color.black)
             .navigationTitle("CyntientOps")
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
@@ -907,7 +1024,7 @@ struct MainMenuView: View {
                     Button("Done") {
                         dismiss()
                     }
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                    .foregroundColor(Color.primary)
                 }
             }
         }
@@ -977,9 +1094,9 @@ struct CollapsibleHeroWrapper: View {
                     }) {
                         Image(systemName: "chevron.up")
                             .font(.caption)
-                            .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+                            .foregroundColor(Color.secondary.opacity(0.7))
                             .padding(8)
-                            .background(Circle().fill(CyntientOpsDesign.DashboardColors.glassOverlay))
+                            .background(Circle().fill(Color.white.opacity(0.1)))
                     }
                     .padding(8)
                 }
@@ -1017,37 +1134,37 @@ struct MinimalHeroCard: View {
                     Text(worker.name)
                         .font(.subheadline)
                         .fontWeight(.semibold)
-                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                        .foregroundColor(Color.primary)
                         .lineLimit(1)
                 }
                 
                 Text("•")
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+                    .foregroundColor(Color.secondary.opacity(0.7))
                 
                 // Progress
                 HStack(spacing: 4) {
                     Image(systemName: "checkmark.circle")
                         .font(.caption)
-                        .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                        .foregroundColor(Color.secondary)
                     
                     Text("\(progress.completedTasks)/\(progress.totalTasks)")
                         .font(.subheadline)
-                        .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                        .foregroundColor(Color.secondary)
                 }
                 
                 // Building if clocked in
                 if let building = building {
                     Text("•")
-                        .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+                        .foregroundColor(Color.secondary.opacity(0.7))
                     
                     HStack(spacing: 4) {
                         Image(systemName: "location")
                             .font(.caption)
-                            .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                            .foregroundColor(Color.secondary)
                         
                         Text(building.name)
                             .font(.subheadline)
-                            .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                            .foregroundColor(Color.secondary)
                             .lineLimit(1)
                     }
                 }
@@ -1057,7 +1174,7 @@ struct MinimalHeroCard: View {
                 // Expand indicator
                 Image(systemName: "chevron.down")
                     .font(.caption)
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+                    .foregroundColor(Color.secondary.opacity(0.7))
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
@@ -1068,9 +1185,9 @@ struct MinimalHeroCard: View {
     
     private var statusColor: Color {
         if case .clockedIn = clockInStatus {
-            return CyntientOpsDesign.DashboardColors.success
+            return Color.green
         } else {
-            return CyntientOpsDesign.DashboardColors.inactive
+            return Color.gray
         }
     }
     
@@ -1112,11 +1229,11 @@ struct WorkerNovaIntelligenceBar: View {
         
         var color: Color {
             switch self {
-            case .priorities: return CyntientOpsDesign.DashboardColors.critical
-            case .tasks: return CyntientOpsDesign.DashboardColors.info
-            case .analytics: return CyntientOpsDesign.DashboardColors.success
-            case .chat: return CyntientOpsDesign.DashboardColors.warning
-            case .map: return CyntientOpsDesign.DashboardColors.info
+            case .priorities: return Color.red
+            case .tasks: return Color.blue
+            case .analytics: return Color.green
+            case .chat: return Color.orange
+            case .map: return Color.blue
             }
         }
     }
@@ -1126,7 +1243,7 @@ struct WorkerNovaIntelligenceBar: View {
             // Content area for selected tab
             tabContentView
                 .frame(height: 120)
-                .background(CyntientOpsDesign.DashboardColors.cardBackground)
+                .background(Color.gray.opacity(0.1))
             
             // Sticky tab bar - non-transparent content area
             HStack(spacing: 0) {
@@ -1147,12 +1264,12 @@ struct WorkerNovaIntelligenceBar: View {
                         VStack(spacing: 4) {
                             Image(systemName: tabIcon(for: tab))
                                 .font(.system(size: selectedTab == tab ? 18 : 16, weight: .medium))
-                                .foregroundColor(selectedTab == tab ? tabColor(for: tab) : CyntientOpsDesign.DashboardColors.tertiaryText)
+                                .foregroundColor(selectedTab == tab ? tabColor(for: tab) : Color.secondary.opacity(0.7))
                             
                             Text(tab.rawValue)
                                 .font(.caption2)
                                 .fontWeight(selectedTab == tab ? .semibold : .regular)
-                                .foregroundColor(selectedTab == tab ? tabColor(for: tab) : CyntientOpsDesign.DashboardColors.tertiaryText)
+                                .foregroundColor(selectedTab == tab ? tabColor(for: tab) : Color.secondary.opacity(0.7))
                         }
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 8)
@@ -1168,7 +1285,7 @@ struct WorkerNovaIntelligenceBar: View {
             .padding(.vertical, 8)
             .background(.regularMaterial)
         }
-        .cornerRadius(12, corners: [.topLeft, .topRight])
+        .clipShape(UnevenRoundedRectangle(topLeadingRadius: 12, topTrailingRadius: 12))
         .shadow(color: .black.opacity(0.2), radius: 8, x: 0, y: -2)
     }
     
@@ -1184,10 +1301,10 @@ struct WorkerNovaIntelligenceBar: View {
     
     private func tabColor(for tab: WorkerDashboardViewModel.NovaTab) -> Color {
         switch tab {
-        case .priorities: return CyntientOpsDesign.DashboardColors.critical
-        case .tasks: return CyntientOpsDesign.DashboardColors.info
-        case .analytics: return CyntientOpsDesign.DashboardColors.success
-        case .chat: return CyntientOpsDesign.DashboardColors.warning
+        case .priorities: return Color.red
+        case .tasks: return Color.blue
+        case .analytics: return Color.green
+        case .chat: return Color.orange
         case .map: return .blue
         }
     }
@@ -1231,16 +1348,16 @@ struct PrioritiesTabContent: View {
                     VStack(spacing: 8) {
                         Image(systemName: "checkmark.circle.fill")
                             .font(.title2)
-                            .foregroundColor(CyntientOpsDesign.DashboardColors.success)
+                            .foregroundColor(Color.green)
                         Text("All Clear")
                             .font(.caption)
-                            .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                            .foregroundColor(Color.primary)
                         Text("No urgent tasks")
                             .font(.caption2)
-                            .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                            .foregroundColor(Color.secondary)
                     }
                     .frame(width: 120, height: 80)
-                    .background(CyntientOpsDesign.DashboardColors.success.opacity(0.1))
+                    .background(Color.green.opacity(0.1))
                     .cornerRadius(8)
                 } else {
                     // Show urgent tasks (each row pressable → task detail)
@@ -1334,17 +1451,17 @@ struct ChatTabContent: View {
         HStack(spacing: 12) {
             Image(systemName: "bubble.left.and.bubble.right.fill")
                 .font(.title2)
-                .foregroundColor(CyntientOpsDesign.DashboardColors.warning)
+                .foregroundColor(Color.orange)
             
             VStack(alignment: .leading, spacing: 4) {
                 Text("Ask Nova")
                     .font(.subheadline)
                     .fontWeight(.medium)
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                    .foregroundColor(Color.primary)
                 
                 Text("Get help with tasks, routes, or questions")
                     .font(.caption)
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                    .foregroundColor(Color.secondary)
             }
             
             Spacer()
@@ -1355,7 +1472,7 @@ struct ChatTabContent: View {
             .font(.caption)
             .padding(.horizontal, 12)
             .padding(.vertical, 6)
-            .background(CyntientOpsDesign.DashboardColors.warning)
+            .background(Color.orange)
             .foregroundColor(.white)
             .cornerRadius(12)
         }
@@ -1375,11 +1492,11 @@ struct MapTabContent: View {
             Text("Portfolio Map")
                 .font(.subheadline)
                 .fontWeight(.medium)
-                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                .foregroundColor(Color.primary)
             
             Text("\(assignedBuildings.count) buildings assigned")
                 .font(.caption)
-                .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                .foregroundColor(Color.secondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -1403,7 +1520,7 @@ struct UrgentTaskCard: View {
                     Text(task.title)
                         .font(.caption)
                         .fontWeight(.medium)
-                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                        .foregroundColor(Color.primary)
                         .lineLimit(1)
                     
                     Spacer()
@@ -1412,13 +1529,13 @@ struct UrgentTaskCard: View {
                 if let description = task.description {
                     Text(description)
                         .font(.caption2)
-                        .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                        .foregroundColor(Color.secondary)
                         .lineLimit(2)
                 }
             }
             .padding(12)
             .frame(width: 140, height: 70)
-            .background(CyntientOpsDesign.DashboardColors.cardBackground)
+            .background(Color.gray.opacity(0.1))
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
                     .stroke(urgencyColor.opacity(0.3), lineWidth: 1)
@@ -1430,9 +1547,9 @@ struct UrgentTaskCard: View {
     
     private var urgencyColor: Color {
         switch task.urgency {
-        case .critical, .emergency: return CyntientOpsDesign.DashboardColors.critical
-        case .urgent, .high: return CyntientOpsDesign.DashboardColors.warning
-        default: return CyntientOpsDesign.DashboardColors.info
+        case .critical, .emergency: return Color.red
+        case .urgent, .high: return Color.orange
+        default: return Color.blue
         }
     }
 }
@@ -1454,12 +1571,12 @@ struct ShortcutChip: View {
                 Text(title)
                     .font(.caption)
                     .fontWeight(.medium)
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                    .foregroundColor(Color.primary)
                     .lineLimit(1)
                 
                 Text(subtitle)
                     .font(.caption2)
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                    .foregroundColor(Color.secondary)
                     .lineLimit(1)
             }
             .frame(width: 100, height: 70)
@@ -1484,7 +1601,7 @@ struct PerformancePill: View {
             
             Text(title)
                 .font(.caption2)
-                .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+                .foregroundColor(Color.secondary.opacity(0.7))
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 6)
@@ -1509,7 +1626,7 @@ struct RoutesSheet: View {
                         Button("Done") { dismiss() }
                     }
                 }
-                .background(CyntientOpsDesign.DashboardColors.baseBackground)
+                .background(Color.black)
         }
         .preferredColorScheme(.dark)
     }
@@ -1551,7 +1668,7 @@ struct ScheduleSheet: View {
                         Button("Done") { dismiss() }
                     }
                 }
-                .background(CyntientOpsDesign.DashboardColors.baseBackground)
+                .background(Color.black)
         }
         .preferredColorScheme(.dark)
     }
@@ -1588,7 +1705,7 @@ struct TasksSheet: View {
             ScrollView {
                 LazyVStack(spacing: 12) {
                     ForEach(viewModel.todaysTasks) { task in
-                        EnhancedTaskCard(task: task) {
+                        EnhancedTaskCard(task: task.asContextualTask) {
                             // Handle task selection - could show task detail
                             print("Task selected: \(task.title)")
                         }
@@ -1603,7 +1720,7 @@ struct TasksSheet: View {
                     Button("Done") { dismiss() }
                 }
             }
-            .background(CyntientOpsDesign.DashboardColors.baseBackground)
+            .background(Color.black)
         }
         .preferredColorScheme(.dark)
     }
@@ -1619,14 +1736,14 @@ struct PhotosSheet: View {
                 Text("Photo Evidence")
                     .font(.title2)
                     .fontWeight(.semibold)
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                    .foregroundColor(Color.primary)
                     .padding()
                 
                 Spacer()
                 
                 // TODO: Implement photo evidence view
                 Text("Photo evidence functionality will be implemented here")
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                    .foregroundColor(Color.secondary)
                     .multilineTextAlignment(.center)
                     .padding()
                 
@@ -1639,7 +1756,7 @@ struct PhotosSheet: View {
                     Button("Done") { dismiss() }
                 }
             }
-            .background(CyntientOpsDesign.DashboardColors.baseBackground)
+            .background(Color.black)
         }
         .preferredColorScheme(.dark)
     }
@@ -1658,33 +1775,33 @@ struct BuildingDetailSheet: View {
                         Text(building.name)
                             .font(.title)
                             .fontWeight(.bold)
-                            .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                            .foregroundColor(Color.primary)
                         
                         if !building.address.isEmpty {
                             HStack(spacing: 8) {
                                 Image(systemName: "location.fill")
-                                    .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                                    .foregroundColor(Color.secondary)
                                 Text(building.address)
-                                    .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                                    .foregroundColor(Color.secondary)
                             }
                         }
                     }
                     .padding()
-                    .background(CyntientOpsDesign.DashboardColors.cardBackground)
+                    .background(Color.gray.opacity(0.1))
                     .cornerRadius(12)
                     
                     // Quick actions
                     VStack(alignment: .leading, spacing: 12) {
                         Text("Quick Actions")
                             .font(.headline)
-                            .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                            .foregroundColor(Color.primary)
                         
                         // TODO: Add building-specific actions
                         Text("Building actions will be available here")
-                            .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                            .foregroundColor(Color.secondary)
                     }
                     .padding()
-                    .background(CyntientOpsDesign.DashboardColors.cardBackground)
+                    .background(Color.gray.opacity(0.1))
                     .cornerRadius(12)
                     
                     Spacer()
@@ -1698,7 +1815,7 @@ struct BuildingDetailSheet: View {
                     Button("Done") { dismiss() }
                 }
             }
-            .background(CyntientOpsDesign.DashboardColors.baseBackground)
+            .background(Color.black)
         }
         .preferredColorScheme(.dark)
     }
@@ -1721,14 +1838,14 @@ struct RouteStopCard: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(stop.building.name)
                         .font(.headline)
-                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                        .foregroundColor(Color.primary)
                     
                     HStack(spacing: 16) {
                         Label(stop.estimatedArrival.formatted(date: .omitted, time: .shortened), systemImage: "clock")
                         Label("\(String(format: "%.1f", stop.distance))km", systemImage: "location")
                     }
                     .font(.caption)
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                    .foregroundColor(Color.secondary)
                 }
                 
                 Spacer()
@@ -1739,13 +1856,13 @@ struct RouteStopCard: View {
                         .fontWeight(.bold)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
-                        .background(CyntientOpsDesign.DashboardColors.success)
+                        .background(Color.green)
                         .foregroundColor(.white)
                         .cornerRadius(4)
                 }
             }
             .padding()
-            .background(CyntientOpsDesign.DashboardColors.cardBackground)
+            .background(Color.gray.opacity(0.1))
             .cornerRadius(12)
             .contentShape(Rectangle())
         }
@@ -1754,9 +1871,9 @@ struct RouteStopCard: View {
     
     private var statusColor: Color {
         switch stop.status {
-        case .completed: return CyntientOpsDesign.DashboardColors.success
-        case .current: return CyntientOpsDesign.DashboardColors.warning
-        case .pending: return CyntientOpsDesign.DashboardColors.secondaryText
+        case .completed: return Color.green
+        case .current: return Color.orange
+        case .pending: return Color.secondary
         }
     }
 }
@@ -1773,11 +1890,11 @@ struct ScheduleItemCard: View {
                     Text(item.startTime.formatted(date: .omitted, time: .shortened))
                         .font(.headline)
                         .fontWeight(.semibold)
-                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                        .foregroundColor(Color.primary)
                     
                     Text("\(item.duration / 60)h")
                         .font(.caption)
-                        .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                        .foregroundColor(Color.secondary)
                 }
                 .frame(width: 60)
                 
@@ -1785,32 +1902,32 @@ struct ScheduleItemCard: View {
                     Text(item.title)
                         .font(.subheadline)
                         .fontWeight(.medium)
-                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                        .foregroundColor(Color.primary)
                     
                     Text(item.location.name)
                         .font(.caption)
-                        .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                        .foregroundColor(Color.secondary)
                     
                     HStack(spacing: 12) {
                         Label("\(item.taskCount) tasks", systemImage: "checkmark.circle")
                         
                         if item.priority == .high {
                             Label("High Priority", systemImage: "exclamationmark.triangle")
-                                .foregroundColor(CyntientOpsDesign.DashboardColors.warning)
+                                .foregroundColor(Color.orange)
                         }
                     }
                     .font(.caption)
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                    .foregroundColor(Color.secondary)
                 }
                 
                 Spacer()
                 
                 Image(systemName: "chevron.right")
                     .font(.caption)
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+                    .foregroundColor(Color.secondary.opacity(0.7))
             }
             .padding()
-            .background(CyntientOpsDesign.DashboardColors.cardBackground)
+            .background(Color.gray.opacity(0.1))
             .cornerRadius(12)
             .contentShape(Rectangle())
         }
@@ -1834,7 +1951,7 @@ struct EnhancedTaskCard: View {
                     if task.isCompleted {
                         Image(systemName: "checkmark.circle.fill")
                             .font(.title3)
-                            .foregroundColor(CyntientOpsDesign.DashboardColors.success)
+                            .foregroundColor(Color.green)
                     } else {
                         Rectangle()
                             .fill(priorityColor.opacity(0.3))
@@ -1846,13 +1963,13 @@ struct EnhancedTaskCard: View {
                     Text(task.title)
                         .font(.subheadline)
                         .fontWeight(.medium)
-                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                        .foregroundColor(Color.primary)
                         .lineLimit(2)
                     
                     if let description = task.description {
                         Text(description)
                             .font(.caption)
-                            .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                            .foregroundColor(Color.secondary)
                             .lineLimit(1)
                     }
                     
@@ -1863,26 +1980,26 @@ struct EnhancedTaskCard: View {
                         
                         if let dueDate = task.dueDate {
                             Label(dueDate.formatted(date: .omitted, time: .shortened), systemImage: "clock")
-                                .foregroundColor(task.isOverdue ? CyntientOpsDesign.DashboardColors.critical : CyntientOpsDesign.DashboardColors.secondaryText)
+                                .foregroundColor(task.isOverdue ? Color.red : Color.secondary)
                         }
                         
                         if let urgency = task.urgency, urgency == .urgent || urgency == .critical {
                             Label("URGENT", systemImage: "exclamationmark.triangle.fill")
-                                .foregroundColor(CyntientOpsDesign.DashboardColors.critical)
+                                .foregroundColor(Color.red)
                         }
                     }
                     .font(.caption)
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                    .foregroundColor(Color.secondary)
                 }
                 
                 Spacer()
                 
                 Image(systemName: "chevron.right")
                     .font(.caption)
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+                    .foregroundColor(Color.secondary.opacity(0.7))
             }
             .padding()
-            .background(CyntientOpsDesign.DashboardColors.cardBackground)
+            .background(Color.gray.opacity(0.1))
             .cornerRadius(12)
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
@@ -1896,25 +2013,25 @@ struct EnhancedTaskCard: View {
     private var priorityColor: Color {
         switch task.urgency {
         case .critical, .emergency:
-            return CyntientOpsDesign.DashboardColors.critical
+            return Color.red
         case .urgent, .high:
-            return CyntientOpsDesign.DashboardColors.warning
+            return Color.orange
         case .medium:
             return .orange
         case .low, .normal, .none:
-            return CyntientOpsDesign.DashboardColors.info
+            return Color.blue
         }
     }
 }
 
 // MARK: - CO Design Tokens for WorkerDashboard
 private enum CO {
-    static let primary = CyntientOpsDesign.DashboardColors.primaryText
-    static let secondary = CyntientOpsDesign.DashboardColors.secondaryText
-    static let tertiary = CyntientOpsDesign.DashboardColors.tertiaryText
-    static let blue = CyntientOpsDesign.DashboardColors.workerPrimary
+    static let primary = Color.primary
+    static let secondary = Color.secondary
+    static let tertiary = Color.secondary.opacity(0.7)
+    static let blue = Color.blue
     static let surface = Color.clear // Will use .regularMaterial
-    static let hair = CyntientOpsDesign.DashboardColors.borderSubtle
+    static let hair = Color.gray.opacity(0.2)
     static let padding: CGFloat = 16
     static let radius: CGFloat = CyntientOpsDesign.CornerRadius.md
 }
@@ -2109,11 +2226,11 @@ struct BuildingWeatherGuidanceStrip: View {
     private var weatherColor: Color {
         switch weather.condition.lowercased() {
         case let condition where condition.contains("rain") || condition.contains("storm"):
-            return CyntientOpsDesign.DashboardColors.info
+            return Color.blue
         case let condition where condition.contains("snow"):
-            return CyntientOpsDesign.DashboardColors.warning
+            return Color.orange
         default:
-            return CyntientOpsDesign.DashboardColors.success
+            return Color.green
         }
     }
     
@@ -2132,13 +2249,13 @@ struct BuildingWeatherGuidanceStrip: View {
                 
                 Text(weather.condition)
                     .font(.caption.weight(.medium))
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                    .foregroundColor(Color.primary)
                 
                 Spacer()
                 
                 Text("\(weather.temperature)°")
                     .font(.caption.weight(.semibold))
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                    .foregroundColor(Color.secondary)
             }
             
             // Building-specific guidance
@@ -2152,7 +2269,7 @@ struct BuildingWeatherGuidanceStrip: View {
                             
                             Text(guidance)
                                 .font(.caption2)
-                                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                                .foregroundColor(Color.primary)
                                 .lineLimit(1)
                             
                             Spacer()
