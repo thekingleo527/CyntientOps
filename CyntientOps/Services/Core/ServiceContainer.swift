@@ -152,7 +152,7 @@ public final class ServiceContainer: ObservableObject {
     // MARK: - Layer 7: NYC API Integration
     public let nycIntegration: NYCIntegrationManager
     public let nycCompliance: NYCComplianceService
-    public lazy var bblService = BBLGenerationService.shared
+    // BBLGenerationService accessed directly when needed, not through container
     
     // NovaAIManager removed from this section - now properly owned above
     
