@@ -901,7 +901,7 @@ class AdminDashboardViewModel: ObservableObject {
             print("🏢 Loading comprehensive data for: \(building.name)")
             
             // Generate comprehensive property data for building
-            let property = await self.generatePropertyDataForBuilding(building, coordinate: coordinate)
+            let property = await self.generatePropertyData(building, coordinate)
             
             if let property = property {
                 await MainActor.run {
@@ -1974,7 +1974,7 @@ struct AdminPortfolioSummary {
     // MARK: - Property Data Generation
     
     /// Generate realistic NYC property data for buildings
-    private func generatePropertyDataForBuilding(_ building: CoreTypes.NamedCoordinate, coordinate: CLLocationCoordinate2D) async -> CoreTypes.NYCPropertyData? {
+    func generatePropertyDataForBuilding(_ building: CoreTypes.NamedCoordinate, coordinate: CLLocationCoordinate2D) async -> CoreTypes.NYCPropertyData? {
         print("🔢 Generating property data for: \(building.name)")
         
         // Generate BBL based on coordinate (simplified approach)
@@ -2001,7 +2001,7 @@ struct AdminPortfolioSummary {
         return propertyData
     }
     
-    private func generateBBLFromCoordinate(_ coordinate: CLLocationCoordinate2D) -> String {
+    func generateBBLFromCoordinate(_ coordinate: CLLocationCoordinate2D) -> String {
         // Manhattan (most of our buildings)
         if coordinate.latitude > 40.7000 && coordinate.latitude < 40.8000 &&
            coordinate.longitude > -74.0200 && coordinate.longitude < -73.9000 {
@@ -2024,7 +2024,7 @@ struct AdminPortfolioSummary {
         return "4\(String(format: "%05d", block))\(String(format: "%04d", lot))"
     }
     
-    private func generateFinancialData(for building: CoreTypes.NamedCoordinate) -> CoreTypes.PropertyFinancialData {
+    func generateFinancialData(for building: CoreTypes.NamedCoordinate) -> CoreTypes.PropertyFinancialData {
         // Generate realistic values based on NYC property market
         let baseValue = building.name.contains("Museum") ? 15_000_000.0 : 
                        building.name.contains("17th") ? 8_000_000.0 : 5_000_000.0
@@ -2047,7 +2047,7 @@ struct AdminPortfolioSummary {
         )
     }
     
-    private func generateComplianceData(for building: CoreTypes.NamedCoordinate) -> CoreTypes.LocalLawComplianceData {
+    func generateComplianceData(for building: CoreTypes.NamedCoordinate) -> CoreTypes.LocalLawComplianceData {
         // Generate realistic compliance status
         let ll97Status: CoreTypes.ComplianceStatus = building.name.contains("Museum") ? .compliant : .pending
         let ll11Status: CoreTypes.ComplianceStatus = .compliant
@@ -2062,7 +2062,7 @@ struct AdminPortfolioSummary {
         )
     }
     
-    private func generateViolationsData(for building: CoreTypes.NamedCoordinate) -> [CoreTypes.PropertyViolation] {
+    func generateViolationsData(for building: CoreTypes.NamedCoordinate) -> [CoreTypes.PropertyViolation] {
         // Generate realistic violation data
         var violations: [CoreTypes.PropertyViolation] = []
         
@@ -2087,7 +2087,7 @@ struct AdminPortfolioSummary {
         return violations
     }
     
-    private func getViolationDescription(for department: CoreTypes.NYCDepartment) -> String {
+    func getViolationDescription(for department: CoreTypes.NYCDepartment) -> String {
         switch department {
         case .hpd:
             return "FAILURE TO MAINTAIN BUILDING IN CLEAN/SANITARY CONDITION"
