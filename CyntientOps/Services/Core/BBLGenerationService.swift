@@ -260,7 +260,7 @@ public class BBLGenerationService: ObservableObject {
         )
     }
     
-    private func fetchDOFData(bbl: String) async -> PropertyFinancialData {
+    private func fetchDOFData(bbl: String) async -> CoreTypes.PropertyFinancialData {
         // Department of Finance API - Property Assessment Data
         let assessmentURL = "https://data.cityofnewyork.us/resource/yjxr-fw8i.json?bbl=\(bbl)"
         
@@ -279,7 +279,7 @@ public class BBLGenerationService: ObservableObject {
             }
             
             // Fetch tax payment history
-            var recentPayments: [TaxPayment] = []
+            var recentPayments: [CoreTypes.TaxPayment] = []
             if let paymentsData = try await fetchNYCData(from: paymentsURL) as? [[String: Any]] {
                 recentPayments = paymentsData.prefix(5).compactMap { payment in
                     guard let amountStr = payment["amount_paid"] as? String,
@@ -291,11 +291,11 @@ public class BBLGenerationService: ObservableObject {
                     formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSS"
                     let date = formatter.date(from: dateStr) ?? Date()
                     
-                    return TaxPayment(amount: amount, paymentDate: date, taxYear: taxYear)
+                    return CoreTypes.TaxPayment(amount: amount, paymentDate: date, taxYear: taxYear)
                 }
             }
             
-            return PropertyFinancialData(
+            return CoreTypes.PropertyFinancialData(
                 assessedValue: assessedValue,
                 marketValue: marketValue,
                 recentTaxPayments: recentPayments,
@@ -306,7 +306,7 @@ public class BBLGenerationService: ObservableObject {
         } catch {
             print("⚠️ Error fetching DOF data for BBL \(bbl): \(error)")
             // Return placeholder data on error
-            return PropertyFinancialData(
+            return CoreTypes.PropertyFinancialData(
                 assessedValue: 0,
                 marketValue: 0,
                 recentTaxPayments: [],
@@ -316,7 +316,7 @@ public class BBLGenerationService: ObservableObject {
         }
     }
     
-    private func fetchComplianceData(bbl: String) async -> LocalLawComplianceData {
+    private func fetchComplianceData(bbl: String) async -> CoreTypes.LocalLawComplianceData {
         // Department of Buildings API - Local Law Compliance
         // LL97 - Energy & Emissions reporting
         let ll97URL = "https://data.cityofnewyork.us/resource/8w6b-qj8v.json?bbl=\(bbl)"
@@ -325,9 +325,9 @@ public class BBLGenerationService: ObservableObject {
         let violationsURL = "https://data.cityofnewyork.us/resource/3h2n-5cm9.json?bbl=\(bbl)"
         
         do {
-            var ll97Status: ComplianceStatus = .notRequired
-            var ll11Status: ComplianceStatus = .notRequired
-            var ll87Status: ComplianceStatus = .notRequired
+            var ll97Status: CoreTypes.ComplianceStatus = CoreTypes.ComplianceStatus.notRequired
+            var ll11Status: CoreTypes.ComplianceStatus = CoreTypes.ComplianceStatus.notRequired
+            var ll87Status: CoreTypes.ComplianceStatus = CoreTypes.ComplianceStatus.notRequired
             var ll97NextDue: Date?
             var ll11NextDue: Date?
             
@@ -372,7 +372,7 @@ public class BBLGenerationService: ObservableObject {
                 ll87Status = ll87Violations.isEmpty ? .compliant : .overdue
             }
             
-            return LocalLawComplianceData(
+            return CoreTypes.LocalLawComplianceData(
                 ll97Status: ll97Status,
                 ll11Status: ll11Status,
                 ll87Status: ll87Status,
@@ -383,7 +383,7 @@ public class BBLGenerationService: ObservableObject {
         } catch {
             print("⚠️ Error fetching compliance data for BBL \(bbl): \(error)")
             // Return default safe status on error
-            return LocalLawComplianceData(
+            return CoreTypes.LocalLawComplianceData(
                 ll97Status: .notRequired,
                 ll11Status: .notRequired,
                 ll87Status: .notRequired,
@@ -393,7 +393,7 @@ public class BBLGenerationService: ObservableObject {
         }
     }
     
-    private func fetchViolationsData(bbl: String) async -> [PropertyViolation] {
+    private func fetchViolationsData(bbl: String) async -> [CoreTypes.PropertyViolation] {
         // HPD Violations - Using newer HPD API endpoints
         // Primary: dataFeed endpoint, Fallback: Open Data endpoint
         let hpdDataFeedURL = "https://api.nyc.gov/hpd/dataFeed/violations?bbl=\(bbl)"
@@ -424,11 +424,11 @@ public class BBLGenerationService: ObservableObject {
             }
             
             if let hpdData = hpdData {
-                let hpdViolations = hpdData.compactMap { violation -> PropertyViolation? in
+                let hpdViolations = hpdData.compactMap { violation -> CoreTypes.PropertyViolation? in
                     guard let violationId = violation["violationid"] as? String,
                           let description = violation["violation_description"] as? String else { return nil }
                     
-                    let severity: ViolationSeverity
+                    let severity: CoreTypes.ViolationSeverity
                     if let classStr = violation["class"] as? String {
                         switch classStr.uppercased() {
                         case "A": severity = .classA
@@ -440,7 +440,7 @@ public class BBLGenerationService: ObservableObject {
                         severity = .classA
                     }
                     
-                    let status: ViolationStatus
+                    let status: CoreTypes.ViolationStatus
                     if let statusStr = violation["currentstatus"] as? String {
                         switch statusStr.lowercased() {
                         case "open": status = .open
@@ -459,13 +459,13 @@ public class BBLGenerationService: ObservableObject {
                         issueDate = formatter.date(from: dateStr) ?? Date()
                     }
                     
-                    return PropertyViolation(
+                    return CoreTypes.PropertyViolation(
                         violationNumber: "HPD\(violationId)",
                         description: description,
                         severity: severity,
                         issueDate: issueDate,
                         status: status,
-                        department: .hpd
+                        department: CoreTypes.NYCDepartment.hpd
                     )
                 }
                 allViolations.append(contentsOf: hpdViolations)
@@ -473,11 +473,11 @@ public class BBLGenerationService: ObservableObject {
             
             // Fetch DOB violations
             if let dobData = try await fetchNYCData(from: dobURL) as? [[String: Any]] {
-                let dobViolations = dobData.compactMap { violation -> PropertyViolation? in
+                let dobViolations = dobData.compactMap { violation -> CoreTypes.PropertyViolation? in
                     guard let violationNumber = violation["isn_dob_bis_viol"] as? String,
                           let description = violation["violation_description"] as? String else { return nil }
                     
-                    let status: ViolationStatus = (violation["violation_status"] as? String)?.lowercased() == "resolved" ? .resolved : .open
+                    let status: CoreTypes.ViolationStatus = (violation["violation_status"] as? String)?.lowercased() == "resolved" ? CoreTypes.ViolationStatus.resolved : CoreTypes.ViolationStatus.open
                     
                     var issueDate = Date()
                     if let dateStr = violation["issue_date"] as? String {
@@ -486,13 +486,13 @@ public class BBLGenerationService: ObservableObject {
                         issueDate = formatter.date(from: dateStr) ?? Date()
                     }
                     
-                    return PropertyViolation(
+                    return CoreTypes.PropertyViolation(
                         violationNumber: "DOB\(violationNumber)",
                         description: description,
-                        severity: .classB, // DOB violations typically Class B
+                        severity: CoreTypes.ViolationSeverity.classB, // DOB violations typically Class B
                         issueDate: issueDate,
                         status: status,
-                        department: .dob
+                        department: CoreTypes.NYCDepartment.dob
                     )
                 }
                 allViolations.append(contentsOf: dobViolations)
@@ -500,11 +500,11 @@ public class BBLGenerationService: ObservableObject {
             
             // Fetch DSNY violations  
             if let dsnyData = try await fetchNYCData(from: dsnyURL) as? [[String: Any]] {
-                let dsnyViolations = dsnyData.compactMap { violation -> PropertyViolation? in
+                let dsnyViolations = dsnyData.compactMap { violation -> CoreTypes.PropertyViolation? in
                     guard let violationNumber = violation["summons_number"] as? String,
                           let description = violation["violation_description"] as? String else { return nil }
                     
-                    let status: ViolationStatus = (violation["violation_status"] as? String)?.lowercased() == "closed" ? .resolved : .open
+                    let status: CoreTypes.ViolationStatus = (violation["violation_status"] as? String)?.lowercased() == "closed" ? CoreTypes.ViolationStatus.resolved : CoreTypes.ViolationStatus.open
                     
                     var issueDate = Date()
                     if let dateStr = violation["issue_date"] as? String {
@@ -513,13 +513,13 @@ public class BBLGenerationService: ObservableObject {
                         issueDate = formatter.date(from: dateStr) ?? Date()
                     }
                     
-                    return PropertyViolation(
+                    return CoreTypes.PropertyViolation(
                         violationNumber: "DSNY\(violationNumber)",
                         description: description,
-                        severity: .classA, // DSNY violations typically Class A
+                        severity: CoreTypes.ViolationSeverity.classA, // DSNY violations typically Class A
                         issueDate: issueDate,
                         status: status,
-                        department: .dsny
+                        department: CoreTypes.NYCDepartment.dsny
                     )
                 }
                 allViolations.append(contentsOf: dsnyViolations)
