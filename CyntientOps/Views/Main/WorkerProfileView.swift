@@ -785,21 +785,26 @@ class WorkerProfileViewModel: ObservableObject {
             let routineSchedules = try await operationalData.getWorkerRoutineSchedules(for: workerId)
             
             // Create building summaries from routine data
-            let uniqueBuildings = Dictionary(grouping: routineSchedules, by: \.buildingId)
-                .compactMap { (buildingId, routines) -> BuildingSummary? in
-                    guard let firstRoutine = routines.first else { return nil }
-                    
-                    // Get today's schedule to count tasks
-                    let todayTasks = try? await operationalData.getWorkerScheduleForDate(workerId: workerId, date: Date())
-                    let buildingTasksToday = todayTasks?.filter { $0.buildingId == buildingId }.count ?? 0
-                    
-                    return BuildingSummary(
-                        id: buildingId,
-                        name: firstRoutine.buildingName,
-                        address: firstRoutine.buildingAddress,
-                        todayTaskCount: buildingTasksToday
-                    )
-                }
+            let groupedBuildings = Dictionary(grouping: routineSchedules, by: \.buildingId)
+            var uniqueBuildings: [BuildingSummary] = []
+            
+            // Get today's schedule once for efficiency
+            let todayTasks = try? await operationalData.getWorkerScheduleForDate(workerId: workerId, date: Date())
+            
+            for (buildingId, routines) in groupedBuildings {
+                guard let firstRoutine = routines.first else { continue }
+                
+                // Count tasks for this building
+                let buildingTasksToday = todayTasks?.filter { $0.buildingId == buildingId }.count ?? 0
+                
+                let buildingSummary = BuildingSummary(
+                    id: buildingId,
+                    name: firstRoutine.buildingName,
+                    address: firstRoutine.buildingAddress,
+                    todayTaskCount: buildingTasksToday
+                )
+                uniqueBuildings.append(buildingSummary)
+            }
             
             await MainActor.run {
                 assignedBuildings = uniqueBuildings
