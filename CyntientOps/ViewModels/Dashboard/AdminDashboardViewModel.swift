@@ -170,7 +170,7 @@ class AdminDashboardViewModel: ObservableObject {
     @Published var workerCapabilities: [String: WorkerCapabilities] = [:]
     
     // MARK: - BBL-Powered Property Data  
-    @Published var propertyData: [String: NYCPropertyData] = [:]
+    @Published var propertyData: [String: CoreTypes.NYCPropertyData] = [:]
     @Published var portfolioFinancialSummary: PortfolioFinancialSummary?
     @Published var complianceDeadlines: [ComplianceDeadline] = []
     @Published var propertyViolationsSummary: PropertyViolationsSummary?

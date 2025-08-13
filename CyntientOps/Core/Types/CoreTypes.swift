@@ -1602,6 +1602,120 @@ public struct CoreTypes {
         }
     }
     
+    // MARK: - NYC Property Data Structures
+    
+    public struct NYCPropertyData: Codable, Identifiable {
+        public let id: String
+        public let bbl: String
+        public let buildingId: String
+        public let financialData: PropertyFinancialData
+        public let complianceData: LocalLawComplianceData
+        public let violations: [PropertyViolation]
+        
+        public init(bbl: String, buildingId: String, financialData: PropertyFinancialData, complianceData: LocalLawComplianceData, violations: [PropertyViolation]) {
+            self.id = bbl
+            self.bbl = bbl
+            self.buildingId = buildingId
+            self.financialData = financialData
+            self.complianceData = complianceData
+            self.violations = violations
+        }
+    }
+    
+    public struct PropertyFinancialData: Codable {
+        public let assessedValue: Double
+        public let marketValue: Double
+        public let recentTaxPayments: [TaxPayment]
+        public let activeLiens: [TaxLien]
+        public let exemptions: [TaxExemption]
+        
+        public init(assessedValue: Double, marketValue: Double, recentTaxPayments: [TaxPayment], activeLiens: [TaxLien], exemptions: [TaxExemption]) {
+            self.assessedValue = assessedValue
+            self.marketValue = marketValue
+            self.recentTaxPayments = recentTaxPayments
+            self.activeLiens = activeLiens
+            self.exemptions = exemptions
+        }
+    }
+    
+    public struct LocalLawComplianceData: Codable {
+        public let ll97Status: ComplianceStatus
+        public let ll11Status: ComplianceStatus
+        public let ll87Status: ComplianceStatus
+        public let ll97NextDue: Date?
+        public let ll11NextDue: Date?
+        
+        public init(ll97Status: ComplianceStatus, ll11Status: ComplianceStatus, ll87Status: ComplianceStatus, ll97NextDue: Date?, ll11NextDue: Date?) {
+            self.ll97Status = ll97Status
+            self.ll11Status = ll11Status
+            self.ll87Status = ll87Status
+            self.ll97NextDue = ll97NextDue
+            self.ll11NextDue = ll11NextDue
+        }
+    }
+    
+    public struct PropertyViolation: Codable, Identifiable {
+        public let id: String
+        public let violationNumber: String
+        public let description: String
+        public let severity: ViolationSeverity
+        public let issueDate: Date
+        public let status: ViolationStatus
+        public let department: NYCDepartment
+        
+        public init(violationNumber: String, description: String, severity: ViolationSeverity, issueDate: Date, status: ViolationStatus, department: NYCDepartment) {
+            self.id = violationNumber
+            self.violationNumber = violationNumber
+            self.description = description
+            self.severity = severity
+            self.issueDate = issueDate
+            self.status = status
+            self.department = department
+        }
+    }
+    
+    public struct TaxPayment: Codable, Identifiable {
+        public let id: String
+        public let amount: Double
+        public let paymentDate: Date
+        public let taxYear: String
+        
+        public init(amount: Double, paymentDate: Date, taxYear: String) {
+            self.id = "\(taxYear)-\(paymentDate.timeIntervalSince1970)"
+            self.amount = amount
+            self.paymentDate = paymentDate
+            self.taxYear = taxYear
+        }
+    }
+    
+    public struct TaxLien: Codable, Identifiable {
+        public let id: String
+        public let amount: Double
+        public let lienDate: Date
+        public let status: String
+        
+        public init(amount: Double, lienDate: Date, status: String) {
+            self.id = "\(lienDate.timeIntervalSince1970)-\(amount)"
+            self.amount = amount
+            self.lienDate = lienDate
+            self.status = status
+        }
+    }
+    
+    public struct TaxExemption: Codable, Identifiable {
+        public let id: String
+        public let type: String
+        public let amount: Double
+        public let validUntil: Date
+        
+        public init(type: String, amount: Double, validUntil: Date) {
+            self.id = "\(type)-\(validUntil.timeIntervalSince1970)"
+            self.type = type
+            self.amount = amount
+            self.validUntil = validUntil
+        }
+    }
+    
     // MARK: - Performance & Metrics Types
     
     public struct PerformanceMetrics: Codable, Identifiable {

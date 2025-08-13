@@ -25,7 +25,7 @@ public class BBLGenerationService: ObservableObject {
     ]
     
     // MARK: - Property Data Cache
-    @Published public var propertyDataCache: [String: NYCPropertyData] = [:]
+    @Published public var propertyDataCache: [String: CoreTypes.NYCPropertyData] = [:]
     @Published public var isGeneratingBBL = false
     
     private init() {}
@@ -59,7 +59,7 @@ public class BBLGenerationService: ObservableObject {
     // MARK: - NYC Property Data Retrieval
     
     /// Get comprehensive property data for building
-    public func getPropertyData(for buildingId: String, address: String, coordinate: CLLocationCoordinate2D? = nil) async -> NYCPropertyData? {
+    public func getPropertyData(for buildingId: String, address: String, coordinate: CLLocationCoordinate2D? = nil) async -> CoreTypes.NYCPropertyData? {
         // Check cache first
         if let cached = propertyDataCache[buildingId] {
             return cached
@@ -244,14 +244,14 @@ public class BBLGenerationService: ObservableObject {
         return "\(borough)\(String(format: "%05d", Int(block) ?? 0))\(String(format: "%04d", Int(lot) ?? 0))"
     }
     
-    private func fetchComprehensivePropertyData(bbl: String, buildingId: String) async -> NYCPropertyData {
+    private func fetchComprehensivePropertyData(bbl: String, buildingId: String) async -> CoreTypes.NYCPropertyData {
         async let financialData = fetchDOFData(bbl: bbl)
         async let complianceData = fetchComplianceData(bbl: bbl)
         async let violationsData = fetchViolationsData(bbl: bbl)
         
         let (financial, compliance, violations) = await (financialData, complianceData, violationsData)
         
-        return NYCPropertyData(
+        return CoreTypes.NYCPropertyData(
             bbl: bbl,
             buildingId: buildingId,
             financialData: financial,
@@ -608,133 +608,13 @@ enum APIError: LocalizedError {
 
 // MARK: - Data Models
 
-public struct NYCPropertyData {
-    public let bbl: String
-    public let buildingId: String
-    public let financialData: PropertyFinancialData
-    public let complianceData: LocalLawComplianceData
-    public let violations: [PropertyViolation]
-    
-    public init(bbl: String, buildingId: String, financialData: PropertyFinancialData, complianceData: LocalLawComplianceData, violations: [PropertyViolation]) {
-        self.bbl = bbl
-        self.buildingId = buildingId
-        self.financialData = financialData
-        self.complianceData = complianceData
-        self.violations = violations
-    }
-}
+// NYCPropertyData moved to CoreTypes
 
-public struct PropertyFinancialData {
-    public let assessedValue: Double
-    public let marketValue: Double
-    public let recentTaxPayments: [TaxPayment]
-    public let activeLiens: [TaxLien]
-    public let exemptions: [TaxExemption]
-    
-    public init(assessedValue: Double, marketValue: Double, recentTaxPayments: [TaxPayment], activeLiens: [TaxLien], exemptions: [TaxExemption]) {
-        self.assessedValue = assessedValue
-        self.marketValue = marketValue
-        self.recentTaxPayments = recentTaxPayments
-        self.activeLiens = activeLiens
-        self.exemptions = exemptions
-    }
-}
+// PropertyFinancialData moved to CoreTypes
 
-public struct LocalLawComplianceData {
-    public let ll97Status: ComplianceStatus
-    public let ll11Status: ComplianceStatus
-    public let ll87Status: ComplianceStatus
-    public let ll97NextDue: Date?
-    public let ll11NextDue: Date?
-    
-    public init(ll97Status: ComplianceStatus, ll11Status: ComplianceStatus, ll87Status: ComplianceStatus, ll97NextDue: Date?, ll11NextDue: Date?) {
-        self.ll97Status = ll97Status
-        self.ll11Status = ll11Status
-        self.ll87Status = ll87Status
-        self.ll97NextDue = ll97NextDue
-        self.ll11NextDue = ll11NextDue
-    }
-}
 
-public struct PropertyViolation {
-    public let violationNumber: String
-    public let description: String
-    public let severity: ViolationSeverity
-    public let issueDate: Date
-    public let status: ViolationStatus
-    public let department: NYCDepartment
-    
-    public init(violationNumber: String, description: String, severity: ViolationSeverity, issueDate: Date, status: ViolationStatus, department: NYCDepartment) {
-        self.violationNumber = violationNumber
-        self.description = description
-        self.severity = severity
-        self.issueDate = issueDate
-        self.status = status
-        self.department = department
-    }
-}
-
-public struct TaxPayment {
-    public let amount: Double
-    public let paymentDate: Date
-    public let taxYear: String
-    
-    public init(amount: Double, paymentDate: Date, taxYear: String) {
-        self.amount = amount
-        self.paymentDate = paymentDate
-        self.taxYear = taxYear
-    }
-}
-
-public struct TaxLien {
-    public let amount: Double
-    public let lienDate: Date
-    public let status: String
-    
-    public init(amount: Double, lienDate: Date, status: String) {
-        self.amount = amount
-        self.lienDate = lienDate
-        self.status = status
-    }
-}
-
-public struct TaxExemption {
-    public let type: String
-    public let amount: Double
-    public let validUntil: Date
-    
-    public init(type: String, amount: Double, validUntil: Date) {
-        self.type = type
-        self.amount = amount
-        self.validUntil = validUntil
-    }
-}
-
-// MARK: - Enums
-
-public enum ComplianceStatus {
-    case compliant
-    case dueNext6Months
-    case overdue
-    case notRequired
-    
-    public var displayText: String {
-        switch self {
-        case .compliant: return "Compliant"
-        case .dueNext6Months: return "Due Soon"
-        case .overdue: return "Overdue"
-        case .notRequired: return "Not Required"
-        }
-    }
-    
-    public var color: String {
-        switch self {
-        case .compliant: return "green"
-        case .dueNext6Months: return "yellow"
-        case .overdue: return "red"
-        case .notRequired: return "gray"
-        }
-    }
-}
-
-// Note: NYCDepartment, ViolationSeverity, and ViolationStatus are now defined in CoreTypes
+// MARK: - NYC Property Data Types
+// All NYC property data structures have been moved to CoreTypes:
+// - NYCPropertyData, PropertyFinancialData, LocalLawComplianceData
+// - PropertyViolation, TaxPayment, TaxLien, TaxExemption
+// - NYCDepartment, ViolationSeverity, ViolationStatus, ComplianceStatus
