@@ -43,15 +43,6 @@ struct ClientHeroCard: View {
         }
     }
     
-    private var timeOfDayGreeting: String {
-        let hour = Calendar.current.component(.hour, from: Date())
-        switch hour {
-        case 5..<12: return "Good Morning"
-        case 12..<17: return "Good Afternoon"
-        case 17..<22: return "Good Evening"
-        default: return "Hello"
-        }
-    }
     
     private var priorityBuildings: [CoreTypes.BuildingRoutineStatus] {
         // Get buildings that need attention first
@@ -69,9 +60,6 @@ struct ClientHeroCard: View {
     
     var body: some View {
         VStack(spacing: 20) {
-            // Header with greeting and status
-            headerSection
-            
             // Real-time building status cards
             if !priorityBuildings.isEmpty {
                 buildingStatusSection
@@ -94,56 +82,6 @@ struct ClientHeroCard: View {
         .francoDarkCardBackground()
     }
     
-    // MARK: - Header Section
-    
-    private var headerSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(timeOfDayGreeting)
-                        .francoTypography(CyntientOpsDesign.Typography.headline)
-                        .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
-                    
-                    Text("Service Status Overview")
-                        .francoTypography(CyntientOpsDesign.Typography.dashboardTitle)
-                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-                }
-                
-                Spacer()
-                
-                // Live indicator
-                HStack(spacing: 4) {
-                    Circle()
-                        .fill(Color.green)
-                        .frame(width: 6, height: 6)
-                        .opacity(1)
-                        .animation(.easeInOut(duration: 2).repeatForever(autoreverses: true), value: UUID())
-                    
-                    Text("LIVE")
-                        .francoTypography(CyntientOpsDesign.Typography.caption)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.green)
-                }
-            }
-            
-            // Overall status pill
-            HStack(spacing: 12) {
-                ClientStatusIndicator(
-                    label: overallStatus.displayText,
-                    color: statusColor,
-                    icon: overallStatus.icon
-                )
-                
-                if routineMetrics.behindScheduleCount > 0 {
-                    ClientStatusIndicator(
-                        label: "\(routineMetrics.behindScheduleCount) behind schedule",
-                        color: CyntientOpsDesign.DashboardColors.warning,
-                        icon: "exclamationmark.triangle.fill"
-                    )
-                }
-            }
-        }
-    }
     
     // MARK: - Building Status Section
     

@@ -2,10 +2,10 @@
 //  ClientDashboardView.swift  
 //  CyntientOps v6.0
 //
-//  ✅ PRODUCTION READY: All duplicates removed, no placeholders
-//  ✅ REAL-TIME: Dynamic client-specific data with live updates
-//  ✅ INTELLIGENT: Nova tabs with API-derived compliance views
-//  ✅ RESPONSIVE: Adaptive layout preventing text cutoff
+//  ✅ STREAMLINED: Matches WorkerDashboard pattern exactly
+//  ✅ HERO CARD: Collapsible with aggregated metrics
+//  ✅ INTELLIGENCE: Nova tabs with compliance views
+//  ✅ SIMPLIFIED: Removed complex nested enums and states
 //
 
 import SwiftUI
@@ -13,10 +13,6 @@ import SwiftUI
 struct ClientDashboardView: View {
     @StateObject private var viewModel: ClientDashboardViewModel
     @StateObject private var contextEngine = ClientContextEngine.shared
-    
-    // MARK: - Responsive Layout
-    @Environment(\.horizontalSizeClass) var horizontalSizeClass
-    @Environment(\.verticalSizeClass) var verticalSizeClass
     
     private let container: ServiceContainer
     
@@ -63,62 +59,6 @@ struct ClientDashboardView: View {
     @State private var selectedNovaTab: NovaTab = .priorities
     @State private var sheet: ClientRoute?
     
-    // MARK: - Responsive Layout Computed Properties
-    
-    /// Device-adaptive column count for building grids
-    private var adaptiveColumns: [GridItem] {
-        let columnCount = getColumnCount()
-        return Array(repeating: GridItem(.flexible(), spacing: 12), count: columnCount)
-    }
-    
-    /// Smart column count based on device and orientation
-    private func getColumnCount() -> Int {
-        switch (horizontalSizeClass, UIDevice.current.userInterfaceIdiom) {
-        case (.regular, .pad):
-            // iPad: 4 landscape, 3 portrait
-            return UIDevice.current.orientation.isLandscape ? 4 : 3
-        case (.compact, .phone):
-            // iPhone: 2 portrait, 3 landscape
-            return UIDevice.current.orientation.isLandscape ? 3 : 2
-        default:
-            // Web/Mac: 3 columns default
-            return 3
-        }
-    }
-    
-    /// Adaptive padding for different screen sizes
-    private var adaptivePadding: CGFloat {
-        switch horizontalSizeClass {
-        case .regular: return 24  // iPad/Mac - more breathing room
-        case .compact: return 16  // iPhone - compact spacing
-        default: return 20        // Default fallback
-        }
-    }
-    
-    /// Nova tabs layout orientation based on device
-    private var novaTabsOrientation: NovaTabsOrientation {
-        switch (horizontalSizeClass, verticalSizeClass) {
-        case (.regular, .regular):
-            // iPad - use segmented control style
-            return .segmented
-        case (.compact, .compact):
-            // iPhone landscape - horizontal scroll
-            return .horizontalScroll
-        case (.compact, .regular):
-            // iPhone portrait - horizontal scroll
-            return .horizontalScroll
-        default:
-            // Web/Mac - fixed tab bar
-            return .fixedTabBar
-        }
-    }
-    
-    enum NovaTabsOrientation {
-        case horizontalScroll    // iPhone
-        case segmented          // iPad
-        case fixedTabBar        // Web/Mac
-    }
-    
     var body: some View {
         ZStack {
             // Dark Background
@@ -136,11 +76,11 @@ struct ClientDashboardView: View {
                 )
                 .zIndex(100)
                 
-                // Scrollable Content with Dynamic Bottom Padding
+                // Scrollable Content
                 ScrollView {
                     VStack(spacing: 16) {
                         // Collapsible Client Hero Card
-                        ClientRealTimeHeroCard(
+                        ClientHeroCard(
                             isExpanded: $heroExpanded,
                             routineMetrics: viewModel.realtimeRoutineMetrics,
                             activeWorkers: viewModel.activeWorkerStatus,
@@ -150,11 +90,10 @@ struct ClientDashboardView: View {
                             onComplianceTap: { sheet = .compliance }
                         )
                         
-                        // Buildings Grid (when hero expanded and client has properties)
+                        // Buildings Grid (when hero expanded)
                         if heroExpanded && !viewModel.buildingsList.isEmpty {
                             ClientBuildingsGrid(
                                 buildings: viewModel.buildingsList.prefix(6),
-                                columns: adaptiveColumns,
                                 onBuildingTap: { building in
                                     sheet = .buildingDetail(building.id)
                                 },
@@ -162,7 +101,7 @@ struct ClientDashboardView: View {
                             )
                         }
                         
-                        // Urgent Items Section (client-specific)
+                        // Urgent Items Section
                         if hasUrgentItems() {
                             ClientUrgentItemsSection(
                                 criticalViolations: viewModel.complianceOverview.criticalViolations,
@@ -172,10 +111,9 @@ struct ClientDashboardView: View {
                             )
                         }
                         
-                        // Dynamic spacer for intelligence panel
-                        Spacer(minLength: getIntelligencePanelTotalHeight())
+                        Spacer(minLength: 80) // Space for Nova bar
                     }
-                    .padding(.horizontal, adaptivePadding)
+                    .padding(.horizontal, 16)
                     .padding(.top, 8)
                 }
                 .refreshable {
@@ -243,7 +181,7 @@ struct ClientDashboardView: View {
         case .buildings:
             ClientBuildingsListView(
                 buildings: viewModel.buildingsList,
-                performanceMap: viewModel.buildingPerformanceMap,
+                performanceMap: [:], // TODO: Add performance metrics
                 onSelectBuilding: { building in
                     sheet = .buildingDetail(building.id)
                 }
@@ -265,8 +203,7 @@ struct ClientDashboardView: View {
         case .compliance:
             ClientComplianceDetailView(
                 complianceOverview: viewModel.complianceOverview,
-                complianceIssues: viewModel.complianceIssues,
-                buildingsList: viewModel.buildingsList
+                complianceIssues: viewModel.complianceIssues
             )
             .navigationTitle("Compliance Report")
             .navigationBarTitleDisplayMode(.large)
@@ -293,27 +230,6 @@ struct ClientDashboardView: View {
                viewModel.realtimeRoutineMetrics.behindScheduleCount > 0 ||
                viewModel.monthlyMetrics.budgetUtilization > 1.0
     }
-    
-    private func getIntelligencePanelTotalHeight() -> CGFloat {
-        // Calculate total height to prevent content cutoff
-        let contentHeight = getIntelligencePanelContentHeight()
-        let tabBarHeight: CGFloat = 65
-        return contentHeight + tabBarHeight + 20 // Extra padding
-    }
-    
-    private func getIntelligencePanelContentHeight() -> CGFloat {
-        switch selectedNovaTab {
-        case .priorities:
-            let hasItems = viewModel.complianceOverview.criticalViolations > 0 || viewModel.monthlyMetrics.budgetUtilization > 1.0
-            return hasItems ? 220 : 160
-        case .portfolio:
-            return viewModel.buildingsList.count > 3 ? 200 : 160
-        case .compliance:
-            return viewModel.complianceOverview.criticalViolations > 0 ? 240 : 180
-        case .chat:
-            return 140
-        }
-    }
 }
 
 // MARK: - Client Header Component
@@ -339,105 +255,74 @@ struct ClientHeaderV3B: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            HStack(spacing: 20) {
-                // Left: CyntientOps Logo
-                Button(action: { /* Handle logo tap */ }) {
+            HStack(spacing: 16) {
+                // Brand/Logo
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("CYNTIENT")
+                        .font(.system(size: 12, weight: .bold, design: .rounded))
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                    
+                    Text("CLIENT PORTAL")
+                        .font(.system(size: 8, weight: .medium))
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                }
+                
+                Spacer()
+                
+                // Portfolio Value
+                VStack(alignment: .center, spacing: 2) {
+                    Text(formatCurrency(portfolioValue))
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                    
+                    Text("Portfolio Value")
+                        .font(.system(size: 8, weight: .medium))
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                }
+                
+                Spacer()
+                
+                // Compliance Score with Alert
+                Button(action: { onRoute(.chat) }) {
                     HStack(spacing: 8) {
-                        // CyntientOps Logo/Brand
                         ZStack {
                             Circle()
-                                .fill(CyntientOpsDesign.DashboardColors.clientPrimary)
-                                .frame(width: 32, height: 32)
+                                .fill(complianceColor)
+                                .frame(width: 24, height: 24)
                             
-                            Text("CO")
-                                .font(.system(size: 12, weight: .bold, design: .rounded))
+                            if hasAlerts {
+                                Circle()
+                                    .fill(complianceColor.opacity(0.3))
+                                    .frame(width: 32, height: 32)
+                                    .scaleEffect(1.2)
+                                    .opacity(0.8)
+                                    .animation(.easeInOut(duration: 2).repeatForever(autoreverses: true), value: hasAlerts)
+                            }
+                            
+                            Text("\(Int(complianceScore * 100))")
+                                .font(.system(size: 10, weight: .bold))
                                 .foregroundColor(.white)
                         }
                         
-                        VStack(alignment: .leading, spacing: 1) {
-                            Text("CYNTIENT")
-                                .font(.system(size: 11, weight: .bold, design: .rounded))
-                                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-                            
-                            Text("OPS")
-                                .font(.system(size: 8, weight: .medium))
-                                .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
-                        }
+                        Text("Nova")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                     }
                 }
-                .buttonStyle(PlainButtonStyle())
                 
-                Spacer()
-                
-                // Center: Nova Manager Avatar
-                Button(action: { onRoute(.chat) }) {
-                    VStack(spacing: 4) {
-                        // Use the proper NovaAvatar component
-                        NovaAvatar(
-                            size: .medium,
-                            isActive: true,
-                            hasUrgentInsights: hasAlerts,
-                            isBusy: false,
-                            onTap: { onRoute(.chat) },
-                            onLongPress: { }
-                        )
-                        .frame(width: 40, height: 40)
-                        
-                        // Nova Label
-                        VStack(spacing: 1) {
-                            Text("NOVA")
-                                .font(.system(size: 9, weight: .bold, design: .rounded))
-                                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-                            
-                            Text("AI Manager")
-                                .font(.system(size: 7, weight: .medium))
-                                .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
-                        }
-                    }
-                }
-                .buttonStyle(PlainButtonStyle())
-                
-                Spacer()
-                
-                // Right: Client Name/Organization Profile
+                // Profile
                 Button(action: { onRoute(.profile) }) {
-                    HStack(spacing: 12) {
-                        // Client Info
-                        VStack(alignment: .trailing, spacing: 2) {
-                            Text(clientName)
-                                .font(.system(size: 13, weight: .semibold, design: .rounded))
-                                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-                                .lineLimit(1)
-                            
-                            HStack(spacing: 4) {
-                                Text(formatCurrency(portfolioValue))
-                                    .font(.system(size: 10, weight: .medium))
-                                    .foregroundColor(CyntientOpsDesign.DashboardColors.success)
-                                
-                                Text("•")
-                                    .font(.system(size: 8))
-                                    .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
-                                
-                                Text("\(Int(complianceScore * 100))%")
-                                    .font(.system(size: 10, weight: .medium))
-                                    .foregroundColor(complianceColor)
-                            }
-                        }
-                        
-                        // Client Profile Avatar
-                        ProfileChip(
-                            name: clientName,
-                            initials: getInitials(clientName),
-                            photoURL: nil,
-                            tap: { onRoute(.profile) }
-                        )
-                    }
+                    ProfileChip(
+                        name: clientName,
+                        initials: getInitials(clientName),
+                        photoURL: nil,
+                        tap: { onRoute(.profile) }
+                    )
                 }
-                .buttonStyle(PlainButtonStyle())
             }
             .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .frame(height: 68) // Slightly taller for better proportions
+            .padding(.vertical, 10)
+            .frame(height: 60)
             
             Divider()
                 .opacity(0.3)
@@ -470,9 +355,9 @@ struct ClientHeaderV3B: View {
     }
 }
 
-// MARK: - Client Real-time Hero Card
+// MARK: - Client Hero Card
 
-struct ClientRealTimeHeroCard: View {
+struct ClientHeroCard: View {
     @Binding var isExpanded: Bool
     let routineMetrics: CoreTypes.RealtimeRoutineMetrics
     let activeWorkers: CoreTypes.ActiveWorkerStatus
@@ -632,7 +517,7 @@ struct ClientRealTimeHeroCard: View {
                             .font(.caption)
                             .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
                     }
-                    .padding(.horizontal, adaptivePadding)
+                    .padding(.horizontal, 16)
                     .padding(.vertical, 12)
                     .francoDarkCardBackground(cornerRadius: 12)
                 }
@@ -664,6 +549,13 @@ struct ClientRealTimeHeroCard: View {
             return "\(complianceStatus.criticalViolations) Critical"
         }
         return "All Clear"
+    }
+    
+    private var behindScheduleSubtitle: String {
+        if routineMetrics.behindScheduleCount > 0 {
+            return "\(routineMetrics.behindScheduleCount) Behind"
+        }
+        return "On Track"
     }
     
     private var complianceColor: Color {
@@ -743,7 +635,7 @@ struct ClientMetricTile: View {
     }
 }
 
-// MARK: - Client Metric Pill
+// MARK: - Client Metric Pill (Reuse from existing)
 
 struct ClientMetricPill: View {
     let value: String
@@ -789,13 +681,17 @@ struct ClientImmediateItem: View {
     }
 }
 
-// MARK: - Buildings Grid
+// MARK: - Supporting Components (Placeholders - implement as needed)
 
 struct ClientBuildingsGrid: View {
     let buildings: any Sequence<CoreTypes.NamedCoordinate>
-    let columns: [GridItem]
     let onBuildingTap: (CoreTypes.NamedCoordinate) -> Void
     let onViewAllTap: () -> Void
+    
+    private let columns = [
+        GridItem(.flexible(), spacing: 12),
+        GridItem(.flexible(), spacing: 12)
+    ]
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -863,8 +759,6 @@ struct ClientBuildingGridItem: View {
         .buttonStyle(PlainButtonStyle())
     }
 }
-
-// MARK: - Urgent Items Section
 
 struct ClientUrgentItemsSection: View {
     let criticalViolations: Int
@@ -970,8 +864,6 @@ struct ClientUrgentItem: View {
     }
 }
 
-// MARK: - Nova Intelligence Bar
-
 struct ClientNovaIntelligenceBar: View {
     @Binding var selectedTab: ClientDashboardView.NovaTab
     let complianceOverview: CoreTypes.ComplianceOverview
@@ -1028,6 +920,7 @@ struct ClientNovaIntelligenceBar: View {
             return 140
         }
     }
+    }
     
     @ViewBuilder
     private var intelligenceContentPanel: some View {
@@ -1077,7 +970,24 @@ struct ClientNovaIntelligenceBar: View {
     }
 }
 
-// MARK: - Nova Tab Button
+struct ClientComplianceDetailView: View {
+    let complianceOverview: CoreTypes.ComplianceOverview
+    let complianceIssues: [CoreTypes.ComplianceIssue]
+    
+    var body: some View {
+        // TODO: Implement detailed compliance view
+        Text("Compliance Detail")
+    }
+}
+
+struct ClientSettingsView: View {
+    var body: some View {
+        // TODO: Implement settings
+        Text("Client Settings")
+    }
+}
+
+// MARK: - Client Nova Intelligence Components
 
 struct ClientNovaTabButton: View {
     let tab: ClientDashboardView.NovaTab
@@ -1117,8 +1027,6 @@ struct ClientNovaTabButton: View {
         .buttonStyle(PlainButtonStyle())
     }
 }
-
-// MARK: - Intelligence Content Components
 
 struct ClientPrioritiesContent: View {
     let criticalViolations: Int
@@ -1290,7 +1198,7 @@ struct ClientPortfolioContent: View {
                             
                             Spacer()
                             
-                            // Performance indicator (based on real metrics)
+                            // Performance indicator (mock data)
                             Text("98%")
                                 .font(.caption2)
                                 .fontWeight(.semibold)
@@ -1330,7 +1238,7 @@ struct ClientComplianceDetailContent: View {
                             .fontWeight(.bold)
                             .foregroundColor(complianceScoreColor)
                         
-                        ClientCircularProgressView(
+                        CircularProgressView(
                             progress: complianceOverview.overallScore,
                             color: complianceScoreColor
                         )
@@ -1450,22 +1358,22 @@ struct ClientComplianceDetailContent: View {
     }
     
     private func getHPDViolations() -> Int {
-        // Real implementation would query HPD API
+        // In real implementation, this would come from HPD API
         return max(0, complianceOverview.criticalViolations / 3)
     }
     
     private func getDOBViolations() -> Int {
-        // Real implementation would query DOB API
+        // In real implementation, this would come from DOB API
         return max(0, complianceOverview.criticalViolations / 4)
     }
     
     private func getDSNYViolations() -> Int {
-        // Real implementation would query DSNY API
+        // In real implementation, this would come from DSNY API
         return max(0, complianceOverview.criticalViolations / 5)
     }
     
     private func getLL97Issues() -> Int {
-        // Real implementation would query LL97 compliance API
+        // In real implementation, this would come from LL97 compliance API
         return buildingsList.count > 10 ? 2 : 0
     }
     
@@ -1539,68 +1447,6 @@ struct ClientNovaChat: View {
         }
         .padding()
         .francoDarkCardBackground(cornerRadius: 8)
-    }
-}
-
-// MARK: - Supporting Components
-
-struct ClientPriorityItem: View {
-    let icon: String
-    let title: String
-    let subtitle: String
-    let color: Color
-    
-    var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: icon)
-                .font(.title3)
-                .foregroundColor(color)
-                .frame(width: 24)
-            
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-                
-                Text(subtitle)
-                    .font(.caption)
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
-            }
-            
-            Spacer()
-            
-            Image(systemName: "chevron.right")
-                .font(.caption)
-                .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
-        }
-        .padding(12)
-        .francoDarkCardBackground(cornerRadius: 8)
-    }
-}
-
-struct ClientQuickActionButton: View {
-    let icon: String
-    let title: String
-    let color: Color
-    
-    var body: some View {
-        Button(action: {}) {
-            VStack(spacing: 4) {
-                Image(systemName: icon)
-                    .font(.title3)
-                    .foregroundColor(color)
-                
-                Text(title)
-                    .font(.caption)
-                    .fontWeight(.medium)
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 8)
-            .francoDarkCardBackground(cornerRadius: 6)
-        }
-        .buttonStyle(PlainButtonStyle())
     }
 }
 
@@ -1694,7 +1540,91 @@ struct ClientImmediateActionItem: View {
     }
 }
 
-struct ClientCircularProgressView: View {
+// MARK: - Supporting Components
+
+struct ClientPriorityItem: View {
+    let icon: String
+    let title: String
+    let subtitle: String
+    let color: Color
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(.title3)
+                .foregroundColor(color)
+                .frame(width: 24)
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                
+                Text(subtitle)
+                    .font(.caption)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+            }
+            
+            Spacer()
+            
+            Image(systemName: "chevron.right")
+                .font(.caption)
+                .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+        }
+        .padding(12)
+        .francoDarkCardBackground(cornerRadius: 8)
+    }
+}
+
+struct ClientQuickActionButton: View {
+    let icon: String
+    let title: String
+    let color: Color
+    
+    var body: some View {
+        Button(action: {}) {
+            VStack(spacing: 4) {
+                Image(systemName: icon)
+                    .font(.title3)
+                    .foregroundColor(color)
+                
+                Text(title)
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 8)
+            .francoDarkCardBackground(cornerRadius: 6)
+        }
+        .buttonStyle(PlainButtonStyle())
+    }
+}
+
+struct ClientComplianceItem: View {
+    let title: String
+    let count: Int
+    let color: Color
+    
+    var body: some View {
+        HStack {
+            Text(title)
+                .font(.subheadline)
+                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+            
+            Spacer()
+            
+            Text("\(count)")
+                .font(.subheadline)
+                .fontWeight(.semibold)
+                .foregroundColor(color)
+        }
+        .padding(.vertical, 4)
+    }
+}
+
+struct CircularProgressView: View {
     let progress: Double
     let color: Color
     
@@ -1709,51 +1639,6 @@ struct ClientCircularProgressView: View {
                 .rotationEffect(.degrees(-90))
                 .animation(.easeInOut(duration: 1.0), value: progress)
         }
-    }
-}
-
-// MARK: - Production Views (External Dependencies)
-
-struct ClientProfileView: View {
-    var body: some View {
-        ProfileView()
-    }
-}
-
-struct ClientBuildingsListView: View {
-    let buildings: [CoreTypes.NamedCoordinate]
-    let performanceMap: [String: Double]
-    let onSelectBuilding: (CoreTypes.NamedCoordinate) -> Void
-    
-    var body: some View {
-        AssignedBuildingsView(
-            buildings: buildings,
-            onBuildingSelected: onSelectBuilding
-        )
-    }
-}
-
-struct ClientComplianceDetailView: View {
-    let complianceOverview: CoreTypes.ComplianceOverview
-    let complianceIssues: [CoreTypes.ComplianceIssue]
-    let buildingsList: [CoreTypes.NamedCoordinate]
-    
-    var body: some View {
-        ComplianceOverviewView()
-    }
-}
-
-struct ClientSettingsView: View {
-    var body: some View {
-        VStack {
-            Text("Client Settings")
-                .font(.largeTitle)
-                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-            
-            Spacer()
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(CyntientOpsDesign.DashboardColors.baseBackground)
     }
 }
 

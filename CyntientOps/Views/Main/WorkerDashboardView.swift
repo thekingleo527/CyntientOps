@@ -162,16 +162,33 @@ struct WorkerDashboardView: View {
                 
                 // Main content
                 VStack(spacing: 0) {
-                    // WorkerHeaderV3B - Fixed header with authenticated user
-                    WorkerHeaderV3B(
-                        name: authManager.currentUser?.name ?? "Worker",
-                        initials: getInitials(from: authManager.currentUser?.name),
-                        photoURL: nil, // CoreTypes.User doesn't have photoURL property
-                        nextTaskName: getCurrentTask()?.title,
-                        showClockPill: true,
+                    // WorkerSimpleHeader - Per Design Brief: Logo, Nova AI, Profile
+                    WorkerSimpleHeader(
+                        workerName: authManager.currentUser?.name ?? "Worker",
+                        workerId: authManager.currentUser?.workerId ?? "",
                         isNovaProcessing: novaEngine.isThinking,
-                        onRoute: { headerRoute in
-                            handleHeaderRoute(headerRoute)
+                        clockInStatus: viewModel.isClockedIn ? 
+                            .clockedIn(
+                                building: viewModel.currentBuilding?.name ?? "",
+                                time: viewModel.clockInTime ?? Date()
+                            ) : .notClockedIn,
+                        onLogoTap: {
+                            // Open main menu
+                            handleHeaderRoute(.mainMenu)
+                            providePreciseHapticFeedback()
+                        },
+                        onNovaPress: {
+                            // Open Nova chat
+                            currentContext = .novaChat
+                            providePreciseHapticFeedback()
+                        },
+                        onProfileTap: {
+                            // Open worker profile view
+                            viewModel.sheet = .settings
+                            providePreciseHapticFeedback()
+                        },
+                        onClockAction: {
+                            handleClockAction()
                             providePreciseHapticFeedback()
                         }
                     )
@@ -180,16 +197,19 @@ struct WorkerDashboardView: View {
                     // Main content area
                     ScrollView {
                         VStack(spacing: 16) {
-                            // WorkerHeroCard - Single hero card with two tiles
+                            // WorkerHeroCard - Single hero card with two tiles and weather strip
                             WorkerHeroCard(
                                 state: $heroState,
                                 currentBuildingTitle: viewModel.currentBuilding?.name ?? "Select Building",
-                                todaySummary: "\(viewModel.todaysTasks.count) tasks today",
+                                todaySummary: "\(viewModel.completedTasksCount)/\(viewModel.todaysTasks.count) tasks today",
                                 firstName: authManager.currentUser?.name.components(separatedBy: " ").first ?? "Worker",
+                                weather: viewModel.weather,
                                 openBuilding: {
-                                    if let buildingId = viewModel.currentBuilding?.id {
-                                        route = .buildingDetail(buildingId)
+                                    if let currentBuilding = viewModel.currentBuilding {
+                                        // If clocked in, show building detail
+                                        route = .buildingDetail(currentBuilding.id)
                                     } else {
+                                        // If not clocked in, show building selection
                                         showBuildingSelection = true
                                     }
                                     providePreciseHapticFeedback()
@@ -216,17 +236,18 @@ struct WorkerDashboardView: View {
                         refreshID = UUID()
                     }
                     
-                    // Nova Intelligence Panel
+                    // Nova Intelligence Panel - Per Design Brief: sticky, non-transparent, 5 tabs
                     if intelligencePanelState != .hidden && hasIntelligenceToShow() {
-                        NovaIntelligenceBar(
-                            container: container,
-                            workerId: authManager.workerId,
-                            currentContext: generateWorkerContext(),
+                        WorkerNovaIntelligenceBar(
+                            urgentTasks: viewModel.urgentTasks,
+                            todaysTasks: viewModel.todaysTasks,
+                            assignedBuildings: viewModel.assignedBuildings,
+                            performance: viewModel.performance,
+                            selectedTab: $viewModel.novaTab,
                             onRoute: { novaRoute in
                                 handleNovaRoute(novaRoute)
                                 providePreciseHapticFeedback()
-                            },
-                            novaManager: novaEngine
+                            }
                         )
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                         .animation(CyntientOpsDesign.Animations.spring, value: intelligencePanelState)
@@ -418,15 +439,14 @@ struct WorkerDashboardView: View {
     private func handleHeaderRoute(_ headerRoute: WorkerHeaderRoute) {
         switch headerRoute {
         case .mainMenu:
-            // TODO: Implement main menu
-            break
+            // Show main menu sheet or navigate to main menu
+            print("Main menu requested")
         case .profile:
             viewModel.sheet = .settings
         case .clockAction:
             handleClockAction()
         case .novaChat:
-            // TODO: Implement Nova chat
-            break
+            currentContext = .novaChat
         }
     }
     
@@ -465,19 +485,22 @@ struct WorkerDashboardView: View {
     private func handleNovaRoute(_ novaRoute: NovaRoute) {
         switch novaRoute {
         case .priorities:
-            // Show urgent tasks
-            route = .schedule
+            // Show priorities - could show urgent tasks sheet or expand priorities tab
+            if !viewModel.urgentTasks.isEmpty {
+                viewModel.sheet = .tasks
+            }
         case .tasks:
-            route = .schedule
+            // Show tasks sheet with shortcuts (View Tasks Today, Route Help, Need Help)
+            viewModel.sheet = .tasks
         case .analytics:
-            // Navigate to performance/analytics view
-            print("Navigate to analytics")
+            // Show performance analytics
+            print("Show worker analytics with efficiency: \(viewModel.performance.efficiency)")
         case .chat:
             // Open Nova chat
             currentContext = .novaChat
         case .map:
-            // Open route map
-            route = .routeMap
+            // Open map filtered to worker's assigned buildings only
+            isMapRevealed = true
         }
     }
     
@@ -1060,309 +1083,274 @@ struct MinimalHeroCard: View {
     }
 }
 
-// MARK: - Worker Nova Intelligence Bar
+// MARK: - Worker Nova Intelligence Bar (Per Design Brief)
 
 struct WorkerNovaIntelligenceBar: View {
-    let insights: [CoreTypes.IntelligenceInsight]
-    let contextEngine: WorkerContextEngine
-    let displayMode: DisplayMode
-    let onSelectMapTab: () -> Void
-    let onNavigate: (IntelligencePreviewPanel.NavigationTarget) -> Void
-    
-    @State private var selectedTab: NovaTab = .priorities
-    
-    enum DisplayMode {
-        case minimal
-        case expanded
-    }
+    let urgentTasks: [WorkerDashboardViewModel.TaskItem]
+    let todaysTasks: [WorkerDashboardViewModel.TaskItem]
+    let assignedBuildings: [WorkerDashboardViewModel.BuildingSummary]
+    let performance: WorkerDashboardViewModel.WorkerPerformance
+    @Binding var selectedTab: WorkerDashboardViewModel.NovaTab
+    let onRoute: (NovaRoute) -> Void
     
     enum NovaTab: String, CaseIterable {
         case priorities = "Priorities"
-        case map = "Map"
+        case tasks = "Tasks"
         case analytics = "Analytics"
         case chat = "Chat"
+        case map = "Map"
         
         var icon: String {
             switch self {
             case .priorities: return "exclamationmark.triangle.fill"
-            case .map: return "map.fill"
+            case .tasks: return "checkmark.circle.fill"
             case .analytics: return "chart.bar.fill"
-            case .chat: return "message.fill"
+            case .chat: return "bubble.left.fill"
+            case .map: return "map.fill"
             }
         }
         
         var color: Color {
             switch self {
             case .priorities: return CyntientOpsDesign.DashboardColors.critical
-            case .map: return CyntientOpsDesign.DashboardColors.info
+            case .tasks: return CyntientOpsDesign.DashboardColors.info
             case .analytics: return CyntientOpsDesign.DashboardColors.success
             case .chat: return CyntientOpsDesign.DashboardColors.warning
+            case .map: return CyntientOpsDesign.DashboardColors.info
             }
         }
     }
     
     var body: some View {
         VStack(spacing: 0) {
-            if displayMode == .expanded {
-                // Tab content area
-                tabContentView
-                    .frame(height: 120)
-                    .background(CyntientOpsDesign.DashboardColors.cardBackground)
-            }
+            // Content area for selected tab
+            tabContentView
+                .frame(height: 120)
+                .background(CyntientOpsDesign.DashboardColors.cardBackground)
             
-            // Main intelligence bar with tabs
+            // Sticky tab bar - non-transparent content area
             HStack(spacing: 0) {
-                ForEach(NovaTab.allCases, id: \.self) { tab in
+                ForEach(WorkerDashboardViewModel.NovaTab.allCases, id: \.self) { tab in
                     Button(action: {
-                        if tab == .map {
-                            onSelectMapTab()
-                        } else {
-                            withAnimation(.easeInOut(duration: 0.2)) {
-                                selectedTab = tab
-                            }
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            selectedTab = tab
+                        }
+                        // Route to appropriate action
+                        switch tab {
+                        case .priorities: onRoute(.priorities)
+                        case .tasks: onRoute(.tasks)
+                        case .analytics: onRoute(.analytics)
+                        case .chat: onRoute(.chat)
+                        case .map: onRoute(.map)
                         }
                     }) {
                         VStack(spacing: 4) {
-                            Image(systemName: tab.icon)
-                                .font(.system(size: selectedTab == tab ? 18 : 16))
-                                .foregroundColor(selectedTab == tab ? tab.color : CyntientOpsDesign.DashboardColors.tertiaryText)
+                            Image(systemName: tabIcon(for: tab))
+                                .font(.system(size: selectedTab == tab ? 18 : 16, weight: .medium))
+                                .foregroundColor(selectedTab == tab ? tabColor(for: tab) : CyntientOpsDesign.DashboardColors.tertiaryText)
                             
                             Text(tab.rawValue)
                                 .font(.caption2)
-                                .foregroundColor(selectedTab == tab ? tab.color : CyntientOpsDesign.DashboardColors.tertiaryText)
+                                .fontWeight(selectedTab == tab ? .semibold : .regular)
+                                .foregroundColor(selectedTab == tab ? tabColor(for: tab) : CyntientOpsDesign.DashboardColors.tertiaryText)
                         }
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 8)
                         .background(
-                            selectedTab == tab ? tab.color.opacity(0.1) : Color.clear
+                            selectedTab == tab ? tabColor(for: tab).opacity(0.15) : Color.clear
                         )
                         .cornerRadius(8)
                     }
+                    .buttonStyle(PlainButtonStyle())
                 }
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
-            .background(CyntientOpsDesign.DashboardColors.cardBackground)
+            .background(.regularMaterial)
         }
-        .cornerRadius(12)
-        .shadow(color: .black.opacity(0.3), radius: 8, x: 0, y: -2)
+        .cornerRadius(12, corners: [.topLeft, .topRight])
+        .shadow(color: .black.opacity(0.2), radius: 8, x: 0, y: -2)
+    }
+    
+    private func tabIcon(for tab: WorkerDashboardViewModel.NovaTab) -> String {
+        switch tab {
+        case .priorities: return "exclamationmark.triangle.fill"
+        case .tasks: return "checkmark.circle.fill"
+        case .analytics: return "chart.bar.fill"
+        case .chat: return "bubble.left.fill"
+        case .map: return "map.fill"
+        }
+    }
+    
+    private func tabColor(for tab: WorkerDashboardViewModel.NovaTab) -> Color {
+        switch tab {
+        case .priorities: return CyntientOpsDesign.DashboardColors.critical
+        case .tasks: return CyntientOpsDesign.DashboardColors.info
+        case .analytics: return CyntientOpsDesign.DashboardColors.success
+        case .chat: return CyntientOpsDesign.DashboardColors.warning
+        case .map: return .blue
+        }
     }
     
     @ViewBuilder
     private var tabContentView: some View {
         switch selectedTab {
         case .priorities:
-            WorkerPrioritiesContentView(
-                insights: insights,
-                contextEngine: contextEngine,
-                onNavigate: onNavigate
-            )
+            // List urgent tasks (0+). Each row pressable → task detail
+            PrioritiesTabContent(urgentTasks: urgentTasks)
             
-        case .map:
-            WorkerMapContentView()
+        case .tasks:
+            // Shortcut chips → View Tasks Today, Route Help, Need Help
+            TasksTabContent(todaysTasks: todaysTasks)
             
         case .analytics:
-            WorkerAnalyticsContentView(contextEngine: contextEngine)
+            // Performance Today (efficiency), Task Analytics
+            AnalyticsTabContent(performance: performance, todaysTasks: todaysTasks)
             
         case .chat:
-            WorkerChatContentView()
+            // "Ask Nova" → opens chat
+            ChatTabContent()
+            
+        case .map:
+            // Opens map/portfolio filtered to worker's assigned buildings only
+            MapTabContent(assignedBuildings: assignedBuildings)
         }
     }
 }
 
-// MARK: - Worker Tab Content Views
+// MARK: - Nova Tab Content Views (Per Design Brief)
 
-struct WorkerPrioritiesContentView: View {
-    let insights: [CoreTypes.IntelligenceInsight]
-    let contextEngine: WorkerContextEngine
-    let onNavigate: (IntelligencePreviewPanel.NavigationTarget) -> Void
-
-    // Computed property to get urgent tasks
-    private var urgentTasks: [CoreTypes.ContextualTask] {
-        contextEngine.todaysTasks.filter { $0.urgency == .urgent || $0.urgency == .critical }
-    }
+struct PrioritiesTabContent: View {
+    let urgentTasks: [WorkerDashboardViewModel.TaskItem]
     
-    private var hasNoUrgentContent: Bool {
-        urgentTasks.isEmpty && insights.isEmpty
-    }
-
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 12) {
-                // Show urgent tasks first
-                urgentTasksContent
-                
-                // Then show insights
-                insightsContent
-                
-                // Show "All Clear" if no urgent content
-                if hasNoUrgentContent {
-                    allClearContent
+                if urgentTasks.isEmpty {
+                    // All Clear state
+                    VStack(spacing: 8) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.title2)
+                            .foregroundColor(CyntientOpsDesign.DashboardColors.success)
+                        Text("All Clear")
+                            .font(.caption)
+                            .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                        Text("No urgent tasks")
+                            .font(.caption2)
+                            .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                    }
+                    .frame(width: 120, height: 80)
+                    .background(CyntientOpsDesign.DashboardColors.success.opacity(0.1))
+                    .cornerRadius(8)
+                } else {
+                    // Show urgent tasks (each row pressable → task detail)
+                    ForEach(urgentTasks.prefix(4), id: \.id) { task in
+                        UrgentTaskCard(task: task)
+                    }
                 }
             }
             .padding(.horizontal, 12)
         }
         .padding(.vertical, 8)
     }
-    
-    // MARK: - View Components
-    
-    @ViewBuilder
-    private var urgentTasksContent: some View {
-        ForEach(Array(urgentTasks.prefix(3))) { task in
-            urgentTaskCard(for: task)
-        }
-    }
-    
-    @ViewBuilder
-    private var insightsContent: some View {
-        ForEach(Array(insights.prefix(2))) { insight in
-            WorkerInsightCard(insight: insight) {
-                onNavigate(.fullInsights)
-            }
-        }
-    }
-    
-    private var allClearContent: some View {
-        VStack {
-            Image(systemName: "checkmark.circle.fill")
-                .font(.title2)
-                .foregroundColor(CyntientOpsDesign.DashboardColors.success)
-            Text("All Clear")
-                .font(.caption)
-                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-        }
-        .frame(width: 100, height: 80)
-        .background(CyntientOpsDesign.DashboardColors.glassOverlay)
-        .cornerRadius(8)
-    }
-    
-    // MARK: - Task Card Builder
-    
-    private func urgentTaskCard(for task: CoreTypes.ContextualTask) -> some View {
-        Button(action: { onNavigate(.taskDetail(id: task.id)) }) {
-            taskCardContent(for: task)
-        }
-        .buttonStyle(PlainButtonStyle())
-    }
-    
-    private func taskCardContent(for task: CoreTypes.ContextualTask) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            taskCardHeader(for: task)
-            
-            if let description = task.description {
-                taskCardDescription(description)
-            }
-        }
-        .padding(12)
-        .frame(width: 180)
-        .background(taskCardBackground)
-    }
-    
-    private func taskCardHeader(for task: CoreTypes.ContextualTask) -> some View {
-        HStack {
-            Circle()
-                .fill(CyntientOpsDesign.DashboardColors.critical)
-                .frame(width: 6, height: 6)
-            
-            Text(task.title)
-                .francoTypography(CyntientOpsDesign.Typography.caption)
-                .fontWeight(.medium)
-                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-                .lineLimit(1)
-            
-            Spacer()
-        }
-    }
-    
-    private func taskCardDescription(_ description: String) -> some View {
-        Text(description)
-            .francoTypography(CyntientOpsDesign.Typography.caption2)
-            .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
-            .lineLimit(2)
-    }
-    
-    private var taskCardBackground: some View {
-        RoundedRectangle(cornerRadius: 12)
-            .fill(CyntientOpsDesign.DashboardColors.cardBackground)
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(CyntientOpsDesign.DashboardColors.critical.opacity(0.3), lineWidth: 1)
-            )
-    }
 }
 
-struct WorkerMapContentView: View {
+struct TasksTabContent: View {
+    let todaysTasks: [WorkerDashboardViewModel.TaskItem]
+    
     var body: some View {
-        VStack {
-            Image(systemName: "map.fill")
-                .font(.title)
-                .foregroundColor(CyntientOpsDesign.DashboardColors.info)
-            Text("Tap to reveal map")
-                .font(.caption)
-                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 12) {
+                // Shortcut chips → View Tasks Today, Route Help, Need Help
+                ShortcutChip(
+                    title: "View Tasks Today",
+                    subtitle: "\(todaysTasks.count) tasks",
+                    icon: "checklist",
+                    color: .blue
+                ) {
+                    // Navigate to tasks sheet
+                }
+                
+                ShortcutChip(
+                    title: "Route Help",
+                    subtitle: "Optimize route",
+                    icon: "map.fill",
+                    color: .green
+                ) {
+                    // Navigate to route optimization
+                }
+                
+                ShortcutChip(
+                    title: "Need Help",
+                    subtitle: "Report issue",
+                    icon: "questionmark.circle.fill",
+                    color: .orange
+                ) {
+                    // Navigate to help/issue reporting
+                }
+            }
+            .padding(.horizontal, 12)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.vertical, 8)
     }
 }
 
-struct WorkerAnalyticsContentView: View {
-    let contextEngine: WorkerContextEngine
-
+struct AnalyticsTabContent: View {
+    let performance: WorkerDashboardViewModel.WorkerPerformance
+    let todaysTasks: [WorkerDashboardViewModel.TaskItem]
+    
     var body: some View {
         HStack(spacing: 16) {
-            WorkerAnalyticsPill(
-                title: "Tasks Today",
-                value: "\(contextEngine.todaysTasks.count)",
+            PerformancePill(
+                title: "Efficiency",
+                value: "\(Int(performance.efficiency * 100))%",
+                color: performance.efficiency > 0.8 ? .green : performance.efficiency > 0.6 ? .orange : .red
+            )
+            
+            PerformancePill(
+                title: "Completed",
+                value: "\(performance.completedCount)",
                 color: .blue
             )
-
-            WorkerAnalyticsPill(
-                title: "Completed",
-                value: "\(contextEngine.todaysTasks.filter { $0.isCompleted }.count)",
+            
+            PerformancePill(
+                title: "Quality",
+                value: "\(Int(performance.qualityScore * 100))%",
                 color: .green
             )
-
-            WorkerAnalyticsPill(
-                title: "Urgent",
-                value: "\(contextEngine.todaysTasks.filter { $0.urgency == .urgent || $0.urgency == .critical }.count)",
-                color: .red
+            
+            PerformancePill(
+                title: "Avg Time",
+                value: "\(Int(performance.averageTime / 60))m",
+                color: .cyan
             )
-
-            if contextEngine.assignedBuildings.count > 1 {
-                WorkerAnalyticsPill(
-                    title: "Buildings",
-                    value: "\(contextEngine.assignedBuildings.count)",
-                    color: .cyan
-                )
-            }
         }
         .padding(.horizontal, 12)
     }
 }
 
-struct WorkerChatContentView: View {
+struct ChatTabContent: View {
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: "message.fill")
+            Image(systemName: "bubble.left.and.bubble.right.fill")
                 .font(.title2)
                 .foregroundColor(CyntientOpsDesign.DashboardColors.warning)
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Nova AI Assistant")
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Ask Nova")
                     .font(.subheadline)
                     .fontWeight(.medium)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-
-                Text("Ask about tasks, routes, or issues...")
+                
+                Text("Get help with tasks, routes, or questions")
                     .font(.caption)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
             }
-
+            
             Spacer()
-
-            Button("Chat") {
-                // Handle chat action
+            
+            Button("Open Chat") {
+                // Open Nova chat interface
             }
             .font(.caption)
             .padding(.horizontal, 12)
@@ -1372,75 +1360,128 @@ struct WorkerChatContentView: View {
             .cornerRadius(12)
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 12)
     }
 }
 
-// MARK: - Worker Supporting Components
-
-struct WorkerInsightCard: View {
-    let insight: CoreTypes.IntelligenceInsight
-    let onTap: () -> Void
-
+struct MapTabContent: View {
+    let assignedBuildings: [WorkerDashboardViewModel.BuildingSummary]
+    
     var body: some View {
-        Button(action: onTap) {
-            VStack(alignment: .leading, spacing: 6) {
+        VStack(spacing: 8) {
+            Image(systemName: "map.fill")
+                .font(.title2)
+                .foregroundColor(.blue)
+            
+            Text("Portfolio Map")
+                .font(.subheadline)
+                .fontWeight(.medium)
+                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+            
+            Text("\(assignedBuildings.count) buildings assigned")
+                .font(.caption)
+                .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+// MARK: - Supporting Components for Nova Tabs
+
+struct UrgentTaskCard: View {
+    let task: WorkerDashboardViewModel.TaskItem
+    
+    var body: some View {
+        Button(action: {
+            // Navigate to task detail
+        }) {
+            VStack(alignment: .leading, spacing: 8) {
                 HStack {
                     Circle()
-                        .fill(priorityColor)
+                        .fill(urgencyColor)
                         .frame(width: 6, height: 6)
-
+                    
+                    Text(task.title)
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                        .lineLimit(1)
+                    
                     Spacer()
-
-                    Text(insight.priority.rawValue.uppercased())
-                        .font(.caption2)
-                        .foregroundColor(priorityColor)
                 }
+                
+                if let description = task.description {
+                    Text(description)
+                        .font(.caption2)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                        .lineLimit(2)
+                }
+            }
+            .padding(12)
+            .frame(width: 140, height: 70)
+            .background(CyntientOpsDesign.DashboardColors.cardBackground)
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(urgencyColor.opacity(0.3), lineWidth: 1)
+            )
+            .cornerRadius(12)
+        }
+        .buttonStyle(PlainButtonStyle())
+    }
+    
+    private var urgencyColor: Color {
+        switch task.urgency {
+        case .critical, .emergency: return CyntientOpsDesign.DashboardColors.critical
+        case .urgent, .high: return CyntientOpsDesign.DashboardColors.warning
+        default: return CyntientOpsDesign.DashboardColors.info
+        }
+    }
+}
 
-                Text(insight.title)
+struct ShortcutChip: View {
+    let title: String
+    let subtitle: String
+    let icon: String
+    let color: Color
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 6) {
+                Image(systemName: icon)
+                    .font(.title3)
+                    .foregroundColor(color)
+                
+                Text(title)
                     .font(.caption)
                     .fontWeight(.medium)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-                    .lineLimit(2)
-                    .multilineTextAlignment(.leading)
-
-                if let action = insight.recommendedAction {
-                    Text(action)
-                        .font(.caption2)
-                        .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
-                        .lineLimit(1)
-                }
+                    .lineLimit(1)
+                
+                Text(subtitle)
+                    .font(.caption2)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                    .lineLimit(1)
             }
-            .padding(8)
-            .frame(width: 140, height: 80)
-            .background(CyntientOpsDesign.DashboardColors.glassOverlay)
+            .frame(width: 100, height: 70)
+            .background(color.opacity(0.1))
             .cornerRadius(8)
         }
         .buttonStyle(PlainButtonStyle())
     }
-
-    private var priorityColor: Color {
-        switch insight.priority {
-        case .critical: return CyntientOpsDesign.DashboardColors.critical
-        case .high: return CyntientOpsDesign.DashboardColors.warning
-        case .medium: return .orange
-        case .low: return CyntientOpsDesign.DashboardColors.info
-        }
-    }
 }
 
-struct WorkerAnalyticsPill: View {
+struct PerformancePill: View {
     let title: String
     let value: String
     let color: Color
-
+    
     var body: some View {
         VStack(spacing: 2) {
             Text(value)
                 .font(.subheadline)
                 .fontWeight(.bold)
                 .foregroundColor(color)
-
+            
             Text(title)
                 .font(.caption2)
                 .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
@@ -1914,11 +1955,13 @@ struct WorkerHeroCard: View {
     let currentBuildingTitle: String
     let todaySummary: String
     let firstName: String
+    let weather: WorkerDashboardViewModel.WeatherSnapshot?
     var openBuilding: () -> Void
     var openSchedule: () -> Void
     
     var body: some View {
         VStack(spacing: 12) {
+            // Header with greeting and toggle
             HStack {
                 Text("Good \(DashboardTimeOfDay.now.greeting), \(firstName)")
                     .font(.system(size: 28, weight: .semibold))
@@ -1937,11 +1980,12 @@ struct WorkerHeroCard: View {
             }
             
             if state == .expanded {
+                // Two embedded cards side-by-side
                 HStack(spacing: 12) {
                     HeroTile(
-                        title: "Current Building",
+                        title: currentBuildingTitle == "Select Building" ? "Select Building" : "Current Building",
                         subtitle: currentBuildingTitle,
-                        icon: "building.2",
+                        icon: currentBuildingTitle == "Select Building" ? "plus.circle" : "building.2",
                         action: openBuilding
                     )
                     
@@ -1953,6 +1997,41 @@ struct WorkerHeroCard: View {
                     )
                 }
                 .transition(.scale.combined(with: .opacity))
+                
+                // Building-specific weather guidance strip
+                if let weather = weather {
+                    BuildingWeatherGuidanceStrip(
+                        weather: weather,
+                        buildingName: currentBuildingTitle
+                    )
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+                }
+            } else {
+                // Collapsed one-line summary
+                HStack(spacing: 8) {
+                    Text(currentBuildingTitle == "Select Building" ? "No building" : currentBuildingTitle)
+                        .font(.subheadline)
+                        .foregroundColor(CO.primary)
+                    
+                    Text("•")
+                        .foregroundColor(CO.tertiary)
+                    
+                    Text(todaySummary)
+                        .font(.subheadline)
+                        .foregroundColor(CO.secondary)
+                    
+                    if let weather = weather {
+                        Text("•")
+                            .foregroundColor(CO.tertiary)
+                        
+                        Text("\(weather.temperature)°")
+                            .font(.subheadline)
+                            .foregroundColor(CO.secondary)
+                    }
+                    
+                    Spacer()
+                }
+                .transition(.opacity)
             }
         }
         .padding(CO.padding)
@@ -1960,6 +2039,11 @@ struct WorkerHeroCard: View {
         .overlay(RoundedRectangle(cornerRadius: CO.radius).stroke(CO.hair, lineWidth: 1))
         .clipShape(RoundedRectangle(cornerRadius: CO.radius))
         .padding(.horizontal, 16)
+    }
+    
+    private var weatherColor: Color {
+        guard let weather = weather else { return .blue }
+        return weather.isOutdoorSafe ? .green : .orange
     }
 }
 
@@ -1998,6 +2082,96 @@ private struct HeroTile: View {
             .clipShape(RoundedRectangle(cornerRadius: 12))
         }
         .buttonStyle(.plain)
+    }
+}
+
+// MARK: - Building-Specific Weather Guidance Component
+
+struct BuildingWeatherGuidanceStrip: View {
+    let weather: WorkerDashboardViewModel.WeatherSnapshot
+    let buildingName: String
+    
+    private var weatherIcon: String {
+        switch weather.condition.lowercased() {
+        case let condition where condition.contains("rain"):
+            return "cloud.rain.fill"
+        case let condition where condition.contains("snow"):
+            return "cloud.snow.fill"
+        case let condition where condition.contains("storm"):
+            return "cloud.bolt.fill"
+        case let condition where condition.contains("cloud"):
+            return "cloud.fill"
+        default:
+            return "sun.max.fill"
+        }
+    }
+    
+    private var weatherColor: Color {
+        switch weather.condition.lowercased() {
+        case let condition where condition.contains("rain") || condition.contains("storm"):
+            return CyntientOpsDesign.DashboardColors.info
+        case let condition where condition.contains("snow"):
+            return CyntientOpsDesign.DashboardColors.warning
+        default:
+            return CyntientOpsDesign.DashboardColors.success
+        }
+    }
+    
+    private var priorityGuidance: [String] {
+        // Show only high-priority building-specific guidance
+        return weather.buildingSpecificGuidance.prefix(2).map { $0 }
+    }
+    
+    var body: some View {
+        VStack(spacing: 8) {
+            // Main weather info
+            HStack(spacing: 8) {
+                Image(systemName: weatherIcon)
+                    .font(.caption)
+                    .foregroundColor(weatherColor)
+                
+                Text(weather.condition)
+                    .font(.caption.weight(.medium))
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                
+                Spacer()
+                
+                Text("\(weather.temperature)°")
+                    .font(.caption.weight(.semibold))
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+            }
+            
+            // Building-specific guidance
+            if !priorityGuidance.isEmpty {
+                VStack(alignment: .leading, spacing: 4) {
+                    ForEach(priorityGuidance, id: \.self) { guidance in
+                        HStack(spacing: 6) {
+                            Image(systemName: "exclamationmark.circle.fill")
+                                .font(.system(size: 10))
+                                .foregroundColor(weatherColor)
+                            
+                            Text(guidance)
+                                .font(.caption2)
+                                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                                .lineLimit(1)
+                            
+                            Spacer()
+                        }
+                    }
+                }
+                .padding(.top, 2)
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(
+            RoundedRectangle(cornerRadius: 8)
+                .fill(weatherColor.opacity(0.1))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(weatherColor.opacity(0.3), lineWidth: 1)
+                )
+        )
     }
 }
 

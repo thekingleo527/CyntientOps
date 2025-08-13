@@ -906,7 +906,7 @@ public class OperationalDataManager: ObservableObject {
             daysOfWeek: "Wed",
             workerId: CanonicalIDs.Workers.mercedesInamagua,
             buildingId: CanonicalIDs.Buildings.rubinMuseum,
-            requiresPhoto: false,
+            requiresPhoto: true, // Photo verification required for roof drain maintenance
             estimatedDuration: 30
         ),
         OperationalDataTaskAssignment(
@@ -3124,6 +3124,287 @@ public class OperationalDataManager: ObservableObject {
         ]
         
         return reverseBuildingMap[buildingId] ?? "Unknown Building"
+    }
+    
+    // MARK: - Real-World Schedule/Routine Data Access
+    
+    /// Gets worker's routine schedules from the real operational data
+    public func getWorkerRoutineSchedules(for workerId: String) async throws -> [WorkerRoutineSchedule] {
+        do {
+            let results = try await grdbManager.query("""
+                SELECT rs.*, b.name as building_name, b.address, b.latitude, b.longitude
+                FROM routine_schedules rs
+                JOIN buildings b ON rs.building_id = b.id  
+                WHERE rs.worker_id = ?
+                ORDER BY rs.category, rs.name
+            """, [workerId])
+            
+            return results.compactMap { row in
+                guard let id = row["id"] as? String,
+                      let name = row["name"] as? String,
+                      let buildingId = row["building_id"] as? String,
+                      let buildingName = row["building_name"] as? String,
+                      let rrule = row["rrule"] as? String,
+                      let category = row["category"] as? String,
+                      let weatherDependentInt = row["weather_dependent"] as? Int else {
+                    return nil
+                }
+                
+                let address = row["address"] as? String ?? ""
+                let latitude = row["latitude"] as? Double ?? 40.7589
+                let longitude = row["longitude"] as? Double ?? -73.9851
+                
+                return WorkerRoutineSchedule(
+                    id: id,
+                    name: name,
+                    buildingId: buildingId,
+                    buildingName: buildingName,
+                    buildingAddress: address,
+                    buildingLocation: (latitude, longitude),
+                    rrule: rrule,
+                    category: category,
+                    isWeatherDependent: weatherDependentInt == 1,
+                    workerId: workerId
+                )
+            }
+        } catch {
+            print("❌ Failed to fetch worker routines for \(workerId): \(error)")
+            return []
+        }
+    }
+    
+    /// Gets worker's schedule for a specific date by expanding routine RRULE patterns
+    public func getWorkerScheduleForDate(workerId: String, date: Date) async throws -> [WorkerScheduleItem] {
+        let routines = try await getWorkerRoutineSchedules(for: workerId)
+        let calendar = Calendar.current
+        
+        var scheduleItems: [WorkerScheduleItem] = []
+        
+        for routine in routines {
+            if let scheduledTimes = expandRRuleForDate(routine.rrule, date: date) {
+                for (startTime, duration) in scheduledTimes {
+                    let endTime = startTime.addingTimeInterval(TimeInterval(duration * 60)) // duration in minutes
+                    
+                    let item = WorkerScheduleItem(
+                        id: "\(routine.id)_\(startTime.timeIntervalSince1970)",
+                        routineId: routine.id,
+                        title: routine.name,
+                        description: "At \(routine.buildingName)",
+                        buildingId: routine.buildingId,
+                        buildingName: routine.buildingName,
+                        startTime: startTime,
+                        endTime: endTime,
+                        category: routine.category,
+                        isWeatherDependent: routine.isWeatherDependent,
+                        estimatedDuration: duration
+                    )
+                    scheduleItems.append(item)
+                }
+            }
+        }
+        
+        return scheduleItems.sorted { $0.startTime < $1.startTime }
+    }
+    
+    /// Gets worker's weekly schedule (7 days from today)
+    public func getWorkerWeeklySchedule(for workerId: String) async throws -> [WorkerScheduleItem] {
+        let calendar = Calendar.current
+        let today = Date()
+        
+        var weeklySchedule: [WorkerScheduleItem] = []
+        
+        // Get schedule for next 7 days
+        for dayOffset in 0..<7 {
+            if let date = calendar.date(byAdding: .day, value: dayOffset, to: today) {
+                let daySchedule = try await getWorkerScheduleForDate(workerId: workerId, date: date)
+                weeklySchedule.append(contentsOf: daySchedule)
+            }
+        }
+        
+        return weeklySchedule
+    }
+    
+    /// Expands RRULE pattern for a specific date - returns [(startTime, durationMinutes)]
+    private func expandRRuleForDate(_ rrule: String, date: Date) -> [(Date, Int)]? {
+        let calendar = Calendar.current
+        let components = rrule.components(separatedBy: ";")
+        
+        var frequency: String?
+        var byHour: [Int] = []
+        var byDay: [String] = []
+        
+        for component in components {
+            let parts = component.split(separator: "=")
+            if parts.count == 2 {
+                let key = String(parts[0])
+                let value = String(parts[1])
+                
+                switch key {
+                case "FREQ":
+                    frequency = value
+                case "BYHOUR":
+                    byHour = value.split(separator: ",").compactMap { Int($0) }
+                case "BYDAY":
+                    byDay = value.split(separator: ",").map { String($0) }
+                default:
+                    // Ignore other RRULE parameters for now
+                    break
+                }
+            }
+        }
+        
+        guard let freq = frequency else { return nil }
+        
+        let weekday = calendar.component(.weekday, from: date) // 1 = Sunday, 2 = Monday, etc.
+        let weekdayMap = [
+            "SU": 1, "MO": 2, "TU": 3, "WE": 4, 
+            "TH": 5, "FR": 6, "SA": 7
+        ]
+        
+        switch freq {
+        case "DAILY":
+            // Daily tasks - check if they should run today
+            if !byDay.isEmpty {
+                let dayMatches = byDay.contains { day in
+                    weekdayMap[day] == weekday
+                }
+                if !dayMatches { return [] }
+            }
+            
+            let hours = byHour.isEmpty ? [9] : byHour // Default to 9 AM if no hour specified
+            return hours.map { hour in
+                let startTime = calendar.date(bySettingHour: hour, minute: 0, second: 0, of: date) ?? date
+                return (startTime, 60) // Default 60 minutes duration
+            }
+            
+        case "WEEKLY":
+            // Weekly tasks - check if today matches the specified days
+            if !byDay.isEmpty {
+                let dayMatches = byDay.contains { day in
+                    weekdayMap[day] == weekday
+                }
+                if !dayMatches { return [] }
+            } else {
+                // If no days specified, default to once per week on same day
+                return []
+            }
+            
+            let hours = byHour.isEmpty ? [10] : byHour // Default to 10 AM if no hour specified
+            return hours.map { hour in
+                let startTime = calendar.date(bySettingHour: hour, minute: 0, second: 0, of: date) ?? date
+                return (startTime, 120) // Default 2 hours duration for weekly tasks
+            }
+            
+        case "MONTHLY":
+            // Monthly tasks - run on first weekday of month
+            let dayOfMonth = calendar.component(.day, from: date)
+            if dayOfMonth <= 7 && (2...6).contains(weekday) { // First week, weekday
+                let hours = byHour.isEmpty ? [11] : byHour
+                return hours.map { hour in
+                    let startTime = calendar.date(bySettingHour: hour, minute: 0, second: 0, of: date) ?? date
+                    return (startTime, 180) // 3 hours for monthly tasks
+                }
+            }
+            return []
+            
+        default:
+            return []
+        }
+    }
+}
+
+// MARK: - Real-World Schedule Data Structures
+
+/// Represents a worker's routine schedule from the database
+public struct WorkerRoutineSchedule: Identifiable, Codable {
+    public let id: String
+    public let name: String
+    public let buildingId: String
+    public let buildingName: String
+    public let buildingAddress: String
+    public let buildingLocation: (latitude: Double, longitude: Double)
+    public let rrule: String // RRULE pattern (FREQ=DAILY;BYHOUR=8, etc.)
+    public let category: String
+    public let isWeatherDependent: Bool
+    public let workerId: String
+    
+    enum CodingKeys: String, CodingKey {
+        case id, name, buildingId, buildingName, buildingAddress, rrule, category, isWeatherDependent, workerId
+        case latitude, longitude
+    }
+    
+    public init(id: String, name: String, buildingId: String, buildingName: String, buildingAddress: String, buildingLocation: (Double, Double), rrule: String, category: String, isWeatherDependent: Bool, workerId: String) {
+        self.id = id
+        self.name = name
+        self.buildingId = buildingId
+        self.buildingName = buildingName
+        self.buildingAddress = buildingAddress
+        self.buildingLocation = buildingLocation
+        self.rrule = rrule
+        self.category = category
+        self.isWeatherDependent = isWeatherDependent
+        self.workerId = workerId
+    }
+    
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        name = try container.decode(String.self, forKey: .name)
+        buildingId = try container.decode(String.self, forKey: .buildingId)
+        buildingName = try container.decode(String.self, forKey: .buildingName)
+        buildingAddress = try container.decode(String.self, forKey: .buildingAddress)
+        rrule = try container.decode(String.self, forKey: .rrule)
+        category = try container.decode(String.self, forKey: .category)
+        isWeatherDependent = try container.decode(Bool.self, forKey: .isWeatherDependent)
+        workerId = try container.decode(String.self, forKey: .workerId)
+        
+        let latitude = try container.decode(Double.self, forKey: .latitude)
+        let longitude = try container.decode(Double.self, forKey: .longitude)
+        buildingLocation = (latitude, longitude)
+    }
+    
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(name, forKey: .name)
+        try container.encode(buildingId, forKey: .buildingId)
+        try container.encode(buildingName, forKey: .buildingName)
+        try container.encode(buildingAddress, forKey: .buildingAddress)
+        try container.encode(rrule, forKey: .rrule)
+        try container.encode(category, forKey: .category)
+        try container.encode(isWeatherDependent, forKey: .isWeatherDependent)
+        try container.encode(workerId, forKey: .workerId)
+        try container.encode(buildingLocation.latitude, forKey: .latitude)
+        try container.encode(buildingLocation.longitude, forKey: .longitude)
+    }
+}
+
+/// Represents a specific scheduled item for a worker on a given date/time
+public struct WorkerScheduleItem: Identifiable, Codable {
+    public let id: String
+    public let routineId: String
+    public let title: String
+    public let description: String
+    public let buildingId: String
+    public let buildingName: String
+    public let startTime: Date
+    public let endTime: Date
+    public let category: String
+    public let isWeatherDependent: Bool
+    public let estimatedDuration: Int // minutes
+    
+    public init(id: String, routineId: String, title: String, description: String, buildingId: String, buildingName: String, startTime: Date, endTime: Date, category: String, isWeatherDependent: Bool, estimatedDuration: Int) {
+        self.id = id
+        self.routineId = routineId
+        self.title = title
+        self.description = description
+        self.buildingId = buildingId
+        self.buildingName = buildingName
+        self.startTime = startTime
+        self.endTime = endTime
+        self.category = category
+        self.isWeatherDependent = isWeatherDependent
+        self.estimatedDuration = estimatedDuration
     }
 }
 

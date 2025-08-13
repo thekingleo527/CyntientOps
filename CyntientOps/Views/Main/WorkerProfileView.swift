@@ -34,19 +34,23 @@ struct WorkerProfileView: View {
                             .animatedGlassAppear(delay: 0.2)
                     }
                     
-                    // Recent Tasks Section
-                    RecentTasksView(tasks: viewModel.recentTasks)
+                    // Weekly Schedule Section (Per Design Brief)
+                    WeeklyScheduleView(schedule: viewModel.weeklySchedule)
                         .animatedGlassAppear(delay: 0.3)
+                    
+                    // Assigned Buildings Section (Per Design Brief) 
+                    ProfileAssignedBuildingsView(buildings: viewModel.assignedBuildings)
+                        .animatedGlassAppear(delay: 0.4)
                     
                     // Skills Section
                     if let worker = viewModel.worker, let skills = worker.skills {
                         SkillsView(skills: skills)
-                            .animatedGlassAppear(delay: 0.4)
+                            .animatedGlassAppear(delay: 0.5)
                     }
                     
                     // Logout Section
                     LogoutSectionView()
-                        .animatedGlassAppear(delay: 0.5)
+                        .animatedGlassAppear(delay: 0.6)
                     
                     Spacer(minLength: 50)
                 }
@@ -609,6 +613,8 @@ class WorkerProfileViewModel: ObservableObject {
     @Published var worker: WorkerProfile?
     @Published var performanceMetrics: CoreTypes.PerformanceMetrics?
     @Published var recentTasks: [ContextualTask] = []
+    @Published var weeklySchedule: [DayScheduleItem] = [] // Per Design Brief
+    @Published var assignedBuildings: [BuildingSummary] = [] // Per Design Brief
     @Published var isLoading = false
     @Published var errorMessage: String?
     
@@ -695,6 +701,118 @@ class WorkerProfileViewModel: ObservableObject {
         }
         
         isLoading = false
+        
+        // Load weekly schedule (Per Design Brief)
+        await loadWeeklySchedule(for: workerId)
+        
+        // Load assigned buildings (Per Design Brief)
+        await loadAssignedBuildings(for: workerId)
+    }
+    
+    // MARK: - Private Methods (Per Design Brief)
+    
+    private func loadWeeklySchedule(for workerId: String) async {
+        // Load real weekly schedule from OperationalDataManager
+        do {
+            let operationalData = OperationalDataManager.shared
+            let weeklyScheduleItems = try await operationalData.getWorkerWeeklySchedule(for: workerId)
+            
+            // Group schedule items by date
+            let calendar = Calendar.current
+            let groupedByDate = Dictionary(grouping: weeklyScheduleItems) { item in
+                calendar.startOfDay(for: item.startTime)
+            }
+            
+            var schedule: [DayScheduleItem] = []
+            
+            // Create schedule for next 7 days (excluding weekends if no data)
+            for dayOffset in 0..<7 {
+                guard let date = calendar.date(byAdding: .day, value: dayOffset, to: Date()) else { continue }
+                let dayStart = calendar.startOfDay(for: date)
+                
+                let dayItems = groupedByDate[dayStart] ?? []
+                
+                // Skip days with no scheduled items (typically weekends)
+                if dayItems.isEmpty {
+                    let weekday = calendar.component(.weekday, from: date)
+                    if weekday == 1 || weekday == 7 { continue } // Skip weekends if no data
+                }
+                
+                // Calculate total hours and task count for the day
+                let totalHours = dayItems.reduce(0.0) { sum, item in
+                    sum + (Double(item.estimatedDuration) / 60.0) // Convert minutes to hours
+                }
+                
+                let taskCount = dayItems.count
+                let startTime = dayItems.first?.startTime ?? calendar.date(bySettingHour: 8, minute: 0, second: 0, of: date) ?? date
+                let endTime = dayItems.last?.endTime ?? calendar.date(bySettingHour: 16, minute: 0, second: 0, of: date) ?? date
+                
+                // Get the primary building for the day (most tasks)
+                let buildingCounts = Dictionary(grouping: dayItems, by: \.buildingName)
+                let primaryBuilding = buildingCounts.max(by: { $0.value.count < $1.value.count })?.key ?? "Multiple Buildings"
+                
+                let daySchedule = DayScheduleItem(
+                    id: "\(workerId)-\(date.timeIntervalSince1970)",
+                    date: date,
+                    title: taskCount > 0 ? primaryBuilding : "No scheduled tasks",
+                    startTime: startTime,
+                    endTime: endTime,
+                    taskCount: taskCount,
+                    totalHours: totalHours
+                )
+                
+                schedule.append(daySchedule)
+            }
+            
+            await MainActor.run {
+                weeklySchedule = schedule
+                print("✅ Loaded real weekly schedule for worker \(workerId): \(schedule.count) days, \(weeklyScheduleItems.count) total items")
+            }
+        } catch {
+            print("❌ Failed to load real weekly schedule for worker \(workerId): \(error)")
+            
+            // Fallback to empty schedule
+            await MainActor.run {
+                weeklySchedule = []
+            }
+        }
+    }
+    
+    private func loadAssignedBuildings(for workerId: String) async {
+        // Load real assigned buildings from OperationalDataManager
+        do {
+            let operationalData = OperationalDataManager.shared
+            let routineSchedules = try await operationalData.getWorkerRoutineSchedules(for: workerId)
+            
+            // Create building summaries from routine data
+            let uniqueBuildings = Dictionary(grouping: routineSchedules, by: \.buildingId)
+                .compactMap { (buildingId, routines) -> BuildingSummary? in
+                    guard let firstRoutine = routines.first else { return nil }
+                    
+                    // Get today's schedule to count tasks
+                    let todayTasks = try? await operationalData.getWorkerScheduleForDate(workerId: workerId, date: Date())
+                    let buildingTasksToday = todayTasks?.filter { $0.buildingId == buildingId }.count ?? 0
+                    
+                    return BuildingSummary(
+                        id: buildingId,
+                        name: firstRoutine.buildingName,
+                        address: firstRoutine.buildingAddress,
+                        todayTaskCount: buildingTasksToday
+                    )
+                }
+            
+            await MainActor.run {
+                assignedBuildings = uniqueBuildings
+                print("✅ Loaded \(uniqueBuildings.count) assigned buildings for worker \(workerId) from real operational data")
+            }
+        } catch {
+            print("❌ Failed to load assigned buildings for worker \(workerId): \(error)")
+            
+            // Fallback to empty buildings
+            await MainActor.run {
+                assignedBuildings = []
+            }
+        }
     }
 }
 
@@ -765,6 +883,243 @@ struct LogoutSectionView: View {
             Text("Are you sure you want to sign out?")
         }
     }
+}
+
+// MARK: - Weekly Schedule View (Per Design Brief)
+
+struct WeeklyScheduleView: View {
+    let schedule: [DayScheduleItem]
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            HStack {
+                Image(systemName: "calendar.circle.fill")
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.workerPrimary)
+                Text("Weekly Schedule")
+                    .glassHeading()
+                Spacer()
+                Text("\(schedule.count) days")
+                    .glassCaption()
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 4)
+                    .background(
+                        Capsule()
+                            .fill(CyntientOpsDesign.DashboardColors.workerPrimary.opacity(0.2))
+                    )
+            }
+            
+            if schedule.isEmpty {
+                VStack(spacing: 16) {
+                    Image(systemName: "calendar")
+                        .font(.system(size: 48))
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                    Text("No schedule available")
+                        .glassSubtitle()
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 32)
+            } else {
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+                    ForEach(schedule, id: \.id) { day in
+                        ScheduleDayCard(day: day)
+                    }
+                }
+            }
+        }
+        .padding(24)
+        .francoGlassCard(intensity: GlassIntensity.regular)
+    }
+}
+
+// MARK: - Assigned Buildings View (Per Design Brief)
+
+struct ProfileAssignedBuildingsView: View {
+    let buildings: [BuildingSummary]
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            HStack {
+                Image(systemName: "building.2.fill")
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.workerPrimary)
+                Text("Assigned Buildings")
+                    .glassHeading()
+                Spacer()
+                Text("\(buildings.count)")
+                    .glassCaption()
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 4)
+                    .background(
+                        Capsule()
+                            .fill(CyntientOpsDesign.DashboardColors.workerPrimary.opacity(0.2))
+                    )
+            }
+            
+            if buildings.isEmpty {
+                VStack(spacing: 16) {
+                    Image(systemName: "building.2")
+                        .font(.system(size: 48))
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                    Text("No buildings assigned")
+                        .glassSubtitle()
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 32)
+            } else {
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+                    ForEach(buildings, id: \.id) { building in
+                        BuildingChip(building: building)
+                    }
+                }
+            }
+        }
+        .padding(24)
+        .francoGlassCard(intensity: GlassIntensity.regular)
+    }
+}
+
+// MARK: - Schedule Day Card
+
+struct ScheduleDayCard: View {
+    let day: DayScheduleItem
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text(dayOfWeek)
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundColor(isToday ? CyntientOpsDesign.DashboardColors.workerPrimary : CyntientOpsDesign.DashboardColors.primaryText)
+                
+                Spacer()
+                
+                if isToday {
+                    Circle()
+                        .fill(CyntientOpsDesign.DashboardColors.workerPrimary)
+                        .frame(width: 6, height: 6)
+                }
+            }
+            
+            Text(day.title)
+                .font(.caption2)
+                .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                .lineLimit(1)
+            
+            HStack {
+                Text("\(day.startTime.formatted(date: .omitted, time: .shortened))")
+                    .font(.caption2)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+                
+                Spacer()
+                
+                HStack(spacing: 2) {
+                    Image(systemName: "checkmark.circle")
+                        .font(.system(size: 8))
+                    Text("\(day.taskCount)")
+                        .font(.caption2)
+                }
+                .foregroundColor(CyntientOpsDesign.DashboardColors.info)
+            }
+        }
+        .padding(12)
+        .frame(height: 70)
+        .background(
+            RoundedRectangle(cornerRadius: 8)
+                .fill(isToday ? CyntientOpsDesign.DashboardColors.workerPrimary.opacity(0.1) : Material.ultraThin)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(
+                            isToday ? CyntientOpsDesign.DashboardColors.workerPrimary.opacity(0.3) : CyntientOpsDesign.DashboardColors.borderSubtle,
+                            lineWidth: 1
+                        )
+                )
+        )
+    }
+    
+    private var dayOfWeek: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "EEE d"
+        return formatter.string(from: day.date)
+    }
+    
+    private var isToday: Bool {
+        Calendar.current.isDate(day.date, inSameDayAs: Date())
+    }
+}
+
+// MARK: - Building Chip
+
+struct BuildingChip: View {
+    let building: BuildingSummary
+    
+    var body: some View {
+        Button(action: {
+            // Navigate to building detail
+        }) {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Image(systemName: "building.2.fill")
+                        .font(.caption)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.workerPrimary)
+                    
+                    Spacer()
+                    
+                    if building.todayTaskCount > 0 {
+                        Text("\(building.todayTaskCount)")
+                            .font(.caption2)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(
+                                Capsule()
+                                    .fill(CyntientOpsDesign.DashboardColors.info)
+                            )
+                    }
+                }
+                
+                Text(building.name)
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.leading)
+                
+                Text(building.address)
+                    .font(.caption2)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+                    .lineLimit(1)
+            }
+            .padding(12)
+            .frame(height: 80)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(.ultraThinMaterial)
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(CyntientOpsDesign.DashboardColors.borderSubtle, lineWidth: 1)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+        }
+        .buttonStyle(PlainButtonStyle())
+    }
+}
+
+// MARK: - Supporting Data Types (Per Design Brief)
+
+struct DayScheduleItem {
+    let id: String
+    let date: Date
+    let title: String
+    let startTime: Date
+    let endTime: Date
+    let taskCount: Int
+    let totalHours: Double
+}
+
+struct BuildingSummary {
+    let id: String
+    let name: String
+    let address: String
+    let todayTaskCount: Int
 }
 
 // MARK: - Preview

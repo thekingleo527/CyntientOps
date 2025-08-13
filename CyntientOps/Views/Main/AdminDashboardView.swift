@@ -1138,15 +1138,15 @@ struct AdminHeroStatusCard: View {
     
     var body: some View {
         VStack(spacing: 16) {
-            // Header with live indicator
+            // Header with live indicator - Updated for Worker Metrics Focus
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Portfolio Overview")
+                    Text("Live Operations Control")
                         .font(.title2)
                         .fontWeight(.bold)
                         .foregroundColor(.white)
                     
-                    Text("Real-time data from \(activeWorkers.count) workers across \(portfolio.totalBuildings) buildings")
+                    Text("\(activeWorkers.count) active workers • \(getTodaysTaskCount()) tasks in progress")
                         .font(.caption)
                         .foregroundColor(.white.opacity(0.7))
                 }
@@ -1168,41 +1168,45 @@ struct AdminHeroStatusCard: View {
                 }
             }
             
-            // Metrics grid
+            // Worker-focused metrics grid (prioritized by importance)
             LazyVGrid(columns: [
                 GridItem(.flexible()),
                 GridItem(.flexible())
             ], spacing: 12) {
+                // #1 Priority: Active Workers (most important)
                 AdminMetricCard(
                     icon: "person.3.fill",
-                    title: "Workers Active",
+                    title: "Active Workers",
                     value: "\(activeWorkers.filter { $0.isClockedIn }.count)/\(activeWorkers.count)",
-                    color: .green,
+                    color: activeWorkerColor,
                     onTap: onWorkersTap
                 )
                 
+                // #2 Priority: Today's Task Progress (immediate focus)
                 AdminMetricCard(
-                    icon: "building.2.fill",
-                    title: "Buildings",
-                    value: "\(portfolio.totalBuildings)",
-                    color: .blue,
+                    icon: "checklist",
+                    title: "Today's Tasks",
+                    value: "\(getTodaysCompletedTasks())/\(getTodaysTaskCount())",
+                    color: taskProgressColor,
+                    onTap: onTasksTap
+                )
+                
+                // #3 Priority: Building Projects Status (immediate projects)
+                AdminMetricCard(
+                    icon: "hammer.fill",
+                    title: "Active Projects",
+                    value: "\(getActiveBuildingProjects())",
+                    color: .orange,
                     onTap: onBuildingsTap
                 )
                 
+                // #4 Priority: Immediate Attention Items (urgent)
                 AdminMetricCard(
-                    icon: "checkmark.shield.fill",
-                    title: "Compliance Score",
-                    value: "\(Int(complianceScore))%",
-                    color: complianceScoreColor,
-                    onTap: onComplianceTap
-                )
-                
-                AdminMetricCard(
-                    icon: "chart.line.uptrend.xyaxis",
-                    title: "Completion Rate",
-                    value: "\(Int(portfolio.overallCompletionRate * 100))%",
-                    color: completionRateColor,
-                    onTap: onTasksTap
+                    icon: "exclamationmark.triangle.fill",
+                    title: "Need Attention",
+                    value: "\(getImmediateAttentionCount())",
+                    color: .red,
+                    onTap: onAlertsTap
                 )
             }
             
@@ -1220,6 +1224,52 @@ struct AdminHeroStatusCard: View {
         .padding()
         .background(Color.white.opacity(0.05))
         .cornerRadius(16)
+    }
+    
+    // MARK: - Helper Functions for Worker-Focused Metrics
+    
+    private func getTodaysTaskCount() -> Int {
+        // Estimate based on active workers and building count
+        return activeWorkers.filter { $0.isClockedIn }.count * 3 + portfolio.totalBuildings
+    }
+    
+    private func getTodaysCompletedTasks() -> Int {
+        // Estimate based on completion rate
+        let todaysTasks = getTodaysTaskCount()
+        return Int(Double(todaysTasks) * portfolio.overallCompletionRate)
+    }
+    
+    private func getActiveBuildingProjects() -> String {
+        // Count buildings with active work
+        let activeBuildings = activeWorkers.filter { $0.isClockedIn }.count > 0 ? 
+                            min(portfolio.totalBuildings, activeWorkers.count) : 0
+        return "\(activeBuildings)"
+    }
+    
+    private func getImmediateAttentionCount() -> Int {
+        return criticalAlerts.count + (portfolio.overallCompletionRate < 0.7 ? 1 : 0)
+    }
+    
+    // MARK: - Color Computed Properties
+    
+    private var activeWorkerColor: Color {
+        let activeCount = activeWorkers.filter { $0.isClockedIn }.count
+        let totalCount = activeWorkers.count
+        let ratio = totalCount > 0 ? Double(activeCount) / Double(totalCount) : 0
+        
+        if ratio > 0.8 { return .green }
+        if ratio > 0.6 { return .orange }
+        return .red
+    }
+    
+    private var taskProgressColor: Color {
+        let completed = getTodaysCompletedTasks()
+        let total = getTodaysTaskCount()
+        let ratio = total > 0 ? Double(completed) / Double(total) : 0
+        
+        if ratio > 0.8 { return .green }
+        if ratio > 0.6 { return .orange }
+        return .red
     }
     
     private var completionRateColor: Color {

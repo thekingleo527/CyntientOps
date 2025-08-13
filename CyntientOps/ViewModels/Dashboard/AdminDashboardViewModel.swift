@@ -89,9 +89,17 @@ class AdminDashboardViewModel: ObservableObject {
     // MARK: - Worker Capabilities
     @Published var workerCapabilities: [String: WorkerCapabilities] = [:]
     
+    // MARK: - BBL-Powered Property Data
+    @Published var propertyData: [String: NYCPropertyData] = [:]
+    @Published var portfolioFinancialSummary: PortfolioFinancialSummary?
+    @Published var complianceDeadlines: [ComplianceDeadline] = []
+    @Published var propertyViolationsSummary: PropertyViolationsSummary?
+    @Published var isLoadingPropertyData = false
+    
     // MARK: - Service Container (REFACTORED)
     private let container: ServiceContainer
     private let session: Session
+    private let bblService = BBLGenerationService.shared
     
     // MARK: - Real-time Subscriptions
     private var cancellables = Set<AnyCancellable>()
@@ -162,6 +170,9 @@ class AdminDashboardViewModel: ObservableObject {
             
             // Load portfolio insights
             await loadPortfolioInsights()
+            
+            // Load BBL property data for comprehensive property intelligence
+            await loadPortfolioPropertyData()
             
             // Load completed tasks and photo data
             await loadCompletedTasks()
@@ -240,6 +251,126 @@ class AdminDashboardViewModel: ObservableObject {
         case .addEmergencyTask:
             return capabilities.canAddEmergencyTasks
         }
+    }
+    
+    // MARK: - BBL Property Data Methods
+    
+    /// Load comprehensive property data for portfolio buildings using BBL
+    func loadPortfolioPropertyData() async {
+        isLoadingPropertyData = true
+        
+        do {
+            var newPropertyData: [String: NYCPropertyData] = [:]
+            
+            // Load property data for each building
+            for building in buildings {
+                let coordinate = CLLocationCoordinate2D(
+                    latitude: building.latitude,
+                    longitude: building.longitude
+                )
+                
+                let property = await bblService.getPropertyData(
+                    for: building.id,
+                    address: building.address,
+                    coordinate: coordinate
+                )
+                
+                if let property = property {
+                    newPropertyData[building.id] = property
+                }
+            }
+            
+            // Update published properties
+            await MainActor.run {
+                self.propertyData = newPropertyData
+                self.generatePortfolioFinancialSummary()
+                self.generateComplianceDeadlines()
+                self.generatePropertyViolationsSummary()
+                self.isLoadingPropertyData = false
+            }
+            
+        } catch {
+            await MainActor.run {
+                self.isLoadingPropertyData = false
+                print("⚠️ Failed to load portfolio property data: \\(error)")
+            }
+        }
+    }
+    
+    /// Generate portfolio financial summary from BBL data
+    private func generatePortfolioFinancialSummary() {
+        let properties = Array(propertyData.values)
+        guard !properties.isEmpty else { return }
+        
+        let totalAssessed = properties.reduce(0) { $0 + $1.financialData.assessedValue }
+        let totalMarket = properties.reduce(0) { $0 + $1.financialData.marketValue }
+        let totalLiens = properties.reduce(0) { $0 + $1.financialData.activeLiens.reduce(0) { $1.0 + $1.1.amount } }
+        
+        portfolioFinancialSummary = PortfolioFinancialSummary(
+            totalAssessedValue: totalAssessed,
+            totalMarketValue: totalMarket,
+            totalTaxLiability: totalAssessed * 0.01, // Simplified tax calculation
+            activeLiensCount: properties.flatMap { $0.financialData.activeLiens }.count,
+            totalLienAmount: totalLiens,
+            averageROI: totalMarket > 0 ? (totalMarket - totalAssessed) / totalAssessed : 0,
+            monthlyTaxExpense: (totalAssessed * 0.01) / 12
+        )
+    }
+    
+    /// Generate compliance deadlines from BBL data
+    private func generateComplianceDeadlines() {
+        var deadlines: [ComplianceDeadline] = []
+        
+        for property in propertyData.values {
+            let building = buildings.first { $0.id == property.buildingId }
+            let buildingName = building?.name ?? "Building \\(property.buildingId)"
+            
+            // LL97 deadlines
+            if let ll97Date = property.complianceData.ll97NextDue {
+                deadlines.append(ComplianceDeadline(
+                    buildingId: property.buildingId,
+                    buildingName: buildingName,
+                    deadlineType: "Local Law 97 - Emissions",
+                    dueDate: ll97Date,
+                    severity: ll97Date.timeIntervalSinceNow < 180 * 24 * 60 * 60 ? .high : .medium,
+                    estimatedCost: 15000
+                ))
+            }
+            
+            // LL11 deadlines
+            if let ll11Date = property.complianceData.ll11NextDue {
+                deadlines.append(ComplianceDeadline(
+                    buildingId: property.buildingId,
+                    buildingName: buildingName,
+                    deadlineType: "Local Law 11 - Facade",
+                    dueDate: ll11Date,
+                    severity: ll11Date.timeIntervalSinceNow < 90 * 24 * 60 * 60 ? .critical : .medium,
+                    estimatedCost: 25000
+                ))
+            }
+        }
+        
+        complianceDeadlines = deadlines.sorted { $0.dueDate < $1.dueDate }
+    }
+    
+    /// Generate property violations summary from BBL data
+    private func generatePropertyViolationsSummary() {
+        let allViolations = propertyData.values.flatMap { $0.violations }
+        
+        let hpdCount = allViolations.filter { $0.department == .hpd }.count
+        let dobCount = allViolations.filter { $0.department == .dob }.count
+        let dsnyCount = allViolations.filter { $0.department == .dsny }.count
+        let criticalCount = allViolations.filter { $0.severity == .classC }.count
+        
+        propertyViolationsSummary = PropertyViolationsSummary(
+            totalViolations: allViolations.count,
+            hpdViolations: hpdCount,
+            dobViolations: dobCount,
+            dsnyViolations: dsnyCount,
+            criticalCount: criticalCount,
+            estimatedFines: Double(criticalCount * 500 + (allViolations.count - criticalCount) * 200),
+            avgResolutionTime: 45
+        )
     }
     
     // MARK: - Photo Evidence Methods
@@ -1023,4 +1154,48 @@ enum WorkerAction {
     case addNotes
     case viewMap
     case addEmergencyTask
+}
+
+// MARK: - BBL Property Data Types
+
+struct PortfolioFinancialSummary {
+    let totalAssessedValue: Double
+    let totalMarketValue: Double
+    let totalTaxLiability: Double
+    let activeLiensCount: Int
+    let totalLienAmount: Double
+    let averageROI: Double
+    let monthlyTaxExpense: Double
+}
+
+struct ComplianceDeadline {
+    let buildingId: String
+    let buildingName: String
+    let deadlineType: String // LL97, LL11, LL87, etc.
+    let dueDate: Date
+    let severity: ComplianceSeverity
+    let estimatedCost: Double?
+}
+
+enum ComplianceSeverity {
+    case low, medium, high, critical
+    
+    var color: Color {
+        switch self {
+        case .low: return .green
+        case .medium: return .yellow
+        case .high: return .orange
+        case .critical: return .red
+        }
+    }
+}
+
+struct PropertyViolationsSummary {
+    let totalViolations: Int
+    let hpdViolations: Int
+    let dobViolations: Int
+    let dsnyViolations: Int
+    let criticalCount: Int
+    let estimatedFines: Double
+    let avgResolutionTime: Int // days
 }

@@ -66,7 +66,7 @@ struct SimplifiedDashboard: View {
         }
         .sheet(isPresented: $showClockInSheet) {
             SimplifiedClockInSheet(
-                buildings: viewModel.assignedBuildings,
+                buildings: viewModel.assignedBuildingsToday,
                 onSelectBuilding: { building in
                     Task {
                         await viewModel.clockIn(at: building)
@@ -196,11 +196,12 @@ struct SimplifiedDashboard: View {
                 VStack(spacing: 16) {
                     ForEach(viewModel.todaysTasks.prefix(5), id: \.id) { task in
                         SimplifiedTaskRow(
-                            task: task,
-                            onTap: { selectedTask = task },
+                            task: convertToContextualTask(task),
+                            onTap: { selectedTask = convertToContextualTask(task) },
                             onComplete: {
                                 Task {
-                                    await viewModel.completeTask(task)
+                                    let contextualTask = convertToContextualTask(task)
+                                    await viewModel.completeTask(contextualTask)
                                 }
                             }
                         )
@@ -208,7 +209,7 @@ struct SimplifiedDashboard: View {
                     }
                     
                     if viewModel.todaysTasks.count > 5 {
-                        NavigationLink(destination: TaskListView(tasks: viewModel.todaysTasks)) {
+                        NavigationLink(destination: TaskListView(tasks: viewModel.todaysTasks.map(convertToContextualTask))) {
                             HStack {
                                 Text("View All \(viewModel.todaysTasks.count) Tasks")
                                     .glassText()
@@ -244,10 +245,10 @@ struct SimplifiedDashboard: View {
                     }
                 } else {
                     // Show building selection for clock in
-                    if viewModel.assignedBuildings.count == 1 {
+                    if viewModel.assignedBuildingsToday.count == 1 {
                         // Auto clock in if only one building
                         Task {
-                            await viewModel.clockIn(at: viewModel.assignedBuildings[0])
+                            await viewModel.clockIn(at: viewModel.assignedBuildingsToday[0])
                         }
                     } else {
                         showClockInSheet = true
@@ -295,6 +296,34 @@ struct SimplifiedDashboard: View {
     }
     
     // MARK: - Computed Properties
+    
+    // MARK: - Helper Methods
+    
+    /// Convert TaskItem to ContextualTask for compatibility with components
+    private func convertToContextualTask(_ taskItem: WorkerDashboardViewModel.TaskItem) -> CoreTypes.ContextualTask {
+        return CoreTypes.ContextualTask(
+            id: taskItem.id,
+            title: taskItem.title,
+            description: taskItem.description,
+            status: taskItem.isCompleted ? .completed : .pending,
+            dueDate: taskItem.dueDate,
+            urgency: convertTaskUrgency(taskItem.urgency),
+            category: CoreTypes.TaskCategory(rawValue: taskItem.category) ?? .general,
+            buildingId: taskItem.buildingId
+        )
+    }
+    
+    /// Convert TaskItem.TaskUrgency to CoreTypes.TaskUrgency
+    private func convertTaskUrgency(_ urgency: WorkerDashboardViewModel.TaskItem.TaskUrgency) -> CoreTypes.TaskUrgency {
+        switch urgency {
+        case .low: return .low
+        case .normal: return .normal
+        case .high: return .high
+        case .urgent: return .urgent
+        case .critical: return .critical
+        case .emergency: return .emergency
+        }
+    }
     
     private var greeting: String {
         let hour = Calendar.current.component(.hour, from: Date())
