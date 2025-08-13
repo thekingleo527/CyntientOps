@@ -334,7 +334,6 @@ struct AdminDashboardMainView: View {
                     container: container,
                     workerId: nil,
                     currentContext: generateAdminContext(),
-                    novaManager: novaManager,
                     onRoute: { route in
                         switch route {
                         case .map:
@@ -350,7 +349,8 @@ struct AdminDashboardMainView: View {
                         case .chat:
                             print("Nova chat tapped")
                         }
-                    }
+                    },
+                    novaManager: novaManager
                 )
             }
         }
@@ -377,7 +377,7 @@ struct AdminDashboardMainView: View {
                     capabilities: viewModel.workerCapabilities[worker.id],
                     canPerformAction: { action in
                         // Convert WorkerActionType to WorkerAction
-                        let workerAction: AdminDashboardViewModel.WorkerAction
+                        let workerAction: WorkerAction
                         switch action {
                         case .photoUpload:
                             workerAction = .uploadPhoto
