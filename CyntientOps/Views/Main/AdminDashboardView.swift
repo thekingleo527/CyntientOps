@@ -740,97 +740,9 @@ struct AdminDashboardView: View {
 
 // MARK: - Nova Components
 
-struct NovaAvatarView: View {
-    let state: NovaState
-    let size: CGFloat
-    let hasUrgent: Bool
-    
-    @State private var pulseAnimation = false
-    @State private var rotationAngle: Double = 0
-    @EnvironmentObject var novaManager: NovaAIManager
-    
-    var body: some View {
-        ZStack {
-            // Background glow
-            Circle()
-                .fill(
-                    RadialGradient(
-                        colors: [stateColor.opacity(0.3), Color.clear],
-                        center: .center,
-                        startRadius: size * 0.3,
-                        endRadius: size * 0.8
-                    )
-                )
-                .frame(width: size * 1.5, height: size * 1.5)
-                .blur(radius: 5)
-                .opacity(pulseAnimation ? 1 : 0.5)
-            
-            // AI Image or Icon
-            if let image = novaManager.novaImage {
-                Image(uiImage: image)
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(width: size, height: size)
-                    .clipShape(Circle())
-                    .overlay(
-                        Circle()
-                            .stroke(stateColor, lineWidth: 2)
-                    )
-                    .rotationEffect(.degrees(rotationAngle))
-                    .scaleEffect(pulseAnimation ? 1.1 : 1.0)
-            } else {
-                // Fallback icon
-                Image(systemName: "brain")
-                    .font(.system(size: size * 0.6))
-                    .foregroundColor(stateColor)
-                    .frame(width: size, height: size)
-                    .background(Circle().fill(Color.black))
-                    .overlay(
-                        Circle()
-                            .stroke(stateColor, lineWidth: 2)
-                    )
-            }
-            
-            // Urgent indicator
-            if hasUrgent {
-                Circle()
-                    .fill(Color.red)
-                    .frame(width: size * 0.3, height: size * 0.3)
-                    .overlay(
-                        Text("!")
-                            .font(.system(size: size * 0.2, weight: .bold))
-                            .foregroundColor(.white)
-                    )
-                    .offset(x: size * 0.3, y: -size * 0.3)
-            }
-        }
-        .onAppear {
-            startAnimations()
-        }
-    }
-    
-    var stateColor: Color {
-        switch state {
-        case .idle: return .blue.opacity(0.5)
-        case .thinking: return .purple
-        case .active: return .blue
-        case .urgent: return .red
-        case .error: return .orange
-        }
-    }
-    
-    func startAnimations() {
-        withAnimation(.easeInOut(duration: 2).repeatForever(autoreverses: true)) {
-            pulseAnimation = true
-        }
-        
-        if state == .thinking {
-            withAnimation(.linear(duration: 3).repeatForever(autoreverses: false)) {
-                rotationAngle = 360
-            }
-        }
-    }
-}
+// MARK: - Consistent Nova Avatar Usage
+// Note: Local NovaAvatarView replaced with consistent NovaAvatar component from /Nova/UI/
+// This ensures persistent, animated avatar across all views
 
 // NovaIntelligenceBar component is imported from Components/Nova/
 struct AdminNovaIntelligenceBar: View {
@@ -886,11 +798,21 @@ struct AdminNovaIntelligenceBar: View {
     
     private var mainBar: some View {
         HStack(spacing: 12) {
-            NovaAvatarView(
-                state: novaState,
-                size: 40,
-                hasUrgent: insights.contains { $0.priority == .critical }
+            NovaAvatar(
+                size: .small,
+                isActive: novaState == .active,
+                hasUrgentInsights: insights.contains { $0.priority == .critical },
+                isBusy: novaState == .thinking,
+                onTap: {
+                    // Handle Nova tap - open Nova assistant
+                    print("Nova avatar tapped in admin dashboard")
+                },
+                onLongPress: {
+                    // Handle Nova long press - holographic mode
+                    print("Nova avatar long pressed - holographic mode")
+                }
             )
+            .environmentObject(novaManager)
             .onTapGesture(perform: onTap)
             
             VStack(alignment: .leading, spacing: 2) {
@@ -1941,7 +1863,20 @@ struct NovaAssistantView: View {
     var body: some View {
         NavigationView {
             VStack {
-                NovaAvatarView(state: novaAI.novaState, size: 100, hasUrgent: false)
+                NovaAvatar(
+                    size: .large,
+                    isActive: novaAI.novaState == .active,
+                    hasUrgentInsights: false,
+                    isBusy: novaAI.isThinking,
+                    onTap: {
+                        // Handle Nova tap in assistant view
+                        print("Nova avatar tapped in assistant view")
+                    },
+                    onLongPress: {
+                        // Handle Nova long press - holographic mode
+                        print("Nova avatar long pressed - holographic mode in assistant")
+                    }
+                )
                     .padding()
                 
                 Text("Nova AI Assistant")
