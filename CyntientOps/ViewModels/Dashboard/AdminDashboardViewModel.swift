@@ -901,7 +901,7 @@ class AdminDashboardViewModel: ObservableObject {
             print("🏢 Loading comprehensive data for: \(building.name)")
             
             // Generate comprehensive property data for building
-            let property = await self.generatePropertyData(building, coordinate)
+            let property = await self.generatePropertyDataForBuilding(building, coordinate: coordinate)
             
             if let property = property {
                 await MainActor.run {
