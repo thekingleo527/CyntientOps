@@ -36,8 +36,8 @@ public actor QuickBooksOAuthManager {
     private let grdbManager = GRDBManager.shared
     
     // MARK: - OAuth Configuration
-    private let clientId = "AB6xJdGBkSZCjdpTjKL1bM9YJnk4TRBuKJJdN8EfXIa8QJ5VvL"
-    private let clientSecret = "LNzb8C2GQ5xjF4K7H8J9L2M3N4P5Q6R7S8T9U0V1W2X3Y4Z5A6"
+    private let clientId = "ABAQSi9dc27v4DHpdawcoZpHgmRHOnXMdCXTDTvp5fTv3PWOiS"
+    private let clientSecret = "plfYbZc7hhwnATBtPqIVcB7Ak9bxAtz6IUYSQfD7"
     private let discoveryDocument = "https://developer.intuit.com/.well-known/openid_discovery"
     private let sandboxBaseURL = "https://sandbox-quickbooks.api.intuit.com"
     private let productionBaseURL = "https://quickbooks.api.intuit.com"

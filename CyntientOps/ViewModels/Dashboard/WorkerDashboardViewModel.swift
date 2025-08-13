@@ -121,6 +121,339 @@ public class WorkerDashboardViewModel: ObservableObject {
         public let buildingSpecificGuidance: [String] // New field for building-specific tasks
     }
     
+    // MARK: - Vendor Access Types
+    
+    public struct VendorAccessEntry {
+        public let id: String
+        public let timestamp: Date
+        public let buildingId: String
+        public let buildingName: String
+        public let vendorName: String
+        public let vendorCompany: String
+        public let vendorType: VendorType
+        public let accessType: VendorAccessType
+        public let accessDetails: String
+        public let notes: String
+        public let photoEvidence: String?
+        public let signatureData: String?
+        public let workerId: String
+        public let workerName: String
+        
+        public init(
+            buildingId: String,
+            buildingName: String,
+            vendorName: String,
+            vendorCompany: String,
+            vendorType: VendorType,
+            accessType: VendorAccessType,
+            accessDetails: String,
+            notes: String,
+            photoEvidence: String? = nil,
+            signatureData: String? = nil,
+            workerId: String,
+            workerName: String
+        ) {
+            self.id = UUID().uuidString
+            self.timestamp = Date()
+            self.buildingId = buildingId
+            self.buildingName = buildingName
+            self.vendorName = vendorName
+            self.vendorCompany = vendorCompany
+            self.vendorType = vendorType
+            self.accessType = accessType
+            self.accessDetails = accessDetails
+            self.notes = notes
+            self.photoEvidence = photoEvidence
+            self.signatureData = signatureData
+            self.workerId = workerId
+            self.workerName = workerName
+        }
+    }
+    
+    public enum VendorType: String, CaseIterable {
+        case sprinklerService = "Sprinkler Service Tech"
+        case elevatorService = "Elevator Service Tech"
+        case spectrumTech = "Spectrum Tech"
+        case electrician = "Electrician"
+        case plumber = "Plumber"
+        case contractor = "Contractor"
+        case dobInspector = "DOB Inspector"
+        case depInspector = "DEP Inspector"
+        case conEd = "ConEd"
+        case exterminator = "Exterminator"
+        case roofer = "Roofer"
+        case locksmith = "Locksmith"
+        case laundryServiceTech = "Laundry Service Tech"
+        case architect = "Architect"
+        case insuranceBankAgent = "Insurance/Bank Agent"
+        case other = "Other"
+        
+        public var icon: String {
+            switch self {
+            case .sprinklerService: return "drop.triangle.fill"
+            case .elevatorService: return "arrow.up.arrow.down"
+            case .spectrumTech: return "wifi"
+            case .electrician: return "bolt.fill"
+            case .plumber: return "wrench.and.screwdriver.fill"
+            case .contractor: return "hammer.fill"
+            case .dobInspector: return "building.2.fill"
+            case .depInspector: return "drop.circle.fill"
+            case .conEd: return "powerplug.fill"
+            case .exterminator: return "ant.fill"
+            case .roofer: return "house.fill"
+            case .locksmith: return "key.fill"
+            case .laundryServiceTech: return "washer.fill"
+            case .architect: return "ruler.fill"
+            case .insuranceBankAgent: return "briefcase.fill"
+            case .other: return "person.fill"
+            }
+        }
+        
+        public var category: VendorCategory {
+            switch self {
+            case .sprinklerService, .elevatorService: return .building
+            case .spectrumTech, .conEd: return .utility
+            case .electrician, .plumber, .contractor, .roofer, .locksmith, .laundryServiceTech: return .maintenance
+            case .dobInspector, .depInspector: return .inspection
+            case .exterminator: return .service
+            case .architect, .insuranceBankAgent: return .professional
+            case .other: return .other
+            }
+        }
+    }
+    
+    public enum VendorCategory: String, CaseIterable {
+        case building = "Building Systems"
+        case utility = "Utilities"
+        case maintenance = "Maintenance & Repair"
+        case inspection = "Inspections"
+        case service = "Services"
+        case professional = "Professional Services"
+        case other = "Other"
+        
+        public var color: Color {
+            switch self {
+            case .building: return .blue
+            case .utility: return .orange
+            case .maintenance: return .green
+            case .inspection: return .red
+            case .service: return .purple
+            case .professional: return .brown
+            case .other: return .gray
+            }
+        }
+    }
+    
+    public enum VendorAccessType: String, CaseIterable {
+        case scheduled = "Scheduled"
+        case emergency = "Emergency"
+        case routine = "Routine"
+        case inspection = "Inspection"
+        case repair = "Repair"
+        case installation = "Installation"
+        
+        public var color: Color {
+            switch self {
+            case .emergency: return .red
+            case .scheduled, .inspection: return .blue
+            case .routine: return .green
+            case .repair: return .orange
+            case .installation: return .purple
+            }
+        }
+    }
+    
+    // MARK: - Daily Notes Types
+    
+    public struct DailyNote: Identifiable, Codable {
+        public let id: String
+        public let buildingId: String
+        public let buildingName: String
+        public let workerId: String
+        public let workerName: String
+        public let noteText: String
+        public let category: NoteCategory
+        public let timestamp: Date
+        public let photoEvidence: String?
+        public let location: String?
+        
+        public init(
+            buildingId: String,
+            buildingName: String,
+            workerId: String,
+            workerName: String,
+            noteText: String,
+            category: NoteCategory,
+            photoEvidence: String? = nil,
+            location: String? = nil
+        ) {
+            self.id = UUID().uuidString
+            self.buildingId = buildingId
+            self.buildingName = buildingName
+            self.workerId = workerId
+            self.workerName = workerName
+            self.noteText = noteText
+            self.category = category
+            self.timestamp = Date()
+            self.photoEvidence = photoEvidence
+            self.location = location
+        }
+    }
+    
+    public enum NoteCategory: String, CaseIterable, Codable {
+        case general = "General"
+        case maintenance = "Maintenance Issue"
+        case safety = "Safety Concern" 
+        case supply = "Supply Need"
+        case tenant = "Tenant Issue"
+        case observation = "Observation"
+        case repair = "Repair Required"
+        case cleaning = "Cleaning Note"
+        
+        public var icon: String {
+            switch self {
+            case .general: return "note.text"
+            case .maintenance: return "wrench.and.screwdriver"
+            case .safety: return "exclamationmark.triangle"
+            case .supply: return "box"
+            case .tenant: return "person.2"
+            case .observation: return "eye"
+            case .repair: return "hammer"
+            case .cleaning: return "sparkles"
+            }
+        }
+        
+        public var color: Color {
+            switch self {
+            case .general: return .blue
+            case .maintenance: return .orange
+            case .safety: return .red
+            case .supply: return .purple
+            case .tenant: return .green
+            case .observation: return .gray
+            case .repair: return .yellow
+            case .cleaning: return .cyan
+            }
+        }
+    }
+    
+    // MARK: - Inventory Integration Types
+    
+    public struct SupplyRequest: Identifiable, Codable {
+        public let id: String
+        public let requestNumber: String
+        public let buildingId: String
+        public let buildingName: String
+        public let requestedBy: String
+        public let requesterName: String
+        public let items: [RequestedItem]
+        public let priority: Priority
+        public let status: Status
+        public let notes: String
+        public let totalCost: Double
+        public let createdAt: Date
+        public let approvedAt: Date?
+        public let approvedBy: String?
+        
+        public struct RequestedItem: Codable {
+            public let itemId: String
+            public let itemName: String
+            public let quantityRequested: Int
+            public let quantityApproved: Int?
+            public let unitCost: Double
+            public let notes: String?
+        }
+        
+        public enum Priority: String, CaseIterable, Codable {
+            case low = "Low"
+            case normal = "Normal"
+            case high = "High"
+            case urgent = "Urgent"
+            
+            public var color: Color {
+                switch self {
+                case .low: return .gray
+                case .normal: return .blue
+                case .high: return .orange
+                case .urgent: return .red
+                }
+            }
+        }
+        
+        public enum Status: String, CaseIterable, Codable {
+            case pending = "Pending"
+            case approved = "Approved"
+            case ordered = "Ordered"
+            case received = "Received"
+            case rejected = "Rejected"
+            
+            public var color: Color {
+                switch self {
+                case .pending: return .orange
+                case .approved: return .green
+                case .ordered: return .blue
+                case .received: return .green
+                case .rejected: return .red
+                }
+            }
+        }
+    }
+    
+    public struct InventoryUsageRecord: Identifiable, Codable {
+        public let id: String
+        public let itemId: String
+        public let itemName: String
+        public let quantity: Int
+        public let unit: String
+        public let usedAt: Date
+        public let workerId: String
+        public let workerName: String
+        public let buildingId: String
+        public let buildingName: String
+        public let taskId: String?
+        public let notes: String?
+        
+        public init(
+            itemId: String,
+            itemName: String,
+            quantity: Int,
+            unit: String,
+            workerId: String,
+            workerName: String,
+            buildingId: String,
+            buildingName: String,
+            taskId: String? = nil,
+            notes: String? = nil
+        ) {
+            self.id = UUID().uuidString
+            self.itemId = itemId
+            self.itemName = itemName
+            self.quantity = quantity
+            self.unit = unit
+            self.usedAt = Date()
+            self.workerId = workerId
+            self.workerName = workerName
+            self.buildingId = buildingId
+            self.buildingName = buildingName
+            self.taskId = taskId
+            self.notes = notes
+        }
+    }
+    
+    public struct LowStockAlert: Identifiable, Codable {
+        public let id: String
+        public let itemId: String
+        public let itemName: String
+        public let buildingId: String
+        public let buildingName: String
+        public let currentStock: Int
+        public let minimumStock: Int
+        public let unit: String
+        public let category: String
+        public let alertedAt: Date
+        public let isResolved: Bool
+    }
+    
     // MARK: - Building-Specific Weather Guidance
     
     public enum WeatherCondition {
@@ -229,6 +562,24 @@ public class WorkerDashboardViewModel: ObservableObject {
     @Published public private(set) var heroNextTask: CoreTypes.ContextualTask?
     @Published public private(set) var weatherHint: String?
     @Published public private(set) var buildingsForMap: [BuildingPin] = []
+    
+    // MARK: - Vendor Access Logging Properties
+    @Published public var showingVendorAccessLog: Bool = false
+    @Published public var vendorAccessEntries: [VendorAccessEntry] = []
+    @Published public var isLoggingVendorAccess: Bool = false
+    
+    // MARK: - Daily Notes Properties
+    @Published public var dailyNotes: [String: [DailyNote]] = [:] // BuildingId -> Notes
+    @Published public var todayNotes: [DailyNote] = []
+    @Published public var showingAddNote: Bool = false
+    @Published public var isAddingNote: Bool = false
+    
+    // MARK: - Inventory Integration Properties  
+    @Published public var pendingSupplyRequests: [SupplyRequest] = []
+    @Published public var recentInventoryUsage: [InventoryUsageRecord] = []
+    @Published public var showingInventoryRequest: Bool = false
+    @Published public var lowStockAlerts: [LowStockAlert] = []
+    @Published public var isCreatingSupplyRequest: Bool = false
     
     // MARK: - Computed Properties
     
@@ -1909,6 +2260,653 @@ public class WorkerDashboardViewModel: ObservableObject {
         refreshTimer?.invalidate()
         weatherUpdateTimer?.invalidate()
         cancellables.removeAll()
+    }
+    
+    // MARK: - Vendor Access Logging Methods
+    
+    /// Show vendor access logging interface
+    public func showVendorAccessLog() {
+        showingVendorAccessLog = true
+    }
+    
+    /// Hide vendor access logging interface
+    public func hideVendorAccessLog() {
+        showingVendorAccessLog = false
+    }
+    
+    /// Log vendor access for a building
+    public func logVendorAccess(
+        buildingId: String,
+        vendorName: String,
+        vendorCompany: String,
+        vendorType: VendorType,
+        accessType: VendorAccessType,
+        accessDetails: String,
+        notes: String,
+        photoEvidence: String? = nil,
+        signatureData: String? = nil
+    ) async {
+        guard let workerId = session.user?.id,
+              let workerName = session.user?.name else {
+            await showError("Worker authentication required")
+            return
+        }
+        
+        guard let building = assignedBuildings.first(where: { $0.id == buildingId }) else {
+            await showError("Building not found in assigned buildings")
+            return
+        }
+        
+        isLoggingVendorAccess = true
+        
+        do {
+            // Create vendor access entry for local tracking
+            let entry = VendorAccessEntry(
+                buildingId: buildingId,
+                buildingName: building.name,
+                vendorName: vendorName,
+                vendorCompany: vendorCompany,
+                vendorType: vendorType,
+                accessType: accessType,
+                accessDetails: accessDetails,
+                notes: notes,
+                photoEvidence: photoEvidence,
+                signatureData: signatureData,
+                workerId: workerId,
+                workerName: workerName
+            )
+            
+            // Add to local entries
+            vendorAccessEntries.insert(entry, at: 0)
+            
+            // Keep only last 50 entries for performance
+            if vendorAccessEntries.count > 50 {
+                vendorAccessEntries.removeLast()
+            }
+            
+            // Create vendor info for operational intelligence
+            let vendorInfo = VendorInfo(
+                id: UUID().uuidString,
+                name: vendorName,
+                type: mapToIntelligenceVendorType(vendorType),
+                company: vendorCompany.isEmpty ? vendorName : vendorCompany,
+                contactInfo: "",
+                certifications: []
+            )
+            
+            // Log to AdminOperationalIntelligence service
+            await AdminOperationalIntelligence.shared.logVendorAccess(
+                workerId: workerId,
+                buildingId: buildingId,
+                vendorInfo: vendorInfo,
+                accessType: mapToIntelligenceAccessType(accessType),
+                accessDetails: "\(accessDetails). Notes: \(notes)",
+                photoEvidence: photoEvidence
+            )
+            
+            // Store in database for persistence
+            try await container.database.execute("""
+                INSERT OR REPLACE INTO vendor_access_logs (
+                    id, worker_id, worker_name, building_id, vendor_name, vendor_company,
+                    vendor_type, access_type, access_details, notes, photo_evidence, 
+                    signature_data, timestamp
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, [
+                entry.id,
+                workerId,
+                workerName,
+                buildingId,
+                vendorName,
+                vendorCompany,
+                vendorType.rawValue,
+                accessType.rawValue,
+                accessDetails,
+                notes,
+                photoEvidence ?? NSNull(),
+                signatureData ?? NSNull(),
+                entry.timestamp.ISO8601Format()
+            ])
+            
+            // Broadcast vendor access update
+            let update = CoreTypes.DashboardUpdate(
+                source: .worker,
+                type: .vendorAccess,
+                buildingId: buildingId,
+                workerId: workerId,
+                data: [
+                    "vendorName": vendorName,
+                    "vendorCompany": vendorCompany,
+                    "vendorType": vendorType.rawValue,
+                    "accessType": accessType.rawValue,
+                    "buildingName": building.name,
+                    "workerName": workerName,
+                    "hasPhotoEvidence": photoEvidence != nil ? "true" : "false",
+                    "hasSignature": signatureData != nil ? "true" : "false"
+                ],
+                description: "Vendor access logged: \(vendorName) (\(vendorCompany.isEmpty ? vendorType.rawValue : vendorCompany)) at \(building.name) by \(workerName)"
+            )
+            
+            container.dashboardSync.broadcastWorkerUpdate(update)
+            
+            isLoggingVendorAccess = false
+            hideVendorAccessLog()
+            
+            // Success message
+            let successMessage = NSLocalizedString("Vendor access logged successfully", comment: "Vendor access success")
+            print("✅ \(successMessage): \(vendorName) at \(building.name)")
+            
+        } catch {
+            isLoggingVendorAccess = false
+            let errorMessage = NSLocalizedString("Failed to log vendor access", comment: "Vendor access error")
+            await showError("\(errorMessage): \(error.localizedDescription)")
+            print("❌ Failed to log vendor access: \(error)")
+        }
+    }
+    
+    /// Load vendor access history for current worker
+    public func loadVendorAccessHistory() async {
+        guard let workerId = session.user?.id else { return }
+        
+        do {
+            let rows = try await container.database.query("""
+                SELECT * FROM vendor_access_logs 
+                WHERE worker_id = ? 
+                ORDER BY timestamp DESC 
+                LIMIT 50
+            """, [workerId])
+            
+            vendorAccessEntries = rows.compactMap { row in
+                guard let id = row["id"] as? String,
+                      let buildingId = row["building_id"] as? String,
+                      let vendorName = row["vendor_name"] as? String,
+                      let vendorTypeRaw = row["vendor_type"] as? String,
+                      let accessTypeRaw = row["access_type"] as? String,
+                      let accessDetails = row["access_details"] as? String,
+                      let notes = row["notes"] as? String,
+                      let timestampString = row["timestamp"] as? String,
+                      let vendorType = VendorType(rawValue: vendorTypeRaw),
+                      let accessType = VendorAccessType(rawValue: accessTypeRaw),
+                      let timestamp = ISO8601DateFormatter().date(from: timestampString) else {
+                    return nil
+                }
+                
+                let building = assignedBuildings.first { $0.id == buildingId }
+                let vendorCompany = row["vendor_company"] as? String ?? ""
+                let workerName = row["worker_name"] as? String ?? ""
+                let photoEvidence = row["photo_evidence"] as? String
+                let signatureData = row["signature_data"] as? String
+                
+                return VendorAccessEntry(
+                    buildingId: buildingId,
+                    buildingName: building?.name ?? "Building \(buildingId)",
+                    vendorName: vendorName,
+                    vendorCompany: vendorCompany,
+                    vendorType: vendorType,
+                    accessType: accessType,
+                    accessDetails: accessDetails,
+                    notes: notes,
+                    photoEvidence: photoEvidence,
+                    signatureData: signatureData,
+                    workerId: workerId,
+                    workerName: workerName
+                )
+            }
+            
+        } catch {
+            let errorMessage = NSLocalizedString("Failed to load vendor access history", comment: "Vendor history error")
+            print("⚠️ \(errorMessage): \(error)")
+        }
+    }
+    
+    /// Get vendor access entries for a specific building
+    public func getVendorAccessForBuilding(_ buildingId: String) -> [VendorAccessEntry] {
+        return vendorAccessEntries.filter { $0.buildingId == buildingId }
+    }
+    
+    /// Get recent vendor access (last 7 days)
+    public func getRecentVendorAccess() -> [VendorAccessEntry] {
+        let sevenDaysAgo = Calendar.current.date(byAdding: .day, value: -7, to: Date()) ?? Date()
+        return vendorAccessEntries.filter { $0.timestamp >= sevenDaysAgo }
+    }
+    
+    // MARK: - Daily Notes Methods
+    
+    /// Show add note interface
+    public func showAddNote() {
+        showingAddNote = true
+    }
+    
+    /// Hide add note interface
+    public func hideAddNote() {
+        showingAddNote = false
+    }
+    
+    /// Add a daily note for current building
+    public func addDailyNote(
+        noteText: String,
+        category: NoteCategory,
+        photoEvidence: String? = nil,
+        location: String? = nil
+    ) async {
+        guard let workerId = session.user?.id,
+              let workerName = session.user?.name,
+              let currentBuilding = currentBuilding else {
+            await showError("Worker authentication or building selection required")
+            return
+        }
+        
+        isAddingNote = true
+        
+        do {
+            let note = DailyNote(
+                buildingId: currentBuilding.id,
+                buildingName: currentBuilding.name,
+                workerId: workerId,
+                workerName: workerName,
+                noteText: noteText.trimmingCharacters(in: .whitespacesAndNewlines),
+                category: category,
+                photoEvidence: photoEvidence,
+                location: location
+            )
+            
+            // Add to local arrays
+            todayNotes.insert(note, at: 0)
+            if dailyNotes[currentBuilding.id] == nil {
+                dailyNotes[currentBuilding.id] = []
+            }
+            dailyNotes[currentBuilding.id]?.insert(note, at: 0)
+            
+            // Keep only last 100 notes per building
+            if let buildingNotes = dailyNotes[currentBuilding.id], buildingNotes.count > 100 {
+                dailyNotes[currentBuilding.id] = Array(buildingNotes.prefix(100))
+            }
+            
+            // Store in database
+            try await container.database.execute("""
+                INSERT OR REPLACE INTO daily_notes (
+                    id, worker_id, worker_name, building_id, building_name,
+                    note_text, category, photo_evidence, location, timestamp
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, [
+                note.id,
+                workerId,
+                workerName,
+                currentBuilding.id,
+                currentBuilding.name,
+                noteText,
+                category.rawValue,
+                photoEvidence ?? NSNull(),
+                location ?? NSNull(),
+                note.timestamp.ISO8601Format()
+            ])
+            
+            // Sync to AdminOperationalIntelligence
+            await container.adminIntelligence.addWorkerNote(
+                workerId: workerId,
+                buildingId: currentBuilding.id,
+                noteText: noteText,
+                category: mapNoteCategoryToOperationalIntelligence(category),
+                photoEvidence: photoEvidence,
+                location: location
+            )
+            
+            // Broadcast update
+            let update = CoreTypes.DashboardUpdate(
+                source: .worker,
+                type: .workerNote,
+                buildingId: currentBuilding.id,
+                workerId: workerId,
+                data: [
+                    "noteCategory": category.rawValue,
+                    "buildingName": currentBuilding.name,
+                    "workerName": workerName,
+                    "hasPhoto": photoEvidence != nil ? "true" : "false",
+                    "location": location ?? ""
+                ],
+                description: "Worker note added: \(category.rawValue) at \(currentBuilding.name) by \(workerName)"
+            )
+            
+            container.dashboardSync.broadcastWorkerUpdate(update)
+            
+            isAddingNote = false
+            hideAddNote()
+            
+            print("✅ Daily note added: \(category.rawValue) at \(currentBuilding.name)")
+            
+        } catch {
+            isAddingNote = false
+            let errorMessage = NSLocalizedString("Failed to add note", comment: "Note error")
+            await showError("\(errorMessage): \(error.localizedDescription)")
+        }
+    }
+    
+    /// Load daily notes for current worker
+    public func loadDailyNotes() async {
+        guard let workerId = session.user?.id else { return }
+        
+        do {
+            // Load today's notes
+            let today = Calendar.current.startOfDay(for: Date())
+            let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: today) ?? Date()
+            
+            let todayRows = try await container.database.query("""
+                SELECT * FROM daily_notes 
+                WHERE worker_id = ? 
+                AND timestamp >= ? 
+                AND timestamp < ?
+                ORDER BY timestamp DESC
+            """, [workerId, today.ISO8601Format(), tomorrow.ISO8601Format()])
+            
+            todayNotes = todayRows.compactMap { convertRowToDailyNote($0) }
+            
+            // Load recent notes by building (last 30 days)
+            let thirtyDaysAgo = Calendar.current.date(byAdding: .day, value: -30, to: Date()) ?? Date()
+            
+            let allRows = try await container.database.query("""
+                SELECT * FROM daily_notes 
+                WHERE worker_id = ? 
+                AND timestamp >= ?
+                ORDER BY building_id, timestamp DESC
+            """, [workerId, thirtyDaysAgo.ISO8601Format()])
+            
+            let allNotes = allRows.compactMap { convertRowToDailyNote($0) }
+            
+            // Group by building
+            dailyNotes = Dictionary(grouping: allNotes, by: { $0.buildingId })
+            
+        } catch {
+            let errorMessage = NSLocalizedString("Failed to load daily notes", comment: "Notes error")
+            print("⚠️ \(errorMessage): \(error)")
+        }
+    }
+    
+    /// Get notes for a specific building
+    public func getNotesForBuilding(_ buildingId: String) -> [DailyNote] {
+        return dailyNotes[buildingId] ?? []
+    }
+    
+    // MARK: - Inventory Integration Methods
+    
+    /// Show inventory request interface
+    public func showInventoryRequest() {
+        showingInventoryRequest = true
+    }
+    
+    /// Hide inventory request interface
+    public func hideInventoryRequest() {
+        showingInventoryRequest = false
+    }
+    
+    /// Create supply request using existing InventoryService
+    public func createSupplyRequest(
+        items: [(itemId: String, quantity: Int, notes: String?)],
+        priority: SupplyRequest.Priority = .normal,
+        notes: String = ""
+    ) async {
+        guard let workerId = session.user?.id,
+              let workerName = session.user?.name,
+              let currentBuilding = currentBuilding else {
+            await showError("Worker authentication or building selection required")
+            return
+        }
+        
+        isCreatingSupplyRequest = true
+        
+        do {
+            // Use existing InventoryService
+            let requestNumber = try await InventoryService.shared.createSupplyRequest(
+                buildingId: currentBuilding.id,
+                requestedBy: workerId,
+                items: items,
+                priority: mapPriorityToInventoryService(priority),
+                notes: notes
+            )
+            
+            // Create local tracking record
+            let supplyRequest = SupplyRequest(
+                id: UUID().uuidString,
+                requestNumber: requestNumber,
+                buildingId: currentBuilding.id,
+                buildingName: currentBuilding.name,
+                requestedBy: workerId,
+                requesterName: workerName,
+                items: [], // Would be populated from items parameter
+                priority: priority,
+                status: .pending,
+                notes: notes,
+                totalCost: 0.0, // Would be calculated from items
+                createdAt: Date(),
+                approvedAt: nil,
+                approvedBy: nil
+            )
+            
+            // Add to pending requests
+            pendingSupplyRequests.insert(supplyRequest, at: 0)
+            
+            // Keep only last 20 requests for performance
+            if pendingSupplyRequests.count > 20 {
+                pendingSupplyRequests.removeLast()
+            }
+            
+            // Sync to AdminOperationalIntelligence
+            await container.adminIntelligence.logSupplyRequest(
+                workerId: workerId,
+                buildingId: currentBuilding.id,
+                requestNumber: requestNumber,
+                items: items.map { "\($0.itemId): \($0.quantity)" }.joined(separator: ", "),
+                priority: priority.rawValue,
+                notes: notes
+            )
+            
+            isCreatingSupplyRequest = false
+            hideInventoryRequest()
+            
+            print("✅ Supply request created: \(requestNumber) for \(currentBuilding.name)")
+            
+        } catch {
+            isCreatingSupplyRequest = false
+            let errorMessage = NSLocalizedString("Failed to create supply request", comment: "Supply request error")
+            await showError("\(errorMessage): \(error.localizedDescription)")
+        }
+    }
+    
+    /// Record inventory usage for current task
+    public func recordInventoryUsage(
+        itemId: String,
+        itemName: String,
+        quantity: Int,
+        unit: String,
+        taskId: String? = nil,
+        notes: String? = nil
+    ) async {
+        guard let workerId = session.user?.id,
+              let workerName = session.user?.name,
+              let currentBuilding = currentBuilding else {
+            return
+        }
+        
+        do {
+            // Use existing InventoryService
+            try await InventoryService.shared.recordUsage(
+                itemId: itemId,
+                quantity: quantity,
+                workerId: workerId,
+                taskId: taskId,
+                notes: notes
+            )
+            
+            // Create local tracking record
+            let usageRecord = InventoryUsageRecord(
+                itemId: itemId,
+                itemName: itemName,
+                quantity: quantity,
+                unit: unit,
+                workerId: workerId,
+                workerName: workerName,
+                buildingId: currentBuilding.id,
+                buildingName: currentBuilding.name,
+                taskId: taskId,
+                notes: notes
+            )
+            
+            // Add to recent usage
+            recentInventoryUsage.insert(usageRecord, at: 0)
+            
+            // Keep only last 30 usage records
+            if recentInventoryUsage.count > 30 {
+                recentInventoryUsage.removeLast()
+            }
+            
+            print("✅ Inventory usage recorded: \(quantity) \(unit) of \(itemName)")
+            
+        } catch {
+            let errorMessage = NSLocalizedString("Failed to record inventory usage", comment: "Inventory usage error")
+            print("❌ \(errorMessage): \(error)")
+        }
+    }
+    
+    /// Load pending supply requests and recent usage
+    public func loadInventoryData() async {
+        guard let workerId = session.user?.id else { return }
+        
+        do {
+            // Load recent supply requests from existing InventoryService
+            let allSupplyRequests = try await InventoryService.shared.getSupplyRequests(for: currentBuilding?.id ?? "")
+            
+            // Convert to local format (simplified for now)
+            pendingSupplyRequests = allSupplyRequests.compactMap { row in
+                guard let id = row["id"] as? String,
+                      let requestNumber = row["request_number"] as? String,
+                      let status = row["status"] as? String else {
+                    return nil
+                }
+                
+                return SupplyRequest(
+                    id: id,
+                    requestNumber: requestNumber,
+                    buildingId: currentBuilding?.id ?? "",
+                    buildingName: currentBuilding?.name ?? "",
+                    requestedBy: workerId,
+                    requesterName: session.user?.name ?? "",
+                    items: [], // Would need to be loaded separately
+                    priority: .normal, // Default priority
+                    status: SupplyRequest.Status(rawValue: status) ?? .pending,
+                    notes: row["notes"] as? String ?? "",
+                    totalCost: row["total_cost"] as? Double ?? 0.0,
+                    createdAt: Date(), // Would parse from string
+                    approvedAt: nil,
+                    approvedBy: nil
+                )
+            }
+            
+            // Load low stock alerts for current building
+            if let buildingId = currentBuilding?.id {
+                let alerts = try await InventoryService.shared.getActiveAlerts(for: buildingId)
+                
+                lowStockAlerts = alerts.compactMap { row in
+                    guard let id = row["id"] as? String,
+                          let itemId = row["item_id"] as? String,
+                          let itemName = row["item_name"] as? String else {
+                        return nil
+                    }
+                    
+                    return LowStockAlert(
+                        id: id,
+                        itemId: itemId,
+                        itemName: itemName,
+                        buildingId: buildingId,
+                        buildingName: currentBuilding?.name ?? "",
+                        currentStock: Int(row["current_stock"] as? Int64 ?? 0),
+                        minimumStock: Int(row["minimum_stock"] as? Int64 ?? 0),
+                        unit: row["unit"] as? String ?? "unit",
+                        category: row["item_category"] as? String ?? "supplies",
+                        alertedAt: Date(), // Would parse from string
+                        isResolved: false
+                    )
+                }
+            }
+            
+        } catch {
+            let errorMessage = NSLocalizedString("Failed to load inventory data", comment: "Inventory load error")
+            print("⚠️ \(errorMessage): \(error)")
+        }
+    }
+    
+    // MARK: - Helper Methods for Notes and Inventory
+    
+    private func convertRowToDailyNote(_ row: [String: Any]) -> DailyNote? {
+        guard let id = row["id"] as? String,
+              let workerId = row["worker_id"] as? String,
+              let workerName = row["worker_name"] as? String,
+              let buildingId = row["building_id"] as? String,
+              let buildingName = row["building_name"] as? String,
+              let noteText = row["note_text"] as? String,
+              let categoryRaw = row["category"] as? String,
+              let category = NoteCategory(rawValue: categoryRaw),
+              let timestampString = row["timestamp"] as? String,
+              let timestamp = ISO8601DateFormatter().date(from: timestampString) else {
+            return nil
+        }
+        
+        let photoEvidence = row["photo_evidence"] as? String
+        let location = row["location"] as? String
+        
+        return DailyNote(
+            buildingId: buildingId,
+            buildingName: buildingName,
+            workerId: workerId,
+            workerName: workerName,
+            noteText: noteText,
+            category: category,
+            photoEvidence: photoEvidence,
+            location: location
+        )
+    }
+    
+    private func mapNoteCategoryToOperationalIntelligence(_ category: NoteCategory) -> String {
+        switch category {
+        case .general: return "general"
+        case .maintenance: return "maintenance_issue"
+        case .safety: return "safety_concern"
+        case .supply: return "supply_need"
+        case .tenant: return "tenant_issue"
+        case .observation: return "observation"
+        case .repair: return "repair_required"
+        case .cleaning: return "cleaning_note"
+        }
+    }
+    
+    private func mapPriorityToInventoryService(_ priority: SupplyRequest.Priority) -> String {
+        return priority.rawValue.lowercased()
+    }
+    
+    // MARK: - Helper Methods for Vendor Access
+    
+    /// Map WorkerDashboardViewModel.VendorType to AdminOperationalIntelligence.VendorType
+    private func mapToIntelligenceVendorType(_ vendorType: VendorType) -> AdminOperationalIntelligence.VendorType {
+        switch vendorType {
+        case .inspector: return .inspector
+        case .maintenance: return .maintenance
+        case .contractor: return .contractor
+        case .utility: return .utility
+        case .pestControl: return .pest_control
+        case .hvac: return .hvac
+        case .plumbing: return .plumbing
+        case .electrical: return .electrical
+        case .cleaning: return .other
+        case .other: return .other
+        }
+    }
+    
+    /// Map WorkerDashboardViewModel.VendorAccessType to AdminOperationalIntelligence.VendorAccessType
+    private func mapToIntelligenceAccessType(_ accessType: VendorAccessType) -> AdminOperationalIntelligence.VendorAccessType {
+        switch accessType {
+        case .scheduled: return .scheduled
+        case .emergency: return .emergency
+        case .routine: return .routine
+        case .inspection: return .inspection
+        case .repair, .installation: return .routine
+        }
     }
 }
 

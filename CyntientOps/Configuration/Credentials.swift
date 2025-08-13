@@ -22,9 +22,11 @@ enum Credentials {
     static let DSNY_API_TOKEN = ProcessInfo.processInfo.environment["DSNY_API_TOKEN"] ?? "PLACEHOLDER_DSNY_TOKEN"
     
     /// HPD (Housing Preservation & Development) API
-    /// Status: Required for violation tracking
-    /// Obtain: Contact HPDData@hpd.nyc.gov
-    static let HPD_API_KEY = ProcessInfo.processInfo.environment["HPD_API_KEY"] ?? "PLACEHOLDER_HPD_KEY"
+    /// Status: Enhanced violation tracking via newer API endpoints
+    /// Primary: https://api.nyc.gov/hpd/dataFeed/ (enhanced data)
+    /// Fallback: https://data.cityofnewyork.us/ (open data - always works)
+    /// Obtain: Contact HPDData@hpd.nyc.gov for dataFeed access
+    static let HPD_API_KEY = ProcessInfo.processInfo.environment["HPD_API_KEY"] ?? "https://api.nyc.gov/hpd/dataFeed/"
     static let HPD_API_SECRET = ProcessInfo.processInfo.environment["HPD_API_SECRET"] ?? "PLACEHOLDER_HPD_SECRET"
     
     /// DOB (Department of Buildings) API
@@ -33,19 +35,17 @@ enum Credentials {
     static let DOB_SUBSCRIBER_KEY = ProcessInfo.processInfo.environment["DOB_SUBSCRIBER_KEY"] ?? "PLACEHOLDER_DOB_KEY"
     static let DOB_ACCESS_TOKEN = ProcessInfo.processInfo.environment["DOB_ACCESS_TOKEN"] ?? "PLACEHOLDER_DOB_TOKEN"
     
-    /// DEP (Department of Environmental Protection) API
-    /// Status: Required for water usage monitoring
-    /// Obtain: Call DEP at 718-595-7000
-    static let DEP_ACCOUNT_NUMBER = ProcessInfo.processInfo.environment["DEP_ACCOUNT_NUMBER"] ?? "PLACEHOLDER_DEP_ACCOUNT"
-    static let DEP_API_PIN = ProcessInfo.processInfo.environment["DEP_API_PIN"] ?? "PLACEHOLDER_DEP_PIN"
+    // MARK: - REMOVED: DEP API (No public API available)
+    // DEP water usage data requires account-specific login credentials
+    // Local Law 97 compliance tracking will use alternative data sources
     
     // MARK: - QuickBooks Integration
     
     /// QuickBooks Online API v3 Credentials
     /// Status: CRITICAL - Required for payroll export
     /// Obtain: https://developer.intuit.com
-    static let QUICKBOOKS_CLIENT_ID = ProcessInfo.processInfo.environment["QB_CLIENT_ID"] ?? "AB6xJdGBkSZCjdpTjKL1bM9YJnk4TRBuKJJdN8EfXIa8QJ5VvL" // Current placeholder
-    static let QUICKBOOKS_CLIENT_SECRET = ProcessInfo.processInfo.environment["QB_CLIENT_SECRET"] ?? "LNzb8C2GQ5xjF4K7H8J9L2M3N4P5Q6R7S8T9U0V1W2X3Y4Z5A6" // Current placeholder
+    static let QUICKBOOKS_CLIENT_ID = ProcessInfo.processInfo.environment["QB_CLIENT_ID"] ?? "ABAQSi9dc27v4DHpdawcoZpHgmRHOnXMdCXTDTvp5fTv3PWOiS" // Real Client ID
+    static let QUICKBOOKS_CLIENT_SECRET = ProcessInfo.processInfo.environment["QB_CLIENT_SECRET"] ?? "plfYbZc7hhwnATBtPqIVcB7Ak9bxAtz6IUYSQfD7" // Real Client Secret
     static let QUICKBOOKS_COMPANY_ID = ProcessInfo.processInfo.environment["QB_COMPANY_ID"] ?? "PLACEHOLDER_REALM_ID"
     static let QUICKBOOKS_WEBHOOK_TOKEN = ProcessInfo.processInfo.environment["QB_WEBHOOK_TOKEN"] ?? "PLACEHOLDER_WEBHOOK_TOKEN"
     
@@ -85,12 +85,9 @@ enum Credentials {
     static let SLACK_BOT_TOKEN = ProcessInfo.processInfo.environment["SLACK_BOT_TOKEN"] ?? "PLACEHOLDER_SLACK_BOT_TOKEN"
     static let SLACK_WEBHOOK_URL = ProcessInfo.processInfo.environment["SLACK_WEBHOOK_URL"] ?? "PLACEHOLDER_SLACK_WEBHOOK"
     
-    /// Con Edison Energy API
-    /// Status: Optional - For outage notifications
-    /// Obtain: https://www.coned.com/en/accounts-billing/share-energy-usage-data
-    static let CONED_ACCOUNT_NUMBER = ProcessInfo.processInfo.environment["CONED_ACCOUNT_NUMBER"] ?? "PLACEHOLDER_CONED_ACCOUNT"
-    static let CONED_API_USERNAME = ProcessInfo.processInfo.environment["CONED_API_USERNAME"] ?? "PLACEHOLDER_CONED_USERNAME"
-    static let CONED_API_PASSWORD = ProcessInfo.processInfo.environment["CONED_API_PASSWORD"] ?? "PLACEHOLDER_CONED_PASSWORD"
+    // MARK: - REMOVED: ConEd API (Requires private login)
+    // ConEd requires account-specific login credentials
+    // Outage data available via public NYC 311 API and emergency alerts
     
     // MARK: - Weather Service (NO CREDENTIALS NEEDED!)
     
@@ -102,9 +99,9 @@ enum Credentials {
     
     /// Apple Developer Program Credentials
     /// Status: CRITICAL - Required for deployment
-    static let APPLE_TEAM_ID = ProcessInfo.processInfo.environment["APPLE_TEAM_ID"] ?? "PLACEHOLDER_TEAM_ID"
+    static let APPLE_TEAM_ID = ProcessInfo.processInfo.environment["APPLE_TEAM_ID"] ?? "S8Z4Y24HNA"
     static let BUNDLE_ID = "com.francomanagement.cyntientops" // Current bundle ID
-    static let APNS_KEY_ID = ProcessInfo.processInfo.environment["APNS_KEY_ID"] ?? "PLACEHOLDER_APNS_KEY_ID"
+    static let APNS_KEY_ID = ProcessInfo.processInfo.environment["APNS_KEY_ID"] ?? "S8Z4Y24HNA"
 }
 
 // MARK: - Demo Mode Configuration

@@ -14,6 +14,18 @@ import SwiftUI
 import Combine
 import CoreLocation
 
+// Import operational intelligence types
+typealias BuildingVendorRepository = AdminOperationalIntelligence.BuildingVendorRepository
+typealias VendorAccessLog = AdminOperationalIntelligence.VendorAccessLog
+typealias RecurringTaskReminder = AdminOperationalIntelligence.RecurringTaskReminder
+typealias RoutineAlert = AdminOperationalIntelligence.RoutineAlert
+typealias RoutineCompletionStatus = AdminOperationalIntelligence.RoutineCompletionStatus
+typealias BinType = AdminOperationalIntelligence.BinType
+typealias BinAction = AdminOperationalIntelligence.BinAction
+typealias BinLocation = AdminOperationalIntelligence.BinLocation
+typealias VendorInfo = AdminOperationalIntelligence.VendorInfo
+typealias VendorAccessType = AdminOperationalIntelligence.VendorAccessType
+
 @MainActor
 class AdminDashboardViewModel: ObservableObject {
     
@@ -39,8 +51,8 @@ class AdminDashboardViewModel: ObservableObject {
     // Computed property for sync status - using CoreTypes.DashboardSyncStatus
     @Published var dashboardSyncStatus: CoreTypes.DashboardSyncStatus = .synced
     
-    // Conversion computed property for UI components
-    var syncStatus: AdminHeroStatusCard.SyncStatus {
+    // Conversion computed property for UI components  
+    var syncStatus: SyncStatus {
         switch dashboardSyncStatus {
         case .synced:
             return .synced
@@ -53,11 +65,97 @@ class AdminDashboardViewModel: ObservableObject {
         }
     }
     
+    // Local SyncStatus enum definition
+    enum SyncStatus {
+        case synced
+        case syncing(progress: Double)
+        case error(String)
+        case offline
+        
+        var isLive: Bool {
+            switch self {
+            case .synced, .syncing: return true
+            default: return false
+            }
+        }
+    }
+    
     // Refresh method for UI components
     func refresh() {
         Task {
             await loadDashboardData()
         }
+    }
+    
+    /// Get pressing tasks for hero card display (includes operational intelligence)
+    func getPressingTasks() -> [CoreTypes.ContextualTask] {
+        let currentDate = Date()
+        let calendar = Calendar.current
+        var pressingTasks: [CoreTypes.ContextualTask] = []
+        
+        // 1. Traditional pressing tasks
+        let urgentTasks = tasks.filter { task in
+            let isUrgent = task.urgency == .high || task.urgency == .critical || task.urgency == .emergency
+            let isDueToday = task.dueDate != nil && calendar.isDate(task.dueDate!, inSameDayAs: currentDate)
+            let isOverdue = task.dueDate != nil && task.dueDate! < currentDate
+            
+            return (isUrgent || isDueToday || isOverdue) && !task.isCompleted
+        }
+        
+        pressingTasks.append(contentsOf: urgentTasks)
+        
+        // 2. Convert operational intelligence reminders to pressing tasks
+        let todaysReminders = getTodaysPendingReminders()
+        for reminder in todaysReminders.prefix(3) { // Limit to top 3 reminders
+            let reminderTask = CoreTypes.ContextualTask(
+                id: "reminder_\(reminder.id)",
+                title: reminder.title,
+                description: reminder.description,
+                status: .pending,
+                urgency: reminder.reminderType.priority >= 4 ? .critical : .high,
+                scheduledDate: reminder.dueDate,
+                dueDate: reminder.dueDate,
+                buildingId: reminder.buildingId,
+                buildingName: buildings.first { $0.id == reminder.buildingId }?.name,
+                estimatedDuration: 30,
+                requiresPhoto: false,
+                isCompleted: false,
+                createdAt: Date(),
+                metadata: ["isReminder": "true", "reminderType": reminder.reminderType.rawValue]
+            )
+            pressingTasks.append(reminderTask)
+        }
+        
+        // 3. Convert critical routine alerts to pressing tasks
+        for alert in criticalRoutineAlerts.prefix(2) {
+            let alertTask = CoreTypes.ContextualTask(
+                id: "alert_\(alert.id)",
+                title: alert.message,
+                description: "Critical operational alert requiring attention",
+                status: .pending,
+                urgency: alert.severity == .critical ? .critical : .high,
+                scheduledDate: alert.timestamp,
+                dueDate: Date(),
+                buildingId: alert.buildingId,
+                buildingName: buildings.first { $0.id == alert.buildingId }?.name,
+                estimatedDuration: 60,
+                requiresPhoto: false,
+                isCompleted: false,
+                createdAt: alert.timestamp,
+                metadata: ["isAlert": "true", "alertType": alert.alertType.rawValue]
+            )
+            pressingTasks.append(alertTask)
+        }
+        
+        // Sort by urgency and due date
+        return pressingTasks.sorted { task1, task2 in
+            if task1.urgency != task2.urgency {
+                return (task1.urgency?.rawValue ?? "") > (task2.urgency?.rawValue ?? "")
+            }
+            return (task1.dueDate ?? Date.distantFuture) < (task2.dueDate ?? Date.distantFuture)
+        }
+        .prefix(5)
+        .map { $0 }
     }
     
     // MARK: - Photo Evidence Properties
@@ -89,17 +187,27 @@ class AdminDashboardViewModel: ObservableObject {
     // MARK: - Worker Capabilities
     @Published var workerCapabilities: [String: WorkerCapabilities] = [:]
     
-    // MARK: - BBL-Powered Property Data
-    @Published var propertyData: [String: NYCPropertyData] = [:]
+    // MARK: - BBL-Powered Property Data  
+    @Published var propertyData: [String: Any] = [:] // Will be NYCPropertyData once properly imported
     @Published var portfolioFinancialSummary: PortfolioFinancialSummary?
     @Published var complianceDeadlines: [ComplianceDeadline] = []
     @Published var propertyViolationsSummary: PropertyViolationsSummary?
     @Published var isLoadingPropertyData = false
     
+    // MARK: - Operational Intelligence Properties
+    @Published var routineCompletions: [String: RoutineCompletionStatus] = [:]
+    @Published var buildingVendorRepositories: [String: BuildingVendorRepository] = [:]
+    @Published var pendingReminders: [RecurringTaskReminder] = []
+    @Published var recentVendorAccess: [VendorAccessLog] = []
+    @Published var criticalRoutineAlerts: [RoutineAlert] = []
+    @Published var operationalMetrics: AdminOperationalMetrics?
+    @Published var isLoadingOperationalData = false
+    
     // MARK: - Service Container (REFACTORED)
     private let container: ServiceContainer
     private let session: Session
-    private let bblService = BBLGenerationService.shared
+    private let operationalIntelligence: AdminOperationalIntelligence
+    // private let bblService = BBLGenerationService.shared // Temporarily disabled for compilation
     
     // MARK: - Real-time Subscriptions
     private var cancellables = Set<AnyCancellable>()
@@ -121,9 +229,11 @@ class AdminDashboardViewModel: ObservableObject {
     init(container: ServiceContainer) {
         self.session = CoreTypes.Session.shared
         self.container = container
+        self.operationalIntelligence = AdminOperationalIntelligence.shared
         setupAutoRefresh()
         setupCrossDashboardSync()
         subscribeToPhotoUpdates()
+        setupOperationalIntelligenceSubscriptions()
     }
     
     deinit {
@@ -185,6 +295,9 @@ class AdminDashboardViewModel: ObservableObject {
             // Load recent activity and today's task count
             await loadRecentActivity()
             calculateTodaysTaskCount()
+            
+            // Load operational intelligence data
+            await loadOperationalIntelligence()
             
             self.lastUpdateTime = Date()
             
@@ -1080,9 +1193,272 @@ class AdminDashboardViewModel: ObservableObject {
             break
         }
     }
+    
+    // MARK: - Operational Intelligence Methods
+    
+    /// Load operational intelligence data from AdminOperationalIntelligence service
+    private func loadOperationalIntelligence() async {
+        isLoadingOperationalData = true
+        
+        do {
+            // Sync published properties with operational intelligence service
+            routineCompletions = operationalIntelligence.routineCompletions
+            buildingVendorRepositories = operationalIntelligence.buildingVendorRepositories
+            pendingReminders = operationalIntelligence.pendingReminders
+            recentVendorAccess = operationalIntelligence.recentVendorAccess
+            criticalRoutineAlerts = operationalIntelligence.criticalRoutineAlerts
+            
+            // Generate recurring task reminders
+            await operationalIntelligence.generateRecurringTaskReminders()
+            
+            // Calculate operational metrics summary
+            operationalMetrics = calculateOperationalMetrics()
+            
+            isLoadingOperationalData = false
+            
+            // Broadcast operational intelligence update
+            let update = CoreTypes.DashboardUpdate(
+                source: .admin,
+                type: .operationalIntelligenceUpdated,
+                buildingId: "",
+                workerId: "",
+                data: [
+                    "routineCompletions": String(routineCompletions.count),
+                    "pendingReminders": String(pendingReminders.count),
+                    "vendorAccess": String(recentVendorAccess.count),
+                    "criticalAlerts": String(criticalRoutineAlerts.count)
+                ],
+                description: "Operational intelligence refreshed - \(routineCompletions.count) routine statuses, \(pendingReminders.count) reminders"
+            )
+            broadcastAdminUpdate(update)
+            
+        }
+    }
+    
+    /// Setup subscriptions to operational intelligence updates
+    private func setupOperationalIntelligenceSubscriptions() {
+        // Subscribe to routine completion updates
+        operationalIntelligence.$routineCompletions
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] completions in
+                self?.routineCompletions = completions
+                self?.operationalMetrics = self?.calculateOperationalMetrics()
+            }
+            .store(in: &cancellables)
+        
+        // Subscribe to vendor repository updates
+        operationalIntelligence.$buildingVendorRepositories
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] repositories in
+                self?.buildingVendorRepositories = repositories
+            }
+            .store(in: &cancellables)
+        
+        // Subscribe to pending reminders
+        operationalIntelligence.$pendingReminders
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] reminders in
+                self?.pendingReminders = reminders.sorted { $0.dueDate < $1.dueDate }
+            }
+            .store(in: &cancellables)
+        
+        // Subscribe to recent vendor access
+        operationalIntelligence.$recentVendorAccess
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] accessLogs in
+                self?.recentVendorAccess = accessLogs
+            }
+            .store(in: &cancellables)
+        
+        // Subscribe to critical routine alerts
+        operationalIntelligence.$criticalRoutineAlerts
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] alerts in
+                self?.criticalRoutineAlerts = alerts
+            }
+            .store(in: &cancellables)
+    }
+    
+    /// Calculate operational intelligence metrics summary
+    private func calculateOperationalMetrics() -> AdminOperationalMetrics {
+        let totalBuildings = buildings.count
+        let completionsToday = routineCompletions.values.reduce(0) { sum, status in
+            let todayCompletions = status.getTodaysCompletions()
+            return sum + todayCompletions.completedTasks
+        }
+        
+        let totalExpectedToday = routineCompletions.values.reduce(0) { sum, status in
+            let todayCompletions = status.getTodaysCompletions()
+            return sum + todayCompletions.totalTasks
+        }
+        
+        let overallCompletionRate = totalExpectedToday > 0 ? 
+            Double(completionsToday) / Double(totalExpectedToday) : 1.0
+        
+        let criticalReminders = pendingReminders.filter { reminder in
+            let timeUntilDue = reminder.dueDate.timeIntervalSinceNow
+            return timeUntilDue < 3600 * 24 // Due within 24 hours
+        }.count
+        
+        let recentVendorAccessCount = recentVendorAccess.filter { access in
+            access.timestamp >= Calendar.current.startOfDay(for: Date())
+        }.count
+        
+        return AdminOperationalMetrics(
+            totalBuildingsTracked: totalBuildings,
+            routineCompletionRate: overallCompletionRate,
+            completedTasksToday: completionsToday,
+            pendingRemindersCount: pendingReminders.count,
+            criticalRemindersCount: criticalReminders,
+            recentVendorAccessCount: recentVendorAccessCount,
+            criticalAlertsCount: criticalRoutineAlerts.count,
+            buildingsWithFullCompletion: routineCompletions.values.filter { status in
+                status.getTodaysCompletions().isFullyComplete
+            }.count
+        )
+    }
+    
+    /// Get pending reminders for today
+    func getTodaysPendingReminders() -> [RecurringTaskReminder] {
+        let today = Date()
+        let startOfToday = Calendar.current.startOfDay(for: today)
+        let endOfToday = Calendar.current.date(byAdding: .day, value: 1, to: startOfToday) ?? today
+        
+        return pendingReminders.filter { reminder in
+            reminder.dueDate >= startOfToday && reminder.dueDate < endOfToday
+        }
+    }
+    
+    /// Get vendor access history for a building
+    func getVendorAccessHistory(for buildingId: String) -> [VendorAccessLog] {
+        return recentVendorAccess.filter { $0.buildingId == buildingId }
+            .sorted { $0.timestamp > $1.timestamp }
+    }
+    
+    /// Get routine completion status for a building
+    func getRoutineCompletionStatus(for buildingId: String) -> RoutineCompletionStatus? {
+        return routineCompletions[buildingId]
+    }
+    
+    /// Track bin placement completion (called from worker dashboard integration)
+    func trackBinPlacementCompletion(
+        workerId: String,
+        buildingId: String,
+        binType: BinType,
+        action: BinAction,
+        location: BinLocation,
+        photoEvidence: String? = nil
+    ) async {
+        await operationalIntelligence.trackBinPlacementCompletion(
+            workerId: workerId,
+            buildingId: buildingId,
+            binType: binType,
+            action: action,
+            location: location,
+            photoEvidence: photoEvidence
+        )
+    }
+    
+    /// Log vendor access (called from worker dashboard integration)
+    func logVendorAccess(
+        workerId: String,
+        buildingId: String,
+        vendorInfo: VendorInfo,
+        accessType: VendorAccessType,
+        accessDetails: String,
+        photoEvidence: String? = nil
+    ) async {
+        await operationalIntelligence.logVendorAccess(
+            workerId: workerId,
+            buildingId: buildingId,
+            vendorInfo: vendorInfo,
+            accessType: accessType,
+            accessDetails: accessDetails,
+            photoEvidence: photoEvidence
+        )
+    }
+    
+    /// Add expected vendor to building repository
+    func addExpectedVendor(
+        buildingId: String,
+        vendorInfo: VendorInfo,
+        expectedDate: Date,
+        accessRequirements: [String],
+        notes: String = ""
+    ) async {
+        await operationalIntelligence.addExpectedVendor(
+            buildingId: buildingId,
+            vendorInfo: vendorInfo,
+            expectedDate: expectedDate,
+            accessRequirements: accessRequirements,
+            notes: notes
+        )
+    }
 }
 
 // MARK: - Supporting Types
+
+struct AdminActivity: Identifiable {
+    let id = UUID().uuidString
+    let type: ActivityType
+    let description: String
+    let workerName: String?
+    let buildingName: String?
+    let timestamp: Date
+    
+    enum ActivityType {
+        case taskCompleted
+        case workerClockedIn
+        case workerClockedOut
+        case vendorAccess
+        case inventoryUpdate
+        case noteAdded
+    }
+}
+
+struct AdminOperationalMetrics {
+    let totalBuildingsTracked: Int
+    let routineCompletionRate: Double
+    let completedTasksToday: Int
+    let pendingRemindersCount: Int
+    let criticalRemindersCount: Int
+    let recentVendorAccessCount: Int
+    let criticalAlertsCount: Int
+    let buildingsWithFullCompletion: Int
+    
+    var completionPercentage: String {
+        "\(Int(routineCompletionRate * 100))%"
+    }
+    
+    var operationalEfficiency: OperationalEfficiency {
+        switch routineCompletionRate {
+        case 0.95...1.0:
+            return .excellent
+        case 0.85..<0.95:
+            return .good
+        case 0.70..<0.85:
+            return .needsAttention
+        default:
+            return .critical
+        }
+    }
+    
+    enum OperationalEfficiency: String, CaseIterable {
+        case excellent = "Excellent"
+        case good = "Good"
+        case needsAttention = "Needs Attention"
+        case critical = "Critical"
+        
+        var color: Color {
+            switch self {
+            case .excellent: return .green
+            case .good: return .blue
+            case .needsAttention: return .orange
+            case .critical: return .red
+            }
+        }
+    }
+}
 
 struct PhotoComplianceStats {
     let tasksRequiringPhotos: Int
@@ -1173,22 +1549,11 @@ struct ComplianceDeadline {
     let buildingName: String
     let deadlineType: String // LL97, LL11, LL87, etc.
     let dueDate: Date
-    let severity: ComplianceSeverity
+    let severity: CoreTypes.ComplianceSeverity
     let estimatedCost: Double?
 }
 
-enum ComplianceSeverity {
-    case low, medium, high, critical
-    
-    var color: Color {
-        switch self {
-        case .low: return .green
-        case .medium: return .yellow
-        case .high: return .orange
-        case .critical: return .red
-        }
-    }
-}
+// Using existing CoreTypes.ComplianceSeverity
 
 struct PropertyViolationsSummary {
     let totalViolations: Int

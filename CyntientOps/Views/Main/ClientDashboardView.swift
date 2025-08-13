@@ -12,7 +12,7 @@ import SwiftUI
 
 struct ClientDashboardView: View {
     @StateObject private var viewModel: ClientDashboardViewModel
-    @StateObject private var contextEngine = ClientContextEngine.shared
+    @StateObject private var contextEngine: ClientContextEngine
     
     // MARK: - Responsive Layout
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
@@ -27,7 +27,7 @@ struct ClientDashboardView: View {
     
     // MARK: - Sheet Navigation
     enum ClientRoute: Identifiable {
-        case profile, buildings, buildingDetail(String), compliance, chat, settings
+        case profile, buildings, buildingDetail(String), compliance, chat, settings, maintenanceRequest
         
         var id: String {
             switch self {
@@ -37,6 +37,7 @@ struct ClientDashboardView: View {
             case .compliance: return "compliance"
             case .chat: return "chat"
             case .settings: return "settings"
+            case .maintenanceRequest: return "maintenance-request"
             }
         }
     }
@@ -188,7 +189,8 @@ struct ClientDashboardView: View {
                     complianceOverview: viewModel.complianceOverview,
                     buildingsList: viewModel.buildingsList,
                     monthlyMetrics: viewModel.monthlyMetrics,
-                    onTabTap: handleNovaTabTap
+                    onTabTap: handleNovaTabTap,
+                    onMaintenanceRequest: { sheet = .maintenanceRequest }
                 )
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             }
@@ -263,7 +265,7 @@ struct ClientDashboardView: View {
             }
             
         case .compliance:
-            ClientComplianceDetailView(
+            ClientComplianceWrapper(
                 complianceOverview: viewModel.complianceOverview,
                 complianceIssues: viewModel.complianceIssues,
                 buildingsList: viewModel.buildingsList
@@ -280,6 +282,11 @@ struct ClientDashboardView: View {
             ClientSettingsView()
                 .navigationTitle("Settings")
                 .navigationBarTitleDisplayMode(.large)
+                
+        case .maintenanceRequest:
+            TaskRequestView()
+                .navigationTitle("New Maintenance Request")
+                .navigationBarTitleDisplayMode(.inline)
         }
     }
     
@@ -978,6 +985,7 @@ struct ClientNovaIntelligenceBar: View {
     let buildingsList: [CoreTypes.NamedCoordinate]
     let monthlyMetrics: CoreTypes.MonthlyMetrics
     let onTabTap: (ClientDashboardView.NovaTab) -> Void
+    let onMaintenanceRequest: () -> Void
     
     var body: some View {
         VStack(spacing: 0) {
@@ -1038,7 +1046,8 @@ struct ClientNovaIntelligenceBar: View {
                     ClientPrioritiesContent(
                         criticalViolations: complianceOverview.criticalViolations,
                         budgetOverruns: monthlyMetrics.budgetUtilization > 1.0,
-                        complianceScore: complianceOverview.overallScore
+                        complianceScore: complianceOverview.overallScore,
+                        onMaintenanceRequest: onMaintenanceRequest
                     )
                     
                 case .portfolio:
@@ -1124,6 +1133,7 @@ struct ClientPrioritiesContent: View {
     let criticalViolations: Int
     let budgetOverruns: Bool
     let complianceScore: Double
+    let onMaintenanceRequest: () -> Void
     
     var body: some View {
         VStack(spacing: 12) {
@@ -1169,16 +1179,27 @@ struct ClientPrioritiesContent: View {
             // Quick Actions
             HStack(spacing: 12) {
                 ClientQuickActionButton(
+                    icon: "wrench.and.screwdriver.fill",
+                    title: "Maintenance Request",
+                    color: CyntientOpsDesign.DashboardColors.clientPrimary,
+                    action: onMaintenanceRequest
+                )
+                
+                ClientQuickActionButton(
                     icon: "doc.text.magnifyingglass",
                     title: "View Report",
                     color: CyntientOpsDesign.DashboardColors.info
-                )
+                ) {
+                    // Reports action
+                }
                 
                 ClientQuickActionButton(
                     icon: "bell.fill",
                     title: "Alerts",
                     color: CyntientOpsDesign.DashboardColors.warning
-                )
+                ) {
+                    // Alerts action
+                }
             }
         }
     }
@@ -1583,9 +1604,17 @@ struct ClientQuickActionButton: View {
     let icon: String
     let title: String
     let color: Color
+    let action: () -> Void
+    
+    init(icon: String, title: String, color: Color, action: @escaping () -> Void = {}) {
+        self.icon = icon
+        self.title = title
+        self.color = color
+        self.action = action
+    }
     
     var body: some View {
-        Button(action: {}) {
+        Button(action: action) {
             VStack(spacing: 4) {
                 Image(systemName: icon)
                     .font(.title3)
@@ -1720,20 +1749,9 @@ struct ClientProfileView: View {
     }
 }
 
-struct ClientBuildingsListView: View {
-    let buildings: [CoreTypes.NamedCoordinate]
-    let performanceMap: [String: Double]
-    let onSelectBuilding: (CoreTypes.NamedCoordinate) -> Void
-    
-    var body: some View {
-        AssignedBuildingsView(
-            buildings: buildings,
-            onBuildingSelected: onSelectBuilding
-        )
-    }
-}
+// ClientBuildingsListView is defined in ClientMainMenuView.swift
 
-struct ClientComplianceDetailView: View {
+struct ClientComplianceWrapper: View {
     let complianceOverview: CoreTypes.ComplianceOverview
     let complianceIssues: [CoreTypes.ComplianceIssue]
     let buildingsList: [CoreTypes.NamedCoordinate]

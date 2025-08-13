@@ -256,14 +256,14 @@ struct NovaClientIntelligenceBar: View {
             // Overall status pills
             HStack(spacing: 8) {
                 if let portfolioHealth = clientContext["portfolioHealth"] as? Double {
-                    StatusPill(
+                    NovaStatusPill(
                         text: portfolioHealthStatus(portfolioHealth),
                         color: portfolioHealthColor(portfolioHealth)
                     )
                 }
                 
                 if let violations = clientContext["criticalViolations"] as? Int, violations > 0 {
-                    StatusPill(
+                    NovaStatusPill(
                         text: "\(violations) issues",
                         color: .orange
                     )
@@ -647,7 +647,7 @@ struct NovaClientInsightCard: View {
 
 // MARK: - Supporting Types
 
-struct StatusPill: View {
+struct NovaStatusPill: View {
     let text: String
     let color: Color
     

@@ -1042,12 +1042,15 @@ struct NovaInteractionView: View {
             actions.append("🚨 View Priorities")
         }
         
+        // Always show maintenance request as first option for clients
+        actions.append("🔧 Maintenance Request")
+        
         if contextAdapter.todaysTasks.count > 0 {
             actions.append("📋 Today's Tasks")
         }
         
         if shouldShowEmergencyRepair {
-            actions.append("🔧 Fix Assignments")
+            actions.append("⚙️ Fix Assignments")
         }
         
         actions.append("🏢 Building Status")
@@ -1406,7 +1409,7 @@ struct NovaInteractionView: View {
         
         if lowercased.contains("urgent") || lowercased.contains("emergency") || lowercased.contains("critical") {
             return .critical
-        } else if lowercased.contains("important") || lowercased.contains("priority") {
+        } else if lowercased.contains("important") || lowercased.contains("priority") || lowercased.contains("maintenance request") || lowercased.contains("repair") {
             return .high
         } else if lowercased.contains("when") || lowercased.contains("later") {
             return .low
@@ -1522,9 +1525,11 @@ struct NovaInteractionView: View {
         switch action {
         case "🚨 View Priorities":
             userQuery = "Show me all high priority items"
+        case "🔧 Maintenance Request":
+            userQuery = "I need to create a maintenance request for my building"
         case "📋 Today's Tasks":
             userQuery = "What are my tasks for today?"
-        case "🔧 Fix Assignments":
+        case "⚙️ Fix Assignments":
             performEmergencyRepair()
             return
         case "🏢 Building Status":

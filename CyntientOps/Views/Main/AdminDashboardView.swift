@@ -38,11 +38,43 @@ struct AdminDashboardView: View {
     @State private var showingComplianceCenter = false
     @State private var showingWorkerManagement = false
     @State private var showingReports = false
+    @State private var showingTaskRequest = false
     @State private var selectedWorker: CoreTypes.WorkerProfile?
+    @State private var selectedBuildingForTask: CoreTypes.NamedCoordinate?
     
     // Intelligence panel state
     @State private var showingIntelligencePanel = false
+    @State private var selectedIntelligenceTab: IntelligenceTab = .workers
     @State private var currentContext: ViewContext = .dashboard
+    
+    // Intelligence Tab enum
+    enum IntelligenceTab: String, CaseIterable {
+        case workers = "Workers"
+        case portfolio = "Portfolio"
+        case compliance = "Compliance" 
+        case chat = "Chat"
+        case analytics = "Analytics"
+        
+        var icon: String {
+            switch self {
+            case .workers: return "person.3.fill"
+            case .portfolio: return "building.2.crop.circle"
+            case .compliance: return "checkmark.shield.fill"
+            case .chat: return "message.fill"
+            case .analytics: return "chart.bar.xaxis"
+            }
+        }
+        
+        var color: Color {
+            switch self {
+            case .workers: return .blue
+            case .portfolio: return .green
+            case .compliance: return .orange
+            case .chat: return .purple
+            case .analytics: return .cyan
+            }
+        }
+    }
     @AppStorage("adminPanelPreference") private var userPanelPreference: IntelPanelState = .collapsed
     
     // Map reveal state for gesture control
@@ -126,20 +158,35 @@ struct AdminDashboardView: View {
                     // Main scroll content
                     ScrollView {
                         VStack(spacing: 16) {
-                            // Collapsible Admin Hero Status Card
-                            CollapsibleAdminHeroWrapper(
+                            // Enhanced Admin Hero Status Card with Smart Routing
+                            EnhancedAdminHeroWrapper(
                                 isCollapsed: $isHeroCollapsed,
                                 portfolio: viewModel.portfolioMetrics,
                                 activeWorkers: viewModel.activeWorkers,
                                 criticalAlerts: viewModel.criticalAlerts,
                                 syncStatus: viewModel.syncStatus,
                                 complianceScore: viewModel.portfolioMetrics.complianceScore,
-                                onBuildingsTap: { showAllBuildings = true },
-                                onWorkersTap: { showingWorkerManagement = true },
-                                onAlertsTap: { showCriticalAlerts() },
-                                onTasksTap: { showCompletedTasks = true },
-                                onComplianceTap: { showingComplianceCenter = true },
-                                onSyncTap: { Task { await viewModel.refresh() } }
+                                pressingTasks: viewModel.getPressingTasks(),
+                                onWorkersTap: { 
+                                    showingIntelligencePanel = true
+                                    selectedIntelligenceTab = .workers
+                                },
+                                onTasksTap: { 
+                                    showingIntelligencePanel = true
+                                    selectedIntelligenceTab = .workers
+                                },
+                                onComplianceTap: { 
+                                    showingIntelligencePanel = true
+                                    selectedIntelligenceTab = .compliance
+                                },
+                                onPortfolioTap: { 
+                                    showingIntelligencePanel = true
+                                    selectedIntelligenceTab = .portfolio
+                                },
+                                onAnalyticsTap: { 
+                                    showingIntelligencePanel = true
+                                    selectedIntelligenceTab = .analytics
+                                }
                             )
                             .zIndex(50)
                             
@@ -168,9 +215,12 @@ struct AdminDashboardView: View {
                     }
                 }
                 
-                // Nova Intelligence Bar (Bottom)
+                // Comprehensive Intelligence Panel (Bottom)
                 if showingIntelligencePanel {
-                    AdminNovaIntelligenceBar(
+                    ComprehensiveIntelligencePanel(
+                        selectedTab: $selectedIntelligenceTab,
+                        viewModel: viewModel,
+                        container: container,
                         novaState: novaAI.novaState,
                         insights: container.intelligence.getInsights(for: .admin),
                         isExpanded: Binding(
@@ -181,17 +231,21 @@ struct AdminDashboardView: View {
                                 }
                             }
                         ),
-                        onTap: { showNovaAssistant = true },
                         onClose: { 
-                            // This now correctly sets the binding that controls the panel's state
                             withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                                showingIntelligencePanel = false
                                 userPanelPreference = .collapsed
                             }
                         },
-                        onSelectMapTab: {
-                            withAnimation(.spring()) {
-                                isMapRevealed = true
-                            }
+                        onWorkerSelected: { worker in
+                            selectedWorker = worker
+                            selectedBuildingForTask = nil
+                            showingTaskRequest = true
+                        },
+                        onBuildingSelected: { building in
+                            selectedBuildingForTask = building
+                            selectedWorker = nil
+                            showingTaskRequest = true
                         }
                     )
                     .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -229,17 +283,18 @@ struct AdminDashboardView: View {
         .sheet(isPresented: $showAllBuildings) {
             NavigationView {
                 List(viewModel.buildings, id: \.id) { building in
-                    Button(action: {
-                        selectedBuilding = building
-                        showBuildingDetail = true
-                        showAllBuildings = false
-                    }) {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(building.name)
-                                .font(.headline)
-                                .foregroundColor(.white)
-                            Text(building.address)
-                                .font(.caption)
+                    HStack {
+                        Button(action: {
+                            selectedBuilding = building
+                            showBuildingDetail = true
+                            showAllBuildings = false
+                        }) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(building.name)
+                                    .font(.headline)
+                                    .foregroundColor(.white)
+                                Text(building.address)
+                                    .font(.caption)
                                 .foregroundColor(.white.opacity(0.7))
                         }
                         .padding(.vertical, 8)
@@ -486,6 +541,13 @@ struct AdminDashboardView: View {
             AdminReportsView()
                 .environmentObject(container)
         }
+        .sheet(isPresented: $showingTaskRequest) {
+            AdminTaskRequestView(
+                preselectedBuilding: selectedBuildingForTask,
+                preselectedWorker: selectedWorker
+            )
+            .navigationTitle("Create Task")
+        }
         .sheet(isPresented: $showMainMenu) {
             AdminMainMenuView()
         }
@@ -552,6 +614,14 @@ struct AdminDashboardView: View {
                 icon: "checklist",
                 color: .cyan,
                 action: { showCompletedTasks = true }
+            )
+            
+            AdminQuickActionCard(
+                title: "Create Task",
+                value: "New",
+                icon: "plus.circle.fill",
+                color: .green,
+                action: { showingTaskRequest = true }
             )
             
             AdminQuickActionCard(

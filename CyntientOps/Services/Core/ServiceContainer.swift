@@ -129,6 +129,9 @@ public final class ServiceContainer: ObservableObject {
     public let workerContext: WorkerContextEngine
     public let adminContext: AdminContextEngine
     
+    // MARK: - Admin Services
+    public let adminIntelligence: AdminOperationalIntelligence
+    
     // MARK: - AI & Intelligence (Owned by Container)
     public let novaManager: NovaAIManager
     public lazy var clientContext: ClientContextEngine = ClientContextEngine(container: self)
@@ -217,6 +220,16 @@ public final class ServiceContainer: ObservableObject {
         self.adminContext = AdminContextEngine() // Initialize without container first
         
         print("✅ Layer 4: Context engines initialized")
+        
+        // Admin Services
+        print("🏢 Initializing admin services...")
+        
+        self.adminIntelligence = AdminOperationalIntelligence(
+            container: self,
+            dashboardSync: dashboardSync
+        )
+        
+        print("✅ Admin services initialized")
         
         // Initialize NovaAIManager (owned by ServiceContainer)
         print("🧠 Initializing Nova AI Manager...")

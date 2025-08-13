@@ -26,6 +26,17 @@ struct BuildingPreviewPopover: View {
     @State private var isLoading = true
     @State private var dismissTimer: Timer?
     
+    // NEW: Operational Intelligence Data
+    @State private var todayNotesCount: Int = 0
+    @State private var urgentNotesCount: Int = 0
+    @State private var pendingSupplyRequests: Int = 0
+    @State private var lowStockAlerts: Int = 0
+    @State private var activeWorkers: Int = 0
+    @State private var recentVendorAccess: Int = 0
+    @State private var lastWorkerNote: String = ""
+    @State private var lastSupplyRequest: String = ""
+    @State private var hasUrgentAlerts: Bool = false
+    
     // MARK: - Asset Name Mappings (Based on actual Assets.xcassets)
     
     private let buildingAssetMap: [String: String] = [
@@ -286,13 +297,13 @@ struct BuildingPreviewPopover: View {
     
     private var loadedStatusView: some View {
         VStack(spacing: 8) {
-            // Open tasks count
+            // Active Workers & Tasks Row
             HStack {
-                Image(systemName: "checklist")
+                Image(systemName: activeWorkers > 0 ? "person.fill" : "person")
                     .font(.caption)
-                    .foregroundColor(openTasksCount > 0 ? .orange : .green)
+                    .foregroundColor(activeWorkers > 0 ? .green : .gray)
                 
-                Text("\(openTasksCount) open tasks")
+                Text("\(activeWorkers) active • \(openTasksCount) tasks")
                     .font(.subheadline)
                     .foregroundColor(.white.opacity(0.8))
                 
@@ -305,31 +316,149 @@ struct BuildingPreviewPopover: View {
                 }
             }
             
-            // Sanitation schedule - nextSanitationDate is optional
+            // Operational Intelligence Row
+            HStack(spacing: 12) {
+                // Notes indicator
+                if todayNotesCount > 0 {
+                    HStack(spacing: 4) {
+                        Image(systemName: urgentNotesCount > 0 ? "exclamationmark.triangle.fill" : "note.text")
+                            .font(.caption2)
+                            .foregroundColor(urgentNotesCount > 0 ? .red : .blue)
+                        
+                        Text("\(todayNotesCount)")
+                            .font(.caption2)
+                            .foregroundColor(.white.opacity(0.7))
+                    }
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(
+                        Capsule()
+                            .fill(Color.white.opacity(0.1))
+                    )
+                }
+                
+                // Supply requests indicator
+                if pendingSupplyRequests > 0 {
+                    HStack(spacing: 4) {
+                        Image(systemName: "box")
+                            .font(.caption2)
+                            .foregroundColor(.orange)
+                        
+                        Text("\(pendingSupplyRequests)")
+                            .font(.caption2)
+                            .foregroundColor(.white.opacity(0.7))
+                    }
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(
+                        Capsule()
+                            .fill(Color.white.opacity(0.1))
+                    )
+                }
+                
+                // Low stock alerts
+                if lowStockAlerts > 0 {
+                    HStack(spacing: 4) {
+                        Image(systemName: "exclamationmark.circle.fill")
+                            .font(.caption2)
+                            .foregroundColor(.red)
+                        
+                        Text("\(lowStockAlerts)")
+                            .font(.caption2)
+                            .foregroundColor(.white.opacity(0.7))
+                    }
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(
+                        Capsule()
+                            .fill(Color.white.opacity(0.1))
+                    )
+                }
+                
+                // Vendor access indicator
+                if recentVendorAccess > 0 {
+                    HStack(spacing: 4) {
+                        Image(systemName: "key.fill")
+                            .font(.caption2)
+                            .foregroundColor(.purple)
+                        
+                        Text("\(recentVendorAccess)")
+                            .font(.caption2)
+                            .foregroundColor(.white.opacity(0.7))
+                    }
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(
+                        Capsule()
+                            .fill(Color.white.opacity(0.1))
+                    )
+                }
+                
+                Spacer()
+            }
+            
+            // Latest Activity Row
+            if !lastWorkerNote.isEmpty || !lastSupplyRequest.isEmpty {
+                VStack(alignment: .leading, spacing: 4) {
+                    if !lastWorkerNote.isEmpty {
+                        HStack {
+                            Image(systemName: "quote.bubble")
+                                .font(.caption2)
+                                .foregroundColor(.blue)
+                            
+                            Text(lastWorkerNote)
+                                .font(.caption2)
+                                .foregroundColor(.white.opacity(0.7))
+                                .lineLimit(1)
+                            
+                            Spacer()
+                        }
+                    }
+                    
+                    if !lastSupplyRequest.isEmpty {
+                        HStack {
+                            Image(systemName: "box.truck")
+                                .font(.caption2)
+                                .foregroundColor(.orange)
+                            
+                            Text(lastSupplyRequest)
+                                .font(.caption2)
+                                .foregroundColor(.white.opacity(0.7))
+                                .lineLimit(1)
+                            
+                            Spacer()
+                        }
+                    }
+                }
+                .padding(.top, 4)
+            }
+            
+            // Sanitation schedule (moved to bottom)
             if let sanitationDate = nextSanitationDate {
                 HStack {
                     Image(systemName: "calendar.badge.clock")
-                        .font(.caption)
+                        .font(.caption2)
                         .foregroundColor(.green)
                     
                     Text("Next sanitation: \(sanitationDate)")
-                        .font(.caption)
-                        .foregroundColor(.white.opacity(0.7))
+                        .font(.caption2)
+                        .foregroundColor(.white.opacity(0.6))
                     
                     Spacer()
                 }
+                .padding(.top, 4)
             }
             
-            // Quick stats
+            // Task completion stats
             if !tasks.isEmpty {
                 HStack {
                     Image(systemName: "clock.fill")
-                        .font(.caption)
-                        .foregroundColor(.blue)
+                        .font(.caption2)
+                        .foregroundColor(.green)
                     
                     Text("\(completedTasksCount)/\(tasks.count) completed today")
-                        .font(.caption)
-                        .foregroundColor(.white.opacity(0.7))
+                        .font(.caption2)
+                        .foregroundColor(.white.opacity(0.6))
                     
                     Spacer()
                 }
@@ -353,19 +482,15 @@ struct BuildingPreviewPopover: View {
         }
     }
     
-    // MARK: - Real Data Loading
+    // MARK: - Real Data Loading with Operational Intelligence
     
     private func loadBuildingData() {
         Task {
             // Load real task data for this building
             let allTasks = WorkerContextEngine.shared.getTodaysTasks()
             
-            await MainActor.run {
-                self.tasks = allTasks
-            }
-            
             // ✅ FIXED: Use buildingId instead of buildingName
-            let buildingTasks = tasks.filter { task in
+            let buildingTasks = allTasks.filter { task in
                 task.buildingId == building.id
             }
             
@@ -386,8 +511,12 @@ struct BuildingPreviewPopover: View {
                 task.status != .completed && task.status != .cancelled
             }
             
+            // Load operational intelligence data
+            await loadOperationalIntelligence()
+            
             await MainActor.run {
                 withAnimation(.easeInOut(duration: 0.6)) {
+                    self.tasks = allTasks
                     openTasksCount = openTasks.count
                     
                     if let next = nextSanitation {
@@ -406,6 +535,114 @@ struct BuildingPreviewPopover: View {
                     
                     isLoading = false
                 }
+            }
+        }
+    }
+    
+    private func loadOperationalIntelligence() async {
+        do {
+            // Load today's worker notes for this building
+            let todayStart = Calendar.current.startOfDay(for: Date())
+            let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: todayStart) ?? Date()
+            
+            let notesRows = try await GRDBManager.shared.query("""
+                SELECT * FROM daily_notes 
+                WHERE building_id = ? 
+                AND timestamp >= ? 
+                AND timestamp < ?
+                ORDER BY timestamp DESC
+            """, [building.id, todayStart.ISO8601Format(), tomorrow.ISO8601Format()])
+            
+            let totalNotes = notesRows.count
+            let urgentNotes = notesRows.filter { row in
+                let category = row["category"] as? String ?? ""
+                return category == "Safety Concern" || category == "Maintenance Issue"
+            }.count
+            
+            // Get most recent note preview
+            let latestNote = notesRows.first.flatMap { row in
+                let noteText = row["note_text"] as? String ?? ""
+                let workerName = row["worker_name"] as? String ?? ""
+                return noteText.isEmpty ? "" : "\(workerName): \(noteText)"
+            } ?? ""
+            
+            // Load pending supply requests for this building
+            let supplyRows = try await InventoryService.shared.getSupplyRequests(for: building.id, status: "pending")
+            let pendingSupplies = supplyRows.count
+            
+            // Get most recent supply request
+            let latestSupplyRequest = supplyRows.first.flatMap { row in
+                let requesterName = row["requester_name"] as? String ?? "Worker"
+                return "Recent supply request by \(requesterName)"
+            } ?? ""
+            
+            // Load low stock alerts for this building
+            let alertsRows = try await InventoryService.shared.getActiveAlerts(for: building.id)
+            let lowStockCount = alertsRows.count
+            
+            // Load active workers for this building (from clock-in status)
+            let workersRows = try await GRDBManager.shared.query("""
+                SELECT COUNT(DISTINCT worker_id) as worker_count
+                FROM clock_entries 
+                WHERE building_id = ? 
+                AND action = 'clock_in'
+                AND DATE(created_at) = DATE('now')
+                AND worker_id NOT IN (
+                    SELECT worker_id FROM clock_entries 
+                    WHERE building_id = ? 
+                    AND action = 'clock_out' 
+                    AND DATE(created_at) = DATE('now')
+                    AND created_at > (
+                        SELECT MAX(created_at) FROM clock_entries 
+                        WHERE building_id = ? 
+                        AND action = 'clock_in' 
+                        AND DATE(created_at) = DATE('now')
+                    )
+                )
+            """, [building.id, building.id, building.id])
+            
+            let activeWorkerCount = Int(workersRows.first?["worker_count"] as? Int64 ?? 0)
+            
+            // Load recent vendor access (last 24 hours)
+            let yesterday = Date().addingTimeInterval(-24 * 60 * 60)
+            let vendorRows = try await GRDBManager.shared.query("""
+                SELECT COUNT(*) as vendor_count
+                FROM vendor_access_logs 
+                WHERE building_id = ? 
+                AND timestamp >= ?
+            """, [building.id, yesterday.ISO8601Format()])
+            
+            let recentVendorCount = Int(vendorRows.first?["vendor_count"] as? Int64 ?? 0)
+            
+            // Check for urgent alerts
+            let hasUrgent = urgentNotes > 0 || lowStockCount > 0
+            
+            await MainActor.run {
+                self.todayNotesCount = totalNotes
+                self.urgentNotesCount = urgentNotes
+                self.pendingSupplyRequests = pendingSupplies
+                self.lowStockAlerts = lowStockCount
+                self.activeWorkers = activeWorkerCount
+                self.recentVendorAccess = recentVendorCount
+                self.lastWorkerNote = latestNote.prefix(40) + (latestNote.count > 40 ? "..." : "")
+                self.lastSupplyRequest = latestSupplyRequest
+                self.hasUrgentAlerts = hasUrgent
+            }
+            
+        } catch {
+            print("⚠️ Failed to load operational intelligence for building \(building.id): \(error)")
+            
+            // Set defaults on error
+            await MainActor.run {
+                self.todayNotesCount = 0
+                self.urgentNotesCount = 0
+                self.pendingSupplyRequests = 0
+                self.lowStockAlerts = 0
+                self.activeWorkers = 0
+                self.recentVendorAccess = 0
+                self.lastWorkerNote = ""
+                self.lastSupplyRequest = ""
+                self.hasUrgentAlerts = false
             }
         }
     }
