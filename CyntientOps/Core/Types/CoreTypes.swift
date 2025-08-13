@@ -1554,6 +1554,54 @@ public struct CoreTypes {
         }
     }
     
+    // MARK: - NYC Property & Compliance Types
+    
+    public enum NYCDepartment: String, Codable, CaseIterable {
+        case hpd = "hpd" // Housing Preservation & Development
+        case dob = "dob" // Department of Buildings
+        case dsny = "dsny" // Department of Sanitation
+        case dof = "dof" // Department of Finance
+        
+        public var displayName: String {
+            switch self {
+            case .hpd: return "HPD"
+            case .dob: return "DOB"
+            case .dsny: return "DSNY"
+            case .dof: return "DOF"
+            }
+        }
+    }
+    
+    public enum ViolationSeverity: String, Codable, CaseIterable {
+        case classA = "classA" // Non-hazardous
+        case classB = "classB" // Hazardous
+        case classC = "classC" // Immediately hazardous
+        
+        public var displayText: String {
+            switch self {
+            case .classA: return "Class A"
+            case .classB: return "Class B"
+            case .classC: return "Class C"
+            }
+        }
+    }
+    
+    public enum ViolationStatus: String, Codable, CaseIterable {
+        case open = "open"
+        case dismissed = "dismissed"
+        case certified = "certified"
+        case resolved = "resolved"
+        
+        public var displayText: String {
+            switch self {
+            case .open: return "Open"
+            case .dismissed: return "Dismissed"
+            case .certified: return "Certified"
+            case .resolved: return "Resolved"
+            }
+        }
+    }
+    
     // MARK: - Performance & Metrics Types
     
     public struct PerformanceMetrics: Codable, Identifiable {

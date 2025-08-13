@@ -737,48 +737,4 @@ public enum ComplianceStatus {
     }
 }
 
-public enum ViolationSeverity {
-    case classA // Non-hazardous
-    case classB // Hazardous
-    case classC // Immediately hazardous
-    
-    public var displayText: String {
-        switch self {
-        case .classA: return "Class A"
-        case .classB: return "Class B"
-        case .classC: return "Class C"
-        }
-    }
-}
-
-public enum ViolationStatus {
-    case open
-    case dismissed
-    case certified
-    case resolved
-    
-    public var displayText: String {
-        switch self {
-        case .open: return "Open"
-        case .dismissed: return "Dismissed"
-        case .certified: return "Certified"
-        case .resolved: return "Resolved"
-        }
-    }
-}
-
-public enum NYCDepartment {
-    case hpd // Housing Preservation & Development
-    case dob // Department of Buildings
-    case dsny // Department of Sanitation
-    case dof // Department of Finance
-    
-    public var displayName: String {
-        switch self {
-        case .hpd: return "HPD"
-        case .dob: return "DOB"
-        case .dsny: return "DSNY"
-        case .dof: return "DOF"
-        }
-    }
-}
+// Note: NYCDepartment, ViolationSeverity, and ViolationStatus are now defined in CoreTypes

@@ -152,6 +152,7 @@ public final class ServiceContainer: ObservableObject {
     // MARK: - Layer 7: NYC API Integration
     public let nycIntegration: NYCIntegrationManager
     public let nycCompliance: NYCComplianceService
+    public let bblService: BBLGenerationService
     
     // NovaAIManager removed from this section - now properly owned above
     
@@ -250,6 +251,7 @@ public final class ServiceContainer: ObservableObject {
         
         self.nycCompliance = NYCComplianceService(database: database)
         self.nycIntegration = NYCIntegrationManager(database: database)
+        self.bblService = BBLGenerationService.shared
         
         print("✅ Layer 7: NYC API integration initialized")
         

@@ -14,8 +14,6 @@ import SwiftUI
 import Combine
 import CoreLocation
 
-// Remove import of operational intelligence types - will be handled differently
-
 @MainActor
 class AdminDashboardViewModel: ObservableObject {
     
@@ -191,7 +189,6 @@ class AdminDashboardViewModel: ObservableObject {
     private let container: ServiceContainer
     private let session: Session
     // Note: AdminOperationalIntelligence access handled through ServiceContainer.adminIntelligence protocol
-    private let bblService = BBLGenerationService.shared
     
     // MARK: - Real-time Subscriptions
     private var cancellables = Set<AnyCancellable>()
@@ -366,7 +363,7 @@ class AdminDashboardViewModel: ObservableObject {
                     longitude: building.longitude
                 )
                 
-                let property = await bblService.getPropertyData(
+                let property = await container.bblService.getPropertyData(
                     for: building.id,
                     address: building.address,
                     coordinate: coordinate
@@ -454,10 +451,10 @@ class AdminDashboardViewModel: ObservableObject {
     private func generatePropertyViolationsSummary() {
         let allViolations = propertyData.values.flatMap { $0.violations }
         
-        let hpdCount = allViolations.filter { $0.department == NYCDepartment.hpd }.count
-        let dobCount = allViolations.filter { $0.department == NYCDepartment.dob }.count
-        let dsnyCount = allViolations.filter { $0.department == NYCDepartment.dsny }.count
-        let criticalCount = allViolations.filter { $0.severity == ViolationSeverity.classC }.count
+        let hpdCount = allViolations.filter { $0.department == CoreTypes.NYCDepartment.hpd }.count
+        let dobCount = allViolations.filter { $0.department == CoreTypes.NYCDepartment.dob }.count
+        let dsnyCount = allViolations.filter { $0.department == CoreTypes.NYCDepartment.dsny }.count
+        let criticalCount = allViolations.filter { $0.severity == CoreTypes.ViolationSeverity.classC }.count
         
         propertyViolationsSummary = PropertyViolationsSummary(
             totalViolations: allViolations.count,
