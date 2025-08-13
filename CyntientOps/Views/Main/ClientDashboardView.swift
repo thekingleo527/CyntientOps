@@ -130,7 +130,7 @@ struct ClientDashboardView: View {
                 // Header
                 ClientHeaderV3B(
                     clientName: getClientName(),
-                    portfolioValue: viewModel.portfolioHealth.healthScore,
+                    portfolioValue: viewModel.portfolioHealth.overallScore,
                     complianceScore: viewModel.complianceOverview.overallScore,
                     hasAlerts: hasUrgentItems(),
                     onRoute: handleHeaderRoute
@@ -498,7 +498,7 @@ struct ClientRealTimeHeroCard: View {
                         ClientMetricTile(
                             title: "Properties",
                             value: "\(routineMetrics.buildingStatuses.count)",
-                            subtitle: formatPortfolioValue(monthlyMetrics.totalRevenue),
+                            subtitle: formatPortfolioValue(monthlyMetrics.monthlyBudget),
                             color: CyntientOpsDesign.DashboardColors.clientPrimary,
                             onTap: onBuildingsTap
                         )
@@ -517,15 +517,15 @@ struct ClientRealTimeHeroCard: View {
                         ClientMetricTile(
                             title: "Active Workers",
                             value: "\(activeWorkers.totalActive)",
-                            subtitle: "\(activeWorkers.onSiteWorkers.count) On-Site",
+                            subtitle: "\(Int(activeWorkers.utilizationRate * 100))% Utilization",
                             color: CyntientOpsDesign.DashboardColors.success,
                             onTap: { /* Show worker details */ }
                         )
                         
                         ClientMetricTile(
                             title: "Tasks Today",
-                            value: "\(routineMetrics.tasksInProgress + routineMetrics.tasksCompleted)",
-                            subtitle: "\(routineMetrics.tasksCompleted) Complete",
+                            value: "\(Int(routineMetrics.overallCompletion * 100))",
+                            subtitle: "\(routineMetrics.activeWorkerCount) Active Workers",
                             color: completionColor,
                             onTap: { /* Show task details */ }
                         )

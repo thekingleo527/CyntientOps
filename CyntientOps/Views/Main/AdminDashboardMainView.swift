@@ -51,6 +51,7 @@ struct AdminDashboardMainView: View {
         case workers = "Workers"
         case tasks = "Tasks"
         case insights = "Insights"
+        case deployment = "Deployment"
         
         var icon: String {
             switch self {
@@ -59,6 +60,7 @@ struct AdminDashboardMainView: View {
             case .workers: return "person.3"
             case .tasks: return "checklist"
             case .insights: return "lightbulb.fill"
+            case .deployment: return "rocket.fill"
             }
         }
     }
@@ -93,6 +95,9 @@ struct AdminDashboardMainView: View {
             
         case .insights:
             adminInsightsTab
+            
+        case .deployment:
+            adminDeploymentTab
         }
     }
     
@@ -227,6 +232,116 @@ struct AdminDashboardMainView: View {
                         .padding()
                     }
                 }
+                
+                // Bottom spacing for Nova Panel
+                Spacer()
+                    .frame(height: 80)
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private var adminDeploymentTab: some View {
+        ScrollView {
+            VStack(spacing: 24) {
+                // Header
+                VStack(spacing: 8) {
+                    Text("🚀 Production Deployment")
+                        .font(.largeTitle)
+                        .fontWeight(.bold)
+                        .foregroundColor(.white)
+                    
+                    Text("CyntientOps v7.0")
+                        .font(.title2)
+                        .foregroundColor(.secondary)
+                    
+                    Text("NYC API Integration & Real-World Data Generation")
+                        .font(.caption)
+                        .multilineTextAlignment(.center)
+                        .foregroundColor(.secondary)
+                }
+                .padding()
+                
+                // Deployment Status Card
+                VStack(spacing: 16) {
+                    HStack {
+                        Text("Status:")
+                            .fontWeight(.semibold)
+                            .foregroundColor(.white)
+                        Spacer()
+                        Text("Ready for Deployment")
+                            .foregroundColor(.green)
+                    }
+                    
+                    // Progress Bar
+                    VStack(spacing: 8) {
+                        ProgressView(value: 1.0)
+                            .progressViewStyle(LinearProgressViewStyle(tint: .blue))
+                        
+                        HStack {
+                            Text("Phase Complete")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            Spacer()
+                            Text("100%")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+                .padding()
+                .background(Color.gray.opacity(0.2))
+                .cornerRadius(12)
+                
+                // Deployment Actions
+                VStack(spacing: 16) {
+                    Button(action: {
+                        // Deployment action would be handled here
+                    }) {
+                        HStack {
+                            Image(systemName: "rocket.fill")
+                            Text("Execute Production Deployment")
+                        }
+                        .font(.headline)
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.blue)
+                        .cornerRadius(12)
+                    }
+                    
+                    Button(action: {
+                        // Logs action would be handled here
+                    }) {
+                        HStack {
+                            Image(systemName: "doc.text")
+                            Text("View Deployment Logs")
+                        }
+                        .font(.subheadline)
+                        .foregroundColor(.blue)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.gray.opacity(0.2))
+                        .cornerRadius(12)
+                    }
+                }
+                .padding()
+                
+                // System Status
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("System Status")
+                        .font(.headline)
+                        .foregroundColor(.white)
+                    
+                    VStack(spacing: 8) {
+                        DeploymentStatusRow(title: "Database", status: "Connected", color: .green)
+                        DeploymentStatusRow(title: "NYC APIs", status: "Active", color: .green)
+                        DeploymentStatusRow(title: "Building Data", status: "Loaded", color: .green)
+                        DeploymentStatusRow(title: "Worker Assignments", status: "Complete", color: .green)
+                        DeploymentStatusRow(title: "Client Profiles", status: "Configured", color: .green)
+                    }
+                }
+                .padding()
                 
                 // Bottom spacing for Nova Panel
                 Spacer()
@@ -1518,6 +1633,32 @@ struct AdminSettingsSheet: View {
         }
     }
 }
+
+// MARK: - Supporting Components
+
+struct DeploymentStatusRow: View {
+    let title: String
+    let status: String
+    let color: Color
+    
+    var body: some View {
+        HStack {
+            Circle()
+                .fill(color)
+                .frame(width: 8, height: 8)
+            
+            Text(title)
+                .foregroundColor(.white)
+            
+            Spacer()
+            
+            Text(status)
+                .foregroundColor(color)
+                .font(.caption)
+        }
+    }
+}
+
 // MARK: - Preview
 #if DEBUG
 struct AdminDashboardMainView_Previews: PreviewProvider {

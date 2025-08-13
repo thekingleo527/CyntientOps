@@ -20,6 +20,7 @@ import Foundation
 import SwiftUI
 import Combine
 import GRDB
+import CoreLocation
 
 // MARK: - Admin Operational Intelligence Protocol
 public protocol AdminOperationalIntelligenceProtocol: ObservableObject {
@@ -152,7 +153,7 @@ public final class ServiceContainer: ObservableObject {
     // MARK: - Layer 7: NYC API Integration
     public let nycIntegration: NYCIntegrationManager
     public let nycCompliance: NYCComplianceService
-    // BBLGenerationService accessed directly when needed, not through container
+    // BBLGenerationService accessed directly as singleton to avoid compilation issues
     
     // NovaAIManager removed from this section - now properly owned above
     
@@ -251,7 +252,7 @@ public final class ServiceContainer: ObservableObject {
         
         self.nycCompliance = NYCComplianceService(database: database)
         self.nycIntegration = NYCIntegrationManager(database: database)
-        // bblService is now lazy-initialized
+        // BBLGenerationService initialized independently as singleton
         
         print("✅ Layer 7: NYC API integration initialized")
         

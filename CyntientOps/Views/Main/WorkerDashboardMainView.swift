@@ -341,7 +341,18 @@ struct WorkerDashboardMainView: View {
                                         timestamp: Date()
                                     )
                                     
-                                    await viewModel.completeTask(task, evidence: evidence)
+                                    // Convert TaskItem to CoreTypes.ContextualTask
+                                    let contextualTask = CoreTypes.ContextualTask(
+                                        id: task.id,
+                                        title: task.title,
+                                        description: task.description ?? "",
+                                        status: task.isCompleted ? .completed : .pending,
+                                        dueDate: task.dueDate,
+                                        category: CoreTypes.TaskCategory(rawValue: task.category) ?? .administrative,
+                                        urgency: convertTaskUrgencyToCore(task.urgency),
+                                        buildingId: task.buildingId
+                                    )
+                                    await viewModel.completeTask(contextualTask, evidence: evidence)
                                 }
                             } catch {
                                 print("Failed to capture photo evidence: \(error)")
@@ -423,13 +434,29 @@ struct WorkerDashboardMainView: View {
         context["totalTasks"] = viewModel.todaysTasks.count
         context["completedTasks"] = viewModel.completedTasksCount
         context["urgentTasks"] = viewModel.urgentTasks.count
-        context["overdueTasks"] = viewModel.todaysTasks.filter { $0.isOverdue }.count
+        context["overdueTasks"] = viewModel.todaysTasks.filter { task in
+            guard let dueDate = task.dueDate else { return false }
+            return dueDate < Date() && !task.isCompleted
+        }.count
         
         // Performance metrics
         context["todaysProgress"] = calculateTodaysProgress()
         context["hoursWorked"] = viewModel.hoursWorkedToday
         
         return context
+    }
+    
+    // MARK: - Helper Methods
+    
+    private func convertTaskUrgencyToCore(_ urgency: WorkerDashboardViewModel.TaskItem.TaskUrgency) -> CoreTypes.TaskUrgency {
+        switch urgency {
+        case .low: return .low
+        case .normal: return .normal
+        case .high: return .high
+        case .urgent: return .urgent
+        case .critical: return .critical
+        case .emergency: return .emergency
+        }
     }
 }
 

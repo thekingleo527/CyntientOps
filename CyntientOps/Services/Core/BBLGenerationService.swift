@@ -60,6 +60,7 @@ public class BBLGenerationService: ObservableObject {
     
     /// Get comprehensive property data for building
     public func getPropertyData(for buildingId: String, address: String, coordinate: CLLocationCoordinate2D? = nil) async -> CoreTypes.NYCPropertyData? {
+        print("🔢 BBLGenerationService: Starting property data generation for building \(buildingId)")
         // Check cache first
         if let cached = propertyDataCache[buildingId] {
             return cached
@@ -74,9 +75,11 @@ public class BBLGenerationService: ObservableObject {
         }
         
         guard let validBBL = bbl else {
-            print("⚠️ Could not generate BBL for building \(buildingId)")
+            print("⚠️ BBLGenerationService: Could not generate BBL for building \(buildingId) at address: \(address)")
             return nil
         }
+        
+        print("✅ BBLGenerationService: Generated BBL \(validBBL) for building \(buildingId)")
         
         // Fetch data from multiple NYC APIs
         let propertyData = await fetchComprehensivePropertyData(bbl: validBBL, buildingId: buildingId)
@@ -85,6 +88,11 @@ public class BBLGenerationService: ObservableObject {
         await MainActor.run {
             propertyDataCache[buildingId] = propertyData
         }
+        
+        print("✅ BBLGenerationService: Successfully retrieved comprehensive property data for building \(buildingId)")
+        print("   📊 Financial Data: Market Value $\(Int(propertyData.financialData.marketValue).formatted(.number))")
+        print("   🚨 Violations: \(propertyData.violations.count) found")
+        print("   ⚖️ Compliance Status: LL97=\(propertyData.complianceData.ll97Status)")
         
         return propertyData
     }
@@ -405,7 +413,7 @@ public class BBLGenerationService: ObservableObject {
         // DSNY Violations
         let dsnyURL = "https://data.cityofnewyork.us/resource/enzf-6r3z.json?bbl=\(bbl)"
         
-        var allViolations: [PropertyViolation] = []
+        var allViolations: [CoreTypes.PropertyViolation] = []
         
         do {
             // Fetch HPD violations - Try dataFeed first, fallback to Open Data

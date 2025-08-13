@@ -601,9 +601,9 @@ public class WorkerDashboardViewModel: ObservableObject {
                     description: taskItem.description ?? "",
                     status: taskItem.isCompleted ? .completed : .pending,
                     dueDate: taskItem.dueDate,
-                    buildingId: taskItem.buildingId,
+                    category: CoreTypes.TaskCategory(rawValue: taskItem.category) ?? .administrative,
                     urgency: convertTaskUrgencyToCore(taskItem.urgency),
-                    category: CoreTypes.TaskCategory(rawValue: taskItem.category) ?? .administrative
+                    buildingId: taskItem.buildingId
                 )
             }
             .first
@@ -621,9 +621,9 @@ public class WorkerDashboardViewModel: ObservableObject {
                     description: taskItem.description ?? "",
                     status: taskItem.isCompleted ? .completed : .pending,
                     dueDate: taskItem.dueDate,
-                    buildingId: taskItem.buildingId,
+                    category: CoreTypes.TaskCategory(rawValue: taskItem.category) ?? .administrative,
                     urgency: convertTaskUrgencyToCore(taskItem.urgency),
-                    category: CoreTypes.TaskCategory(rawValue: taskItem.category) ?? .administrative
+                    buildingId: taskItem.buildingId
                 )
             }
     }
@@ -661,7 +661,7 @@ public class WorkerDashboardViewModel: ObservableObject {
     /// Today's route ordered by schedule
     public var routeForToday: [RouteStop] {
         // Get real worker assignments and create optimized route
-        guard let workerId = currentWorkerId,
+        guard let _ = currentWorkerId,
               let worker = workerProfile else {
             return []
         }
@@ -685,10 +685,8 @@ public class WorkerDashboardViewModel: ObservableObject {
                 id: matchedBuilding.id,
                 name: matchedBuilding.name,
                 address: matchedBuilding.address,
-                coordinate: CLLocationCoordinate2D(
-                    latitude: matchedBuilding.coordinate.latitude,
-                    longitude: matchedBuilding.coordinate.longitude
-                )
+                latitude: matchedBuilding.coordinate.latitude,
+                longitude: matchedBuilding.coordinate.longitude
             )
         }
         
@@ -732,7 +730,7 @@ public class WorkerDashboardViewModel: ObservableObject {
         let calendar = Calendar.current
         let today = Date()
         
-        return tasksByBuilding.enumerated().compactMap { index, entry in
+        return tasksByBuilding.enumerated().compactMap { index, entry -> ScheduledItem? in
             let (buildingName, tasks) = entry
             
             // Find corresponding building in assigned buildings
@@ -761,7 +759,13 @@ public class WorkerDashboardViewModel: ObservableObject {
             return ScheduledItem(
                 id: "\(building.id)-\(today.timeIntervalSince1970)",
                 title: getScheduleTitle(for: tasks),
-                location: building,
+                location: CoreTypes.NamedCoordinate(
+                    id: building.id,
+                    name: building.name,
+                    address: building.address,
+                    latitude: building.coordinate.latitude,
+                    longitude: building.coordinate.longitude
+                ),
                 startTime: startTime,
                 duration: duration,
                 taskCount: tasks.count,
@@ -776,11 +780,11 @@ public class WorkerDashboardViewModel: ObservableObject {
         let taskNames = Set(tasks.map { $0.taskName })
         let categories = Set(tasks.map { $0.category })
         
-        if taskNames.contains({ $0.lowercased().contains("dsny") }) || 
-           categories.contains({ $0.lowercased().contains("sanitation") }) {
+        if taskNames.contains(where: { $0.lowercased().contains("dsny") }) || 
+           categories.contains(where: { $0.lowercased().contains("sanitation") }) {
             return "DSNY & Building Service"
-        } else if categories.contains({ $0.lowercased().contains("hvac") }) && 
-                  categories.contains({ $0.lowercased().contains("cleaning") }) {
+        } else if categories.contains(where: { $0.lowercased().contains("hvac") }) && 
+                  categories.contains(where: { $0.lowercased().contains("cleaning") }) {
             return "HVAC Maintenance & Cleaning"
         } else if categories.count == 1, let singleCategory = categories.first {
             return "\(singleCategory) Service"
@@ -965,7 +969,14 @@ public class WorkerDashboardViewModel: ObservableObject {
             
             // Load weather if clocked in
             if let building = self.currentBuilding {
-                await self.loadWeatherData(for: building)
+                let namedCoordinate = CoreTypes.NamedCoordinate(
+                    id: building.id,
+                    name: building.name,
+                    address: building.address,
+                    latitude: building.coordinate.latitude,
+                    longitude: building.coordinate.longitude
+                )
+                await self.loadWeatherData(for: namedCoordinate)
             }
             
             // Calculate hours worked
@@ -1097,7 +1108,7 @@ public class WorkerDashboardViewModel: ObservableObject {
         
         return CoreTypes.ActionEvidence(
             description: description,
-            photoURLs: photoURLs,
+            photoURLs: photoURLs.map { $0.absoluteString },
             timestamp: Date()
         )
     }
@@ -1264,9 +1275,9 @@ public class WorkerDashboardViewModel: ObservableObject {
                 description: taskItem.description ?? "",
                 status: taskItem.isCompleted ? .completed : .pending,
                 dueDate: taskItem.dueDate,
-                buildingId: taskItem.buildingId,
+                category: CoreTypes.TaskCategory(rawValue: taskItem.category) ?? .administrative,
                 urgency: convertTaskUrgencyToCore(taskItem.urgency),
-                category: CoreTypes.TaskCategory(rawValue: taskItem.category) ?? .administrative
+                buildingId: taskItem.buildingId
             )
         }
     }
@@ -1322,6 +1333,9 @@ public class WorkerDashboardViewModel: ObservableObject {
             
             assignedBuildings = uniqueBuildings
             print("✅ Loaded \(uniqueBuildings.count) assigned buildings for worker \(workerId) from real operational data")
+        } catch {
+            print("❌ Failed to load assigned buildings: \(error)")
+            assignedBuildings = []
         }
     }
     
@@ -1446,7 +1460,7 @@ public class WorkerDashboardViewModel: ObservableObject {
                 )
                 
                 weather = WeatherSnapshot(
-                    temperature: currentWeather.temperature,
+                    temperature: Int(currentWeather.temperature),
                     condition: currentWeather.condition.rawValue.capitalized,
                     guidance: generateGeneralWeatherGuidance(condition: condition),
                     isOutdoorSafe: currentWeather.outdoorWorkRisk == .low,
@@ -1911,13 +1925,31 @@ public class WorkerDashboardViewModel: ObservableObject {
         return min(1.0, completionRate * 1.2)
     }
     
+    /// Check if a task is overdue
+    private func isTaskOverdue(_ task: TaskItem) -> Bool {
+        guard let dueDate = task.dueDate else { return false }
+        return Date() > dueDate && !task.isCompleted
+    }
+    
     /// Update HeroTile-specific properties (Per Design Brief)
     private func updateHeroTileProperties() async {
         // Update next task
         heroNextTask = todaysTasks
-            .filter { !$0.isCompleted && !$0.isOverdue }
+            .filter { !$0.isCompleted && !isTaskOverdue($0) }
             .sorted { ($0.dueDate ?? Date.distantFuture) < ($1.dueDate ?? Date.distantFuture) }
             .first
+            .map { taskItem in
+                CoreTypes.ContextualTask(
+                    id: taskItem.id,
+                    title: taskItem.title,
+                    description: taskItem.description ?? "",
+                    status: taskItem.isCompleted ? .completed : .pending,
+                    dueDate: taskItem.dueDate,
+                    category: CoreTypes.TaskCategory(rawValue: taskItem.category) ?? .administrative,
+                    urgency: convertTaskUrgencyToCore(taskItem.urgency),
+                    buildingId: taskItem.buildingId
+                )
+            }
         
         // Update weather hint
         if let weather = weatherData {
@@ -2220,7 +2252,13 @@ public class WorkerDashboardViewModel: ObservableObject {
     private func resolveCurrentBuilding() -> CoreTypes.NamedCoordinate? {
         // 1. Check last clock-in location
         if let currentBuilding = currentBuilding {
-            return currentBuilding
+            return CoreTypes.NamedCoordinate(
+                id: currentBuilding.id,
+                name: currentBuilding.name,
+                address: currentBuilding.address,
+                latitude: currentBuilding.coordinate.latitude,
+                longitude: currentBuilding.coordinate.longitude
+            )
         }
         
         // 2. Check today's schedule
@@ -2478,7 +2516,7 @@ public class WorkerDashboardViewModel: ObservableObject {
                 LIMIT 50
             """, [workerId])
             
-            vendorAccessEntries = rows.compactMap { row in
+            vendorAccessEntries = rows.compactMap { row -> VendorAccessEntry? in
                 guard let id = row["id"] as? String,
                       let buildingId = row["building_id"] as? String,
                       let vendorName = row["vendor_name"] as? String,
@@ -2500,8 +2538,6 @@ public class WorkerDashboardViewModel: ObservableObject {
                 let signatureData = row["signature_data"] as? String
                 
                 return VendorAccessEntry(
-                    id: id,
-                    timestamp: timestamp,
                     buildingId: buildingId,
                     buildingName: building?.name ?? "Building \(buildingId)",
                     vendorName: vendorName,
@@ -2909,7 +2945,7 @@ public class WorkerDashboardViewModel: ObservableObject {
               let categoryRaw = row["category"] as? String,
               let category = NoteCategory(rawValue: categoryRaw),
               let timestampString = row["timestamp"] as? String,
-              let timestamp = ISO8601DateFormatter().date(from: timestampString) else {
+              let _ = ISO8601DateFormatter().date(from: timestampString) else {
             return nil
         }
         

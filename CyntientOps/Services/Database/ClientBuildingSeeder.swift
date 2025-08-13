@@ -41,7 +41,7 @@ public final class ClientBuildingSeeder {
             id: "JMR",
             name: "JM Realty",
             shortName: "JMR",
-            contactEmail: "management@jmrealty.com",
+            contactEmail: "David@jmrealty.org",
             contactPhone: "+1 (212) 555-0200",
             address: "350 Fifth Avenue, New York, NY 10118",
             isActive: true,
@@ -49,9 +49,9 @@ public final class ClientBuildingSeeder {
         ),
         Client(
             id: "WFR",
-            name: "Weber Farhat",
+            name: "Weber Farhat Realty",
             shortName: "WFR",
-            contactEmail: "info@weberfarhat.com",
+            contactEmail: "mfarhat@farhatrealtymanagement.com",
             contactPhone: "+1 (212) 555-0201",
             address: "136 West 17th Street, New York, NY 10011",
             isActive: true,
@@ -307,10 +307,9 @@ public final class ClientBuildingSeeder {
         
         // Map of user emails to client IDs
         let userClientMap: [(email: String, clientId: String, role: String)] = [
-            ("jm@jmrealty.com", "JMR", "admin"),
             ("David@jmrealty.org", "JMR", "admin"),
             ("sarah@jmrealty.com", "JMR", "manager"),
-            ("david@weberfarhat.com", "WFR", "admin"),
+            ("mfarhat@farhatrealtymanagement.com", "WFR", "admin"),
             ("maria@solarone.org", "SOL", "admin"),
             ("robert@grandelizabeth.com", "GEL", "admin"),
             ("alex@citadelrealty.com", "CIT", "admin"),
