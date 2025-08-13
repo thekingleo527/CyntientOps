@@ -178,30 +178,30 @@ struct AdminDashboardView: View {
                 GridItem(.flexible())
             ], spacing: 12) {
                 AdminMetricCard(
+                    icon: "person.3.fill",
                     title: "Active Workers",
                     value: "\(viewModel.activeWorkers.filter { $0.isClockedIn }.count)/\(viewModel.activeWorkers.count)",
-                    icon: "person.3.fill",
                     color: activeWorkerColor
                 )
                 
                 AdminMetricCard(
+                    icon: "checklist",
                     title: "Today's Tasks",
                     value: "\(getTodaysCompletedTasks())/\(getTodaysTaskCount())",
-                    icon: "checklist",
                     color: taskProgressColor
                 )
                 
                 AdminMetricCard(
+                    icon: "building.2.crop.circle",
                     title: "Buildings",
                     value: "\(viewModel.portfolioMetrics.totalBuildings)",
-                    icon: "building.2.crop.circle",
                     color: .blue
                 )
                 
                 AdminMetricCard(
+                    icon: "checkmark.shield.fill",
                     title: "Compliance",
                     value: "\(Int(viewModel.portfolioMetrics.complianceScore))%",
-                    icon: "checkmark.shield.fill",
                     color: complianceScoreColor
                 )
             }
@@ -398,42 +398,6 @@ struct AdminDashboardView: View {
 
 // MARK: - Supporting Views
 
-struct AdminMetricCard: View {
-    let title: String
-    let value: String
-    let icon: String
-    let color: Color
-    
-    var body: some View {
-        VStack(spacing: 8) {
-            HStack {
-                Image(systemName: icon)
-                    .font(.title3)
-                    .foregroundColor(color)
-                Spacer()
-            }
-            
-            Text(value)
-                .font(.title2)
-                .fontWeight(.bold)
-                .foregroundColor(.white)
-            
-            Text(title)
-                .font(.caption)
-                .foregroundColor(.white.opacity(0.7))
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding()
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(color.opacity(0.1))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(color.opacity(0.3), lineWidth: 1)
-                )
-        )
-    }
-}
 
 struct AdminQuickActionCard: View {
     let title: String
