@@ -1970,37 +1970,7 @@ struct AdminPortfolioSummary {
             description: NSLocalizedString("Critical attention needed", comment: "Critical efficiency status")
         )
     }
-}
-
-// MARK: - Worker Action Enum
-
-enum WorkerAction {
-    case uploadPhoto
-    case addNotes
-    case viewMap
-    case addEmergencyTask
-}
-
-// MARK: - BBL Property Data Types
-
-struct PortfolioFinancialSummary {
-    let totalAssessedValue: Double
-    let totalMarketValue: Double
-    let totalTaxLiability: Double
-    let activeLiensCount: Int
-    let totalLienAmount: Double
-    let averageROI: Double
-    let monthlyTaxExpense: Double
-}
-
-struct ComplianceDeadline {
-    let buildingId: String
-    let buildingName: String
-    let deadlineType: String // LL97, LL11, LL87, etc.
-    let dueDate: Date
-    let severity: CoreTypes.ComplianceSeverity
-    let estimatedCost: Double?
-
+    
     // MARK: - Property Data Generation
     
     /// Generate realistic NYC property data for buildings
@@ -2048,8 +2018,10 @@ struct ComplianceDeadline {
             return "3\(String(format: "%05d", block))\(String(format: "%04d", lot))"
         }
         
-        // Default Manhattan BBL
-        return "1012340001"
+        // Default: Queens
+        let block = Int((coordinate.latitude - 40.6000) * 10000) % 3000 + 1000
+        let lot = Int((coordinate.longitude + 73.9000) * 10000) % 100 + 1
+        return "4\(String(format: "%05d", block))\(String(format: "%04d", lot))"
     }
     
     private func generateFinancialData(for building: CoreTypes.NamedCoordinate) -> CoreTypes.PropertyFinancialData {
@@ -2127,6 +2099,36 @@ struct ComplianceDeadline {
             return "TAX PAYMENT ISSUE"
         }
     }
+}
+
+// MARK: - Worker Action Enum
+
+enum WorkerAction {
+    case uploadPhoto
+    case addNotes
+    case viewMap
+    case addEmergencyTask
+}
+
+// MARK: - BBL Property Data Types
+
+struct PortfolioFinancialSummary {
+    let totalAssessedValue: Double
+    let totalMarketValue: Double
+    let totalTaxLiability: Double
+    let activeLiensCount: Int
+    let totalLienAmount: Double
+    let averageROI: Double
+    let monthlyTaxExpense: Double
+}
+
+struct ComplianceDeadline {
+    let buildingId: String
+    let buildingName: String
+    let deadlineType: String // LL97, LL11, LL87, etc.
+    let dueDate: Date
+    let severity: CoreTypes.ComplianceSeverity
+    let estimatedCost: Double?
 }
 
 // MARK: - Supporting Structures
