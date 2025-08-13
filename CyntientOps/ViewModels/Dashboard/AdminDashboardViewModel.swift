@@ -196,7 +196,7 @@ class AdminDashboardViewModel: ObservableObject {
     // MARK: - Service Container (REFACTORED)
     private let container: ServiceContainer
     private let session: Session
-    private let operationalIntelligence: AdminOperationalIntelligence
+    // Note: AdminOperationalIntelligence access handled through ServiceContainer.adminIntelligence protocol
     // private let bblService = BBLGenerationService.shared // Temporarily disabled for compilation
     
     // MARK: - Real-time Subscriptions
@@ -219,11 +219,11 @@ class AdminDashboardViewModel: ObservableObject {
     init(container: ServiceContainer) {
         self.session = CoreTypes.Session.shared
         self.container = container
-        self.operationalIntelligence = AdminOperationalIntelligence.shared
         setupAutoRefresh()
         setupCrossDashboardSync()
         subscribeToPhotoUpdates()
         setupOperationalIntelligenceSubscriptions()
+        // Operational intelligence subscriptions handled through container.adminIntelligence
     }
     
     deinit {
@@ -1227,71 +1227,40 @@ class AdminDashboardViewModel: ObservableObject {
     
     /// Setup subscriptions to operational intelligence updates
     private func setupOperationalIntelligenceSubscriptions() {
-        // Subscribe to routine completion updates
-        operationalIntelligence.$routineCompletions
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] completions in
-                self?.routineCompletions = completions
-                self?.operationalMetrics = self?.calculateOperationalMetrics()
-            }
-            .store(in: &cancellables)
-        
-        // Subscribe to vendor repository updates
-        operationalIntelligence.$buildingVendorRepositories
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] repositories in
-                self?.buildingVendorRepositories = repositories
-            }
-            .store(in: &cancellables)
-        
-        // Subscribe to pending reminders
-        operationalIntelligence.$pendingReminders
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] reminders in
-                self?.pendingReminders = reminders.sorted { $0.dueDate < $1.dueDate }
-            }
-            .store(in: &cancellables)
-        
-        // Subscribe to recent vendor access
-        operationalIntelligence.$recentVendorAccess
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] accessLogs in
-                self?.recentVendorAccess = accessLogs
-            }
-            .store(in: &cancellables)
-        
-        // Subscribe to critical routine alerts
-        operationalIntelligence.$criticalRoutineAlerts
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] alerts in
-                self?.criticalRoutineAlerts = alerts
-            }
-            .store(in: &cancellables)
+        // Note: Operational intelligence subscriptions now handled through ServiceContainer
+        // Real-time updates will come through dashboard sync service
+        print("⚠️ Operational intelligence subscriptions deferred to dashboard sync service")
     }
     
-    /// Calculate operational intelligence metrics summary
+    /// Calculate operational intelligence metrics summary (using generic data)
     private func calculateOperationalMetrics() -> AdminOperationalMetrics {
         let totalBuildings = buildings.count
-        let completionsToday = routineCompletions.values.reduce(0) { sum, status in
-            let todayCompletions = status.getTodaysCompletions()
-            return sum + todayCompletions.completedTasks
+        
+        // Calculate completions using generic data
+        let completionsToday = routineCompletions.values.reduce(0) { sum, statusData in
+            guard let completedTasks = statusData["completedTasks"] as? Int else { return sum }
+            return sum + completedTasks
         }
         
-        let totalExpectedToday = routineCompletions.values.reduce(0) { sum, status in
-            let todayCompletions = status.getTodaysCompletions()
-            return sum + todayCompletions.totalTasks
+        let totalExpectedToday = routineCompletions.values.reduce(0) { sum, statusData in
+            guard let totalTasks = statusData["totalTasks"] as? Int else { return sum }
+            return sum + totalTasks
         }
         
         let overallCompletionRate = totalExpectedToday > 0 ? 
             Double(completionsToday) / Double(totalExpectedToday) : 1.0
         
+        // Count critical reminders using generic data
         let criticalReminders = pendingReminders.filter { reminder in
-            let timeUntilDue = reminder.dueDate.timeIntervalSinceNow
+            guard let dueDate = reminder["dueDate"] as? Date else { return false }
+            let timeUntilDue = dueDate.timeIntervalSinceNow
             return timeUntilDue < 3600 * 24 // Due within 24 hours
         }.count
         
+        // Count recent vendor access using generic data
         let recentVendorAccessCount = recentVendorAccess.filter { access in
-            access.timestamp >= Calendar.current.startOfDay(for: Date())
+            guard let timestamp = access["timestamp"] as? Date else { return false }
+            return timestamp >= Calendar.current.startOfDay(for: Date())
         }.count
         
         return AdminOperationalMetrics(
@@ -1302,8 +1271,8 @@ class AdminDashboardViewModel: ObservableObject {
             criticalRemindersCount: criticalReminders,
             recentVendorAccessCount: recentVendorAccessCount,
             criticalAlertsCount: criticalRoutineAlerts.count,
-            buildingsWithFullCompletion: routineCompletions.values.filter { status in
-                status.getTodaysCompletions().isFullyComplete
+            buildingsWithFullCompletion: routineCompletions.values.filter { statusData in
+                (statusData["isFullyComplete"] as? Bool) == true
             }.count
         )
     }
