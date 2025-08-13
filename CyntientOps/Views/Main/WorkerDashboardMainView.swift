@@ -225,7 +225,7 @@ struct WorkerDashboardMainView: View {
                 List(viewModel.assignedBuildings, id: \.id) { building in
                     Button(action: {
                         Task {
-                            await viewModel.clockIn(at: building)
+                            await viewModel.clockIn(to: building)
                             showingBuildingSelector = false
                         }
                     }) {
@@ -374,7 +374,7 @@ struct WorkerDashboardMainView: View {
         if viewModel.assignedBuildings.count == 1 {
             // Auto clock-in if only one building
             Task {
-                await viewModel.clockIn(at: viewModel.assignedBuildings[0])
+                await viewModel.clockIn(to: viewModel.assignedBuildings[0])
             }
         } else {
             // Show building selector

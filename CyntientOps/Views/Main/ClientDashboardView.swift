@@ -23,6 +23,7 @@ struct ClientDashboardView: View {
     init(container: ServiceContainer) {
         self.container = container
         self._viewModel = StateObject(wrappedValue: ClientDashboardViewModel(container: container))
+        self._contextEngine = StateObject(wrappedValue: ClientContextEngine(container: container))
     }
     
     // MARK: - Sheet Navigation
