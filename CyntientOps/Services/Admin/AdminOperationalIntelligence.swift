@@ -13,10 +13,16 @@ import Foundation
 import SwiftUI
 import Combine
 
+// MARK: - Admin Operational Intelligence Protocol
+public protocol AdminOperationalIntelligenceProtocol: ObservableObject {
+    func addWorkerNote(workerId: String, buildingId: String, noteText: String, category: String, photoEvidence: String?, location: String?) async
+    func logSupplyRequest(workerId: String, buildingId: String, requestNumber: String, items: String, priority: String, notes: String) async
+}
+
 // MARK: - Admin Operational Intelligence Service
 
 @MainActor
-public class AdminOperationalIntelligence: ObservableObject {
+public class AdminOperationalIntelligence: ObservableObject, AdminOperationalIntelligenceProtocol {
     public static var shared: AdminOperationalIntelligence?
     
     // MARK: - Published State

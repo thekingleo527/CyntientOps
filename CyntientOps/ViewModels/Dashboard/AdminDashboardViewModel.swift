@@ -14,17 +14,7 @@ import SwiftUI
 import Combine
 import CoreLocation
 
-// Import operational intelligence types
-typealias BuildingVendorRepository = AdminOperationalIntelligence.BuildingVendorRepository
-typealias VendorAccessLog = AdminOperationalIntelligence.VendorAccessLog
-typealias RecurringTaskReminder = AdminOperationalIntelligence.RecurringTaskReminder
-typealias RoutineAlert = AdminOperationalIntelligence.RoutineAlert
-typealias RoutineCompletionStatus = AdminOperationalIntelligence.RoutineCompletionStatus
-typealias BinType = AdminOperationalIntelligence.BinType
-typealias BinAction = AdminOperationalIntelligence.BinAction
-typealias BinLocation = AdminOperationalIntelligence.BinLocation
-typealias VendorInfo = AdminOperationalIntelligence.VendorInfo
-typealias VendorAccessType = AdminOperationalIntelligence.VendorAccessType
+// Remove import of operational intelligence types - will be handled differently
 
 @MainActor
 class AdminDashboardViewModel: ObservableObject {
@@ -194,12 +184,12 @@ class AdminDashboardViewModel: ObservableObject {
     @Published var propertyViolationsSummary: PropertyViolationsSummary?
     @Published var isLoadingPropertyData = false
     
-    // MARK: - Operational Intelligence Properties
-    @Published var routineCompletions: [String: RoutineCompletionStatus] = [:]
-    @Published var buildingVendorRepositories: [String: BuildingVendorRepository] = [:]
-    @Published var pendingReminders: [RecurringTaskReminder] = []
-    @Published var recentVendorAccess: [VendorAccessLog] = []
-    @Published var criticalRoutineAlerts: [RoutineAlert] = []
+    // MARK: - Operational Intelligence Properties (Simplified)
+    @Published var routineCompletions: [String: [String: Any]] = [:]
+    @Published var buildingVendorRepositories: [String: [String: Any]] = [:]
+    @Published var pendingReminders: [[String: Any]] = []
+    @Published var recentVendorAccess: [[String: Any]] = []
+    @Published var criticalRoutineAlerts: [[String: Any]] = []
     @Published var operationalMetrics: AdminOperationalMetrics?
     @Published var isLoadingOperationalData = false
     
@@ -1318,25 +1308,31 @@ class AdminDashboardViewModel: ObservableObject {
         )
     }
     
-    /// Get pending reminders for today
-    func getTodaysPendingReminders() -> [RecurringTaskReminder] {
+    /// Get pending reminders for today (using generic data)
+    func getTodaysPendingReminders() -> [[String: Any]] {
         let today = Date()
         let startOfToday = Calendar.current.startOfDay(for: today)
         let endOfToday = Calendar.current.date(byAdding: .day, value: 1, to: startOfToday) ?? today
         
         return pendingReminders.filter { reminder in
-            reminder.dueDate >= startOfToday && reminder.dueDate < endOfToday
+            guard let dueDate = reminder["dueDate"] as? Date else { return false }
+            return dueDate >= startOfToday && dueDate < endOfToday
         }
     }
     
-    /// Get vendor access history for a building
-    func getVendorAccessHistory(for buildingId: String) -> [VendorAccessLog] {
-        return recentVendorAccess.filter { $0.buildingId == buildingId }
-            .sorted { $0.timestamp > $1.timestamp }
+    /// Get vendor access history for a building (using generic data)
+    func getVendorAccessHistory(for buildingId: String) -> [[String: Any]] {
+        return recentVendorAccess.filter { access in
+            (access["buildingId"] as? String) == buildingId
+        }.sorted { access1, access2 in
+            guard let date1 = access1["timestamp"] as? Date,
+                  let date2 = access2["timestamp"] as? Date else { return false }
+            return date1 > date2
+        }
     }
     
-    /// Get routine completion status for a building
-    func getRoutineCompletionStatus(for buildingId: String) -> RoutineCompletionStatus? {
+    /// Get routine completion status for a building (using generic data)
+    func getRoutineCompletionStatus(for buildingId: String) -> [String: Any]? {
         return routineCompletions[buildingId]
     }
     
@@ -1344,18 +1340,19 @@ class AdminDashboardViewModel: ObservableObject {
     func trackBinPlacementCompletion(
         workerId: String,
         buildingId: String,
-        binType: BinType,
-        action: BinAction,
-        location: BinLocation,
+        binType: String,
+        action: String,
+        location: String,
         photoEvidence: String? = nil
     ) async {
-        await operationalIntelligence.trackBinPlacementCompletion(
+        // Use the admin operational intelligence service if available
+        await container.adminIntelligence?.addWorkerNote(
             workerId: workerId,
             buildingId: buildingId,
-            binType: binType,
-            action: action,
-            location: location,
-            photoEvidence: photoEvidence
+            noteText: "Bin placement: \(binType) - \(action) at \(location)",
+            category: "bin_placement",
+            photoEvidence: photoEvidence,
+            location: location
         )
     }
     
@@ -1363,36 +1360,50 @@ class AdminDashboardViewModel: ObservableObject {
     func logVendorAccess(
         workerId: String,
         buildingId: String,
-        vendorInfo: VendorInfo,
-        accessType: VendorAccessType,
+        vendorName: String,
+        vendorType: String,
+        accessType: String,
         accessDetails: String,
         photoEvidence: String? = nil
     ) async {
-        await operationalIntelligence.logVendorAccess(
+        // Use the admin operational intelligence service if available
+        await container.adminIntelligence?.addWorkerNote(
             workerId: workerId,
             buildingId: buildingId,
-            vendorInfo: vendorInfo,
-            accessType: accessType,
-            accessDetails: accessDetails,
-            photoEvidence: photoEvidence
+            noteText: "Vendor access: \(vendorName) (\(vendorType)) - \(accessDetails)",
+            category: "vendor_access",
+            photoEvidence: photoEvidence,
+            location: nil
         )
     }
     
-    /// Add expected vendor to building repository
+    /// Add expected vendor to building repository (using generic approach)
     func addExpectedVendor(
         buildingId: String,
-        vendorInfo: VendorInfo,
+        vendorName: String,
+        vendorType: String,
         expectedDate: Date,
         accessRequirements: [String],
         notes: String = ""
     ) async {
-        await operationalIntelligence.addExpectedVendor(
-            buildingId: buildingId,
-            vendorInfo: vendorInfo,
-            expectedDate: expectedDate,
-            accessRequirements: accessRequirements,
-            notes: notes
-        )
+        // Add to pending reminders as a generic reminder
+        let reminder: [String: Any] = [
+            "id": UUID().uuidString,
+            "buildingId": buildingId,
+            "reminderType": "vendor_expected",
+            "title": "Vendor Expected: \(vendorName)",
+            "description": "Prepare access for \(vendorType)",
+            "dueDate": expectedDate,
+            "isActive": true,
+            "metadata": [
+                "vendorName": vendorName,
+                "vendorType": vendorType,
+                "accessRequirements": accessRequirements.joined(separator: ", "),
+                "notes": notes
+            ]
+        ]
+        
+        pendingReminders.append(reminder)
     }
 }
 

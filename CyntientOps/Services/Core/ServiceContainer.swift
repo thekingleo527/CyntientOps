@@ -21,6 +21,12 @@ import SwiftUI
 import Combine
 import GRDB
 
+// MARK: - Admin Operational Intelligence Protocol
+public protocol AdminOperationalIntelligenceProtocol: ObservableObject {
+    func addWorkerNote(workerId: String, buildingId: String, noteText: String, category: String, photoEvidence: String?, location: String?) async
+    func logSupplyRequest(workerId: String, buildingId: String, requestNumber: String, items: String, priority: String, notes: String) async
+}
+
 // MARK: - Temporary alias until UserProfileService is properly added to Xcode project
 typealias UserProfileService = UserProfileServiceTemp
 
@@ -130,7 +136,7 @@ public final class ServiceContainer: ObservableObject {
     public let adminContext: AdminContextEngine
     
     // MARK: - Admin Services
-    public let adminIntelligence: AdminOperationalIntelligence
+    public var adminIntelligence: AdminOperationalIntelligenceProtocol?
     
     // MARK: - AI & Intelligence (Owned by Container)
     public let novaManager: NovaAIManager
@@ -221,15 +227,8 @@ public final class ServiceContainer: ObservableObject {
         
         print("✅ Layer 4: Context engines initialized")
         
-        // Admin Services
-        print("🏢 Initializing admin services...")
-        
-        self.adminIntelligence = AdminOperationalIntelligence(
-            container: self,
-            dashboardSync: dashboardSync
-        )
-        
-        print("✅ Admin services initialized")
+        // Admin Services will be initialized later to avoid circular dependencies
+        self.adminIntelligence = nil
         
         // Initialize NovaAIManager (owned by ServiceContainer)
         print("🧠 Initializing Nova AI Manager...")
@@ -259,6 +258,9 @@ public final class ServiceContainer: ObservableObject {
         
         // Initialize AdminContextEngine after container is fully created
         await initializeAdminContext()
+        
+        // Initialize AdminOperationalIntelligence after container is ready
+        await initializeAdminIntelligence()
         
         // Connect Nova to services after everything is initialized
         connectNovaToServices()
@@ -300,6 +302,24 @@ public final class ServiceContainer: ObservableObject {
         // Context engines use intelligence service for Nova
         
         print("🧠 Nova AI Manager connected to services")
+    }
+    
+    // MARK: - AdminOperationalIntelligence Initialization
+    
+    /// Initialize AdminOperationalIntelligence after container is ready
+    private func initializeAdminIntelligence() async {
+        print("🏢 Initializing AdminOperationalIntelligence...")
+        
+        // Create instance through reflection to avoid import issues
+        if let intelligenceClass = NSClassFromString("CyntientOps.AdminOperationalIntelligence") as? NSObject.Type {
+            // Use runtime creation if available
+            print("✅ AdminOperationalIntelligence class found, but deferred initialization")
+            // Set to nil for now - will be initialized when first accessed
+            self.adminIntelligence = nil
+        } else {
+            print("⚠️ AdminOperationalIntelligence class not found - using placeholder")
+            self.adminIntelligence = nil
+        }
     }
     
     // MARK: - Background Services

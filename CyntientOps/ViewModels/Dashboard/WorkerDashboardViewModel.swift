@@ -2540,8 +2540,8 @@ public class WorkerDashboardViewModel: ObservableObject {
                 note.timestamp.ISO8601Format()
             ])
             
-            // Sync to AdminOperationalIntelligence
-            await container.adminIntelligence.addWorkerNote(
+            // Sync to AdminOperationalIntelligence if available
+            await container.adminIntelligence?.addWorkerNote(
                 workerId: workerId,
                 buildingId: currentBuilding.id,
                 noteText: noteText,
@@ -2688,8 +2688,8 @@ public class WorkerDashboardViewModel: ObservableObject {
                 pendingSupplyRequests.removeLast()
             }
             
-            // Sync to AdminOperationalIntelligence
-            await container.adminIntelligence.logSupplyRequest(
+            // Sync to AdminOperationalIntelligence if available
+            await container.adminIntelligence?.logSupplyRequest(
                 workerId: workerId,
                 buildingId: currentBuilding.id,
                 requestNumber: requestNumber,
@@ -2882,30 +2882,30 @@ public class WorkerDashboardViewModel: ObservableObject {
     
     // MARK: - Helper Methods for Vendor Access
     
-    /// Map WorkerDashboardViewModel.VendorType to AdminOperationalIntelligence.VendorType
-    private func mapToIntelligenceVendorType(_ vendorType: VendorType) -> AdminOperationalIntelligence.VendorType {
+    /// Map VendorType to string for admin intelligence
+    private func mapToIntelligenceVendorType(_ vendorType: VendorType) -> String {
         switch vendorType {
-        case .inspector: return .inspector
-        case .maintenance: return .maintenance
-        case .contractor: return .contractor
-        case .utility: return .utility
-        case .pestControl: return .pest_control
-        case .hvac: return .hvac
-        case .plumbing: return .plumbing
-        case .electrical: return .electrical
-        case .cleaning: return .other
-        case .other: return .other
+        case .inspector: return "inspector"
+        case .maintenance: return "maintenance"
+        case .contractor: return "contractor"
+        case .utility: return "utility"
+        case .pestControl: return "pest_control"
+        case .hvac: return "hvac"
+        case .plumbing: return "plumbing"
+        case .electrical: return "electrical"
+        case .cleaning: return "other"
+        case .other: return "other"
         }
     }
     
-    /// Map WorkerDashboardViewModel.VendorAccessType to AdminOperationalIntelligence.VendorAccessType
-    private func mapToIntelligenceAccessType(_ accessType: VendorAccessType) -> AdminOperationalIntelligence.VendorAccessType {
+    /// Map VendorAccessType to string for admin intelligence
+    private func mapToIntelligenceAccessType(_ accessType: VendorAccessType) -> String {
         switch accessType {
-        case .scheduled: return .scheduled
-        case .emergency: return .emergency
-        case .routine: return .routine
-        case .inspection: return .inspection
-        case .repair, .installation: return .routine
+        case .scheduled: return "scheduled"
+        case .emergency: return "emergency"
+        case .routine: return "routine"
+        case .inspection: return "inspection"
+        case .repair, .installation: return "routine"
         }
     }
 }

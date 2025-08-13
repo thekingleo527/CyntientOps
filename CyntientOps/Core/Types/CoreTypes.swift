@@ -2433,6 +2433,262 @@ public struct CoreTypes {
         private init() {}
     }
     
+    // MARK: - Admin Task Scheduling Types
+    
+    /// Enhanced admin task scheduling with smart worker calendar integration
+    public struct AdminTaskSchedule: Identifiable, Codable {
+        public let id: String
+        public let taskId: String
+        public let scheduledDateTime: Date
+        public let assignedWorkerId: String?
+        public let buildingId: String
+        public let createdBy: String // Admin ID
+        public let priority: TaskUrgency
+        public let estimatedDuration: TimeInterval
+        public let requiresWorkerConfirmation: Bool
+        public let isRecurring: Bool
+        public let recurrencePattern: TaskRecurrencePattern?
+        public var status: TaskScheduleStatus
+        public let smartSchedulingEnabled: Bool // For dynamic worker schedule updates
+        public var workerNotified: Bool
+        public var workerConfirmedAt: Date?
+        public let createdAt: Date
+        public var updatedAt: Date
+        
+        public init(
+            id: String = UUID().uuidString,
+            taskId: String,
+            scheduledDateTime: Date,
+            assignedWorkerId: String? = nil,
+            buildingId: String,
+            createdBy: String,
+            priority: TaskUrgency = .medium,
+            estimatedDuration: TimeInterval = 3600, // 1 hour default
+            requiresWorkerConfirmation: Bool = false,
+            isRecurring: Bool = false,
+            recurrencePattern: TaskRecurrencePattern? = nil,
+            status: TaskScheduleStatus = .scheduled,
+            smartSchedulingEnabled: Bool = true,
+            workerNotified: Bool = false,
+            workerConfirmedAt: Date? = nil,
+            createdAt: Date = Date(),
+            updatedAt: Date = Date()
+        ) {
+            self.id = id
+            self.taskId = taskId
+            self.scheduledDateTime = scheduledDateTime
+            self.assignedWorkerId = assignedWorkerId
+            self.buildingId = buildingId
+            self.createdBy = createdBy
+            self.priority = priority
+            self.estimatedDuration = estimatedDuration
+            self.requiresWorkerConfirmation = requiresWorkerConfirmation
+            self.isRecurring = isRecurring
+            self.recurrencePattern = recurrencePattern
+            self.status = status
+            self.smartSchedulingEnabled = smartSchedulingEnabled
+            self.workerNotified = workerNotified
+            self.workerConfirmedAt = workerConfirmedAt
+            self.createdAt = createdAt
+            self.updatedAt = updatedAt
+        }
+    }
+    
+    /// Task schedule status for admin scheduling
+    public enum TaskScheduleStatus: String, Codable, CaseIterable {
+        case scheduled = "scheduled"
+        case confirmed = "confirmed"
+        case inProgress = "in_progress"
+        case completed = "completed"
+        case cancelled = "cancelled"
+        case rescheduled = "rescheduled"
+        case workerPending = "worker_pending" // Awaiting worker confirmation
+        
+        public var displayName: String {
+            switch self {
+            case .scheduled: return "Scheduled"
+            case .confirmed: return "Confirmed"
+            case .inProgress: return "In Progress"
+            case .completed: return "Completed"
+            case .cancelled: return "Cancelled"
+            case .rescheduled: return "Rescheduled"
+            case .workerPending: return "Pending Worker Confirmation"
+            }
+        }
+        
+        public var color: String {
+            switch self {
+            case .scheduled: return "blue"
+            case .confirmed: return "green"
+            case .inProgress: return "orange"
+            case .completed: return "green"
+            case .cancelled: return "red"
+            case .rescheduled: return "yellow"
+            case .workerPending: return "purple"
+            }
+        }
+    }
+    
+    /// Recurrence patterns for admin task scheduling
+    public enum TaskRecurrencePattern: String, Codable, CaseIterable {
+        case daily = "daily"
+        case weekly = "weekly"
+        case biweekly = "biweekly"
+        case monthly = "monthly"
+        case quarterly = "quarterly"
+        case custom = "custom"
+        
+        public var displayName: String {
+            switch self {
+            case .daily: return "Daily"
+            case .weekly: return "Weekly"
+            case .biweekly: return "Bi-Weekly"
+            case .monthly: return "Monthly"
+            case .quarterly: return "Quarterly"
+            case .custom: return "Custom Pattern"
+            }
+        }
+    }
+    
+    /// Smart scheduling context for worker calendar integration
+    public struct WorkerScheduleContext: Codable {
+        public let workerId: String
+        public let currentSchedule: [AdminTaskSchedule]
+        public let availabilityWindows: [AvailabilityWindow]
+        public let preferredWorkingHours: WorkingHours?
+        public let buildingAssignments: [String] // Building IDs worker is assigned to
+        public let conflictingTasks: [AdminTaskSchedule]
+        public let recommendedSlots: [ScheduleSlot]
+        public let lastUpdated: Date
+        
+        public init(
+            workerId: String,
+            currentSchedule: [AdminTaskSchedule] = [],
+            availabilityWindows: [AvailabilityWindow] = [],
+            preferredWorkingHours: WorkingHours? = nil,
+            buildingAssignments: [String] = [],
+            conflictingTasks: [AdminTaskSchedule] = [],
+            recommendedSlots: [ScheduleSlot] = [],
+            lastUpdated: Date = Date()
+        ) {
+            self.workerId = workerId
+            self.currentSchedule = currentSchedule
+            self.availabilityWindows = availabilityWindows
+            self.preferredWorkingHours = preferredWorkingHours
+            self.buildingAssignments = buildingAssignments
+            self.conflictingTasks = conflictingTasks
+            self.recommendedSlots = recommendedSlots
+            self.lastUpdated = lastUpdated
+        }
+    }
+    
+    /// Worker availability window
+    public struct AvailabilityWindow: Identifiable, Codable {
+        public let id: String
+        public let startTime: Date
+        public let endTime: Date
+        public let dayOfWeek: Int // 1=Sunday, 2=Monday, etc.
+        public let isRecurring: Bool
+        public let buildingId: String?
+        
+        public init(
+            id: String = UUID().uuidString,
+            startTime: Date,
+            endTime: Date,
+            dayOfWeek: Int,
+            isRecurring: Bool = true,
+            buildingId: String? = nil
+        ) {
+            self.id = id
+            self.startTime = startTime
+            self.endTime = endTime
+            self.dayOfWeek = dayOfWeek
+            self.isRecurring = isRecurring
+            self.buildingId = buildingId
+        }
+    }
+    
+    /// Worker working hours preferences
+    public struct WorkingHours: Codable {
+        public let startHour: Int // 24-hour format
+        public let endHour: Int // 24-hour format
+        public let workDays: [Int] // Days of week (1=Sunday, 2=Monday, etc.)
+        public let timeZone: String
+        public let isFlexible: Bool
+        
+        public init(
+            startHour: Int = 8,
+            endHour: Int = 17,
+            workDays: [Int] = [2, 3, 4, 5, 6], // Monday-Friday
+            timeZone: String = TimeZone.current.identifier,
+            isFlexible: Bool = true
+        ) {
+            self.startHour = startHour
+            self.endHour = endHour
+            self.workDays = workDays
+            self.timeZone = timeZone
+            self.isFlexible = isFlexible
+        }
+    }
+    
+    /// Recommended schedule slot from smart scheduling
+    public struct ScheduleSlot: Identifiable, Codable {
+        public let id: String
+        public let startTime: Date
+        public let endTime: Date
+        public let confidence: Double // 0.0 - 1.0
+        public let reasoning: String
+        public let conflictLevel: ConflictLevel
+        public let travelTime: TimeInterval? // Time to travel to building
+        public let buildingId: String
+        
+        public init(
+            id: String = UUID().uuidString,
+            startTime: Date,
+            endTime: Date,
+            confidence: Double,
+            reasoning: String,
+            conflictLevel: ConflictLevel = .none,
+            travelTime: TimeInterval? = nil,
+            buildingId: String
+        ) {
+            self.id = id
+            self.startTime = startTime
+            self.endTime = endTime
+            self.confidence = confidence
+            self.reasoning = reasoning
+            self.conflictLevel = conflictLevel
+            self.travelTime = travelTime
+            self.buildingId = buildingId
+        }
+    }
+    
+    /// Schedule conflict levels
+    public enum ConflictLevel: String, Codable, CaseIterable {
+        case none = "none"
+        case minor = "minor"
+        case major = "major"
+        case critical = "critical"
+        
+        public var displayName: String {
+            switch self {
+            case .none: return "No Conflicts"
+            case .minor: return "Minor Conflicts"
+            case .major: return "Major Conflicts"
+            case .critical: return "Critical Conflicts"
+            }
+        }
+        
+        public var color: String {
+            switch self {
+            case .none: return "green"
+            case .minor: return "yellow"
+            case .major: return "orange"
+            case .critical: return "red"
+            }
+        }
+    }
+    
 } // END of CoreTypes namespace
 
 // MARK: - Global Type Aliases for Direct Access
@@ -2486,13 +2742,24 @@ public typealias AISuggestion = CoreTypes.AISuggestion
 
 // Photo Types
 public typealias ActionEvidence = CoreTypes.ActionEvidence
-// Note: Removed duplicate typealiases to prevent compilation errors
-// Use CoreTypes.TypeName for all type references
 
+// Admin Task Scheduling Types
+public typealias AdminTaskSchedule = CoreTypes.AdminTaskSchedule
+public typealias TaskScheduleStatus = CoreTypes.TaskScheduleStatus
+public typealias TaskRecurrencePattern = CoreTypes.TaskRecurrencePattern
+public typealias WorkerScheduleContext = CoreTypes.WorkerScheduleContext
+public typealias AvailabilityWindow = CoreTypes.AvailabilityWindow
+public typealias WorkingHours = CoreTypes.WorkingHours
+public typealias ScheduleSlot = CoreTypes.ScheduleSlot
+public typealias ConflictLevel = CoreTypes.ConflictLevel
 
 // Misc Types
 public typealias SkillLevel = CoreTypes.SkillLevel
 public typealias DataHealthStatus = CoreTypes.DataHealthStatus
 public typealias RealtimeMetrics = CoreTypes.RealtimeMetrics
+
+// MARK: - AdminOperationalIntelligence Types (Direct Access)
+// Note: These types are already public in AdminOperationalIntelligence.swift
+// The ViewModels should import that file directly to access these types
 
 // MARK: - Report Types (Defined in AdminReportsView)

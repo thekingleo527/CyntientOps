@@ -558,7 +558,6 @@ struct AdminDashboardView: View {
     }
     
     // MARK: - Admin Header
-    
     private var adminHeader: some View {
         HStack {
             AdminDashboardHeader(
