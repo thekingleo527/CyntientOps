@@ -223,6 +223,136 @@ class AdminDashboardViewModel: ObservableObject {
         refreshTimer?.invalidate()
     }
     
+    // MARK: - Property Data Generation Methods
+    // Note: Placed early in class to avoid Swift compiler resolution issues
+    
+    /// Generate realistic NYC property data for buildings
+    func generatePropertyDataForBuilding(_ building: CoreTypes.NamedCoordinate, coordinate: CLLocationCoordinate2D) async -> CoreTypes.NYCPropertyData? {
+        print("🔢 Generating property data for: \(building.name)")
+        
+        // Generate BBL based on coordinate (simplified approach)
+        let bbl = self.generateBBLFromCoordinate(coordinate)
+        
+        // Generate realistic financial data based on building location and size
+        let financialData = self.generateFinancialData(for: building)
+        
+        // Generate compliance data
+        let complianceData = self.generateComplianceData(for: building)
+        
+        // Generate violations data (realistic but generated)
+        let violations = self.generateViolationsData(for: building)
+        
+        let propertyData = CoreTypes.NYCPropertyData(
+            bbl: bbl,
+            buildingId: building.id,
+            financialData: financialData,
+            complianceData: complianceData,
+            violations: violations
+        )
+        
+        print("✅ Generated property data for \(building.name): BBL \(bbl), Value $\(Int(financialData.marketValue).formatted(.number))")
+        return propertyData
+    }
+    
+    func generateBBLFromCoordinate(_ coordinate: CLLocationCoordinate2D) -> String {
+        // Manhattan (most of our buildings)
+        if coordinate.latitude > 40.7000 && coordinate.latitude < 40.8000 &&
+           coordinate.longitude > -74.0200 && coordinate.longitude < -73.9000 {
+            let block = Int((coordinate.latitude - 40.7000) * 10000) % 2000 + 1000
+            let lot = Int((coordinate.longitude + 74.0000) * 10000) % 100 + 1
+            return "1\(String(format: "%05d", block))\(String(format: "%04d", lot))"
+        }
+        
+        // Brooklyn
+        if coordinate.latitude > 40.5700 && coordinate.latitude < 40.7400 &&
+           coordinate.longitude > -74.0400 && coordinate.longitude < -73.8000 {
+            let block = Int((coordinate.latitude - 40.5700) * 10000) % 5000 + 1000
+            let lot = Int((coordinate.longitude + 74.0000) * 10000) % 100 + 1
+            return "3\(String(format: "%05d", block))\(String(format: "%04d", lot))"
+        }
+        
+        // Default: Queens
+        let block = Int((coordinate.latitude - 40.6000) * 10000) % 3000 + 1000
+        let lot = Int((coordinate.longitude + 73.9000) * 10000) % 100 + 1
+        return "4\(String(format: "%05d", block))\(String(format: "%04d", lot))"
+    }
+    
+    func generateFinancialData(for building: CoreTypes.NamedCoordinate) -> CoreTypes.PropertyFinancialData {
+        // Generate realistic values based on NYC property market
+        let baseValue = building.name.contains("Museum") ? 15_000_000.0 : 
+                       building.name.contains("17th") ? 8_000_000.0 : 5_000_000.0
+        
+        let marketValue = baseValue + Double.random(in: -1_000_000...3_000_000)
+        let assessedValue = marketValue * 0.6 // NYC assessment ratio
+        
+        // Generate recent tax payments
+        let recentPayments = [
+            CoreTypes.TaxPayment(amount: assessedValue * 0.012, paymentDate: Date().addingTimeInterval(-90 * 24 * 60 * 60), taxYear: "2024"),
+            CoreTypes.TaxPayment(amount: assessedValue * 0.012, paymentDate: Date().addingTimeInterval(-180 * 24 * 60 * 60), taxYear: "2023")
+        ]
+        
+        return CoreTypes.PropertyFinancialData(
+            assessedValue: assessedValue,
+            marketValue: marketValue,
+            recentTaxPayments: recentPayments,
+            activeLiens: [],
+            exemptions: []
+        )
+    }
+    
+    func generateComplianceData(for building: CoreTypes.NamedCoordinate) -> CoreTypes.LocalLawComplianceData {
+        // Generate realistic compliance status
+        let ll97Status: CoreTypes.ComplianceStatus = building.name.contains("Museum") ? .compliant : .pending
+        let ll11Status: CoreTypes.ComplianceStatus = .compliant
+        let ll87Status: CoreTypes.ComplianceStatus = .compliant
+        
+        return CoreTypes.LocalLawComplianceData(
+            ll97Status: ll97Status,
+            ll11Status: ll11Status,
+            ll87Status: ll87Status,
+            ll97NextDue: Date().addingTimeInterval(365 * 24 * 60 * 60),
+            ll11NextDue: nil
+        )
+    }
+    
+    func generateViolationsData(for building: CoreTypes.NamedCoordinate) -> [CoreTypes.PropertyViolation] {
+        // Generate realistic violation data
+        var violations: [CoreTypes.PropertyViolation] = []
+        
+        // Some buildings have more violations than others
+        let violationCount = building.name.contains("Museum") ? 0 : Int.random(in: 0...3)
+        
+        for i in 0..<violationCount {
+            let departments: [CoreTypes.NYCDepartment] = [.hpd, .dob, .dsny]
+            let department = departments.randomElement()!
+            
+            let violation = CoreTypes.PropertyViolation(
+                violationNumber: "\(department.rawValue.uppercased())\(String(format: "%06d", Int.random(in: 100000...999999)))",
+                description: self.getViolationDescription(for: department),
+                severity: .classA,
+                issueDate: Date().addingTimeInterval(-Double.random(in: 0...365) * 24 * 60 * 60),
+                status: .open,
+                department: department
+            )
+            violations.append(violation)
+        }
+        
+        return violations
+    }
+    
+    func getViolationDescription(for department: CoreTypes.NYCDepartment) -> String {
+        switch department {
+        case .hpd:
+            return "FAILURE TO MAINTAIN BUILDING IN CLEAN/SANITARY CONDITION"
+        case .dob:
+            return "WORK WITHOUT PERMIT"
+        case .dsny:
+            return "IMPROPER WASTE DISPOSAL"
+        case .dof:
+            return "TAX PAYMENT ISSUE"
+        }
+    }
+    
     // MARK: - Core Data Loading Methods (Using Real Data)
     
     /// Load all dashboard data from real sources
@@ -1969,135 +2099,6 @@ struct AdminPortfolioSummary {
             color: .red,
             description: NSLocalizedString("Critical attention needed", comment: "Critical efficiency status")
         )
-    }
-    
-    // MARK: - Property Data Generation
-    
-    /// Generate realistic NYC property data for buildings
-    func generatePropertyDataForBuilding(_ building: CoreTypes.NamedCoordinate, coordinate: CLLocationCoordinate2D) async -> CoreTypes.NYCPropertyData? {
-        print("🔢 Generating property data for: \(building.name)")
-        
-        // Generate BBL based on coordinate (simplified approach)
-        let bbl = self.generateBBLFromCoordinate(coordinate)
-        
-        // Generate realistic financial data based on building location and size
-        let financialData = self.generateFinancialData(for: building)
-        
-        // Generate compliance data
-        let complianceData = self.generateComplianceData(for: building)
-        
-        // Generate violations data (realistic but generated)
-        let violations = self.generateViolationsData(for: building)
-        
-        let propertyData = CoreTypes.NYCPropertyData(
-            bbl: bbl,
-            buildingId: building.id,
-            financialData: financialData,
-            complianceData: complianceData,
-            violations: violations
-        )
-        
-        print("✅ Generated property data for \(building.name): BBL \(bbl), Value $\(Int(financialData.marketValue).formatted(.number))")
-        return propertyData
-    }
-    
-    func generateBBLFromCoordinate(_ coordinate: CLLocationCoordinate2D) -> String {
-        // Manhattan (most of our buildings)
-        if coordinate.latitude > 40.7000 && coordinate.latitude < 40.8000 &&
-           coordinate.longitude > -74.0200 && coordinate.longitude < -73.9000 {
-            let block = Int((coordinate.latitude - 40.7000) * 10000) % 2000 + 1000
-            let lot = Int((coordinate.longitude + 74.0000) * 10000) % 100 + 1
-            return "1\(String(format: "%05d", block))\(String(format: "%04d", lot))"
-        }
-        
-        // Brooklyn
-        if coordinate.latitude > 40.5700 && coordinate.latitude < 40.7400 &&
-           coordinate.longitude > -74.0400 && coordinate.longitude < -73.8000 {
-            let block = Int((coordinate.latitude - 40.5700) * 10000) % 5000 + 1000
-            let lot = Int((coordinate.longitude + 74.0000) * 10000) % 100 + 1
-            return "3\(String(format: "%05d", block))\(String(format: "%04d", lot))"
-        }
-        
-        // Default: Queens
-        let block = Int((coordinate.latitude - 40.6000) * 10000) % 3000 + 1000
-        let lot = Int((coordinate.longitude + 73.9000) * 10000) % 100 + 1
-        return "4\(String(format: "%05d", block))\(String(format: "%04d", lot))"
-    }
-    
-    func generateFinancialData(for building: CoreTypes.NamedCoordinate) -> CoreTypes.PropertyFinancialData {
-        // Generate realistic values based on NYC property market
-        let baseValue = building.name.contains("Museum") ? 15_000_000.0 : 
-                       building.name.contains("17th") ? 8_000_000.0 : 5_000_000.0
-        
-        let marketValue = baseValue + Double.random(in: -1_000_000...3_000_000)
-        let assessedValue = marketValue * 0.6 // NYC assessment ratio
-        
-        // Generate recent tax payments
-        let recentPayments = [
-            CoreTypes.TaxPayment(amount: assessedValue * 0.012, paymentDate: Date().addingTimeInterval(-90 * 24 * 60 * 60), taxYear: "2024"),
-            CoreTypes.TaxPayment(amount: assessedValue * 0.012, paymentDate: Date().addingTimeInterval(-180 * 24 * 60 * 60), taxYear: "2023")
-        ]
-        
-        return CoreTypes.PropertyFinancialData(
-            assessedValue: assessedValue,
-            marketValue: marketValue,
-            recentTaxPayments: recentPayments,
-            activeLiens: [],
-            exemptions: []
-        )
-    }
-    
-    func generateComplianceData(for building: CoreTypes.NamedCoordinate) -> CoreTypes.LocalLawComplianceData {
-        // Generate realistic compliance status
-        let ll97Status: CoreTypes.ComplianceStatus = building.name.contains("Museum") ? .compliant : .pending
-        let ll11Status: CoreTypes.ComplianceStatus = .compliant
-        let ll87Status: CoreTypes.ComplianceStatus = .compliant
-        
-        return CoreTypes.LocalLawComplianceData(
-            ll97Status: ll97Status,
-            ll11Status: ll11Status,
-            ll87Status: ll87Status,
-            ll97NextDue: Date().addingTimeInterval(365 * 24 * 60 * 60),
-            ll11NextDue: nil
-        )
-    }
-    
-    func generateViolationsData(for building: CoreTypes.NamedCoordinate) -> [CoreTypes.PropertyViolation] {
-        // Generate realistic violation data
-        var violations: [CoreTypes.PropertyViolation] = []
-        
-        // Some buildings have more violations than others
-        let violationCount = building.name.contains("Museum") ? 0 : Int.random(in: 0...3)
-        
-        for i in 0..<violationCount {
-            let departments: [CoreTypes.NYCDepartment] = [.hpd, .dob, .dsny]
-            let department = departments.randomElement()!
-            
-            let violation = CoreTypes.PropertyViolation(
-                violationNumber: "\(department.rawValue.uppercased())\(String(format: "%06d", Int.random(in: 100000...999999)))",
-                description: self.getViolationDescription(for: department),
-                severity: .classA,
-                issueDate: Date().addingTimeInterval(-Double.random(in: 0...365) * 24 * 60 * 60),
-                status: .open,
-                department: department
-            )
-            violations.append(violation)
-        }
-        
-        return violations
-    }
-    
-    func getViolationDescription(for department: CoreTypes.NYCDepartment) -> String {
-        switch department {
-        case .hpd:
-            return "FAILURE TO MAINTAIN BUILDING IN CLEAN/SANITARY CONDITION"
-        case .dob:
-            return "WORK WITHOUT PERMIT"
-        case .dsny:
-            return "IMPROPER WASTE DISPOSAL"
-        case .dof:
-            return "TAX PAYMENT ISSUE"
-        }
     }
 }
 
