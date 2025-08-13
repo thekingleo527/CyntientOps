@@ -177,28 +177,28 @@ struct AdminDashboardView: View {
                 GridItem(.flexible()),
                 GridItem(.flexible())
             ], spacing: 12) {
-                MetricCard(
+                AdminMetricCard(
                     title: "Active Workers",
                     value: "\(viewModel.activeWorkers.filter { $0.isClockedIn }.count)/\(viewModel.activeWorkers.count)",
                     icon: "person.3.fill",
                     color: activeWorkerColor
                 )
                 
-                MetricCard(
+                AdminMetricCard(
                     title: "Today's Tasks",
                     value: "\(getTodaysCompletedTasks())/\(getTodaysTaskCount())",
                     icon: "checklist",
                     color: taskProgressColor
                 )
                 
-                MetricCard(
+                AdminMetricCard(
                     title: "Buildings",
                     value: "\(viewModel.portfolioMetrics.totalBuildings)",
                     icon: "building.2.crop.circle",
                     color: .blue
                 )
                 
-                MetricCard(
+                AdminMetricCard(
                     title: "Compliance",
                     value: "\(Int(viewModel.portfolioMetrics.complianceScore))%",
                     icon: "checkmark.shield.fill",
@@ -398,7 +398,7 @@ struct AdminDashboardView: View {
 
 // MARK: - Supporting Views
 
-struct MetricCard: View {
+struct AdminMetricCard: View {
     let title: String
     let value: String
     let icon: String
