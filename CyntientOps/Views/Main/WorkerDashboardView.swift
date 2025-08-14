@@ -226,11 +226,12 @@ struct WorkerDashboardView: View {
     
     // MARK: - Navigation Handlers
     
-    private func handleHeaderRoute(_ route: WorkerHeaderV3B.HeaderRoute) {
+    private func handleHeaderRoute(_ route: WorkerHeaderRoute) {
         switch route {
         case .profile: sheet = .profile
-        case .emergency: sheet = .emergency
-        case .settings: sheet = .settings
+        case .mainMenu: sheet = .profile // Main menu opens profile for now
+        case .clockAction: sheet = .profile // Clock action opens profile for now
+        case .novaChat: sheet = .profile // Nova chat opens profile for now
         }
     }
     
@@ -333,172 +334,6 @@ struct WorkerDashboardView: View {
 
 // MARK: - Worker Header Component
 
-struct WorkerHeaderV3B: View {
-    enum HeaderRoute: Identifiable {
-        case profile, emergency, settings
-        
-        var id: String {
-            switch self {
-            case .profile: return "profile"
-            case .emergency: return "emergency"
-            case .settings: return "settings"
-            }
-        }
-    }
-    
-    let workerName: String
-    let firstName: String
-    let currentBuilding: String
-    let isClockedIn: Bool
-    let clockInTime: Date?
-    let hasUrgentTasks: Bool
-    let onRoute: (HeaderRoute) -> Void
-    
-    var body: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 20) {
-                // Left: CyntientOps Logo
-                Button(action: { /* Handle logo tap */ }) {
-                    HStack(spacing: 8) {
-                        // CyntientOps Logo/Brand
-                        ZStack {
-                            Circle()
-                                .fill(CyntientOpsDesign.DashboardColors.workerPrimary)
-                                .frame(width: 32, height: 32)
-                            
-                            Text("CO")
-                                .font(.system(size: 12, weight: .bold, design: .rounded))
-                                .foregroundColor(.white)
-                        }
-                        
-                        VStack(alignment: .leading, spacing: 1) {
-                            Text("CYNTIENT")
-                                .font(.system(size: 11, weight: .bold, design: .rounded))
-                                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-                            
-                            Text("OPS")
-                                .font(.system(size: 8, weight: .medium))
-                                .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
-                        }
-                    }
-                }
-                .buttonStyle(PlainButtonStyle())
-                
-                Spacer()
-                
-                // Center: Nova Manager Avatar
-                Button(action: { /* Handle Nova chat */ }) {
-                    VStack(spacing: 4) {
-                        // Use the proper NovaAvatar component
-                        NovaAvatar(
-                            size: .medium,
-                            isActive: true,
-                            hasUrgentInsights: hasUrgentTasks,
-                            isBusy: false,
-                            onTap: { /* Handle Nova */ },
-                            onLongPress: { }
-                        )
-                        .frame(width: 40, height: 40)
-                        
-                        // Nova Label
-                        VStack(spacing: 1) {
-                            Text("NOVA")
-                                .font(.system(size: 9, weight: .bold, design: .rounded))
-                                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-                            
-                            Text("AI Assistant")
-                                .font(.system(size: 7, weight: .medium))
-                                .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
-                        }
-                    }
-                }
-                .buttonStyle(PlainButtonStyle())
-                
-                Spacer()
-                
-                // Right: Worker Profile
-                Button(action: { onRoute(.profile) }) {
-                    HStack(spacing: 12) {
-                        // Worker Info
-                        VStack(alignment: .trailing, spacing: 2) {
-                            Text(workerName)
-                                .font(.system(size: 13, weight: .semibold, design: .rounded))
-                                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-                                .lineLimit(1)
-                            
-                            HStack(spacing: 4) {
-                                Circle()
-                                    .fill(clockInStatusColor)
-                                    .frame(width: 6, height: 6)
-                                
-                                Text(clockInStatusText)
-                                    .font(.system(size: 10, weight: .medium))
-                                    .foregroundColor(clockInStatusColor)
-                                
-                                if let time = clockInTime {
-                                    Text("•")
-                                        .font(.system(size: 8))
-                                        .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
-                                    
-                                    Text(time, style: .time)
-                                        .font(.system(size: 10, weight: .medium))
-                                        .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
-                                }
-                            }
-                        }
-                        
-                        // Worker Profile Avatar
-                        ProfileChip(
-                            name: workerName,
-                            initials: getInitials(workerName),
-                            photoURL: nil,
-                            tap: { onRoute(.profile) }
-                        )
-                    }
-                }
-                .buttonStyle(PlainButtonStyle())
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .frame(height: 68)
-            
-            Divider()
-                .opacity(0.3)
-        }
-        .background(CyntientOpsDesign.DashboardColors.baseBackground)
-    }
-    
-    private var clockInStatusColor: Color {
-        if isClockedIn {
-            return CyntientOpsDesign.DashboardColors.success
-        } else if shouldBeWorking() {
-            return CyntientOpsDesign.DashboardColors.warning
-        } else {
-            return CyntientOpsDesign.DashboardColors.secondaryText
-        }
-    }
-    
-    private var clockInStatusText: String {
-        if isClockedIn {
-            return currentBuilding == "Not Clocked In" ? "Clocked In" : currentBuilding
-        } else {
-            return "Off Duty"
-        }
-    }
-    
-    private func shouldBeWorking() -> Bool {
-        let calendar = Calendar.current
-        let hour = calendar.component(.hour, from: Date())
-        return hour >= 7 && hour < 17
-    }
-    
-    private func getInitials(_ name: String) -> String {
-        let components = name.components(separatedBy: " ")
-        let first = String(components.first?.first ?? "W")
-        let last = components.count > 1 ? String(components.last?.first ?? "") : ""
-        return "\(first)\(last)".uppercased()
-    }
-}
 
 // MARK: - Worker Real-time Hero Card
 
@@ -509,7 +344,7 @@ struct WorkerRealTimeHeroCard: View {
     let completedTasksCount: Int
     let isClockedIn: Bool
     let clockInTime: Date?
-    let weather: CoreTypes.WeatherInfo?
+    let weather: CoreTypes.WeatherData?
     let onBuildingTap: () -> Void
     let onScheduleTap: () -> Void
     let onTasksTap: () -> Void
@@ -846,7 +681,7 @@ struct WorkerMetricPill: View {
 }
 
 struct WorkerWeatherStrip: View {
-    let weather: CoreTypes.WeatherInfo
+    let weather: CoreTypes.WeatherData
     
     var body: some View {
         HStack {

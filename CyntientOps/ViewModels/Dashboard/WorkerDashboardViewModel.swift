@@ -89,10 +89,10 @@ public class WorkerDashboardViewModel: ObservableObject {
                 id: id,
                 title: title,
                 description: description,
+                dueDate: dueDate,
                 category: CoreTypes.TaskCategory(rawValue: category.lowercased()),
                 urgency: mapUrgencyToTaskUrgency(),
                 buildingId: buildingId,
-                dueDate: dueDate,
                 requiresPhoto: requiresPhoto,
                 estimatedDuration: 3600 // Default 1 hour in seconds
             )
