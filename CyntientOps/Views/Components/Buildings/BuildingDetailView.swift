@@ -314,9 +314,9 @@ struct BuildingDetailView: View {
         VStack(spacing: 16) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 8) {
-                    InfoRow(icon: "square", label: "Size", value: "\(viewModel.buildingSize.formatted()) sq ft")
-                    InfoRow(icon: "building.columns", label: "Floors", value: "\(viewModel.floors)")
-                    InfoRow(icon: "door.left.hand.open", label: "Units", value: "\(viewModel.units)")
+                    InfoRow(icon: "square", label: "Size", value: "\(viewModel.totalSquareFootage.formatted()) sq ft")
+                    InfoRow(icon: "building.columns", label: "Floors", value: "\(viewModel.totalFloors)")
+                    InfoRow(icon: "door.left.hand.open", label: "Units", value: "\(viewModel.totalUnits)")
                 }
                 
                 Spacer()
@@ -2102,17 +2102,19 @@ class BuildingDetailVM: ObservableObject {
                     if !buildingManager.isEmpty {
                         primaryContact = BuildingContact(
                             name: buildingManager,
-                            phone: "+1 (555) 123-4567",
+                            role: "Building Manager",
                             email: "\(buildingManager.lowercased().replacingOccurrences(of: " ", with: "."))@cyntientops.com",
-                            role: "Building Manager"
+                            phone: "+1 (555) 123-4567",
+                            isEmergencyContact: false
                         )
                     }
                     
                     emergencyContact = BuildingContact(
                         name: "Emergency Services",
+                        role: "Emergency",
+                        email: "emergency@cyntientops.com",
                         phone: "911",
-                        email: "emergency@cyntientops.com", 
-                        role: "Emergency"
+                        isEmergencyContact: true
                     )
                 }
             }
