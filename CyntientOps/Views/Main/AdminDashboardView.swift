@@ -292,7 +292,7 @@ struct AdminDashboardView: View {
     
     private var complianceCenterSheet: some View {
         NavigationView {
-            AdminComplianceCenter()
+            AdminComplianceOverviewView()
                 .navigationBarTitleDisplayMode(NavigationBarItem.TitleDisplayMode.large)
                 .toolbar {
                     ToolbarItem(placement: .navigationBarTrailing) {
