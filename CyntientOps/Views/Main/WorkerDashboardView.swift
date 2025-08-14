@@ -230,7 +230,7 @@ struct WorkerDashboardView: View {
         switch route {
         case .profile: sheet = .profile
         case .mainMenu: sheet = .profile // Main menu opens profile for now
-        case .clockAction: sheet = .profile // Clock action opens profile for now
+        case .clockAction: sheet = .profile // Clock action opens profile for now  
         case .novaChat: sheet = .profile // Nova chat opens profile for now
         }
     }
@@ -300,7 +300,7 @@ struct WorkerDashboardView: View {
             
         case .schedule:
             WorkerScheduleView(
-                weeklySchedule: viewModel.weeklySchedule,
+                weeklySchedule: viewModel.scheduleWeek,
                 assignedBuildings: viewModel.assignedBuildings
             )
             .navigationTitle("My Schedule")
@@ -320,57 +320,13 @@ struct WorkerDashboardView: View {
                 .navigationBarTitleDisplayMode(.inline)
                 
         case .settings:
-            WorkerPreferencesView()
+            WorkerPreferencesView(workerId: viewModel.worker?.id ?? "")
                 .navigationTitle("Settings")
                 .navigationBarTitleDisplayMode(.large)
         }
     }
     
     // MARK: - Helper Properties and Functions
-    
-    private func getFirstName() -> String {
-        guard let fullName = viewModel.worker?.name else {
-            return "Worker"
-        }
-        return String(fullName.split(separator: " ").first ?? "Worker")
-    }
-    
-    private func handleHeaderRoute(_ route: WorkerHeaderRoute) {
-        switch route {
-        case .profile:
-            sheet = .profile
-        case .schedule:
-            sheet = .schedule
-        case .routes:
-            sheet = .routes
-        case .emergency:
-            sheet = .emergency
-        }
-    }
-    
-    private func hasUrgentTasks() -> Bool {
-        return viewModel.todaysTasks.contains { task in
-            task.urgency == .urgent || task.urgency == .critical || task.urgency == .emergency
-        }
-    }
-    
-    private var urgentTasksCount: Int {
-        return viewModel.todaysTasks.filter { task in
-            task.urgency == .urgent || task.urgency == .critical || task.urgency == .emergency
-        }.count
-    }
-    
-    private func formatTime() -> String {
-        let formatter = DateFormatter()
-        formatter.timeStyle = .short
-        return formatter.string(from: Date())
-    }
-    
-    private func shouldBeWorking() -> Bool {
-        let calendar = Calendar.current
-        let hour = calendar.component(.hour, from: Date())
-        return hour >= 7 && hour < 17
-    }
 }
 
 // MARK: - Worker Header Component
@@ -439,9 +395,9 @@ struct WorkerRealTimeHeroCard: View {
                     }
                     
                     // Urgent Tasks Alert (if any)
-                    if hasUrgentTasks {
+                    if hasUrgentTasks() {
                         WorkerUrgentAlert(
-                            urgentCount: urgentTasksCount,
+                            urgentCount: urgentTasksCount(),
                             onTap: onTasksTap
                         )
                     }
@@ -559,7 +515,7 @@ struct WorkerRealTimeHeroCard: View {
     }
     
     private var liveStatusColor: Color {
-        if hasUrgentTasks {
+        if hasUrgentTasks() {
             return CyntientOpsDesign.DashboardColors.critical
         } else if isClockedIn {
             return CyntientOpsDesign.DashboardColors.success
@@ -576,6 +532,39 @@ struct WorkerRealTimeHeroCard: View {
         } else {
             return "\(remaining) Remaining"
         }
+    }
+    
+    private func hasUrgentTasks() -> Bool {
+        return todaysTasks.contains { task in
+            task.urgency == .urgent || task.urgency == .critical || task.urgency == .emergency
+        }
+    }
+    
+    private func urgentTasksCount() -> Int {
+        return todaysTasks.filter { task in
+            task.urgency == .urgent || task.urgency == .critical || task.urgency == .emergency
+        }.count
+    }
+    
+    private func formatTime() -> String {
+        let formatter = DateFormatter()
+        formatter.timeStyle = .short
+        return formatter.string(from: Date())
+    }
+    
+    private var scheduleSubtitle: String {
+        if let clockInTime = clockInTime {
+            let formatter = DateFormatter()
+            formatter.timeStyle = .short
+            return "Since \(formatter.string(from: clockInTime))"
+        }
+        return "Not Clocked In"
+    }
+    
+    private func shouldBeWorking() -> Bool {
+        let calendar = Calendar.current
+        let hour = calendar.component(.hour, from: Date())
+        return hour >= 7 && hour < 17
     }
 }
 
@@ -889,7 +878,7 @@ struct WorkerUrgentItem: View {
 struct WorkerNovaIntelligenceBar: View {
     @Binding var selectedTab: WorkerDashboardView.NovaTab
     let todaysTasks: [WorkerDashboardViewModel.TaskItem]
-    let weeklySchedule: [String] // Will be updated with real schedule data
+    let weeklySchedule: [WorkerDashboardViewModel.DaySchedule]
     let currentBuilding: WorkerDashboardViewModel.BuildingSummary?
     let assignedBuildings: [WorkerDashboardViewModel.BuildingSummary]
     let allBuildings: [WorkerDashboardViewModel.BuildingSummary] // For coverage
@@ -1108,7 +1097,7 @@ struct WorkerTodaysTasksContent: View {
 struct WorkerWeeklyScheduleContent: View {
     let currentBuilding: WorkerDashboardViewModel.BuildingSummary?
     let assignedBuildings: [WorkerDashboardViewModel.BuildingSummary]
-    let weeklySchedule: [String]
+    let weeklySchedule: [WorkerDashboardViewModel.DaySchedule]
     
     var body: some View {
         VStack(spacing: 12) {
@@ -1138,11 +1127,11 @@ struct WorkerWeeklyScheduleContent: View {
                     .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 
-                ForEach(getDaysOfWeek(), id: \.self) { day in
+                ForEach(getScheduleDays(), id: \.date) { daySchedule in
                     WorkerScheduleRow(
-                        day: day,
-                        buildings: getAssignedBuildingsForDay(day),
-                        isToday: isToday(day)
+                        day: formatDayName(daySchedule.date),
+                        buildings: getAssignedBuildingsForDay(daySchedule),
+                        isToday: isToday(daySchedule)
                     )
                 }
             }
@@ -1150,27 +1139,26 @@ struct WorkerWeeklyScheduleContent: View {
         }
     }
     
-    private func getDaysOfWeek() -> [String] {
-        return ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+    private func getScheduleDays() -> [WorkerDashboardViewModel.DaySchedule] {
+        return weeklySchedule.prefix(5).map { $0 }  // Workweek only
     }
     
-    private func getAssignedBuildingsForDay(_ day: String) -> [String] {
-        // In real implementation, this would fetch from OperationalDataManager
-        // For now, return sample data based on assigned buildings
-        switch day {
-        case "Monday", "Wednesday", "Friday":
-            return Array(assignedBuildings.prefix(2)).map { $0.name }
-        case "Tuesday", "Thursday":
-            return Array(assignedBuildings.suffix(2)).map { $0.name }
-        default:
-            return []
-        }
+    private func getAssignedBuildingsForDay(_ daySchedule: WorkerDashboardViewModel.DaySchedule) -> [String] {
+        // Extract building names from schedule items
+        let buildingNames = Set(daySchedule.items.compactMap { item in
+            assignedBuildings.first { $0.id == item.buildingId }?.name
+        })
+        return Array(buildingNames)
     }
     
-    private func isToday(_ day: String) -> Bool {
+    private func isToday(_ daySchedule: WorkerDashboardViewModel.DaySchedule) -> Bool {
+        return Calendar.current.isDateInToday(daySchedule.date)
+    }
+    
+    private func formatDayName(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "EEEE"
-        return formatter.string(from: Date()) == day
+        return formatter.string(from: date)
     }
 }
 
@@ -1727,22 +1715,22 @@ struct WorkerCoverageBuildingChip: View {
 // MARK: - Worker Schedule View
 
 struct WorkerScheduleView: View {
-    let weeklySchedule: [String]
+    let weeklySchedule: [WorkerDashboardViewModel.DaySchedule]
     let assignedBuildings: [WorkerDashboardViewModel.BuildingSummary]
     
     var body: some View {
         ScrollView {
             LazyVStack(spacing: 16) {
-                ForEach(getDaysOfWeek(), id: \.self) { day in
+                ForEach(weeklySchedule.prefix(5), id: \.date) { daySchedule in
                     VStack(alignment: .leading, spacing: 12) {
                         HStack {
-                            Text(day)
+                            Text(formatDayName(daySchedule.date))
                                 .font(.headline)
                                 .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                             
                             Spacer()
                             
-                            if isToday(day) {
+                            if Calendar.current.isDateInToday(daySchedule.date) {
                                 Text("Today")
                                     .font(.caption)
                                     .padding(.horizontal, 8)
@@ -1753,22 +1741,22 @@ struct WorkerScheduleView: View {
                             }
                         }
                         
-                        // Buildings for this day
-                        if !getAssignedBuildingsForDay(day).isEmpty {
+                        // Schedule items for this day
+                        if !daySchedule.items.isEmpty {
                             VStack(alignment: .leading, spacing: 8) {
-                                ForEach(getAssignedBuildingsForDay(day), id: \.self) { buildingName in
+                                ForEach(daySchedule.items, id: \.id) { item in
                                     HStack {
                                         Circle()
                                             .fill(CyntientOpsDesign.DashboardColors.workerAccent)
                                             .frame(width: 8, height: 8)
                                         
-                                        Text(buildingName)
+                                        Text(item.title)
                                             .font(.subheadline)
                                             .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
                                         
                                         Spacer()
                                         
-                                        Text("9:00 AM - 5:00 PM")
+                                        Text("\(formatTime(item.startTime)) - \(formatTime(item.endTime))")
                                             .font(.caption)
                                             .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
                                     }
@@ -1790,26 +1778,16 @@ struct WorkerScheduleView: View {
         .background(CyntientOpsDesign.DashboardColors.baseBackground)
     }
     
-    private func getDaysOfWeek() -> [String] {
-        return ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
-    }
-    
-    private func getAssignedBuildingsForDay(_ day: String) -> [String] {
-        // Real implementation would get data from OperationalDataManager
-        switch day {
-        case "Monday", "Wednesday", "Friday":
-            return Array(assignedBuildings.prefix(2)).map { $0.name }
-        case "Tuesday", "Thursday":
-            return Array(assignedBuildings.suffix(2)).map { $0.name }
-        default:
-            return []
-        }
-    }
-    
-    private func isToday(_ day: String) -> Bool {
+    private func formatDayName(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "EEEE"
-        return formatter.string(from: Date()) == day
+        return formatter.string(from: date)
+    }
+    
+    private func formatTime(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.timeStyle = .short
+        return formatter.string(from: date)
     }
 }
 
