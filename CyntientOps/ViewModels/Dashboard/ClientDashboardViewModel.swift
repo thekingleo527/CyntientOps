@@ -744,7 +744,7 @@ public final class ClientDashboardViewModel: ObservableObject {
     /// Generate urgent photo alert for client attention
     private func generateUrgentPhotoAlert(_ update: CoreTypes.DashboardUpdate) async {
         guard let buildingName = buildingsList.first(where: { $0.id == update.buildingId })?.name,
-              let photoCategory = update.data["category"] as? String else { return }
+              let photoCategory = update.data["category"] else { return }
         
         let alert = CoreTypes.IntelligenceInsight(
             title: "Urgent Photo Documentation",
@@ -794,9 +794,10 @@ private final class Debouncer {
 #if DEBUG
 extension ClientDashboardViewModel {
     static func preview() -> ClientDashboardViewModel {
-        // Use real ServiceContainer for previews - no mock data
-        let realContainer = ServiceContainer()
-        let viewModel = ClientDashboardViewModel(container: realContainer)
+        // ServiceContainer requires async initialization, so create a minimal preview container
+        // This is a simplified version for SwiftUI previews only
+        let previewContainer = PreviewServiceContainer()
+        let viewModel = ClientDashboardViewModel(container: previewContainer)
         
         // Set up preview data
         Task { @MainActor in
