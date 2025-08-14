@@ -292,12 +292,7 @@ struct WorkerDashboardView: View {
             if let task = viewModel.todaysTasks.first(where: { $0.id == taskId }) {
                 UnifiedTaskDetailView(
                     task: task.asContextualTask,
-                    onComplete: {
-                        Task {
-                            await viewModel.completeTask(taskId)
-                            sheet = nil
-                        }
-                    }
+                    mode: .worker
                 )
                 .navigationTitle(task.title)
                 .navigationBarTitleDisplayMode(.inline)
@@ -329,6 +324,52 @@ struct WorkerDashboardView: View {
                 .navigationTitle("Settings")
                 .navigationBarTitleDisplayMode(.large)
         }
+    }
+    
+    // MARK: - Helper Properties and Functions
+    
+    private func getFirstName() -> String {
+        guard let fullName = viewModel.worker?.name else {
+            return "Worker"
+        }
+        return String(fullName.split(separator: " ").first ?? "Worker")
+    }
+    
+    private func handleHeaderRoute(_ route: WorkerHeaderRoute) {
+        switch route {
+        case .profile:
+            sheet = .profile
+        case .schedule:
+            sheet = .schedule
+        case .routes:
+            sheet = .routes
+        case .emergency:
+            sheet = .emergency
+        }
+    }
+    
+    private func hasUrgentTasks() -> Bool {
+        return viewModel.todaysTasks.contains { task in
+            task.urgency == .urgent || task.urgency == .critical || task.urgency == .emergency
+        }
+    }
+    
+    private var urgentTasksCount: Int {
+        return viewModel.todaysTasks.filter { task in
+            task.urgency == .urgent || task.urgency == .critical || task.urgency == .emergency
+        }.count
+    }
+    
+    private func formatTime() -> String {
+        let formatter = DateFormatter()
+        formatter.timeStyle = .short
+        return formatter.string(from: Date())
+    }
+    
+    private func shouldBeWorking() -> Bool {
+        let calendar = Calendar.current
+        let hour = calendar.component(.hour, from: Date())
+        return hour >= 7 && hour < 17
     }
 }
 
@@ -535,40 +576,6 @@ struct WorkerRealTimeHeroCard: View {
         } else {
             return "\(remaining) Remaining"
         }
-    }
-    
-    private var scheduleSubtitle: String {
-        if let clockInTime = clockInTime {
-            let elapsed = Date().timeIntervalSince(clockInTime)
-            let hours = Int(elapsed / 3600)
-            let minutes = Int((elapsed.truncatingRemainder(dividingBy: 3600)) / 60)
-            return "\(hours)h \(minutes)m worked"
-        }
-        return "Not Clocked In"
-    }
-    
-    private var hasUrgentTasks: Bool {
-        return todaysTasks.contains { task in
-            task.urgency == .urgent || task.urgency == .critical || task.urgency == .emergency
-        }
-    }
-    
-    private var urgentTasksCount: Int {
-        return todaysTasks.filter { task in
-            task.urgency == .urgent || task.urgency == .critical || task.urgency == .emergency
-        }.count
-    }
-    
-    private func formatTime() -> String {
-        let formatter = DateFormatter()
-        formatter.timeStyle = .short
-        return formatter.string(from: Date())
-    }
-    
-    private func shouldBeWorking() -> Bool {
-        let calendar = Calendar.current
-        let hour = calendar.component(.hour, from: Date())
-        return hour >= 7 && hour < 17
     }
 }
 
