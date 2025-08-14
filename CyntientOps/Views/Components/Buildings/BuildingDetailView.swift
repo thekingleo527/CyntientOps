@@ -50,13 +50,6 @@ struct BuildingDetailView: View {
     @State private var photoNotes: String = ""
     @State private var isHeaderExpanded = false
     @State private var animateCards = false
-    @State private var currentStatus = "Ready"
-    @State private var buildingType = "Commercial"
-    @State private var totalFloors = 0
-    @State private var totalUnits = 0
-    @State private var yearBuilt = 2000
-    @State private var totalSquareFootage = 0
-    @State private var buildingManager = ""
     @Environment(\.dismiss) private var dismiss
     
     // MARK: - Initialization
@@ -1960,6 +1953,16 @@ class BuildingDetailVM: ObservableObject {
     
     // User context
     @Published var userRole: CoreTypes.UserRole = .worker
+    
+    // Building information
+    @Published var currentStatus = "Ready"
+    @Published var buildingType = "Commercial"
+    @Published var totalFloors = 0
+    @Published var totalUnits = 0
+    @Published var yearBuilt = 2000
+    @Published var totalSquareFootage = 0
+    @Published var buildingManager = ""
+    @Published var primaryContact: BuildingContact?
     
     // Overview data
     @Published var buildingImage: UIImage?
