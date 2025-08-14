@@ -273,7 +273,7 @@ struct WorkerDashboardView: View {
     private func workerSheetContent(for route: WorkerRoute) -> some View {
         switch route {
         case .profile:
-            WorkerProfileView()
+            WorkerProfileView(workerId: viewModel.worker?.id ?? "")
                 .navigationTitle("Profile")
                 .navigationBarTitleDisplayMode(.large)
                 
