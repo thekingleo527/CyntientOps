@@ -50,6 +50,13 @@ struct BuildingDetailView: View {
     @State private var photoNotes: String = ""
     @State private var isHeaderExpanded = false
     @State private var animateCards = false
+    @State private var currentStatus = "Ready"
+    @State private var buildingType = "Commercial"
+    @State private var totalFloors = 0
+    @State private var totalUnits = 0
+    @State private var yearBuilt = 2000
+    @State private var totalSquareFootage = 0
+    @State private var buildingManager = ""
     @Environment(\.dismiss) private var dismiss
     
     // MARK: - Initialization
@@ -2170,14 +2177,14 @@ class BuildingDetailVM: ObservableObject {
                                 let routineTask = DailyRoutineTask(
                                     id: routine.id,
                                     title: routine.name,
-                                    description: routine.description,
+                                    description: "Routine task for \(routine.category)",
                                     category: routine.category,
                                     assignedWorker: workerName,
-                                    estimatedDuration: routine.estimatedDuration,
+                                    estimatedDuration: 3600, // Default 1 hour
                                     isCompleted: Bool.random(), // Real implementation would check actual status
                                     priority: mapCategoryToPriority(routine.category),
                                     scheduledTime: Date(),
-                                    notes: routine.notes
+                                    notes: "Scheduled routine: \(routine.rrule)"
                                 )
                                 allRoutines.append(routineTask)
                             }
@@ -2263,7 +2270,7 @@ class BuildingDetailVM: ObservableObject {
     }
     
     func updateSpace(_ space: SpaceAccess) {
-        print("🔑 Updating space access: \(space.spaceName)")
+        print("🔑 Updating space access: \(space.name)")
     }
     
     func loadInventoryData() async {
