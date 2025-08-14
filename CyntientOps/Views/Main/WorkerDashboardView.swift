@@ -135,7 +135,7 @@ struct WorkerDashboardView: View {
                 WorkerNovaIntelligenceBar(
                     selectedTab: $selectedNovaTab,
                     todaysTasks: viewModel.todaysTasks,
-                    weeklySchedule: viewModel.weeklySchedule,
+                    weeklySchedule: viewModel.scheduleWeek,
                     currentBuilding: viewModel.currentBuilding,
                     assignedBuildings: viewModel.assignedBuildings,
                     allBuildings: viewModel.allBuildings,
@@ -696,7 +696,7 @@ struct WorkerWeatherStrip: View {
                     .fontWeight(.semibold)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                 
-                Text(weather.condition)
+                Text(weather.condition.rawValue.capitalized)
                     .font(.caption)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
             }
