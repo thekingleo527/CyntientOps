@@ -84,30 +84,6 @@ public class WorkerDashboardViewModel: ObservableObject {
             case low, normal, high, urgent, critical, emergency
         }
         
-        var asContextualTask: CoreTypes.ContextualTask {
-            return CoreTypes.ContextualTask(
-                id: id,
-                title: title,
-                description: description,
-                dueDate: dueDate,
-                category: CoreTypes.TaskCategory(rawValue: category.lowercased()),
-                urgency: mapUrgencyToTaskUrgency(),
-                buildingId: buildingId,
-                requiresPhoto: requiresPhoto,
-                estimatedDuration: 3600 // Default 1 hour in seconds
-            )
-        }
-        
-        private func mapUrgencyToTaskUrgency() -> CoreTypes.TaskUrgency {
-            switch urgency {
-            case .low: return .low
-            case .normal: return .medium
-            case .high: return .high
-            case .urgent: return .urgent
-            case .critical: return .critical
-            case .emergency: return .critical
-            }
-        }
     }
     
     public struct DaySchedule {

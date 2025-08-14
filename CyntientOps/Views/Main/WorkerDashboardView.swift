@@ -595,6 +595,7 @@ extension WorkerDashboardViewModel.TaskItem: Identifiable {
             status: self.isCompleted ? .completed : .pending,
             scheduledDate: self.dueDate,
             dueDate: self.dueDate,
+            category: CoreTypes.TaskCategory(rawValue: self.category.lowercased()),
             urgency: urgency,
             buildingId: self.buildingId,
             buildingName: nil,
