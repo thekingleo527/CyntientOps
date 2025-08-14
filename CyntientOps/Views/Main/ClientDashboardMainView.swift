@@ -320,6 +320,9 @@ struct ClientBuildingsTabView: View {
     let buildings: [CoreTypes.NamedCoordinate]
     let buildingMetrics: [String: CoreTypes.BuildingMetrics]
     
+    @State private var selectedBuilding: CoreTypes.NamedCoordinate?
+    @State private var showBuildingDetail = false
+    
     var body: some View {
         ScrollView {
             LazyVStack(spacing: 12) {
@@ -327,12 +330,33 @@ struct ClientBuildingsTabView: View {
                     ClientBuildingCard(
                         building: building,
                         onTap: {
-                            // Handle building tap - could navigate to building details
+                            selectedBuilding = building
+                            showBuildingDetail = true
                         }
                     )
                 }
             }
             .padding()
+        }
+        .sheet(isPresented: $showBuildingDetail) {
+            if let building = selectedBuilding {
+                NavigationView {
+                    BuildingDetailView(
+                        buildingId: building.id,
+                        buildingName: building.name,
+                        buildingAddress: building.address
+                    )
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .navigationBarTrailing) {
+                            Button("Done") {
+                                showBuildingDetail = false
+                            }
+                            .foregroundColor(.white)
+                        }
+                    }
+                }
+            }
         }
     }
 }
