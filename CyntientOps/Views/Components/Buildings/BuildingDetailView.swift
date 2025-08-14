@@ -1974,15 +1974,7 @@ class BuildingDetailVM: ObservableObject {
     @Published var todaysSpecialNote: String?
     @Published var isFavorite: Bool = false
     @Published var complianceStatus: CoreTypes.ComplianceStatus?
-    @Published var primaryContact: BuildingContact?
     @Published var emergencyContact: BuildingContact?
-    
-    // Building details
-    @Published var buildingType: String = "Commercial"
-    @Published var buildingSize: Int = 0
-    @Published var floors: Int = 0
-    @Published var units: Int = 0
-    @Published var yearBuilt: Int = 1900
     @Published var contractType: String?
     @Published var buildingIcon: String = "building.2"
     @Published var buildingRating: String = "A+"
