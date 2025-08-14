@@ -138,6 +138,7 @@ struct WorkerDashboardView: View {
                     weeklySchedule: viewModel.weeklySchedule,
                     currentBuilding: viewModel.currentBuilding,
                     assignedBuildings: viewModel.assignedBuildings,
+                    allBuildings: viewModel.allBuildings,
                     onTabTap: handleNovaTabTap,
                     onTaskAction: handleTaskAction
                 )
@@ -318,7 +319,7 @@ struct WorkerDashboardView: View {
             .navigationBarTitleDisplayMode(.large)
             
         case .emergency:
-            EmergencyContactView()
+            EmergencyContactsSheet()
                 .navigationTitle("Emergency Contacts")
                 .navigationBarTitleDisplayMode(.inline)
                 
@@ -1048,6 +1049,7 @@ struct WorkerNovaIntelligenceBar: View {
     let weeklySchedule: [String] // Will be updated with real schedule data
     let currentBuilding: WorkerDashboardViewModel.BuildingSummary?
     let assignedBuildings: [WorkerDashboardViewModel.BuildingSummary]
+    let allBuildings: [WorkerDashboardViewModel.BuildingSummary] // For coverage
     let onTabTap: (WorkerDashboardView.NovaTab) -> Void
     let onTaskAction: (WorkerTaskAction) -> Void
     
@@ -1117,7 +1119,8 @@ struct WorkerNovaIntelligenceBar: View {
                 case .buildingInfo:
                     WorkerBuildingInfoContent(
                         currentBuilding: currentBuilding,
-                        assignedBuildings: assignedBuildings
+                        assignedBuildings: assignedBuildings,
+                        allBuildings: allBuildings
                     )
                     
                 case .chat:
@@ -1331,6 +1334,7 @@ struct WorkerWeeklyScheduleContent: View {
 struct WorkerBuildingInfoContent: View {
     let currentBuilding: WorkerDashboardViewModel.BuildingSummary?
     let assignedBuildings: [WorkerDashboardViewModel.BuildingSummary]
+    let allBuildings: [WorkerDashboardViewModel.BuildingSummary] // For coverage purposes
     
     var body: some View {
         VStack(spacing: 12) {
@@ -1365,6 +1369,44 @@ struct WorkerBuildingInfoContent: View {
                         ForEach(assignedBuildings, id: \.id) { building in
                             WorkerBuildingChip(
                                 building: building,
+                                isCurrentLocation: building.id == currentBuilding?.id
+                            )
+                        }
+                    }
+                    .padding(.horizontal, 4)
+                }
+            }
+            
+            // All Buildings (for coverage purposes)
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Text("All Properties")
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                    
+                    Spacer()
+                    
+                    Text("\(allBuildings.count) total")
+                        .font(.caption)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                    
+                    Text("•")
+                        .font(.caption)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+                    
+                    Text("Coverage Support")
+                        .font(.caption)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.info)
+                }
+                
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 12) {
+                        ForEach(allBuildings, id: \.id) { building in
+                            let isAssigned = assignedBuildings.contains { $0.id == building.id }
+                            WorkerCoverageBuildingChip(
+                                building: building,
+                                isAssigned: isAssigned,
                                 isCurrentLocation: building.id == currentBuilding?.id
                             )
                         }
@@ -1768,33 +1810,263 @@ struct WorkerQuickActionButton: View {
     }
 }
 
-// Placeholder views (to be implemented or imported)
+struct WorkerCoverageBuildingChip: View {
+    let building: WorkerDashboardViewModel.BuildingSummary
+    let isAssigned: Bool
+    let isCurrentLocation: Bool
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text(building.name)
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                    .lineLimit(1)
+                
+                Spacer()
+                
+                if isCurrentLocation {
+                    Circle()
+                        .fill(CyntientOpsDesign.DashboardColors.success)
+                        .frame(width: 6, height: 6)
+                } else if isAssigned {
+                    Circle()
+                        .fill(CyntientOpsDesign.DashboardColors.workerPrimary)
+                        .frame(width: 6, height: 6)
+                }
+            }
+            
+            Text(building.address)
+                .font(.caption2)
+                .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                .lineLimit(2)
+            
+            // Coverage indicator
+            HStack(spacing: 4) {
+                if isAssigned {
+                    Text("Assigned")
+                        .font(.caption2)
+                        .fontWeight(.medium)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.workerPrimary)
+                } else {
+                    Text("Coverage")
+                        .font(.caption2)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.info)
+                }
+            }
+        }
+        .frame(width: 120, alignment: .leading)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .background(
+            isCurrentLocation ? 
+            CyntientOpsDesign.DashboardColors.success.opacity(0.1) :
+            isAssigned ?
+            CyntientOpsDesign.DashboardColors.workerPrimary.opacity(0.1) :
+            CyntientOpsDesign.DashboardColors.info.opacity(0.05)
+        )
+        .cornerRadius(8)
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(
+                    isCurrentLocation ? 
+                    CyntientOpsDesign.DashboardColors.success.opacity(0.3) :
+                    isAssigned ?
+                    CyntientOpsDesign.DashboardColors.workerPrimary.opacity(0.3) :
+                    CyntientOpsDesign.DashboardColors.info.opacity(0.2), 
+                    lineWidth: 1
+                )
+        )
+    }
+}
+
+// MARK: - Worker Schedule View
+
 struct WorkerScheduleView: View {
     let weeklySchedule: [String]
     let assignedBuildings: [WorkerDashboardViewModel.BuildingSummary]
     
     var body: some View {
-        Text("Worker Schedule View")
-            .foregroundColor(.white)
+        ScrollView {
+            LazyVStack(spacing: 16) {
+                ForEach(getDaysOfWeek(), id: \.self) { day in
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Text(day)
+                                .font(.headline)
+                                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                            
+                            Spacer()
+                            
+                            if isToday(day) {
+                                Text("Today")
+                                    .font(.caption)
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 4)
+                                    .background(CyntientOpsDesign.DashboardColors.accent)
+                                    .foregroundColor(.white)
+                                    .clipShape(RoundedRectangle(cornerRadius: 6))
+                            }
+                        }
+                        
+                        // Buildings for this day
+                        if !getAssignedBuildingsForDay(day).isEmpty {
+                            VStack(alignment: .leading, spacing: 8) {
+                                ForEach(getAssignedBuildingsForDay(day), id: \.self) { buildingName in
+                                    HStack {
+                                        Circle()
+                                            .fill(CyntientOpsDesign.DashboardColors.accent)
+                                            .frame(width: 8, height: 8)
+                                        
+                                        Text(buildingName)
+                                            .font(.subheadline)
+                                            .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                                        
+                                        Spacer()
+                                        
+                                        Text("9:00 AM - 5:00 PM")
+                                            .font(.caption)
+                                            .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+                                    }
+                                }
+                            }
+                        } else {
+                            Text("No scheduled work")
+                                .font(.subheadline)
+                                .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+                                .italic()
+                        }
+                    }
+                    .padding(16)
+                    .francoDarkCardBackground()
+                }
+            }
+            .padding(16)
+        }
+        .background(CyntientOpsDesign.DashboardColors.background)
+    }
+    
+    private func getDaysOfWeek() -> [String] {
+        return ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+    }
+    
+    private func getAssignedBuildingsForDay(_ day: String) -> [String] {
+        // Real implementation would get data from OperationalDataManager
+        switch day {
+        case "Monday", "Wednesday", "Friday":
+            return Array(assignedBuildings.prefix(2)).map { $0.name }
+        case "Tuesday", "Thursday":
+            return Array(assignedBuildings.suffix(2)).map { $0.name }
+        default:
+            return []
+        }
+    }
+    
+    private func isToday(_ day: String) -> Bool {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "EEEE"
+        return formatter.string(from: Date()) == day
     }
 }
+
+// MARK: - Worker Routes View
 
 struct WorkerRoutesView: View {
     let assignedBuildings: [WorkerDashboardViewModel.BuildingSummary]
     let currentBuilding: WorkerDashboardViewModel.BuildingSummary?
     
     var body: some View {
-        Text("Worker Routes View")
-            .foregroundColor(.white)
+        ScrollView {
+            LazyVStack(spacing: 12) {
+                if let currentBuilding = currentBuilding {
+                    // Current Location
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Current Location")
+                            .font(.headline)
+                            .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                        
+                        BuildingRouteCard(
+                            building: currentBuilding,
+                            isCurrent: true
+                        )
+                    }
+                    .padding(.bottom, 8)
+                }
+                
+                // Assigned Buildings
+                Text("My Assigned Buildings")
+                    .font(.headline)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                
+                ForEach(assignedBuildings, id: \.id) { building in
+                    BuildingRouteCard(
+                        building: building,
+                        isCurrent: building.id == currentBuilding?.id
+                    )
+                }
+            }
+            .padding(16)
+        }
+        .background(CyntientOpsDesign.DashboardColors.background)
     }
 }
 
-struct EmergencyContactView: View {
+struct BuildingRouteCard: View {
+    let building: WorkerDashboardViewModel.BuildingSummary
+    let isCurrent: Bool
+    
     var body: some View {
-        Text("Emergency Contact View")
-            .foregroundColor(.white)
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text(building.name)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                
+                Spacer()
+                
+                if isCurrent {
+                    Text("Current")
+                        .font(.caption)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(CyntientOpsDesign.DashboardColors.success)
+                        .foregroundColor(.white)
+                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                }
+            }
+            
+            Text(building.address)
+                .font(.caption)
+                .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+            
+            HStack {
+                Text("\(building.todayTaskCount) tasks today")
+                    .font(.caption)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+                
+                Spacer()
+                
+                Button("View Details") {
+                    // TODO: Navigate to building detail
+                }
+                .font(.caption)
+                .foregroundColor(CyntientOpsDesign.DashboardColors.accent)
+            }
+        }
+        .padding(12)
+        .francoDarkCardBackground()
     }
 }
+
+// These views are imported from their respective files:
+// - WorkerProfileView from Views/Main/WorkerProfileView.swift
+// - WorkerPreferencesView from Views/Main/WorkerPreferencesView.swift
+// - BuildingDetailView from Views/Components/Buildings/BuildingDetailView.swift
+// - UnifiedTaskDetailView from Views/Main/UnifiedTaskDetailView.swift
+// - EmergencyContactsSheet from Components/Sheets/EmergencyContactsSheet.swift
 
 // MARK: - Preview
 

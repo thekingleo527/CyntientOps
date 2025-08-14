@@ -65,7 +65,7 @@ public class WorkerDashboardViewModel: ObservableObject {
         public let todayTaskCount: Int
         
         public enum BuildingStatus {
-            case current, assigned, available, unavailable
+            case current, assigned, available, unavailable, coverage
         }
     }
     
@@ -82,6 +82,33 @@ public class WorkerDashboardViewModel: ObservableObject {
         
         public enum TaskUrgency {
             case low, normal, high, urgent, critical, emergency
+        }
+        
+        var asContextualTask: CoreTypes.ContextualTask {
+            return CoreTypes.ContextualTask(
+                id: id,
+                title: title,
+                description: description ?? "",
+                category: category,
+                buildingId: buildingId ?? "",
+                dueDate: dueDate,
+                isCompleted: isCompleted,
+                priority: urgencyToPriority(),
+                workerIds: [], // Will be populated by service
+                requiredSkillLevel: .basic,
+                estimatedDuration: 60 // Default 1 hour
+            )
+        }
+        
+        private func urgencyToPriority() -> CoreTypes.TaskPriority {
+            switch urgency {
+            case .low: return .low
+            case .normal: return .normal  
+            case .high: return .high
+            case .urgent: return .urgent
+            case .critical: return .critical
+            case .emergency: return .critical
+            }
         }
     }
     
@@ -516,6 +543,7 @@ public class WorkerDashboardViewModel: ObservableObject {
     @Published public private(set) var worker: CoreTypes.User?
     @Published public private(set) var currentBuilding: BuildingSummary?
     @Published public private(set) var assignedBuildings: [BuildingSummary] = []
+    @Published public private(set) var allBuildings: [BuildingSummary] = [] // For coverage purposes
     @Published public private(set) var todaysTasks: [TaskItem] = []
     @Published public private(set) var urgentTaskItems: [TaskItem] = []
     @Published public private(set) var scheduleWeek: [DaySchedule] = []
@@ -883,6 +911,7 @@ public class WorkerDashboardViewModel: ObservableObject {
             // Load all data sequentially
             await self.loadWorkerProfile()
             await self.loadAssignedBuildings()
+            await self.loadAllBuildings() // Load all buildings for coverage
             await self.loadTodaysTasks() 
             await self.loadScheduleWeek()
             await self.loadWeatherData()
@@ -1159,6 +1188,48 @@ public class WorkerDashboardViewModel: ObservableObject {
         print("✅ Task started: \(task.title)")
     }
     
+    /// Complete a task by ID (wrapper for UI convenience)
+    public func completeTask(_ taskId: String) async {
+        // Find the task in today's tasks
+        guard let taskItem = todaysTasks.first(where: { $0.id == taskId }) else {
+            print("❌ Task not found: \(taskId)")
+            return
+        }
+        
+        // Convert to ContextualTask and complete
+        let contextualTask = taskItem.asContextualTask
+        await completeTask(contextualTask)
+        
+        // Update the local task list
+        todaysTasks = todaysTasks.map { task in
+            if task.id == taskId {
+                return TaskItem(
+                    id: task.id,
+                    title: task.title,
+                    description: task.description,
+                    buildingId: task.buildingId,
+                    dueDate: task.dueDate,
+                    urgency: task.urgency,
+                    isCompleted: true
+                )
+            }
+            return task
+        }
+    }
+    
+    /// Start a task by ID (wrapper for UI convenience)
+    public func startTask(_ taskId: String) async {
+        // Find the task in today's tasks
+        guard let taskItem = todaysTasks.first(where: { $0.id == taskId }) else {
+            print("❌ Task not found: \(taskId)")
+            return
+        }
+        
+        // Convert to ContextualTask and start
+        let contextualTask = taskItem.asContextualTask
+        await startTask(contextualTask)
+    }
+    
     /// Force sync with server
     public func forceSyncWithServer() async {
         await performSync { [weak self] in
@@ -1342,6 +1413,34 @@ public class WorkerDashboardViewModel: ObservableObject {
         } catch {
             print("❌ Failed to load assigned buildings: \(error)")
             assignedBuildings = []
+        }
+    }
+    
+    private func loadAllBuildings() async {
+        // Load ALL buildings for worker coverage purposes
+        do {
+            // Get all buildings from the buildings service
+            let buildings = try await container.buildings.getAllBuildings()
+            
+            allBuildings = buildings.map { building in
+                // Check if this building is assigned to the current worker
+                let isAssigned = assignedBuildings.contains { $0.id == building.id }
+                let status: BuildingSummary.BuildingStatus = isAssigned ? .assigned : .coverage
+                
+                return BuildingSummary(
+                    id: building.id,
+                    name: building.name,
+                    address: building.address,
+                    coordinate: building.coordinate,
+                    status: status,
+                    todayTaskCount: 0 // Will be populated if needed
+                )
+            }
+            
+            print("✅ Loaded \(allBuildings.count) total buildings for coverage")
+        } catch {
+            print("❌ Failed to load all buildings: \(error)")
+            allBuildings = []
         }
     }
     

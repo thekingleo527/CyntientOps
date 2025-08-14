@@ -220,7 +220,6 @@ struct AdminDashboardView: View {
             
             LazyVGrid(columns: [
                 GridItem(.flexible()),
-                GridItem(.flexible()),
                 GridItem(.flexible())
             ], spacing: 12) {
                 AdminQuickActionCard(
@@ -245,6 +244,14 @@ struct AdminDashboardView: View {
                     icon: "doc.badge.arrow.up",
                     color: .purple,
                     action: { showReports = true }
+                )
+                
+                AdminQuickActionCard(
+                    title: "Portfolio Map",
+                    value: "View",
+                    icon: "map.fill",
+                    color: .blue,
+                    action: { isMapRevealed.toggle() }
                 )
             }
         }
@@ -285,74 +292,40 @@ struct AdminDashboardView: View {
     
     private var complianceCenterSheet: some View {
         NavigationView {
-            VStack(spacing: 20) {
-                Text("Compliance Center")
-                    .font(.title)
-                    .fontWeight(.bold)
-                    .foregroundColor(.white)
-                
-                Text("\(Int(viewModel.portfolioMetrics.complianceScore))% Overall Score")
-                    .font(.title2)
-                    .foregroundColor(complianceScoreColor)
-                
-                Spacer()
-            }
-            .padding()
-            .background(Color.black.ignoresSafeArea())
-            .preferredColorScheme(.dark)
-            .navigationBarHidden(true)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") { showComplianceCenter = false }
-                        .foregroundColor(.white)
+            AdminComplianceCenter()
+                .navigationBarTitleDisplayMode(.large)
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button("Done") { showComplianceCenter = false }
+                            .foregroundColor(.white)
+                    }
                 }
-            }
         }
     }
     
     private var taskRequestSheet: some View {
         NavigationView {
-            VStack {
-                Text("Create New Task")
-                    .font(.title)
-                    .fontWeight(.bold)
-                    .foregroundColor(.white)
-                
-                Spacer()
-            }
-            .padding()
-            .background(Color.black.ignoresSafeArea())
-            .preferredColorScheme(.dark)
-            .navigationBarHidden(true)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") { showTaskRequest = false }
-                        .foregroundColor(.white)
+            TaskRequestView()
+                .navigationBarTitleDisplayMode(.large)
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button("Done") { showTaskRequest = false }
+                            .foregroundColor(.white)
+                    }
                 }
-            }
         }
     }
     
     private var reportsSheet: some View {
         NavigationView {
-            VStack {
-                Text("Generate Reports")
-                    .font(.title)
-                    .fontWeight(.bold)
-                    .foregroundColor(.white)
-                
-                Spacer()
-            }
-            .padding()
-            .background(Color.black.ignoresSafeArea())
-            .preferredColorScheme(.dark)
-            .navigationBarHidden(true)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") { showReports = false }
-                        .foregroundColor(.white)
+            AdminReportsView()
+                .navigationBarTitleDisplayMode(.large)
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button("Done") { showReports = false }
+                            .foregroundColor(.white)
+                    }
                 }
-            }
         }
     }
     

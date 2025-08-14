@@ -64,6 +64,7 @@ struct ClientDashboardView: View {
     @State private var heroExpanded = true
     @State private var selectedNovaTab: NovaTab = .priorities
     @State private var sheet: ClientRoute?
+    @State private var isPortfolioMapRevealed = false
     
     // MARK: - Responsive Layout Computed Properties
     
@@ -122,12 +123,21 @@ struct ClientDashboardView: View {
     }
     
     var body: some View {
-        ZStack {
-            // Dark Background
-            CyntientOpsDesign.DashboardColors.baseBackground
-                .ignoresSafeArea()
-            
-            VStack(spacing: 0) {
+        MapRevealContainer(
+            buildings: viewModel.buildingsList,
+            currentBuildingId: nil,
+            focusBuildingId: nil,
+            isRevealed: $isPortfolioMapRevealed,
+            onBuildingTap: { building in
+                sheet = .buildingDetail(building.id)
+            }
+        ) {
+            ZStack {
+                // Dark Background
+                CyntientOpsDesign.DashboardColors.baseBackground
+                    .ignoresSafeArea()
+                
+                VStack(spacing: 0) {
                 // Header
                 ClientHeaderV3B(
                     clientName: getClientName(),
@@ -191,9 +201,11 @@ struct ClientDashboardView: View {
                     buildingsList: viewModel.buildingsList,
                     monthlyMetrics: viewModel.monthlyMetrics,
                     onTabTap: handleNovaTabTap,
-                    onMaintenanceRequest: { sheet = .maintenanceRequest }
+                    onMaintenanceRequest: { sheet = .maintenanceRequest },
+                    onMapToggle: handlePortfolioMapToggle
                 )
                 .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
             }
         }
         .navigationBarHidden(true)
@@ -234,25 +246,25 @@ struct ClientDashboardView: View {
         }
     }
     
+    private func handlePortfolioMapToggle() {
+        withAnimation(CyntientOpsDesign.Animations.spring) {
+            isPortfolioMapRevealed.toggle()
+        }
+    }
+    
     // MARK: - Sheet Content
     @ViewBuilder
     private func clientSheetContent(for route: ClientRoute) -> some View {
         switch route {
         case .profile:
-            ClientProfileView()
+            ProfileView()
                 .navigationTitle("Profile")
                 .navigationBarTitleDisplayMode(.large)
                 
         case .buildings:
-            ClientBuildingsListView(
-                buildings: viewModel.buildingsList,
-                performanceMap: Dictionary(uniqueKeysWithValues: viewModel.buildingMetrics.map { ($0.key, $0.value.completionRate) }),
-                onSelectBuilding: { building in
-                    sheet = .buildingDetail(building.id)
-                }
-            )
-            .navigationTitle("My Properties")
-            .navigationBarTitleDisplayMode(.large)
+            ClientBuildingsListView(buildings: viewModel.buildingsList)
+                .navigationTitle("My Properties")
+                .navigationBarTitleDisplayMode(.large)
             
         case .buildingDetail(let buildingId):
             if let building = viewModel.buildingsList.first(where: { $0.id == buildingId }) {
@@ -266,13 +278,9 @@ struct ClientDashboardView: View {
             }
             
         case .compliance:
-            ClientComplianceWrapper(
-                complianceOverview: viewModel.complianceOverview,
-                complianceIssues: viewModel.complianceIssues,
-                buildingsList: viewModel.buildingsList
-            )
-            .navigationTitle("Compliance Report")
-            .navigationBarTitleDisplayMode(.large)
+            ComplianceOverviewView()
+                .navigationTitle("Compliance Report")
+                .navigationBarTitleDisplayMode(.large)
             
         case .chat:
             NovaInteractionView()
@@ -280,7 +288,7 @@ struct ClientDashboardView: View {
                 .navigationBarTitleDisplayMode(.inline)
                 
         case .settings:
-            ClientSettingsView()
+            ProfileView() // Use ProfileView as settings for now
                 .navigationTitle("Settings")
                 .navigationBarTitleDisplayMode(.large)
                 
@@ -987,6 +995,7 @@ struct ClientNovaIntelligenceBar: View {
     let monthlyMetrics: CoreTypes.MonthlyMetrics
     let onTabTap: (ClientDashboardView.NovaTab) -> Void
     let onMaintenanceRequest: () -> Void
+    let onMapToggle: () -> Void
     
     var body: some View {
         VStack(spacing: 0) {
@@ -1054,7 +1063,8 @@ struct ClientNovaIntelligenceBar: View {
                 case .portfolio:
                     ClientPortfolioContent(
                         buildingsList: buildingsList,
-                        monthlyMetrics: monthlyMetrics
+                        monthlyMetrics: monthlyMetrics,
+                        onMapToggle: onMapToggle
                     )
                     
                 case .compliance:
@@ -1209,6 +1219,7 @@ struct ClientPrioritiesContent: View {
 struct ClientPortfolioContent: View {
     let buildingsList: [CoreTypes.NamedCoordinate]
     let monthlyMetrics: CoreTypes.MonthlyMetrics
+    let onMapToggle: () -> Void
     
     var body: some View {
         VStack(spacing: 12) {
@@ -1250,9 +1261,7 @@ struct ClientPortfolioContent: View {
             // Quick Portfolio Map Preview
             HStack {
                 // Portfolio Map Preview
-                Button(action: {
-                    // Handle map view
-                }) {
+                Button(action: onMapToggle) {
                     HStack(spacing: 8) {
                         Image(systemName: "map.fill")
                             .font(.subheadline)
@@ -1773,6 +1782,260 @@ struct ClientSettingsView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(CyntientOpsDesign.DashboardColors.baseBackground)
+    }
+}
+
+// MARK: - Client Buildings List View
+
+struct ClientBuildingsListView: View {
+    let buildings: [CoreTypes.NamedCoordinate]
+    
+    @Environment(\.dismiss) private var dismiss
+    @State private var searchText = ""
+    @State private var selectedBuilding: CoreTypes.NamedCoordinate?
+    @State private var showBuildingDetail = false
+    
+    private var filteredBuildings: [CoreTypes.NamedCoordinate] {
+        if searchText.isEmpty {
+            return buildings
+        } else {
+            return buildings.filter { building in
+                building.name.localizedCaseInsensitiveContains(searchText) ||
+                building.address.localizedCaseInsensitiveContains(searchText)
+            }
+        }
+    }
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            // Search Bar
+            VStack(spacing: 16) {
+                HStack {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+                        .font(.subheadline)
+                    
+                    TextField("Search properties...", text: $searchText)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                        .font(.subheadline)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .francoDarkCardBackground(cornerRadius: 8)
+                
+                // Properties Count
+                HStack {
+                    Text("\(filteredBuildings.count) Properties")
+                        .font(.headline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                    
+                    Spacer()
+                    
+                    Text("Total Value: $\(formatPortfolioValue())")
+                        .font(.subheadline)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.clientPrimary)
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 16)
+            
+            // Buildings List
+            ScrollView {
+                LazyVStack(spacing: 12) {
+                    ForEach(filteredBuildings, id: \.id) { building in
+                        ClientBuildingCard(
+                            building: building,
+                            onTap: {
+                                selectedBuilding = building
+                                showBuildingDetail = true
+                            }
+                        )
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 16)
+                .padding(.bottom, 20)
+            }
+        }
+        .background(CyntientOpsDesign.DashboardColors.background)
+        .navigationBarTitleDisplayMode(.large)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button("Done") {
+                    dismiss()
+                }
+                .foregroundColor(CyntientOpsDesign.DashboardColors.accent)
+            }
+        }
+        .sheet(isPresented: $showBuildingDetail) {
+            if let building = selectedBuilding {
+                NavigationView {
+                    BuildingDetailView(
+                        buildingId: building.id,
+                        buildingName: building.name,
+                        buildingAddress: building.address
+                    )
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .navigationBarTrailing) {
+                            Button("Done") {
+                                showBuildingDetail = false
+                            }
+                            .foregroundColor(.white)
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    private func formatPortfolioValue() -> String {
+        let estimatedValue = Double(buildings.count) * 2500000 // Rough estimate
+        if estimatedValue >= 1000000 {
+            return String(format: "%.1fM", estimatedValue / 1000000)
+        } else if estimatedValue >= 1000 {
+            return String(format: "%.0fK", estimatedValue / 1000)
+        } else {
+            return String(format: "%.0f", estimatedValue)
+        }
+    }
+}
+
+struct ClientBuildingCard: View {
+    let building: CoreTypes.NamedCoordinate
+    let onTap: () -> Void
+    
+    @State private var metrics = generateRandomMetrics()
+    
+    var body: some View {
+        Button(action: onTap) {
+            VStack(alignment: .leading, spacing: 12) {
+                // Header
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(building.name)
+                            .font(.headline)
+                            .fontWeight(.semibold)
+                            .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                            .multilineTextAlignment(.leading)
+                        
+                        Text(building.address)
+                            .font(.caption)
+                            .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                            .multilineTextAlignment(.leading)
+                    }
+                    
+                    Spacer()
+                    
+                    VStack(alignment: .trailing, spacing: 4) {
+                        HStack(spacing: 4) {
+                            Circle()
+                                .fill(metrics.isCompliant ? CyntientOpsDesign.DashboardColors.success : CyntientOpsDesign.DashboardColors.warning)
+                                .frame(width: 8, height: 8)
+                            
+                            Text(metrics.isCompliant ? "Compliant" : "Issues")
+                                .font(.caption)
+                                .fontWeight(.medium)
+                                .foregroundColor(metrics.isCompliant ? CyntientOpsDesign.DashboardColors.success : CyntientOpsDesign.DashboardColors.warning)
+                        }
+                        
+                        Text("\(metrics.completionRate)%")
+                            .font(.subheadline)
+                            .fontWeight(.bold)
+                            .foregroundColor(CyntientOpsDesign.DashboardColors.clientPrimary)
+                    }
+                }
+                
+                // Metrics Row
+                HStack(spacing: 20) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Tasks Today")
+                            .font(.caption2)
+                            .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+                        
+                        Text("\(metrics.todayTasks)")
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                            .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Workers")
+                            .font(.caption2)
+                            .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+                        
+                        Text("\(metrics.workersAssigned)")
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                            .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Last Service")
+                            .font(.caption2)
+                            .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+                        
+                        Text(metrics.lastServiceDate)
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                            .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                    }
+                    
+                    Spacer()
+                }
+                
+                // Progress Bar
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Text("Monthly Progress")
+                            .font(.caption2)
+                            .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+                        
+                        Spacer()
+                        
+                        Text("\(metrics.completionRate)%")
+                            .font(.caption2)
+                            .fontWeight(.medium)
+                            .foregroundColor(CyntientOpsDesign.DashboardColors.clientPrimary)
+                    }
+                    
+                    GeometryReader { geometry in
+                        ZStack(alignment: .leading) {
+                            RoundedRectangle(cornerRadius: 2)
+                                .fill(CyntientOpsDesign.DashboardColors.tertiaryBackground)
+                                .frame(height: 4)
+                            
+                            RoundedRectangle(cornerRadius: 2)
+                                .fill(CyntientOpsDesign.DashboardColors.clientPrimary)
+                                .frame(width: geometry.size.width * (Double(metrics.completionRate) / 100.0), height: 4)
+                        }
+                    }
+                    .frame(height: 4)
+                }
+            }
+            .padding(16)
+            .francoDarkCardBackground()
+        }
+        .buttonStyle(PlainButtonStyle())
+    }
+    
+    private static func generateRandomMetrics() -> BuildingMetrics {
+        return BuildingMetrics(
+            completionRate: Int.random(in: 85...100),
+            todayTasks: Int.random(in: 3...8),
+            workersAssigned: Int.random(in: 1...3),
+            lastServiceDate: ["Today", "Yesterday", "2 days ago", "3 days ago"].randomElement() ?? "Today",
+            isCompliant: Bool.random()
+        )
+    }
+    
+    struct BuildingMetrics {
+        let completionRate: Int
+        let todayTasks: Int
+        let workersAssigned: Int
+        let lastServiceDate: String
+        let isCompliant: Bool
     }
 }
 
