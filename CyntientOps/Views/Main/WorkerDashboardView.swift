@@ -77,7 +77,7 @@ struct WorkerDashboardView: View {
                     name: viewModel.worker?.name ?? "Worker",
                     initials: String((viewModel.worker?.name ?? "W").prefix(2)).uppercased(),
                     photoURL: nil,
-                    nextTaskName: viewModel.nextCriticalTask,
+                    nextTaskName: viewModel.heroNextTask?.title,
                     showClockPill: viewModel.isClockedIn,
                     isNovaProcessing: false,
                     onRoute: handleHeaderRoute
