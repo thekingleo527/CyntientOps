@@ -326,7 +326,9 @@ struct ClientBuildingsTabView: View {
                 ForEach(buildings, id: \.id) { building in
                     ClientBuildingCard(
                         building: building,
-                        metrics: buildingMetrics[building.id]
+                        onTap: {
+                            // Handle building tap - could navigate to building details
+                        }
                     )
                 }
             }
