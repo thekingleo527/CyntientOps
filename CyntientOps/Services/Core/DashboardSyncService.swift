@@ -132,6 +132,7 @@ public class DashboardSyncService: ObservableObject {
         setupAutoSync()
         setupEnhancedOfflineQueueProcessing()
         setupNetworkMonitoring()
+        setupAuthenticationMonitoring()
         setupWebSocketConnection()
     }
     
@@ -294,6 +295,85 @@ public class DashboardSyncService: ObservableObject {
                 }
             }
             .store(in: &cancellables)
+    }
+    
+    private func setupAuthenticationMonitoring() {
+        // Monitor user login events
+        NotificationCenter.default.publisher(for: .userDidLogin)
+            .sink { [weak self] notification in
+                guard let self = self else { return }
+                Task {
+                    // User logged in - establish WebSocket connection
+                    if let token = await self.getAuthToken() {
+                        await self.webSocketManager.connect(token: token)
+                        print("🔌 WebSocket reconnected after user login")
+                    }
+                    
+                    // Clear any stale data from previous user
+                    await self.clearUserSpecificData()
+                    
+                    // Reset pending updates for new user context
+                    await self.resetPendingUpdates()
+                }
+            }
+            .store(in: &cancellables)
+        
+        // Monitor user logout events
+        NotificationCenter.default.publisher(for: .userDidLogout)
+            .sink { [weak self] _ in
+                guard let self = self else { return }
+                Task {
+                    // User logged out - disconnect WebSocket
+                    await self.webSocketManager.disconnect()
+                    print("🔌 WebSocket disconnected after user logout")
+                    
+                    // Clear user-specific data
+                    await self.clearUserSpecificData()
+                    
+                    // Reset pending updates
+                    await self.resetPendingUpdates()
+                }
+            }
+            .store(in: &cancellables)
+        
+        // Monitor session expiration
+        NotificationCenter.default.publisher(for: .sessionExpired)
+            .sink { [weak self] _ in
+                guard let self = self else { return }
+                Task {
+                    // Session expired - disconnect WebSocket and clear data
+                    await self.webSocketManager.disconnect()
+                    await self.clearUserSpecificData()
+                    await self.resetPendingUpdates()
+                    print("🔌 WebSocket disconnected due to session expiration")
+                }
+            }
+            .store(in: &cancellables)
+    }
+    
+    // MARK: - Authentication State Management
+    
+    private func clearUserSpecificData() async {
+        await MainActor.run {
+            // Clear cached metrics and data
+            unifiedBuildingMetrics.removeAll()
+            unifiedPortfolioIntelligence = nil
+            liveWorkerUpdates.removeAll()
+            liveAdminAlerts.removeAll()
+            liveClientMetrics.removeAll()
+            
+            print("🧹 Cleared user-specific dashboard data")
+        }
+    }
+    
+    private func resetPendingUpdates() async {
+        await MainActor.run {
+            // Reset update counters
+            pendingUpdatesCount = 0
+            urgentPendingCount = 0
+            
+            print("🔄 Reset pending updates for new user session")
+        }
     }
     
     // MARK: - Public Broadcasting Methods
