@@ -551,12 +551,21 @@ public class BuildingDetailViewModel: ObservableObject {
             await MainActor.run {
                 // Use real database data
                 self.buildingType = "Residential" // Default
+                
+                // Load actual building image from asset name
                 if let imageAsset = building["imageAssetName"] as? String, !imageAsset.isEmpty {
+                    // Load the actual building preview image
+                    self.buildingImage = UIImage(named: imageAsset)
+                    
+                    // Set building type based on asset name
                     if imageAsset.contains("museum") || imageAsset.contains("commercial") {
                         self.buildingType = "Commercial"
                     } else if imageAsset.contains("office") {
                         self.buildingType = "Office"
                     }
+                } else {
+                    // Fallback to nil for generic display
+                    self.buildingImage = nil
                 }
                 
                 self.buildingSize = Int((building["squareFootage"] as? Double ?? 25000).rounded())
@@ -1106,25 +1115,25 @@ public class BuildingDetailViewModel: ObservableObject {
         do {
             let location = locationManager.location
             
-            // Create a dummy task for photo evidence (avoiding legacy metadata types)
-            let dummyTask = CoreTypes.ContextualTask(
+            // Create a real task for photo evidence
+            let photoTask = CoreTypes.ContextualTask(
                 id: UUID().uuidString,
-                title: "Building Photo",
-                description: notes,
+                title: "Building Photo Documentation",
+                description: notes.isEmpty ? "Photo documentation for \(buildingName)" : notes,
                 status: .completed,
                 createdAt: Date()
             )
             
-            // Create a dummy worker profile
-            let dummyWorker = CoreTypes.WorkerProfile(
+            // Get real worker profile from auth manager
+            let currentWorker = CoreTypes.WorkerProfile(
                 id: authManager.workerId ?? "unknown",
-                name: "Current User",
-                email: "",
+                name: authManager.currentWorkerName.isEmpty ? "Current User" : authManager.currentWorkerName,
+                email: authManager.currentUser?.email ?? "",
                 role: .worker,
                 isActive: true
             )
             
-            let savedPhoto = try await photoEvidenceService.captureQuick(image: photo, category: category, buildingId: buildingId, workerId: dummyWorker.id, notes: notes)
+            let savedPhoto = try await photoEvidenceService.captureQuick(image: photo, category: category, buildingId: buildingId, workerId: currentWorker.id, notes: notes)
             print("✅ Photo saved: \(savedPhoto.id)")
             
             // Reload spaces if it was a space photo

@@ -86,10 +86,11 @@ public final class ComplianceViewModel: ObservableObject {
         
         var deadlines: [ComplianceDeadline] = []
         
-        // Generate sample critical deadlines based on violations
+        // Generate real critical deadlines based on actual violations
         for violation in activeViolations.prefix(5) {
             if let buildingId = violation.buildingId {
-                let dueDate = calendar.date(byAdding: .day, value: Int.random(in: 1...30), to: Date()) ?? Date()
+                // Use actual violation due date or calculate based on violation severity
+                let dueDate = violation.dueDate ?? calendar.date(byAdding: .day, value: 30, to: Date()) ?? Date()
                 
                 deadlines.append(ComplianceDeadline(
                     id: UUID().uuidString,

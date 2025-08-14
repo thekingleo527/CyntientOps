@@ -41,15 +41,12 @@ public final class ProductionConfiguration {
     // MARK: - Current Environment
     
     public static var currentEnvironment: Environment {
-        #if DEBUG
-        return .development
-        #else
+        // PRODUCTION DEPLOYMENT: Always use production environment
         if let envString = ProcessInfo.processInfo.environment["APP_ENVIRONMENT"],
            let env = Environment(rawValue: envString) {
             return env
         }
         return .production
-        #endif
     }
     
     // MARK: - Compatibility Property

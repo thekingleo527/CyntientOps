@@ -897,46 +897,8 @@ public final class GRDBManager {
         }
     }
     
-    // MARK: - Authentication Implementation
-    
-    public func authenticateWorker(email: String, password: String) async -> AuthenticationResult {
-        do {
-            if try await isAccountLocked(email: email) {
-                await recordLoginAttempt(email: email, success: false, reason: "Account locked")
-                return .failure("Account is temporarily locked due to multiple failed attempts")
-            }
-            
-            let rows = try await query("SELECT * FROM workers WHERE email = ? AND isActive = 1", [email])
-            guard let row = rows.first else {
-                await recordLoginAttempt(email: email, success: false, reason: "User not found")
-                return .failure("Invalid credentials")
-            }
-            
-            let storedPassword = row["password"] as? String ?? ""
-            guard storedPassword == password else {
-                try await incrementLoginAttempts(email: email)
-                await recordLoginAttempt(email: email, success: false, reason: "Invalid password")
-                return .failure("Invalid credentials")
-            }
-            
-            try await execute("UPDATE workers SET loginAttempts = 0, lockedUntil = NULL, lastLogin = datetime('now'), updated_at = datetime('now') WHERE email = ?", [email])
-            await recordLoginAttempt(email: email, success: true, reason: nil)
-            
-            let idString = row["id"] as? String ?? "0"
-            let user = AuthenticatedUser(
-                id: Int(idString) ?? 0,
-                name: row["name"] as? String ?? "",
-                email: email,
-                role: row["role"] as? String ?? "worker",
-                workerId: idString,
-                displayName: row["display_name"] as? String,
-                timezone: row["timezone"] as? String ?? "America/New_York"
-            )
-            return .success(user)
-        } catch {
-            return .failure("Authentication failed: \(error.localizedDescription)")
-        }
-    }
+    // MARK: - Authentication Support (NewAuthManager handles actual authentication)
+    // GRDBManager only provides database queries for NewAuthManager
     
     public func createSession(for workerId: String, deviceInfo: String = "iOS App") async throws -> String {
         let sessionId = UUID().uuidString
@@ -986,38 +948,8 @@ public final class GRDBManager {
         """, [workerId])
     }
     
-    private func isAccountLocked(email: String) async throws -> Bool {
-        let rows = try await query("SELECT loginAttempts, lockedUntil FROM workers WHERE email = ?", [email])
-        guard let row = rows.first else { return false }
-        let attempts = row["loginAttempts"] as? Int64 ?? 0
-        if attempts >= 5,
-           let lockedUntilString = row["lockedUntil"] as? String,
-           let lockedUntil = ISO8601DateFormatter().date(from: lockedUntilString),
-           Date() < lockedUntil {
-            return true
-        }
-        return false
-    }
-    
-    private func incrementLoginAttempts(email: String) async throws {
-        try await execute("UPDATE workers SET loginAttempts = loginAttempts + 1, updated_at = datetime('now') WHERE email = ?", [email])
-        let rows = try await query("SELECT loginAttempts FROM workers WHERE email = ?", [email])
-        if (rows.first?["loginAttempts"] as? Int64 ?? 0) >= 5 {
-            let lockTime = Date().addingTimeInterval(30 * 60)
-            try await execute("UPDATE workers SET lockedUntil = ? WHERE email = ?", [ISO8601DateFormatter().string(from: lockTime), email])
-        }
-    }
-    
-    private func recordLoginAttempt(email: String, success: Bool, reason: String?) async {
-        let workerRows = try? await query("SELECT id FROM workers WHERE email = ?", [email])
-        let workerId = workerRows?.first?["id"] as? String
-        try? await execute("""
-            INSERT INTO login_history (
-                worker_id, email, login_time, success, 
-                failure_reason, ip_address, device_info
-            ) VALUES (?, ?, datetime('now'), ?, ?, ?, ?)
-        """, [workerId as Any, email, success ? 1 : 0, reason as Any, "127.0.0.1", "iOS App"])
-    }
+    // Authentication support methods moved to NewAuthManager
+    // These are now handled by the unified authentication system
     
     // MARK: - Real-time Observation
     

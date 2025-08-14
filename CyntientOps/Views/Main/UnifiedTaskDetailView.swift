@@ -1631,8 +1631,8 @@ struct UnifiedTaskDetailView_Previews: PreviewProvider {
                     urgency: .medium,
                     building: CoreTypes.NamedCoordinate(
                         id: "1",
-                        name: "123 Main Street",
-                        address: "123 Main St, New York, NY",
+                        name: "Preview Building",
+                        address: "Preview Address",
                         latitude: 40.7128,
                         longitude: -74.0060
                     ),
@@ -1675,7 +1675,7 @@ struct UnifiedTaskDetailView_Previews: PreviewProvider {
                     building: CoreTypes.NamedCoordinate(
                         id: "2",
                         name: "Corporate Tower",
-                        address: "789 Business Blvd",
+                        address: "Preview Address 2",
                         latitude: 40.7589,
                         longitude: -73.9851
                     ),

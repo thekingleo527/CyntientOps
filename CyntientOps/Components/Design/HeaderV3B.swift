@@ -64,22 +64,17 @@ struct WorkerHeaderV3B: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 16) {
-                // Brand Menu
+                // CyntientOps Logo (left)
                 brandMenuButton
                 
                 Spacer()
                 
-                // Nova Status
+                // Nova Avatar (center)
                 novaStatusButton
                 
                 Spacer()
                 
-                // Clock Pill (if enabled)
-                if showClockPill {
-                    clockPillButton
-                }
-                
-                // Profile Chip
+                // Profile Chip Only (right)
                 profileChipButton
             }
             .padding(.horizontal, 16)
@@ -101,18 +96,27 @@ struct WorkerHeaderV3B: View {
     private var brandMenuButton: some View {
         Button(action: { onRoute(.mainMenu) }) {
             HStack(spacing: 8) {
-                Image(systemName: "line.3.horizontal")
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                // CyntientOps Logo Mark
+                ZStack {
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(
+                            LinearGradient(
+                                colors: [CyntientOpsDesign.DashboardColors.workerPrimary, CyntientOpsDesign.DashboardColors.workerPrimary.opacity(0.8)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 28, height: 28)
+                    
+                    Text("C")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(.white)
+                }
                 
-                Text("CYNTIENT")
-                    .font(.system(size: 12, weight: .bold, design: .rounded))
+                Text("CyntientOps")
+                    .font(.system(size: 14, weight: .semibold))
                     .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(.ultraThinMaterial)
-            .clipShape(RoundedRectangle(cornerRadius: 8))
         }
         .buttonStyle(.plain)
     }
@@ -456,18 +460,8 @@ struct ProfileChip: View {
     
     var body: some View {
         Button(action: tap) {
-            HStack(spacing: 8) {
-                Avatar(initials: initials, photoURL: photoURL)
-                Text(name)
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(CO.primary)
-                    .lineLimit(1)
-            }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
-            .background(.regularMaterial)
-            .clipShape(Capsule())
-            .overlay(Capsule().stroke(CO.hair, lineWidth: 1))
+            Avatar(initials: initials, photoURL: photoURL)
+                .frame(width: 32, height: 32)
         }
         .buttonStyle(.plain)
     }
@@ -489,23 +483,23 @@ struct Avatar: View {
                         endPoint: .bottomTrailing
                     )
                 )
-                .frame(width: 24, height: 24)
+                .frame(width: 32, height: 32)
             
             if let photoURL = photoURL {
                 AsyncImage(url: photoURL) { image in
                     image
                         .resizable()
                         .scaledToFill()
-                        .frame(width: 24, height: 24)
+                        .frame(width: 32, height: 32)
                         .clipShape(Circle())
                 } placeholder: {
                     Text(initials)
-                        .font(.system(size: 10, weight: .bold))
+                        .font(.system(size: 12, weight: .bold))
                         .foregroundColor(.white)
                 }
             } else {
                 Text(initials)
-                    .font(.system(size: 10, weight: .bold))
+                    .font(.system(size: 12, weight: .bold))
                     .foregroundColor(.white)
             }
         }

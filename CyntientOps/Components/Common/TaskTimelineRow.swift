@@ -97,7 +97,7 @@ struct TaskTimelineRow_Previews: PreviewProvider {
                     urgency: .high,
                     building: NamedCoordinate(
                         id: "1",
-                        name: "123 Main Street",
+                        name: "Preview Building",
                         latitude: 40.7128,
                         longitude: -74.0060
                     ),
@@ -155,7 +155,7 @@ struct TaskTimelineRow_Previews: PreviewProvider {
                     urgency: .emergency,
                     building: NamedCoordinate(
                         id: "3",
-                        name: "789 Broadway",
+                        name: "Preview Building 2",
                         latitude: 40.7489,
                         longitude: -73.9680
                     ),

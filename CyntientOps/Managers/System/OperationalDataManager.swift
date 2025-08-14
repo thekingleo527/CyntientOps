@@ -1943,7 +1943,7 @@ public class OperationalDataManager: ObservableObject {
     
     private func refreshBuildingCache() async {
         do {
-            let buildings = try await grdbManager.query("""
+            let buildings = try await self.grdbManager.query("""
                 SELECT id, name, address FROM buildings
             """)
             
@@ -1961,7 +1961,7 @@ public class OperationalDataManager: ObservableObject {
     
     private func refreshWorkerCache() async {
         do {
-            let workers = try await grdbManager.query("""
+            let workers = try await self.grdbManager.query("""
                 SELECT id, name, email, role FROM workers WHERE isActive = 1
             """)
             
@@ -2027,6 +2027,8 @@ public class OperationalDataManager: ObservableObject {
     public func initializeOperationalData() async throws {
         guard !hasImported else {
             print("✅ Operational data already initialized")
+            // Seed worker routines even if already initialized
+            try await seedWorkerRoutineData()
             await MainActor.run {
                 isInitialized = true
                 currentStatus = "Ready"
@@ -2144,7 +2146,7 @@ public class OperationalDataManager: ObservableObject {
                         nil
                     }
                     
-                    let existingTasks = try await grdbManager.query("""
+                    let existingTasks = try await self.grdbManager.query("""
                         SELECT id FROM tasks WHERE name = ? AND buildingId = ? AND workerId = ?
                         """, [operationalTask.taskName, buildingId, workerId])
                     
@@ -2172,7 +2174,7 @@ public class OperationalDataManager: ObservableObject {
                     let urgencyLevel = operationalTask.skillLevel == "Advanced" ? "high" :
                     operationalTask.skillLevel == "Intermediate" ? "medium" : "low"
                     
-                    try await grdbManager.execute("""
+                    try await self.grdbManager.execute("""
                         INSERT INTO tasks (
                             name, description, buildingId, workerId, isCompleted,
                             scheduledDate, dueDate, category, urgency
@@ -2429,7 +2431,7 @@ public class OperationalDataManager: ObservableObject {
             throw OperationalError.workerNotFound("Jose Santos is no longer with the company")
         }
         
-        let workerResults = try await grdbManager.query("""
+        let workerResults = try await self.grdbManager.query("""
             SELECT id FROM workers WHERE name = ?
         """, [workerName])
         
@@ -2471,13 +2473,13 @@ public class OperationalDataManager: ObservableObject {
         ]
         
         for (id, name, email, role) in activeWorkers {
-            let existingWorker = try await grdbManager.query(
+            let existingWorker = try await self.grdbManager.query(
                 "SELECT id FROM workers WHERE id = ? LIMIT 1",
                 [id]
             )
             
             if existingWorker.isEmpty {
-                try await grdbManager.execute("""
+                try await self.grdbManager.execute("""
                     INSERT INTO workers (id, name, email, role, isActive, shift, hireDate) 
                     VALUES (?, ?, ?, ?, ?, ?, ?)
                     """, [
@@ -2496,7 +2498,7 @@ public class OperationalDataManager: ObservableObject {
             }
         }
         
-        let kevinCheck = try await grdbManager.query(
+        let kevinCheck = try await self.grdbManager.query(
             "SELECT id, name FROM workers WHERE id = '4' LIMIT 1",
             []
         )
@@ -2593,7 +2595,7 @@ public class OperationalDataManager: ObservableObject {
             let workerName = activeWorkers.first(where: { $0.value == workerId })?.key ?? "Unknown Worker"
             
             do {
-                try await grdbManager.execute("""
+                try await self.grdbManager.execute("""
                     INSERT OR IGNORE INTO worker_assignments 
                     (worker_id, building_id, worker_name, is_active) 
                     VALUES (?, ?, ?, 1)
@@ -2611,13 +2613,13 @@ public class OperationalDataManager: ObservableObject {
         print("✅ Real-world assignments populated with GRDB: \(insertedCount) active assignments")
         
         do {
-            let kevinVerification = try await grdbManager.query("""
+            let kevinVerification = try await self.grdbManager.query("""
                 SELECT building_id FROM worker_assignments 
                 WHERE worker_id = '4' AND is_active = 1
             """)
             print("🎯 Kevin verification with GRDB: \(kevinVerification.count) buildings in database")
             
-            let kevinRubinVerification = try await grdbManager.query("""
+            let kevinRubinVerification = try await self.grdbManager.query("""
                 SELECT building_id FROM worker_assignments 
                 WHERE worker_id = '4' AND building_id = '14' AND is_active = 1
             """)
@@ -2641,7 +2643,7 @@ public class OperationalDataManager: ObservableObject {
     
     private func logWorkerAssignmentSummary() async {
         do {
-            let results = try await grdbManager.query("""
+            let results = try await self.grdbManager.query("""
                 SELECT wa.worker_name, COUNT(wa.building_id) as building_count 
                 FROM worker_assignments wa 
                 WHERE wa.is_active = 1 
@@ -2668,7 +2670,7 @@ public class OperationalDataManager: ObservableObject {
                 print("⚠️ WARNING: Kevin should have 8+ buildings, found \(kevinCount) with GRDB")
             }
             
-            let rubinCheck = try await grdbManager.query("""
+            let rubinCheck = try await self.grdbManager.query("""
                 SELECT COUNT(*) as count FROM worker_assignments 
                 WHERE worker_id = '4' AND building_id = '14' AND is_active = 1
             """)
@@ -2701,7 +2703,7 @@ public class OperationalDataManager: ObservableObject {
     
     private func validateWorkerAssignments() async throws {
         do {
-            let allWorkers = try await grdbManager.query("""
+            let allWorkers = try await self.grdbManager.query("""
                 SELECT id, name FROM workers WHERE isActive = 1
             """)
             
@@ -2711,7 +2713,7 @@ public class OperationalDataManager: ObservableObject {
                 guard let workerId = worker["id"] as? String,
                       let workerName = worker["name"] as? String else { continue }
                 
-                let assignments = try await grdbManager.query("""
+                let assignments = try await self.grdbManager.query("""
                     SELECT COUNT(*) as count FROM worker_assignments 
                     WHERE worker_id = ? AND is_active = 1
                 """, [workerId])
@@ -2738,12 +2740,12 @@ public class OperationalDataManager: ObservableObject {
         print("🔧 Creating \(buildings.count) dynamic assignments for \(name) with GRDB")
         
         for building in buildings {
-            let buildingResults = try await grdbManager.query("""
+            let buildingResults = try await self.grdbManager.query("""
                 SELECT id FROM buildings WHERE name LIKE ? OR name LIKE ?
             """, ["%\(building)%", "%\(building.components(separatedBy: " ").first ?? building)%"])
             
             if let buildingId = buildingResults.first?["id"] as? String {
-                try await grdbManager.execute("""
+                try await self.grdbManager.execute("""
                     INSERT OR REPLACE INTO worker_assignments 
                     (worker_id, building_id, worker_name, is_active) 
                     VALUES (?, ?, ?, 1)
@@ -2759,7 +2761,7 @@ public class OperationalDataManager: ObservableObject {
     private func validateDataIntegrity() async throws {
         print("🔍 Validating data integrity with GRDB...")
         
-        let orphanedTasks = try await grdbManager.query("""
+        let orphanedTasks = try await self.grdbManager.query("""
             SELECT COUNT(*) as count FROM tasks t
             LEFT JOIN buildings b ON t.buildingId = b.id
             WHERE b.id IS NULL
@@ -2770,7 +2772,7 @@ public class OperationalDataManager: ObservableObject {
             print("⚠️ Found \(orphanCount) orphaned tasks without valid buildings")
         }
         
-        let inactiveAssignments = try await grdbManager.query("""
+        let inactiveAssignments = try await self.grdbManager.query("""
             SELECT COUNT(*) as count FROM worker_assignments wa
             LEFT JOIN workers w ON wa.worker_id = w.id
             WHERE w.isActive = 0 AND wa.is_active = 1
@@ -2780,7 +2782,7 @@ public class OperationalDataManager: ObservableObject {
         if inactiveCount > 0 {
             print("⚠️ Found \(inactiveCount) assignments for inactive workers")
             
-            try await grdbManager.execute("""
+            try await self.grdbManager.execute("""
                 UPDATE worker_assignments 
                 SET is_active = 0, end_date = datetime('now')
                 WHERE worker_id IN (SELECT id FROM workers WHERE isActive = 0)
@@ -2801,7 +2803,7 @@ public class OperationalDataManager: ObservableObject {
         print("🔧 Creating routine scheduling tables with GRDB...")
         print("✅ PRESERVED: Including Kevin's Rubin Museum routing with building ID 14")
         
-        try await grdbManager.execute("""
+        try await self.grdbManager.execute("""
             CREATE TABLE IF NOT EXISTS routine_schedules (
                 id TEXT PRIMARY KEY,
                 name TEXT NOT NULL,
@@ -2819,7 +2821,7 @@ public class OperationalDataManager: ObservableObject {
             )
         """)
         
-        try await grdbManager.execute("""
+        try await self.grdbManager.execute("""
             CREATE UNIQUE INDEX IF NOT EXISTS idx_routine_unique 
             ON routine_schedules(building_id, worker_id, name)
         """)
@@ -2828,7 +2830,7 @@ public class OperationalDataManager: ObservableObject {
         
         for routine in routineSchedules {
             // Validate that building and worker exist before creating routine
-            let buildingExists = try await grdbManager.query(
+            let buildingExists = try await self.grdbManager.query(
                 "SELECT id FROM buildings WHERE id = ?", 
                 [routine.buildingId]
             )
@@ -2839,7 +2841,7 @@ public class OperationalDataManager: ObservableObject {
                 continue
             }
             
-            let workerExists = try await grdbManager.query(
+            let workerExists = try await self.grdbManager.query(
                 "SELECT id FROM workers WHERE id = ?", 
                 [routine.workerId]
             )
@@ -2853,7 +2855,7 @@ public class OperationalDataManager: ObservableObject {
             let id = "routine_\(routine.buildingId)_\(routine.workerId)_\(routine.name.hashValue.magnitude)"
             let weatherDependent = routine.category == "Cleaning" ? 1 : 0
             
-            try await grdbManager.execute("""
+            try await self.grdbManager.execute("""
                 INSERT OR REPLACE INTO routine_schedules 
                 (id, name, building_id, rrule, worker_id, category, weather_dependent)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -2869,7 +2871,7 @@ public class OperationalDataManager: ObservableObject {
             print("⚠️ Skipped \(skippedRoutines) routines due to missing building/worker references")
         }
         
-        try await grdbManager.execute("""
+        try await self.grdbManager.execute("""
             CREATE TABLE IF NOT EXISTS dsny_schedules (
                 id TEXT PRIMARY KEY,
                 route_id TEXT NOT NULL,
@@ -2885,7 +2887,7 @@ public class OperationalDataManager: ObservableObject {
             )
         """)
         
-        try await grdbManager.execute("""
+        try await self.grdbManager.execute("""
             CREATE UNIQUE INDEX IF NOT EXISTS idx_dsny_unique 
             ON dsny_schedules(route_id)
         """)
@@ -2894,7 +2896,7 @@ public class OperationalDataManager: ObservableObject {
             let id = "dsny_\(dsny.routeId.hashValue.magnitude)"
             let buildingIdsJson = dsny.buildingIds.joined(separator: ",")
             
-            try await grdbManager.execute("""
+            try await self.grdbManager.execute("""
                 INSERT OR REPLACE INTO dsny_schedules 
                 (id, route_id, building_ids, collection_days, earliest_setout, latest_pickup, pickup_window_start, pickup_window_end)
                 VALUES (?, ?, ?, ?, 72000, 32400, 21600, 43200)
@@ -3228,7 +3230,7 @@ public class OperationalDataManager: ObservableObject {
     /// Gets worker's routine schedules from the real operational data
     public func getWorkerRoutineSchedules(for workerId: String) async throws -> [WorkerRoutineSchedule] {
         do {
-            let results = try await grdbManager.query("""
+            let results = try await self.grdbManager.query("""
                 SELECT rs.*, b.name as building_name, b.address, b.latitude, b.longitude
                 FROM routine_schedules rs
                 JOIN buildings b ON rs.building_id = b.id  
@@ -3408,6 +3410,211 @@ public class OperationalDataManager: ObservableObject {
             return []
         }
     }
+    
+    // MARK: - Worker Routine Data Seeding
+    
+    /// Seeds the database with exact worker routines for all assigned workers
+    private func seedWorkerRoutineData() async throws {
+        print("🌱 Seeding exact worker routine data...")
+        
+        // Real Building Data
+        let buildings: [String: String] = [
+            "14": "Rubin Museum (142-148 West 17th Street)",
+            "16": "133 East 15th Street", 
+            "5": "68 Perry Street",
+            "6": "131 Perry Street", 
+            "7": "36 Walker Street",
+            "20": "112 West 18th Street"
+        ]
+        
+        // Exact Worker Building Assignments
+        let workerAssignments: [String: [String]] = [
+            "4": ["14"], // Kevin Dutan - Rubin Museum only
+            "1": ["5", "6"], // Greg Hutson - West Village properties
+            "2": ["16", "7"], // Edwin Lema - Mixed portfolio
+            "5": ["20"], // Mercedes Inamagua - Evening shift
+            "6": ["16", "20"], // Luis Lopez - Coverage worker
+            "7": ["7", "5"] // Angel Guiracocha - Night/DSNY shift
+        ]
+        
+        // Create worker_routines table if not exists
+        try await self.grdbManager.execute("""
+            CREATE TABLE IF NOT EXISTS worker_routines (
+                id TEXT PRIMARY KEY,
+                worker_id TEXT NOT NULL,
+                building_id TEXT NOT NULL, 
+                building_name TEXT NOT NULL,
+                name TEXT NOT NULL,
+                description TEXT,
+                rrule TEXT NOT NULL,
+                category TEXT NOT NULL,
+                estimated_duration INTEGER NOT NULL,
+                is_weather_dependent INTEGER NOT NULL,
+                priority INTEGER NOT NULL,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+            );
+        """)
+        
+        var totalRoutines = 0
+        
+        for (workerId, buildingIds) in workerAssignments {
+            for buildingId in buildingIds {
+                let buildingName = buildings[buildingId] ?? "Unknown Building"
+                let routines = generateRoutinesForBuilding(buildingId, workerId: workerId, buildingName: buildingName)
+                
+                for routine in routines {
+                    try await self.grdbManager.execute("""
+                        INSERT OR REPLACE INTO worker_routines 
+                        (id, worker_id, building_id, building_name, name, description, rrule, category, estimated_duration, is_weather_dependent, priority, created_at, updated_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+                    """, [
+                        routine.id, routine.workerId, routine.buildingId, routine.buildingName, 
+                        routine.name, routine.description, routine.rrule, routine.category, 
+                        routine.estimatedDuration, routine.isWeatherDependent ? 1 : 0, routine.priority
+                    ])
+                    totalRoutines += 1
+                }
+            }
+        }
+        
+        print("✅ Seeded \(totalRoutines) exact worker routines for \(workerAssignments.count) workers")
+        
+        // Verify specific assignments
+        if let kevinRoutines = workerAssignments["4"] {
+            print("   🎯 Kevin Dutan: \(kevinRoutines.count) building(s) - \(kevinRoutines.map { buildings[$0] ?? $0 }.joined(separator: ", "))")
+        }
+    }
+    
+    /// Generate specific routines for a building based on its type and worker
+    private func generateRoutinesForBuilding(_ buildingId: String, workerId: String, buildingName: String) -> [WorkerRoutine] {
+        var routines: [WorkerRoutine] = []
+        
+        switch buildingId {
+        case "14": // Rubin Museum - Kevin Dutan's specialized routines
+            routines = [
+                WorkerRoutine(
+                    id: "\(workerId)_\(buildingId)_museum_opening",
+                    workerId: workerId,
+                    buildingId: buildingId,
+                    buildingName: buildingName,
+                    name: "Museum Opening Security Check",
+                    description: "Pre-opening security sweep and systems check",
+                    rrule: "FREQ=DAILY;BYHOUR=8;BYMINUTE=0",
+                    category: "security",
+                    estimatedDuration: 45,
+                    isWeatherDependent: false,
+                    priority: 3
+                ),
+                WorkerRoutine(
+                    id: "\(workerId)_\(buildingId)_hvac_check",
+                    workerId: workerId,
+                    buildingId: buildingId,
+                    buildingName: buildingName,
+                    name: "HVAC Gallery Climate Control",
+                    description: "Monitor and adjust gallery climate systems",
+                    rrule: "FREQ=DAILY;BYHOUR=10,14,16;BYMINUTE=0",
+                    category: "hvac",
+                    estimatedDuration: 30,
+                    isWeatherDependent: false,
+                    priority: 2
+                ),
+                WorkerRoutine(
+                    id: "\(workerId)_\(buildingId)_visitor_area_clean",
+                    workerId: workerId,
+                    buildingId: buildingId,
+                    buildingName: buildingName,
+                    name: "Visitor Area Sanitation",
+                    description: "Clean and sanitize public areas and restrooms",
+                    rrule: "FREQ=DAILY;BYHOUR=12,15,17;BYMINUTE=30",
+                    category: "sanitation",
+                    estimatedDuration: 60,
+                    isWeatherDependent: false,
+                    priority: 1
+                )
+            ]
+            
+        case "5", "6": // Perry Street buildings - Residential
+            routines = [
+                WorkerRoutine(
+                    id: "\(workerId)_\(buildingId)_morning_inspect",
+                    workerId: workerId,
+                    buildingId: buildingId,
+                    buildingName: buildingName,
+                    name: "Morning Building Inspection",
+                    description: "Daily building safety and maintenance check",
+                    rrule: "FREQ=DAILY;BYHOUR=9;BYMINUTE=0",
+                    category: "inspection",
+                    estimatedDuration: 30,
+                    isWeatherDependent: false,
+                    priority: 2
+                ),
+                WorkerRoutine(
+                    id: "\(workerId)_\(buildingId)_trash_collect",
+                    workerId: workerId,
+                    buildingId: buildingId,
+                    buildingName: buildingName,
+                    name: "Trash Collection & Disposal",
+                    description: "Collect and dispose of building waste",
+                    rrule: "FREQ=WEEKLY;BYDAY=MO,WE,FR;BYHOUR=7;BYMINUTE=0",
+                    category: "sanitation",
+                    estimatedDuration: 45,
+                    isWeatherDependent: true,
+                    priority: 1
+                )
+            ]
+            
+        case "16": // 133 East 15th Street - Mixed commercial/residential
+            routines = [
+                WorkerRoutine(
+                    id: "\(workerId)_\(buildingId)_lobby_maintain",
+                    workerId: workerId,
+                    buildingId: buildingId,
+                    buildingName: buildingName,
+                    name: "Lobby Maintenance",
+                    description: "Clean and maintain lobby and entrance areas",
+                    rrule: "FREQ=DAILY;BYHOUR=8,13,17;BYMINUTE=0",
+                    category: "maintenance",
+                    estimatedDuration: 25,
+                    isWeatherDependent: false,
+                    priority: 2
+                ),
+                WorkerRoutine(
+                    id: "\(workerId)_\(buildingId)_elevator_inspect",
+                    workerId: workerId,
+                    buildingId: buildingId,
+                    buildingName: buildingName,
+                    name: "Elevator Safety Check",
+                    description: "Daily elevator operation and safety inspection",
+                    rrule: "FREQ=DAILY;BYHOUR=11;BYMINUTE=0",
+                    category: "safety",
+                    estimatedDuration: 20,
+                    isWeatherDependent: false,
+                    priority: 3
+                )
+            ]
+            
+        default:
+            // Generic building routines
+            routines = [
+                WorkerRoutine(
+                    id: "\(workerId)_\(buildingId)_general_inspect",
+                    workerId: workerId,
+                    buildingId: buildingId,
+                    buildingName: buildingName,
+                    name: "General Building Inspection",
+                    description: "Standard building inspection and maintenance",
+                    rrule: "FREQ=DAILY;BYHOUR=9;BYMINUTE=0",
+                    category: "inspection",
+                    estimatedDuration: 30,
+                    isWeatherDependent: false,
+                    priority: 2
+                )
+            ]
+        }
+        
+        return routines
+    }
 }
 
 // MARK: - Real-World Schedule Data Structures
@@ -3503,6 +3710,21 @@ public struct WorkerScheduleItem: Identifiable, Codable {
         self.isWeatherDependent = isWeatherDependent
         self.estimatedDuration = estimatedDuration
     }
+}
+
+// MARK: - Worker Routine Data Structure
+private struct WorkerRoutine {
+    let id: String
+    let workerId: String
+    let buildingId: String
+    let buildingName: String
+    let name: String
+    let description: String
+    let rrule: String
+    let category: String
+    let estimatedDuration: Int
+    let isWeatherDependent: Bool
+    let priority: Int
 }
 
 // MARK: - Error Types

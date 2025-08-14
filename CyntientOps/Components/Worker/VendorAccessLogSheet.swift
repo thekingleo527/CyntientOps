@@ -521,6 +521,7 @@ struct SignaturePadSheet: View {
             }
         }
     }
+}
 
 struct FormSection<Content: View>: View {
     let title: String

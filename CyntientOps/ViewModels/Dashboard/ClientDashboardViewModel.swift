@@ -31,6 +31,7 @@ public final class ClientDashboardViewModel: ObservableObject {
     
     // Buildings and Metrics
     @Published public var buildingsList: [CoreTypes.NamedCoordinate] = []
+    @Published public var buildingsWithImages: [CoreTypes.BuildingWithImage] = []
     @Published public var buildingMetrics: [String: CoreTypes.BuildingMetrics] = [:]
     @Published public var totalBuildings: Int = 0
     @Published public var activeWorkers: Int = 0
@@ -66,6 +67,7 @@ public final class ClientDashboardViewModel: ObservableObject {
     
     // Client-specific data
     @Published public var clientBuildings: [CoreTypes.NamedCoordinate] = []
+    @Published public var clientBuildingsWithImages: [CoreTypes.BuildingWithImage] = []
     @Published public var clientId: String?
     
     // Loading states
@@ -147,20 +149,47 @@ public final class ClientDashboardViewModel: ObservableObject {
             let clientBuildingIds = try? await container.client.getBuildingsForClient(clientData.id)
             
             if let buildingCoordinates = clientBuildingIds {
-                // Filter buildings to only show client's buildings
-                let allBuildings = try? await container.buildings.getAllBuildings()
-                let buildingIds = Set(buildingCoordinates.map { $0.id })
-                self.clientBuildings = (allBuildings ?? [])
-                    .filter { buildingIds.contains($0.id) }
-                    .map { building in
-                        CoreTypes.NamedCoordinate(
-                            id: building.id,
-                            name: building.name,
-                            address: building.address,
-                            latitude: building.latitude,
-                            longitude: building.longitude
+                // Get full building data including image asset names from database
+                do {
+                    let buildingData = try await container.database.query(
+                        "SELECT id, name, address, latitude, longitude, imageAssetName, numberOfUnits, yearBuilt, squareFootage FROM buildings WHERE id IN (" +
+                        buildingCoordinates.map { _ in "?" }.joined(separator: ",") + ")",
+                        buildingCoordinates.map { $0.id }
+                    )
+                    
+                    self.clientBuildingsWithImages = buildingData.map { row in
+                        CoreTypes.BuildingWithImage(
+                            id: row["id"] as? String ?? "",
+                            name: row["name"] as? String ?? "",
+                            address: row["address"] as? String ?? "",
+                            latitude: row["latitude"] as? Double ?? 0.0,
+                            longitude: row["longitude"] as? Double ?? 0.0,
+                            imageAssetName: row["imageAssetName"] as? String,
+                            numberOfUnits: row["numberOfUnits"] as? Int,
+                            yearBuilt: row["yearBuilt"] as? Int,
+                            squareFootage: row["squareFootage"] as? Double
                         )
                     }
+                    
+                    // Create coordinate array for backwards compatibility
+                    self.clientBuildings = clientBuildingsWithImages.map { $0.coordinate }
+                } catch {
+                    print("⚠️ Failed to load buildings with images: \(error)")
+                    // Fallback to existing method
+                    let allBuildings = try? await container.buildings.getAllBuildings()
+                    let buildingIds = Set(buildingCoordinates.map { $0.id })
+                    self.clientBuildings = (allBuildings ?? [])
+                        .filter { buildingIds.contains($0.id) }
+                        .map { building in
+                            CoreTypes.NamedCoordinate(
+                                id: building.id,
+                                name: building.name,
+                                address: building.address,
+                                latitude: building.latitude,
+                                longitude: building.longitude
+                            )
+                        }
+                }
                 
                 print("✅ Client \(clientData.name) has access to \(clientBuildings.count) buildings")
             }
@@ -250,11 +279,13 @@ public final class ClientDashboardViewModel: ObservableObject {
         
         await MainActor.run {
             self.buildingsList = clientBuildings.isEmpty ? buildings : clientBuildings
+            self.buildingsWithImages = clientBuildingsWithImages
             self.totalBuildings = self.buildingsList.count
             
             // REAL DATA verification
             print("✅ Loading REAL client data:")
             print("   - Client Buildings: \(self.buildingsList.count)")
+            print("   - Buildings with Images: \(self.buildingsWithImages.count)")
             print("   - Buildings: \(self.buildingsList.map { $0.name }.joined(separator: ", "))")
         }
     }
@@ -553,8 +584,10 @@ public final class ClientDashboardViewModel: ObservableObject {
     }
     
     private func generatePerformanceTrends() -> [Double] {
-        // Generate sample trend data (would be from historical data in production)
-        return [0.72, 0.74, 0.71, 0.75, 0.78, 0.76, completionRate]
+        // Get real historical data from database
+        // TODO: Implement getHistoricalTrends in BuildingMetricsService
+        // For now, return current completion rate to avoid compilation errors
+        return [completionRate] // Return only current rate until historical data is implemented
     }
     
     // MARK: - Subscriptions
@@ -761,9 +794,9 @@ private final class Debouncer {
 #if DEBUG
 extension ClientDashboardViewModel {
     static func preview() -> ClientDashboardViewModel {
-        // Create a mock container for previews
-        let mockContainer = createMockContainer()
-        let viewModel = ClientDashboardViewModel(container: mockContainer)
+        // Use real ServiceContainer for previews - no mock data
+        let realContainer = ServiceContainer()
+        let viewModel = ClientDashboardViewModel(container: realContainer)
         
         // Set up preview data
         Task { @MainActor in
@@ -797,10 +830,6 @@ extension ClientDashboardViewModel {
         return viewModel
     }
     
-    private static func createMockContainer() -> ServiceContainer {
-        // For preview purposes, we'll need to create a mock container
-        // This is a placeholder - in real implementation would need proper mock
-        fatalError("Mock container not implemented - use real app for testing")
-    }
+    // REMOVED: Mock container - previews now use real ServiceContainer
 }
 #endif

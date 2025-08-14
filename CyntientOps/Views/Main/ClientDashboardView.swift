@@ -163,8 +163,18 @@ struct ClientDashboardView: View {
                         )
                         
                         // Buildings Grid (when hero expanded and client has properties)
-                        if heroExpanded && !viewModel.buildingsList.isEmpty {
+                        if heroExpanded && !viewModel.buildingsWithImages.isEmpty {
                             ClientBuildingsGrid(
+                                buildings: Array(viewModel.buildingsWithImages.prefix(6)),
+                                columns: adaptiveColumns,
+                                onBuildingTap: { building in
+                                    sheet = .buildingDetail(building.id)
+                                },
+                                onViewAllTap: { sheet = .buildings }
+                            )
+                        } else if heroExpanded && !viewModel.buildingsList.isEmpty {
+                            // Fallback for backwards compatibility
+                            ClientBuildingsGridLegacy(
                                 buildings: viewModel.buildingsList.prefix(6),
                                 columns: adaptiveColumns,
                                 onBuildingTap: { building in
@@ -814,6 +824,114 @@ struct ClientImmediateItem: View {
 // MARK: - Buildings Grid
 
 struct ClientBuildingsGrid: View {
+    let buildings: [CoreTypes.BuildingWithImage]
+    let columns: [GridItem]
+    let onBuildingTap: (CoreTypes.BuildingWithImage) -> Void
+    let onViewAllTap: () -> Void
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("My Properties")
+                    .font(.headline)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                
+                Spacer()
+                
+                Button("View All", action: onViewAllTap)
+                    .font(.subheadline)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.clientPrimary)
+            }
+            
+            LazyVGrid(columns: columns, spacing: 12) {
+                ForEach(buildings, id: \.id) { building in
+                    ClientBuildingGridItemWithImage(
+                        building: building,
+                        onTap: { onBuildingTap(building) }
+                    )
+                }
+            }
+        }
+    }
+}
+
+struct ClientBuildingGridItemWithImage: View {
+    let building: CoreTypes.BuildingWithImage
+    let onTap: () -> Void
+    
+    var body: some View {
+        Button(action: onTap) {
+            VStack(alignment: .leading, spacing: 0) {
+                // Building image or fallback
+                ZStack {
+                    if let imageAssetName = building.imageAssetName, let buildingImage = UIImage(named: imageAssetName) {
+                        Image(uiImage: buildingImage)
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .frame(height: 80)
+                            .clipped()
+                    } else {
+                        // Fallback gradient background
+                        LinearGradient(
+                            gradient: Gradient(colors: [
+                                CyntientOpsDesign.DashboardColors.clientPrimary.opacity(0.3),
+                                CyntientOpsDesign.DashboardColors.clientPrimary.opacity(0.1)
+                            ]),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                        .frame(height: 80)
+                        
+                        Image(systemName: "building.2.fill")
+                            .font(.title)
+                            .foregroundColor(CyntientOpsDesign.DashboardColors.clientPrimary.opacity(0.4))
+                    }
+                    
+                    // Status indicator overlay
+                    VStack {
+                        HStack {
+                            Spacer()
+                            Circle()
+                                .fill(CyntientOpsDesign.DashboardColors.success)
+                                .frame(width: 8, height: 8)
+                                .background(
+                                    Circle()
+                                        .fill(Color.black.opacity(0.3))
+                                        .frame(width: 14, height: 14)
+                                )
+                        }
+                        Spacer()
+                    }
+                    .padding(8)
+                }
+                
+                // Building info
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(building.name)
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.leading)
+                    
+                    if !building.address.isEmpty {
+                        Text(building.address)
+                            .font(.caption)
+                            .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                            .lineLimit(1)
+                    }
+                }
+                .padding(12)
+            }
+            .francoDarkCardBackground(cornerRadius: 10)
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+        }
+        .buttonStyle(PlainButtonStyle())
+    }
+}
+
+// Legacy fallback component for backward compatibility
+struct ClientBuildingsGridLegacy: View {
     let buildings: any Sequence<CoreTypes.NamedCoordinate>
     let columns: [GridItem]
     let onBuildingTap: (CoreTypes.NamedCoordinate) -> Void

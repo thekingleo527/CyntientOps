@@ -29,25 +29,19 @@ public struct ProductionConfiguration {
         }
         
         public var isDebug: Bool {
-            #if DEBUG
-            return true
-            #else
+            // PRODUCTION DEPLOYMENT: Always return false for production
             return false
-            #endif
         }
     }
     
     // MARK: - Current Environment
     public static var environment: Environment {
-        #if DEBUG
-        return .development
-        #else
+        // PRODUCTION DEPLOYMENT: Always use production environment
         // Check for staging flag or default to production
         if ProcessInfo.processInfo.environment["STAGING"] != nil {
             return .staging
         }
         return .production
-        #endif
     }
     
     // MARK: - API Configuration

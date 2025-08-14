@@ -783,8 +783,10 @@ struct IntelligencePreviewPanel: View {
         // Extract from insights mentioning urgent tasks
         for insight in insights {
             if insight.type == .operations || insight.type == .maintenance {
-                if let match = insight.description.firstMatch(of: /(\d+)\s+(urgent|overdue|critical)/) {
-                    return Int(match.1)
+                if insight.description.contains("urgent") || insight.description.contains("overdue") || insight.description.contains("critical") {
+                    // Extract number from description
+                    let numbers = insight.description.components(separatedBy: CharacterSet.decimalDigits.inverted).compactMap { Int($0) }
+                    return numbers.first
                 }
             }
         }
@@ -794,8 +796,10 @@ struct IntelligencePreviewPanel: View {
     private func getOverdueMaintenanceCount() -> Int? {
         // Extract from maintenance insights
         for insight in insights where insight.type == .maintenance {
-            if let match = insight.description.firstMatch(of: /(\d+)\s+.*\s*(overdue|scheduled|pending)/) {
-                return Int(match.1)
+            if insight.description.contains("overdue") || insight.description.contains("scheduled") || insight.description.contains("pending") {
+                // Extract number from description
+                let numbers = insight.description.components(separatedBy: CharacterSet.decimalDigits.inverted).compactMap { Int($0) }
+                return numbers.first
             }
         }
         return nil

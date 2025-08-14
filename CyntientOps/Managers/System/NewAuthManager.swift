@@ -103,10 +103,8 @@ public class NewAuthManager: ObservableObject {
     private init() {
         setupBiometrics()
         #if DEBUG
-        // In debug mode, always start with fresh login
-        Task {
-            await clearStoredSession()
-        }
+        // In debug mode, attempt to restore session first, but allow fresh login if needed
+        restoreSession()
         #else
         restoreSession()
         #endif
@@ -127,28 +125,11 @@ public class NewAuthManager: ObservableObject {
         defer { isLoading = false }
         
         do {
-            print("🔍 DEBUG: Attempting authentication for email: \(email)")
-            
             // Get user from database
             let userRows = try await grdbManager.query(
                 "SELECT * FROM workers WHERE email = ? AND isActive = 1",
                 [email]
             )
-            
-            print("🔍 DEBUG: Found \(userRows.count) users for email \(email)")
-            if userRows.isEmpty {
-                // Debug: Let's see what users are in the database
-                let allUsers = try await grdbManager.query("SELECT id, name, email, isActive FROM workers LIMIT 10")
-                print("🔍 DEBUG: Available users in database:")
-                for user in allUsers {
-                    if let id = user["id"] as? String,
-                       let name = user["name"] as? String,
-                       let userEmail = user["email"] as? String,
-                       let isActive = user["isActive"] as? Int64 {
-                        print("  - \(name) (\(userEmail)) - Active: \(isActive == 1) - ID: \(id)")
-                    }
-                }
-            }
             
             guard let userRow = userRows.first else {
                 loginAttempts += 1
@@ -161,13 +142,9 @@ public class NewAuthManager: ObservableObject {
                 throw NewAuthError.authenticationFailed("Invalid user data")
             }
             
-            print("🔍 DEBUG: Stored password hash length: \(storedPasswordHash.count)")
-            print("🔍 DEBUG: Entered password: \(password)")
-            
             // For migration: Check if password is still plain text
             if storedPasswordHash == password {
                 // Migrate to hashed password
-                print("✅ DEBUG: Plain text password match! Migrating for user: \(email)")
                 let hashedPassword = try await hashPassword(password, for: email)
                 try await grdbManager.execute(
                     "UPDATE workers SET password = ? WHERE id = ?",
@@ -175,9 +152,7 @@ public class NewAuthManager: ObservableObject {
                 )
             } else {
                 // Verify hashed password
-                print("🔍 DEBUG: Attempting to verify hashed password...")
                 let isValid = try await verifyPassword(password, hash: storedPasswordHash, for: email)
-                print("🔍 DEBUG: Password verification result: \(isValid)")
                 guard isValid else {
                     loginAttempts += 1
                     throw NewAuthError.authenticationFailed("Invalid credentials")
@@ -837,7 +812,13 @@ public class NewAuthManager: ObservableObject {
         sessionExpirationDate = nil
         isAuthenticated = false
         sessionStatus = .none
-        print("🧹 DEBUG: Cleared stored session - forcing fresh login")
+        // Session cleared for fresh authentication
+    }
+    
+    /// Public method to manually clear session (useful for debugging or logout)
+    public func forceLogout() async {
+        await clearStoredSession()
+        NotificationCenter.default.post(name: .userDidLogout, object: nil)
     }
 }
 

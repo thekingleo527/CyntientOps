@@ -140,7 +140,13 @@ struct WorkerDashboardView: View {
                     assignedBuildings: viewModel.assignedBuildings,
                     allBuildings: viewModel.allBuildings,
                     onTabTap: handleNovaTabTap,
-                    onTaskAction: handleTaskAction
+                    onTaskAction: handleTaskAction,
+                    onBuildingTap: { buildingId in
+                        // Navigate to building detail with database connection
+                        if let building = (viewModel.assignedBuildings + viewModel.allBuildings).first(where: { $0.id == buildingId }) {
+                            sheet = .buildingDetail(building.id)
+                        }
+                    }
                 )
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             }
@@ -884,6 +890,7 @@ struct WorkerNovaIntelligenceBar: View {
     let allBuildings: [WorkerDashboardViewModel.BuildingSummary] // For coverage
     let onTabTap: (WorkerDashboardView.NovaTab) -> Void
     let onTaskAction: (WorkerTaskAction) -> Void
+    let onBuildingTap: (String) -> Void // Building navigation callback
     
     var body: some View {
         VStack(spacing: 0) {
@@ -952,7 +959,8 @@ struct WorkerNovaIntelligenceBar: View {
                     WorkerBuildingInfoContent(
                         currentBuilding: currentBuilding,
                         assignedBuildings: assignedBuildings,
-                        allBuildings: allBuildings
+                        allBuildings: allBuildings,
+                        onBuildingTap: onBuildingTap
                     )
                     
                 case .chat:
@@ -1166,6 +1174,7 @@ struct WorkerBuildingInfoContent: View {
     let currentBuilding: WorkerDashboardViewModel.BuildingSummary?
     let assignedBuildings: [WorkerDashboardViewModel.BuildingSummary]
     let allBuildings: [WorkerDashboardViewModel.BuildingSummary] // For coverage purposes
+    let onBuildingTap: (String) -> Void // Database navigation callback
     
     var body: some View {
         VStack(spacing: 12) {
@@ -1176,7 +1185,10 @@ struct WorkerBuildingInfoContent: View {
                         .font(.headline)
                         .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                     
-                    WorkerCurrentBuildingCard(building: currentBuilding)
+                    WorkerCurrentBuildingCard(
+                        building: currentBuilding,
+                        onTap: { onBuildingTap(currentBuilding.id) }
+                    )
                 }
             }
             
@@ -1200,7 +1212,8 @@ struct WorkerBuildingInfoContent: View {
                         ForEach(assignedBuildings, id: \.id) { building in
                             WorkerBuildingChip(
                                 building: building,
-                                isCurrentLocation: building.id == currentBuilding?.id
+                                isCurrentLocation: building.id == currentBuilding?.id,
+                                onTap: { onBuildingTap(building.id) }
                             )
                         }
                     }
@@ -1238,7 +1251,8 @@ struct WorkerBuildingInfoContent: View {
                             WorkerCoverageBuildingChip(
                                 building: building,
                                 isAssigned: isAssigned,
-                                isCurrentLocation: building.id == currentBuilding?.id
+                                isCurrentLocation: building.id == currentBuilding?.id,
+                                onTap: { onBuildingTap(building.id) }
                             )
                         }
                     }
@@ -1534,12 +1548,14 @@ struct WorkerScheduleRow: View {
 
 struct WorkerCurrentBuildingCard: View {
     let building: WorkerDashboardViewModel.BuildingSummary
+    let onTap: () -> Void
     
     var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "building.2.fill")
-                .font(.title2)
-                .foregroundColor(CyntientOpsDesign.DashboardColors.success)
+        Button(action: onTap) {
+            HStack(spacing: 12) {
+                Image(systemName: "building.2.fill")
+                    .font(.title2)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.success)
             
             VStack(alignment: .leading, spacing: 4) {
                 Text(building.name)
@@ -1558,7 +1574,9 @@ struct WorkerCurrentBuildingCard: View {
             }
             
             Spacer()
+            }
         }
+        .buttonStyle(PlainButtonStyle())
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
         .background(CyntientOpsDesign.DashboardColors.success.opacity(0.1))
@@ -1569,10 +1587,12 @@ struct WorkerCurrentBuildingCard: View {
 struct WorkerBuildingChip: View {
     let building: WorkerDashboardViewModel.BuildingSummary
     let isCurrentLocation: Bool
+    let onTap: () -> Void
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack {
+        Button(action: onTap) {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
                 Text(building.name)
                     .font(.caption)
                     .fontWeight(.medium)
@@ -1592,7 +1612,9 @@ struct WorkerBuildingChip: View {
                 .font(.caption2)
                 .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
                 .lineLimit(2)
+            }
         }
+        .buttonStyle(PlainButtonStyle())
         .frame(width: 120, alignment: .leading)
         .padding(.horizontal, 8)
         .padding(.vertical, 6)
@@ -1645,9 +1667,11 @@ struct WorkerCoverageBuildingChip: View {
     let building: WorkerDashboardViewModel.BuildingSummary
     let isAssigned: Bool
     let isCurrentLocation: Bool
+    let onTap: () -> Void
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        Button(action: onTap) {
+            VStack(alignment: .leading, spacing: 4) {
             HStack {
                 Text(building.name)
                     .font(.caption)
@@ -1687,6 +1711,7 @@ struct WorkerCoverageBuildingChip: View {
                 }
             }
         }
+        .buttonStyle(PlainButtonStyle())
         .frame(width: 120, alignment: .leading)
         .padding(.horizontal, 8)
         .padding(.vertical, 6)
@@ -1709,6 +1734,8 @@ struct WorkerCoverageBuildingChip: View {
                     lineWidth: 1
                 )
         )
+        }
+        .buttonStyle(PlainButtonStyle())
     }
 }
 

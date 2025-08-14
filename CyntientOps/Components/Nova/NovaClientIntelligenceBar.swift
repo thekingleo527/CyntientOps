@@ -399,7 +399,7 @@ struct NovaClientIntelligenceBar: View {
     @ViewBuilder
     private var portfolioOverviewContent: some View {
         VStack(spacing: 8) {
-            ForEach(getSampleBuildings(), id: \.name) { building in
+            ForEach(getPreviewBuildings(), id: \.name) { building in
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(building.name)
@@ -435,7 +435,7 @@ struct NovaClientIntelligenceBar: View {
     @ViewBuilder
     private var portfolioFinancialContent: some View {
         VStack(spacing: 8) {
-            ForEach(getSampleBuildings(), id: \.name) { building in
+            ForEach(getPreviewBuildings(), id: \.name) { building in
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(building.name)
@@ -752,11 +752,11 @@ struct NovaClientIntelligenceBar: View {
     
     // MARK: - Sample Data
     
-    private func getSampleBuildings() -> [SampleBuilding] {
+    private func getPreviewBuildings() -> [SampleBuilding] {
         return [
-            SampleBuilding(name: "123 Main St", value: 2500, occupancy: 95, taxAmount: 45000),
-            SampleBuilding(name: "456 Oak Ave", value: 1800, occupancy: 88, taxAmount: 32000),
-            SampleBuilding(name: "789 Park Pl", value: 3200, occupancy: 92, taxAmount: 58000)
+            SampleBuilding(name: "Preview Building A", value: 2500, occupancy: 95, taxAmount: 45000),
+            SampleBuilding(name: "Preview Building B", value: 1800, occupancy: 88, taxAmount: 32000),
+            SampleBuilding(name: "Preview Building C", value: 3200, occupancy: 92, taxAmount: 58000)
         ]
     }
 }

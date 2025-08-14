@@ -177,6 +177,11 @@ public final class ServiceContainer: ObservableObject {
             try await dbInitializer.initializeIfNeeded()
         }
         
+        // Initialize OperationalDataManager (includes worker routine seeding)
+        print("📊 Initializing operational data...")
+        try await self.operationalData.initializeOperationalData()
+        print("✅ Operational data initialized")
+        
         // Layer 1: Core Services (no circular dependencies)
         print("🔧 Layer 1: Initializing core services...")
         

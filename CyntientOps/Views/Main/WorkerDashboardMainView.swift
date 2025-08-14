@@ -55,14 +55,25 @@ struct WorkerDashboardMainView: View {
             // Main Content
             VStack(spacing: 0) {
                 // Header (60px) - Fixed
-                HeaderV3B(
-                    workerName: viewModel.workerProfile?.name ?? "Worker",
+                WorkerHeaderV3B(
+                    name: viewModel.workerProfile?.name ?? "Worker",
+                    initials: String((viewModel.workerProfile?.name ?? "W").prefix(2)).uppercased(),
+                    photoURL: nil,
                     nextTaskName: viewModel.todaysTasks.first?.title,
-                    showClockPill: true,
+                    showClockPill: false, // Only profile pill on right
                     isNovaProcessing: false,
-                    onProfileTap: {},
-                    onNovaPress: {},
-                    onNovaLongPress: {}
+                    onRoute: { route in
+                        switch route {
+                        case .mainMenu:
+                            showingProfile = true
+                        case .profile:
+                            showingProfile = true
+                        case .clockAction:
+                            showingProfile = true
+                        case .novaChat:
+                            showingProfile = true
+                        }
+                    }
                 )
                 .frame(height: 60)
                 .frame(height: 60)

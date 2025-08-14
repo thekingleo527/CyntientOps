@@ -319,23 +319,16 @@ class AdminDashboardViewModel: ObservableObject {
         // Generate realistic violation data
         var violations: [CoreTypes.PropertyViolation] = []
         
-        // Some buildings have more violations than others
-        let violationCount = building.name.contains("Museum") ? 0 : Int.random(in: 0...3)
-        
-        for i in 0..<violationCount {
-            let departments: [CoreTypes.NYCDepartment] = [.hpd, .dob, .dsny]
-            let department = departments.randomElement()!
-            
-            let violation = CoreTypes.PropertyViolation(
-                violationNumber: "\(department.rawValue.uppercased())\(String(format: "%06d", Int.random(in: 100000...999999)))",
-                description: self.getViolationDescription(for: department),
-                severity: .classA,
-                issueDate: Date().addingTimeInterval(-Double.random(in: 0...365) * 24 * 60 * 60),
-                status: .open,
-                department: department
-            )
-            violations.append(violation)
+        // Get real violations for this building from database
+        do {
+            let realViolations = try await container.operationalData.getViolationsForBuilding(buildingId: building.id)
+            violations = realViolations
+        } catch {
+            print("⚠️ Could not load violations for \(building.name): \(error)")
+            violations = [] // No violations if can't load real data
         }
+        
+        // Skip mock violation generation - only use real data above
         
         return violations
     }
@@ -719,32 +712,7 @@ class AdminDashboardViewModel: ObservableObject {
         await calculateBuildingMetrics(building, property: property)
     }
     
-    /// Create placeholder data for buildings without NYC records
-    @MainActor
-    private func createPlaceholderPropertyData(_ building: CoreTypes.NamedCoordinate) async {
-        let placeholderData = CoreTypes.NYCPropertyData(
-            bbl: "0000000000", // Placeholder BBL
-            buildingId: building.id,
-            financialData: CoreTypes.PropertyFinancialData(
-                assessedValue: 0,
-                marketValue: 0,
-                recentTaxPayments: [],
-                activeLiens: [],
-                exemptions: []
-            ),
-            complianceData: CoreTypes.LocalLawComplianceData(
-                ll97Status: .pending,
-                ll11Status: .pending,
-                ll87Status: .pending,
-                ll97NextDue: nil,
-                ll11NextDue: nil
-            ),
-            violations: []
-        )
-        
-        propertyData[building.id] = placeholderData
-        print("📝 Created placeholder data for: \(building.name)")
-    }
+    // REMOVED: createPlaceholderPropertyData method - production uses only real data
     
     /// Calculate detailed building performance metrics
     @MainActor
@@ -1049,14 +1017,15 @@ class AdminDashboardViewModel: ObservableObject {
                 await loadAdditionalBuildingEnrichments(building, property: property)
                 
             } else {
-                print("⚠️ No property data found for: \(building.name) at \(building.address)")
-                // Create placeholder data for buildings without NYC records
-                await createPlaceholderPropertyData(building)
+                print("⚠️ No property data found for: \(building.name) at \(building.address) - skipping building")
+                // Skip buildings without real data - no placeholder data in production
+                return
             }
             
         } catch {
             print("❌ Error loading property data for \(building.name): \(error)")
-            await createPlaceholderPropertyData(building)
+            // Skip buildings with errors - no placeholder data in production
+            return
         }
     }
     

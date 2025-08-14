@@ -204,24 +204,45 @@ struct BuildingDetailView: View {
     private var buildingHeroSection: some View {
         VStack(spacing: 0) {
             ZStack(alignment: Alignment.bottomLeading) {
-                // Gradient background
-                LinearGradient(
-                    gradient: Gradient(colors: [
-                        CyntientOpsDesign.DashboardColors.primaryAction.opacity(0.3),
-                        CyntientOpsDesign.DashboardColors.primaryAction.opacity(0.1)
-                    ]),
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                .frame(height: isHeaderExpanded ? 180 : 100)
-                
-                // Building icon overlay
-                HStack {
-                    Spacer()
-                    Image(systemName: viewModel.buildingIcon)
-                        .font(.system(size: 50))
-                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryAction.opacity(0.2))
-                        .padding()
+                // Building image background or gradient fallback
+                if let buildingImage = viewModel.buildingImage {
+                    // Display actual building preview image
+                    Image(uiImage: buildingImage)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(height: isHeaderExpanded ? 180 : 100)
+                        .clipped()
+                        .overlay(
+                            // Dark overlay for text readability
+                            LinearGradient(
+                                gradient: Gradient(colors: [
+                                    Color.black.opacity(0.1),
+                                    Color.black.opacity(0.4)
+                                ]),
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                } else {
+                    // Fallback gradient background
+                    LinearGradient(
+                        gradient: Gradient(colors: [
+                            CyntientOpsDesign.DashboardColors.primaryAction.opacity(0.3),
+                            CyntientOpsDesign.DashboardColors.primaryAction.opacity(0.1)
+                        ]),
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                    .frame(height: isHeaderExpanded ? 180 : 100)
+                    
+                    // Building icon overlay for fallback
+                    HStack {
+                        Spacer()
+                        Image(systemName: viewModel.buildingIcon)
+                            .font(.system(size: 50))
+                            .foregroundColor(CyntientOpsDesign.DashboardColors.primaryAction.opacity(0.2))
+                            .padding()
+                    }
                 }
                 
                 // Status information

@@ -374,7 +374,7 @@ struct TaskDisplayHelpers_Previews: PreviewProvider {
                 urgency: .high,
                 building: nil,
                 worker: nil,
-                buildingId: "123 Main Street",
+                buildingId: "building_preview_id",
                 priority: .high
             )
             

@@ -243,7 +243,7 @@ struct WeatherDashboardComponent_Previews: PreviewProvider {
         VStack(spacing: 20) {
             // Sample with tasks
             WeatherDashboardComponent(
-                building: sampleBuilding,
+                building: previewBuilding,
                 weather: sampleWeather,
                 tasks: sampleTasks,
                 onTaskTap: { task in
@@ -253,7 +253,7 @@ struct WeatherDashboardComponent_Previews: PreviewProvider {
             
             // Sample without tasks
             WeatherDashboardComponent(
-                building: sampleBuilding,
+                building: previewBuilding,
                 weather: stormyWeather,
                 tasks: [],
                 onTaskTap: { _ in }
@@ -264,14 +264,14 @@ struct WeatherDashboardComponent_Previews: PreviewProvider {
         .preferredColorScheme(.dark)
     }
     
-    // MARK: - Sample Data
+    // MARK: - Preview Data (for SwiftUI previews only)
     
-    static var sampleBuilding: NamedCoordinate {
+    static var previewBuilding: NamedCoordinate {
         // ✅ FIXED: Removed imageAssetName
         NamedCoordinate(
-            id: "14",
-            name: "Rubin Museum",
-            address: "150 W 17th St, New York, NY 10011",
+            id: "preview_building",
+            name: "Preview Building",
+            address: "Preview Address",
             latitude: 40.7402,
             longitude: -73.9980
         )

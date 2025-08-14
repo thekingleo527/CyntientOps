@@ -965,6 +965,10 @@ public class WorkerDashboardViewModel: ObservableObject {
             try await self.container.workerContext.loadContext(for: user.workerId)
             await self.syncStateFromContextEngine()
             
+            // Load today's tasks from OperationalDataManager
+            await self.loadTodaysTasks()
+            await self.loadAssignedBuildings()
+            
             // Load additional data
             await self.loadClockInStatus(workerId: user.workerId)
             await self.calculateMetrics()
@@ -1008,6 +1012,10 @@ public class WorkerDashboardViewModel: ObservableObject {
             // Reload context
             try await self.container.workerContext.loadContext(for: workerId)
             await self.syncStateFromContextEngine()
+            
+            // Reload routine data from OperationalDataManager
+            await self.loadTodaysTasks()
+            await self.loadAssignedBuildings()
             
             // Update clock-in status
             await self.loadClockInStatus(workerId: workerId)
@@ -1354,8 +1362,8 @@ public class WorkerDashboardViewModel: ObservableObject {
         guard let workerId = worker?.workerId else { return }
         
         do {
-            // Get worker's routine schedules and extract unique buildings
-            let routineSchedules = try await container.operationalData.getWorkerRoutineSchedules(for: workerId)
+            // Get worker's routine schedules and extract unique buildings  
+            let routineSchedules = try await OperationalDataManager.shared.getWorkerRoutineSchedules(for: workerId)
             
             // Create building summaries from routine data
             let uniqueBuildings = Dictionary(grouping: routineSchedules, by: \.buildingId)
@@ -1424,11 +1432,27 @@ public class WorkerDashboardViewModel: ObservableObject {
         guard let workerId = worker?.workerId else { return }
         
         do {
-            // Load real tasks from context engine
-            let contextualTasks = try await container.tasks.getTasks(for: workerId, date: Date())
+            // Load worker routine schedules from OperationalDataManager
+            let workerScheduleItems = try await OperationalDataManager.shared.getWorkerScheduleForDate(workerId: workerId, date: Date())
             
-            // Convert CoreTypes.ContextualTask to TaskItem format
-            todaysTasks = contextualTasks.map { task in
+            // Convert WorkerScheduleItem to TaskItem format
+            let routineTasks = workerScheduleItems.map { scheduleItem in
+                TaskItem(
+                    id: scheduleItem.id,
+                    title: scheduleItem.title,
+                    description: scheduleItem.description,
+                    buildingId: scheduleItem.buildingId,
+                    dueDate: scheduleItem.startTime,
+                    urgency: .normal, // Default urgency for routine tasks
+                    isCompleted: false,
+                    category: scheduleItem.category,
+                    requiresPhoto: scheduleItem.category.lowercased().contains("sanitation")
+                )
+            }
+            
+            // Also load contextual tasks from task service
+            let contextualTasks = try await container.tasks.getTasks(for: workerId, date: Date())
+            let regularTasks = contextualTasks.map { task in
                 TaskItem(
                     id: task.id,
                     title: task.title,
@@ -1441,7 +1465,10 @@ public class WorkerDashboardViewModel: ObservableObject {
                     requiresPhoto: shouldTaskRequirePhoto(task: task)
                 )
             }
-            print("✅ Loaded \(todaysTasks.count) tasks for worker \(workerId) from real data")
+            
+            // Combine routine tasks with regular tasks
+            todaysTasks = routineTasks + regularTasks
+            print("✅ Loaded \(todaysTasks.count) tasks for worker \(workerId) (\(routineTasks.count) routine tasks + \(regularTasks.count) regular tasks)")
         } catch {
             print("❌ Failed to load today's tasks: \(error)")
             todaysTasks = []
@@ -3098,67 +3125,5 @@ public class WorkerDashboardViewModel: ObservableObject {
     }
 }
 
-// MARK: - Preview Support
-
-#if DEBUG
-extension WorkerDashboardViewModel {
-    static func preview(container: ServiceContainer? = nil) -> WorkerDashboardViewModel {
-        // Use provided container (for previews, assume one exists)
-        guard let container = container else {
-            fatalError("ServiceContainer required for preview")
-        }
-        let viewModel = WorkerDashboardViewModel(container: container)
-        
-        // Configure with sample data
-        viewModel.assignedBuildings = [
-            BuildingSummary(
-                id: "14",
-                name: "Rubin Museum",
-                address: "150 W 17th St, New York, NY 10011",
-                coordinate: CLLocationCoordinate2D(latitude: 40.7397, longitude: -73.9978),
-                status: .assigned,
-                todayTaskCount: 5
-            )
-        ]
-        
-        viewModel.todaysTasks = [
-            TaskItem(
-                id: UUID().uuidString,
-                title: "HVAC Inspection",
-                description: "Check HVAC system in main gallery",
-                buildingId: viewModel.assignedBuildings.first?.id,
-                dueDate: Date().addingTimeInterval(3600),
-                urgency: .high,
-                isCompleted: false,
-                category: "maintenance",
-                requiresPhoto: false
-            )
-        ]
-        
-        viewModel.taskProgress = CoreTypes.TaskProgress(
-            totalTasks: 5,
-            completedTasks: 2
-        )
-        
-        viewModel.weatherData = CoreTypes.WeatherData(
-            temperature: 32,
-            condition: .snowy,
-            humidity: 0.85,
-            windSpeed: 15,
-            outdoorWorkRisk: .high,
-            timestamp: Date()
-        )
-        
-        viewModel.workerCapabilities = WorkerCapabilities(
-            canUploadPhotos: true,
-            canAddNotes: true,
-            canViewMap: true,
-            canAddEmergencyTasks: true,
-            requiresPhotoForSanitation: true,
-            simplifiedInterface: false
-        )
-        
-        return viewModel
-    }
-}
-#endif
+// MARK: - Production ViewModel
+// Preview support removed for production deployment

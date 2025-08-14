@@ -2064,6 +2064,37 @@ public struct CoreTypes {
         }
     }
     
+    // MARK: - Building Data Types
+    
+    public struct BuildingWithImage: Codable, Identifiable {
+        public let id: String
+        public let name: String
+        public let address: String
+        public let latitude: Double
+        public let longitude: Double
+        public let imageAssetName: String?
+        public let numberOfUnits: Int?
+        public let yearBuilt: Int?
+        public let squareFootage: Double?
+        
+        public init(id: String, name: String, address: String, latitude: Double, longitude: Double, imageAssetName: String? = nil, numberOfUnits: Int? = nil, yearBuilt: Int? = nil, squareFootage: Double? = nil) {
+            self.id = id
+            self.name = name
+            self.address = address
+            self.latitude = latitude
+            self.longitude = longitude
+            self.imageAssetName = imageAssetName
+            self.numberOfUnits = numberOfUnits
+            self.yearBuilt = yearBuilt
+            self.squareFootage = squareFootage
+        }
+        
+        // Convert to NamedCoordinate for backwards compatibility
+        public var coordinate: NamedCoordinate {
+            return NamedCoordinate(id: id, name: name, address: address, latitude: latitude, longitude: longitude)
+        }
+    }
+    
     // MARK: - Building Report Types
     
     public struct BuildingReport: Codable, Identifiable {

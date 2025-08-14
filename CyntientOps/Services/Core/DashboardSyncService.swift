@@ -582,32 +582,7 @@ public class DashboardSyncService: ObservableObject {
         }
     }
     
-    // MARK: - Sample Data Generation - FIXED
-    
-    /// Generate sample updates based on real data patterns
-    public func generateSampleUpdate(type: CoreTypes.DashboardUpdate.UpdateType) -> CoreTypes.DashboardUpdate? {
-        // Get real workers and buildings from OperationalDataManager
-        guard let randomWorker = operationalDataManager.getRandomWorker(),
-              let randomBuilding = operationalDataManager.getRandomBuilding() else {
-            if debugMode {
-                print("⚠️ DashboardSyncService: Cannot generate sample - no real data available")
-            }
-            return nil
-        }
-        
-        // Create update based on real data
-        return CoreTypes.DashboardUpdate(
-            source: .worker,
-            type: type,
-            buildingId: randomBuilding.id,
-            workerId: randomWorker.id,
-            data: [
-                "workerName": randomWorker.name,
-                "buildingName": randomBuilding.name,
-                "isRealData": "true"
-            ]
-        )
-    }
+    // REMOVED: Sample data generation - production uses only real events
     
     // MARK: - Data Anonymization
     

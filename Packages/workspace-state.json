@@ -1,0 +1,78 @@
+{
+  "object" : {
+    "artifacts" : [
+      {
+        "kind" : "xcframework",
+        "packageRef" : {
+          "identity" : "sentry-cocoa",
+          "kind" : "remoteSourceControl",
+          "location" : "https://github.com/getsentry/sentry-cocoa.git",
+          "name" : "sentry-cocoa"
+        },
+        "path" : "/Volumes/FastSSD/Xcode/CyntientOps/Packages/artifacts/sentry-cocoa/Sentry-Dynamic/Sentry-Dynamic.xcframework",
+        "source" : {
+          "checksum" : "2cd3ee298133ed3a6d3b98f3b040e5c67b752887e67647ae671f450ecfd3facf",
+          "type" : "remote",
+          "url" : "https://github.com/getsentry/sentry-cocoa/releases/download/8.54.0/Sentry-Dynamic.xcframework.zip"
+        },
+        "targetName" : "Sentry-Dynamic"
+      },
+      {
+        "kind" : "xcframework",
+        "packageRef" : {
+          "identity" : "sentry-cocoa",
+          "kind" : "remoteSourceControl",
+          "location" : "https://github.com/getsentry/sentry-cocoa.git",
+          "name" : "sentry-cocoa"
+        },
+        "path" : "/Volumes/FastSSD/Xcode/CyntientOps/Packages/artifacts/sentry-cocoa/Sentry/Sentry.xcframework",
+        "source" : {
+          "checksum" : "f0f4b5582f7fef029ddedd22b6b9894a6d2d31ea9c7b52a2133b1ec7c4cff206",
+          "type" : "remote",
+          "url" : "https://github.com/getsentry/sentry-cocoa/releases/download/8.54.0/Sentry.xcframework.zip"
+        },
+        "targetName" : "Sentry"
+      }
+    ],
+    "dependencies" : [
+      {
+        "basedOn" : null,
+        "packageRef" : {
+          "identity" : "grdb.swift",
+          "kind" : "remoteSourceControl",
+          "location" : "https://github.com/groue/GRDB.swift",
+          "name" : "GRDB.swift"
+        },
+        "state" : {
+          "checkoutState" : {
+            "branch" : "master",
+            "revision" : "8ba1bc9a96afc731a000fd4136dd13a5a46297bd"
+          },
+          "name" : "sourceControlCheckout"
+        },
+        "subpath" : "GRDB.swift"
+      },
+      {
+        "basedOn" : null,
+        "packageRef" : {
+          "identity" : "sentry-cocoa",
+          "kind" : "remoteSourceControl",
+          "location" : "https://github.com/getsentry/sentry-cocoa.git",
+          "name" : "sentry-cocoa"
+        },
+        "state" : {
+          "checkoutState" : {
+            "revision" : "156495496cb101e2f0a6b059f12dafcff1912197",
+            "version" : "8.54.0"
+          },
+          "name" : "sourceControlCheckout"
+        },
+        "subpath" : "sentry-cocoa"
+      }
+    ],
+    "prebuilts" : [
+
+    ]
+  },
+  "version" : 7
+}

@@ -48,20 +48,7 @@ struct ContentView: View {
             }
             .animation(CyntientOpsDesign.Animations.dashboardTransition, value: authManager.userRole)
             
-            // Optional role indicator overlay (for debugging in dev mode)
-            #if DEBUG
-            if let role = authManager.userRole {
-                VStack {
-                    HStack {
-                        RoleIndicatorPill(role: role)
-                            .padding()
-                        Spacer()
-                    }
-                    Spacer()
-                }
-                .allowsHitTesting(false)
-            }
-            #endif
+            // PRODUCTION: Debug role indicator removed
         }
         // Pass the authManager down so the container views can use it
         .environmentObject(authManager)
@@ -179,130 +166,7 @@ struct UndefinedRoleView: View {
     }
 }
 
-// MARK: - Role Indicator Pill (Debug Only)
-
-#if DEBUG
-struct RoleIndicatorPill: View {
-    let role: CoreTypes.UserRole
-    
-    var body: some View {
-        HStack(spacing: 6) {
-            Image(systemName: roleIcon)
-                .font(.caption)
-            
-            Text(role.rawValue.capitalized)
-                .font(.caption)
-                .fontWeight(.medium)
-        }
-        .foregroundColor(.white)
-        .padding(.horizontal, 12)
-        .padding(.vertical, 6)
-        .background(roleColor.opacity(0.9))
-        .cornerRadius(20)
-        .overlay(
-            RoundedRectangle(cornerRadius: 20)
-                .stroke(Color.white.opacity(0.2), lineWidth: 1)
-        )
-        .shadow(radius: 4, x: 0, y: 2)
-    }
-    
-    private var roleIcon: String {
-        switch role {
-        case .admin, .manager: return "crown.fill"
-        case .client: return "building.2.fill"
-        case .worker: return "person.fill"
-        }
-    }
-    
-    private var roleColor: Color {
-        switch role {
-        case .admin, .manager: return CyntientOpsDesign.DashboardColors.adminPrimary
-        case .client: return CyntientOpsDesign.DashboardColors.clientPrimary
-        case .worker: return CyntientOpsDesign.DashboardColors.workerPrimary
-        }
-    }
-}
-#endif
-
-// MARK: - Preview Provider
-
-struct ContentView_Previews: PreviewProvider {
-    // Create mock auth managers for preview
-    static var workerAuth: NewAuthManager {
-        let auth = NewAuthManager.shared
-        // In real implementation, you'd need to set this through proper authentication
-        // For preview, we'll use a workaround
-        return auth
-    }
-    
-    static var adminAuth: NewAuthManager {
-        let auth = NewAuthManager.shared
-        // Set up admin preview state
-        return auth
-    }
-    
-    static var clientAuth: NewAuthManager {
-        let auth = NewAuthManager.shared
-        // Set up client preview state
-        return auth
-    }
-    
-    static var previews: some View {
-        Group {
-            // Worker role preview
-            ContentView()
-                .environmentObject(workerAuth)
-                .previewDisplayName("Worker Dashboard")
-                .onAppear {
-                    // Simulate worker login for preview
-                    Task {
-                        try? await workerAuth.authenticate(
-                            email: "worker@example.com",
-                            password: "preview"
-                        )
-                    }
-                }
-            
-            // Admin role preview
-            ContentView()
-                .environmentObject(adminAuth)
-                .previewDisplayName("Admin Dashboard")
-                .onAppear {
-                    // Simulate admin login for preview
-                    Task {
-                        try? await adminAuth.authenticate(
-                            email: "admin@example.com",
-                            password: "preview"
-                        )
-                    }
-                }
-            
-            // Client role preview
-            ContentView()
-                .environmentObject(clientAuth)
-                .previewDisplayName("Client Dashboard")
-                .onAppear {
-                    // Simulate client login for preview
-                    Task {
-                        try? await clientAuth.authenticate(
-                            email: "client@example.com",
-                            password: "preview"
-                        )
-                    }
-                }
-            
-            // Undefined role preview
-            ContentView()
-                .environmentObject(NewAuthManager.shared)
-                .previewDisplayName("Undefined Role")
-        }
-        .preferredColorScheme(.dark)
-    }
-}
-
-// MARK: - Mock Container Views for Testing
-
-// These would normally be in separate files but included here for completeness
+// MARK: - Production Container Views
 
 struct AdminDashboardContainerView: View {
     @EnvironmentObject private var authManager: NewAuthManager
