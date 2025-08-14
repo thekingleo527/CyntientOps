@@ -95,7 +95,7 @@ struct WorkerDashboardView: View {
                             completedTasksCount: viewModel.completedTasksCount,
                             isClockedIn: viewModel.isClockedIn,
                             clockInTime: viewModel.clockInTime,
-                            weather: viewModel.weather,
+                            weather: viewModel.weatherData,
                             onBuildingTap: handleBuildingTap,
                             onScheduleTap: { sheet = .schedule },
                             onTasksTap: { selectedNovaTab = .todaysTasks }
