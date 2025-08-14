@@ -293,7 +293,7 @@ struct AdminDashboardView: View {
     private var complianceCenterSheet: some View {
         NavigationView {
             AdminComplianceCenter()
-                .navigationBarTitleDisplayMode(.large)
+                .navigationBarTitleDisplayMode(NavigationBarItem.TitleDisplayMode.large)
                 .toolbar {
                     ToolbarItem(placement: .navigationBarTrailing) {
                         Button("Done") { showComplianceCenter = false }
@@ -306,7 +306,7 @@ struct AdminDashboardView: View {
     private var taskRequestSheet: some View {
         NavigationView {
             TaskRequestView()
-                .navigationBarTitleDisplayMode(.large)
+                .navigationBarTitleDisplayMode(NavigationBarItem.TitleDisplayMode.large)
                 .toolbar {
                     ToolbarItem(placement: .navigationBarTrailing) {
                         Button("Done") { showTaskRequest = false }
@@ -319,7 +319,7 @@ struct AdminDashboardView: View {
     private var reportsSheet: some View {
         NavigationView {
             AdminReportsView()
-                .navigationBarTitleDisplayMode(.large)
+                .navigationBarTitleDisplayMode(NavigationBarItem.TitleDisplayMode.large)
                 .toolbar {
                     ToolbarItem(placement: .navigationBarTrailing) {
                         Button("Done") { showReports = false }
