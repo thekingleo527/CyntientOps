@@ -262,7 +262,13 @@ struct ClientDashboardView: View {
                 .navigationBarTitleDisplayMode(.large)
                 
         case .buildings:
-            ClientBuildingsView(buildings: viewModel.buildingsList)
+            ClientBuildingsListView(
+                buildings: viewModel.buildingsList, 
+                performanceMap: [:], 
+                onSelectBuilding: { building in
+                    sheet = .buildingDetail(building.id)
+                }
+            )
                 .navigationTitle("My Properties")
                 .navigationBarTitleDisplayMode(.large)
             
@@ -1887,7 +1893,7 @@ struct ClientBuildingCard: View {
                     GeometryReader { geometry in
                         ZStack(alignment: .leading) {
                             RoundedRectangle(cornerRadius: 2)
-                                .fill(CyntientOpsDesign.DashboardColors.tertiaryBackground)
+                                .fill(CyntientOpsDesign.DashboardColors.cardBackground)
                                 .frame(height: 4)
                             
                             RoundedRectangle(cornerRadius: 2)
