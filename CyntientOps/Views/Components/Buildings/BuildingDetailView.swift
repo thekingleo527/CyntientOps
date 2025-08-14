@@ -2172,18 +2172,19 @@ class BuildingDetailVM: ObservableObject {
                         for routine in workerRoutines {
                             // Filter routines for this building
                             if routine.buildingName == buildingName || routine.buildingAddress.contains(buildingAddress) {
-                                let routineTask = DailyRoutineTask(
-                                    id: routine.id,
-                                    title: routine.name,
-                                    description: "Routine task for \(routine.category)",
-                                    category: routine.category,
-                                    assignedWorker: workerName,
-                                    estimatedDuration: 3600, // Default 1 hour
-                                    isCompleted: Bool.random(), // Real implementation would check actual status
-                                    priority: mapCategoryToPriority(routine.category),
-                                    scheduledTime: Date(),
-                                    notes: "Scheduled routine: \(routine.rrule)"
-                                )
+                                let routineTask = DailyRoutineTask(from: [
+                                    "id": routine.id,
+                                    "title": routine.name,
+                                    "category": routine.category,
+                                    "priority": mapCategoryToPriority(routine.category),
+                                    "scheduled_hour": Calendar.current.component(.hour, from: Date()),
+                                    "scheduled_time": DateFormatter.localizedString(from: Date(), dateStyle: .none, timeStyle: .short),
+                                    "building_name": buildingName,
+                                    "worker_name": workerName,
+                                    "is_completed": Bool.random(),
+                                    "requires_photo": false,
+                                    "estimated_duration": 3600
+                                ])
                                 allRoutines.append(routineTask)
                             }
                         }
