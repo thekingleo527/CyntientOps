@@ -335,65 +335,6 @@ struct ClientBuildingsTabView: View {
     }
 }
 
-struct ClientBuildingCard: View {
-    let building: CoreTypes.NamedCoordinate
-    let metrics: CoreTypes.BuildingMetrics?
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(building.name)
-                        .font(.headline)
-                        .foregroundColor(.white)
-                    
-                    Text(building.address)
-                        .font(.caption)
-                        .foregroundColor(.white.opacity(0.7))
-                }
-                
-                Spacer()
-                
-                if let metrics = metrics {
-                    VStack(alignment: .trailing, spacing: 2) {
-                        Text("\(Int(metrics.completionRate * 100))%")
-                            .font(.title2)
-                            .fontWeight(.bold)
-                            .foregroundColor(metrics.completionRate > 0.8 ? .green : .orange)
-                        
-                        Text("Complete")
-                            .font(.caption2)
-                            .foregroundColor(.white.opacity(0.6))
-                    }
-                }
-            }
-            
-            if let metrics = metrics {
-                HStack(spacing: 16) {
-                    MetricIndicator(
-                        title: "Active Workers",
-                        value: "\(metrics.activeWorkers)",
-                        color: .green
-                    )
-                    
-                    MetricIndicator(
-                        title: "Overdue Tasks", 
-                        value: "\(metrics.overdueTasks)",
-                        color: metrics.overdueTasks > 0 ? .red : .gray
-                    )
-                    
-                    MetricIndicator(
-                        title: "This Month",
-                        value: "\(Int(Double(metrics.totalTasks) * metrics.completionRate))",
-                        color: .blue
-                    )
-                }
-            }
-        }
-        .padding()
-        .francoDarkCardBackground()
-    }
-}
 
 struct MetricIndicator: View {
     let title: String

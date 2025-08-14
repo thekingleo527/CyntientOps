@@ -88,22 +88,20 @@ public class WorkerDashboardViewModel: ObservableObject {
             return CoreTypes.ContextualTask(
                 id: id,
                 title: title,
-                description: description ?? "",
-                category: category,
-                buildingId: buildingId ?? "",
+                description: description,
+                category: CoreTypes.TaskCategory(rawValue: category.lowercased()),
+                urgency: mapUrgencyToTaskUrgency(),
+                buildingId: buildingId,
                 dueDate: dueDate,
-                isCompleted: isCompleted,
-                priority: urgencyToPriority(),
-                workerIds: [], // Will be populated by service
-                requiredSkillLevel: .basic,
-                estimatedDuration: 60 // Default 1 hour
+                requiresPhoto: requiresPhoto,
+                estimatedDuration: 3600 // Default 1 hour in seconds
             )
         }
         
-        private func urgencyToPriority() -> CoreTypes.TaskPriority {
+        private func mapUrgencyToTaskUrgency() -> CoreTypes.TaskUrgency {
             switch urgency {
             case .low: return .low
-            case .normal: return .normal  
+            case .normal: return .medium
             case .high: return .high
             case .urgent: return .urgent
             case .critical: return .critical
@@ -1210,7 +1208,9 @@ public class WorkerDashboardViewModel: ObservableObject {
                     buildingId: task.buildingId,
                     dueDate: task.dueDate,
                     urgency: task.urgency,
-                    isCompleted: true
+                    isCompleted: true,
+                    category: task.category,
+                    requiresPhoto: task.requiresPhoto
                 )
             }
             return task

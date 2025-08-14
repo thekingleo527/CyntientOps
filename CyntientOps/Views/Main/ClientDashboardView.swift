@@ -262,7 +262,7 @@ struct ClientDashboardView: View {
                 .navigationBarTitleDisplayMode(.large)
                 
         case .buildings:
-            ClientBuildingsListView(buildings: viewModel.buildingsList)
+            ClientBuildingsView(buildings: viewModel.buildingsList)
                 .navigationTitle("My Properties")
                 .navigationBarTitleDisplayMode(.large)
             

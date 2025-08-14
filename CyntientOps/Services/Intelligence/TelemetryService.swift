@@ -731,7 +731,7 @@ struct ActionMetrics {
 struct PerformanceAlert {
     let type: PerformanceAlertType
     let message: String
-    let severity: AlertSeverity
+    let severity: CoreTypes.AlertSeverity
     let timestamp = Date()
     let context: [String: String]
 }

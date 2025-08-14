@@ -405,7 +405,7 @@ public class RealTimeMonitoringService: ObservableObject {
         
         let source = data["source"] as? String ?? "unknown"
         let severityStr = data["severity"] as? String ?? "medium"
-        let severity = AlertSeverity.from(string: severityStr)
+        let severity = CoreTypes.AlertSeverity.from(string: severityStr)
         
         // Get cost prediction for this violation
         let costPrediction = await predictViolationCost(buildingId: buildingId, violationType: source)
@@ -635,7 +635,7 @@ public class RealTimeMonitoringService: ObservableObject {
 public struct RealTimeAlert: Identifiable {
     public let id: String
     public let type: AlertType
-    public let severity: AlertSeverity
+    public let severity: CoreTypes.AlertSeverity
     public let title: String
     public let description: String
     public let buildingId: String
@@ -661,26 +661,6 @@ public struct RealTimeAlert: Identifiable {
         case active
         case acknowledged
         case resolved
-    }
-}
-
-public enum AlertSeverity: String, CaseIterable, Comparable {
-    case low
-    case medium
-    case high
-    case critical
-    
-    public static func from(string: String) -> AlertSeverity {
-        return AlertSeverity(rawValue: string.lowercased()) ?? .medium
-    }
-    
-    public static func < (lhs: AlertSeverity, rhs: AlertSeverity) -> Bool {
-        let order: [AlertSeverity] = [.low, .medium, .high, .critical]
-        guard let lhsIndex = order.firstIndex(of: lhs),
-              let rhsIndex = order.firstIndex(of: rhs) else {
-            return false
-        }
-        return lhsIndex < rhsIndex
     }
 }
 

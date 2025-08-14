@@ -2,6 +2,8 @@
 //  AuthenticationService.swift
 //  CyntientOps
 //
+//  DEPRECATED: Use NewAuthManager.swift instead
+//  This service is kept for build compatibility but should not be used
 //  Created by Shawn Magloire on 8/5/25.
 //
 

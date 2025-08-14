@@ -867,6 +867,26 @@ public struct CoreTypes {
         case critical = "Critical"
     }
     
+    public enum AlertSeverity: String, CaseIterable, Comparable {
+        case low
+        case medium
+        case high
+        case critical
+        
+        public static func from(string: String) -> AlertSeverity {
+            return AlertSeverity(rawValue: string.lowercased()) ?? .medium
+        }
+        
+        public static func < (lhs: AlertSeverity, rhs: AlertSeverity) -> Bool {
+            let order: [AlertSeverity] = [.low, .medium, .high, .critical]
+            guard let lhsIndex = order.firstIndex(of: lhs),
+                  let rhsIndex = order.firstIndex(of: rhs) else {
+                return false
+            }
+            return lhsIndex < rhsIndex
+        }
+    }
+    
     public enum ComplianceIssueType: String, Codable, CaseIterable {
         case safety = "Safety"
         case environmental = "Environmental"
