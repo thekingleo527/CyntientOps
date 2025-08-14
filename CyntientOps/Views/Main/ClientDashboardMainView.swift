@@ -329,6 +329,7 @@ struct ClientBuildingsTabView: View {
                 ForEach(buildings, id: \.id) { building in
                     ClientBuildingCard(
                         building: building,
+                        metrics: buildingMetrics[building.id],
                         onTap: {
                             selectedBuilding = building
                             showBuildingDetail = true
