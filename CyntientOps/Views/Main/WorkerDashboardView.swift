@@ -23,7 +23,7 @@ struct WorkerDashboardView: View {
     init(container: ServiceContainer) {
         self.container = container
         self._viewModel = StateObject(wrappedValue: WorkerDashboardViewModel(container: container))
-        self._contextEngine = StateObject(wrappedValue: WorkerContextEngine(container: container))
+        self._contextEngine = StateObject(wrappedValue: WorkerContextEngine.shared)
     }
     
     // MARK: - Sheet Navigation
@@ -74,12 +74,12 @@ struct WorkerDashboardView: View {
             VStack(spacing: 0) {
                 // Header
                 WorkerHeaderV3B(
-                    workerName: viewModel.worker?.name ?? "Worker",
-                    firstName: getFirstName(),
-                    currentBuilding: viewModel.currentBuilding?.name ?? "Not Clocked In",
-                    isClockedIn: viewModel.isClockedIn,
-                    clockInTime: viewModel.clockInTime,
-                    hasUrgentTasks: hasUrgentTasks(),
+                    name: viewModel.worker?.name ?? "Worker",
+                    initials: String((viewModel.worker?.name ?? "W").prefix(2)).uppercased(),
+                    photoURL: nil,
+                    nextTaskName: viewModel.nextCriticalTask,
+                    showClockPill: viewModel.isClockedIn,
+                    isNovaProcessing: false,
                     onRoute: handleHeaderRoute
                 )
                 .zIndex(100)
@@ -1740,7 +1740,7 @@ struct WorkerScheduleView: View {
                                     .font(.caption)
                                     .padding(.horizontal, 8)
                                     .padding(.vertical, 4)
-                                    .background(CyntientOpsDesign.DashboardColors.accent)
+                                    .background(CyntientOpsDesign.DashboardColors.workerAccent)
                                     .foregroundColor(.white)
                                     .clipShape(RoundedRectangle(cornerRadius: 6))
                             }
@@ -1752,7 +1752,7 @@ struct WorkerScheduleView: View {
                                 ForEach(getAssignedBuildingsForDay(day), id: \.self) { buildingName in
                                     HStack {
                                         Circle()
-                                            .fill(CyntientOpsDesign.DashboardColors.accent)
+                                            .fill(CyntientOpsDesign.DashboardColors.workerAccent)
                                             .frame(width: 8, height: 8)
                                         
                                         Text(buildingName)
@@ -1780,7 +1780,7 @@ struct WorkerScheduleView: View {
             }
             .padding(16)
         }
-        .background(CyntientOpsDesign.DashboardColors.background)
+        .background(CyntientOpsDesign.DashboardColors.baseBackground)
     }
     
     private func getDaysOfWeek() -> [String] {
@@ -1845,7 +1845,7 @@ struct WorkerRoutesView: View {
             }
             .padding(16)
         }
-        .background(CyntientOpsDesign.DashboardColors.background)
+        .background(CyntientOpsDesign.DashboardColors.baseBackground)
     }
 }
 
@@ -1889,7 +1889,7 @@ struct BuildingRouteCard: View {
                     // TODO: Navigate to building detail
                 }
                 .font(.caption)
-                .foregroundColor(CyntientOpsDesign.DashboardColors.accent)
+                .foregroundColor(CyntientOpsDesign.DashboardColors.workerAccent)
             }
         }
         .padding(12)
