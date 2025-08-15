@@ -145,9 +145,9 @@ public struct ProductionConfiguration {
             case .development:
                 return "" // No Sentry in development
             case .staging:
-                return "https://staging@sentry.cyntientops.com/2"
+                return "https://c77b2dddf9eca868ead5142d23a438cf@o4509764891901952.ingest.us.sentry.io/4509764893081600"
             case .production:
-                return "https://prod@sentry.cyntientops.com/1"
+                return "https://c77b2dddf9eca868ead5142d23a438cf@o4509764891901952.ingest.us.sentry.io/4509764893081600"
             }
         }
     }

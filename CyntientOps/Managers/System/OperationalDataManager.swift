@@ -1765,6 +1765,10 @@ public class OperationalDataManager: ObservableObject {
         return buildings.randomElement()
     }
     
+    public func getViolationsForBuilding(buildingId: String) async throws -> [CoreTypes.PropertyViolation] {
+        return []
+    }
+    
     // MARK: - Event Tracking
     
     public func recordSyncEvent(timestamp: Date) {

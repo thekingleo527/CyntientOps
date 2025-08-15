@@ -240,7 +240,8 @@ actor WebSocketManager {
         
         // Default URLs based on build configuration
         #if DEBUG
-        return URL(string: "ws://localhost:8080/sync")
+        // Use production WebSocket URL for real deployment
+        return URL(string: "wss://api.cyntientops.com/sync")
         #else
         return URL(string: "wss://api.cyntientops.com/sync")
         #endif

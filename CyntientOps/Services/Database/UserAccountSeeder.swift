@@ -171,7 +171,7 @@ public final class UserAccountSeeder {
             id: "6",
             name: "Luis Lopez",
             email: "luis.lopez@cyntientops.com",
-            password: "LuisPerry2025!",
+            password: "LuisElizabeth2025!",
             role: "worker",
             isActive: true,
             capabilities: WorkerCapabilities(

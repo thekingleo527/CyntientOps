@@ -78,8 +78,8 @@ struct V003_WorkerAssignments {
             (workerId: 1, buildingId: "3", workerName: "Greg Hutson", isPrimary: false),  // 36 Walker Street
             
             // Mercedes Inamagua (Worker ID 5)
-            (workerId: 5, buildingId: "5", workerName: "Mercedes Inamagua", isPrimary: true),  // 131 Perry Street
-            (workerId: 5, buildingId: "6", workerName: "Mercedes Inamagua", isPrimary: false), // 68 Perry Street
+            (workerId: 5, buildingId: "20", workerName: "Mercedes Inamagua", isPrimary: true),  // CyntientOps HQ - Evening shift
+            (workerId: 5, buildingId: "14", workerName: "Mercedes Inamagua", isPrimary: false), // Rubin Museum - Roof drain
             (workerId: 5, buildingId: "11", workerName: "Mercedes Inamagua", isPrimary: false), // 112 West 18th Street
             (workerId: 5, buildingId: "13", workerName: "Mercedes Inamagua", isPrimary: false), // 133 East 15th Street
             (workerId: 5, buildingId: "17", workerName: "Mercedes Inamagua", isPrimary: false), // 178 Spring Street Alt

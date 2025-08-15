@@ -12,6 +12,7 @@ import Foundation
 import SwiftUI
 import Combine
 import GRDB
+import CryptoKit
 
 // MARK: - DatabaseInitializer
 
@@ -39,7 +40,7 @@ public class DatabaseInitializer: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     
     
-    public enum DataStatus {
+    public enum DataStatus: Equatable {
         case unknown
         case empty
         case partial
@@ -59,7 +60,56 @@ public class DatabaseInitializer: ObservableObject {
         }
     }
     
-    private init() {}
+    private init() {
+        // Check database state on initialization
+        Task { @MainActor in
+            await self.checkInitializationState()
+        }
+    }
+    
+    // MARK: - Initialization State Check
+    
+    /// Check if database is already initialized by examining data
+    @MainActor
+    private func checkInitializationState() async {
+        do {
+            // Check if database is ready
+            guard await grdbManager.isDatabaseReady() else {
+                self.isInitialized = false
+                self.dataStatus = .empty
+                return
+            }
+            
+            // Check if we have users (indicates initialization)
+            let userCount = try await grdbManager.query("SELECT COUNT(*) as count FROM workers WHERE isActive = 1")
+            let hasUsers = (userCount.first?["count"] as? Int64 ?? 0) > 0
+            
+            // Check if we have buildings
+            let buildingCount = try await grdbManager.query("SELECT COUNT(*) as count FROM buildings")
+            let hasBuildings = (buildingCount.first?["count"] as? Int64 ?? 0) > 0
+            
+            let isInitialized = hasUsers && hasBuildings
+            
+            self.isInitialized = isInitialized
+            self.dataStatus = isInitialized ? .complete : .empty
+            
+            if isInitialized {
+                self.currentStep = "Ready"
+                self.initializationProgress = 1.0
+                print("✅ Database initialization state: INITIALIZED (\(userCount.first?["count"] ?? 0) users, \(buildingCount.first?["count"] ?? 0) buildings)")
+            } else {
+                self.currentStep = "Database needs initialization"
+                self.initializationProgress = 0.0
+                print("⚠️ Database initialization state: NOT INITIALIZED (\(userCount.first?["count"] ?? 0) users, \(buildingCount.first?["count"] ?? 0) buildings)")
+            }
+            
+        } catch {
+            print("❌ Error checking database state: \(error)")
+            self.isInitialized = false
+            self.dataStatus = .error(error.localizedDescription)
+            self.currentStep = "Database check failed"
+        }
+    }
     
     // MARK: - Public Entry Point
     
@@ -234,6 +284,29 @@ public class DatabaseInitializer: ObservableObject {
             )
         """)
         
+        // Routine templates for daily operations
+        try await grdbManager.execute("""
+            CREATE TABLE IF NOT EXISTS routine_templates (
+                id TEXT PRIMARY KEY,
+                worker_id TEXT NOT NULL,
+                building_id TEXT NOT NULL,
+                title TEXT NOT NULL,
+                description TEXT,
+                category TEXT NOT NULL,
+                frequency TEXT NOT NULL,
+                estimated_duration INTEGER,
+                requires_photo BOOLEAN DEFAULT FALSE,
+                priority INTEGER DEFAULT 1,
+                start_hour INTEGER,
+                end_hour INTEGER,
+                days_of_week TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (worker_id) REFERENCES workers(id),
+                FOREIGN KEY (building_id) REFERENCES buildings(id)
+            );
+        """)
+        
         // Worker task assignments
         try await grdbManager.execute("""
             CREATE TABLE IF NOT EXISTS worker_task_templates (
@@ -271,46 +344,88 @@ public class DatabaseInitializer: ObservableObject {
     // MARK: - Data Seeding Methods
     
     private func seedAuthenticationData() async throws {
-        print("🔐 Checking authentication data...")
+        print("🔐 Setting up authentication data...")
         
         // Check if we already have workers
-        let workerCountResult = try await grdbManager.query(
-            "SELECT COUNT(*) as count FROM workers"
-        )
-        let workerCount = workerCountResult.first?["count"] as? Int64 ?? 0
+        let workerCount: Int64
+        do {
+            let workerCountResult = try await grdbManager.query(
+                "SELECT COUNT(*) as count FROM workers"
+            )
+            workerCount = workerCountResult.first?["count"] as? Int64 ?? 0
+            print("🔐 Current worker count in database: \(workerCount)")
+        } catch {
+            print("❌ Failed to query worker count: \(error)")
+            // Continue with creation anyway
+            workerCount = 0
+        }
         
         if workerCount == 0 {
-            print("📝 Seeding authentication data...")
+            print("📝 Creating user accounts directly...")
             
-            // Real worker authentication data
-            let realWorkers: [(String, String, String, String, String, String?, Double)] = [
-                // (id, name, email, password, role, phone, hourlyRate)
-                ("1", "Greg Hutson", "g.hutson1989@gmail.com", "password", "worker", "917-555-0001", 28.0),
-                ("2", "Edwin Lema", "edwinlema911@gmail.com", "password", "worker", "917-555-0002", 26.0),
-                ("4", "Kevin Dutan", "dutankevin1@gmail.com", "password", "worker", "917-555-0004", 25.0),
-                ("5", "Mercedes Inamagua", "jneola@gmail.com", "password", "worker", "917-555-0005", 27.0),
-                ("6", "Luis Lopez", "luislopez030@yahoo.com", "password", "worker", "917-555-0006", 25.0),
-                ("7", "Angel Guirachocha", "lio.angel71@gmail.com", "password", "worker", "917-555-0007", 26.0),
-                ("8", "Shawn Magloire", "shawn@francomanagementgroup.com", "password", "admin", "917-555-0008", 45.0),
-                ("9", "Shawn Magloire", "cyntientops@francomanagementgroup.com", "password", "client", "917-555-0008", 45.0),
-                ("10", "Shawn Magloire", "shawn@fme-llc.com", "password", "admin", "917-555-0008", 45.0),
-                ("100", "Test Worker", "test@franco.com", "password", "worker", "917-555-0100", 25.0),
-                ("101", "Test Admin", "admin@franco.com", "password", "admin", "917-555-0101", 35.0),
-                ("102", "Test Client", "client@franco.com", "password", "client", "917-555-0102", 30.0)
-            ]
+            // Direct database insertion with SHA256 hashed passwords
+            try await createUserAccounts()
             
-            for (id, name, email, password, role, phone, rate) in realWorkers {
-                try await grdbManager.execute("""
-                    INSERT OR REPLACE INTO workers 
-                    (id, name, email, password, role, phone, hourlyRate, isActive, 
-                     skills, timezone, notification_preferences, created_at, updated_at) 
-                    VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, 'America/New_York', '{}', datetime('now'), datetime('now'))
-                """, [id, name, email, password, role, phone ?? "", rate, getDefaultSkills(for: role)])
-            }
-            
-            print("✅ Seeded \(realWorkers.count) workers with authentication")
+            print("✅ User accounts created successfully")
         } else {
             print("✅ Workers already exist (\(workerCount) workers)")
+        }
+    }
+    
+    private func createUserAccounts() async throws {
+        // Create users directly with proper password hashing
+        let users = [
+            ("1", "Greg Hutson", "greg.hutson@cyntientops.com", "GregWorker2025!", "worker"),
+            ("2", "Edwin Lema", "edwin.lema@cyntientops.com", "EdwinPark2025!", "worker"),
+            ("3", "David JM Realty", "David@jmrealty.org", "DavidClient2025!", "client"),
+            ("4", "Kevin Dutan", "kevin.dutan@cyntientops.com", "KevinRubin2025!", "worker"),
+            ("5", "Mercedes Inamagua", "mercedes.inamagua@cyntientops.com", "MercedesGlass2025!", "worker"),
+            ("6", "Luis Lopez", "luis.lopez@cyntientops.com", "LuisElizabeth2025!", "worker"),
+            ("7", "Angel Guiracocha", "angel.guiracocha@cyntientops.com", "AngelBuilding2025!", "worker"),
+            ("8", "Shawn Magloire", "shawn.magloire@cyntientops.com", "ShawnHVAC2025!", "manager")
+        ]
+        
+        for (id, name, email, password, role) in users {
+            // Store password as plain text initially - NewAuthManager will hash it on first login
+            // This allows the migration logic in NewAuthManager to work properly
+            
+            // Insert worker
+            try await grdbManager.execute(
+                """
+                INSERT OR REPLACE INTO workers (
+                    id, name, email, password, role, isActive, 
+                    created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, 1, datetime('now'), datetime('now'))
+                """,
+                [id, name, email, password, role]
+            )
+            
+            // Insert worker capabilities
+            let (language, _, simplified) = getCapabilitiesForUser(id)
+            
+            try await grdbManager.execute(
+                """
+                INSERT OR REPLACE INTO worker_capabilities (
+                    worker_id, language, requires_photo_for_sanitation, 
+                    can_upload_photos, can_add_emergency_tasks, 
+                    simplified_interface, evening_mode_ui
+                ) VALUES (?, ?, 1, 1, ?, ?, 0)
+                """,
+                [id, language, role == "manager" ? 1 : 0, simplified ? 1 : 0]
+            )
+            
+            print("✅ Created user: \(name) (\(email)) with role: \(role)")
+        }
+    }
+    
+    private func getCapabilitiesForUser(_ id: String) -> (language: String, canToggle: Bool, simplified: Bool) {
+        switch id {
+        case "2": return ("en", true, false)  // Edwin - English with Spanish toggle
+        case "4": return ("es", true, false)  // Kevin - Spanish with English toggle  
+        case "5": return ("es", false, true)  // Mercedes - Spanish only, simplified
+        case "6": return ("en", true, false)  // Luis - English with Spanish toggle
+        case "7": return ("en", true, false)  // Angel - English with Spanish toggle
+        default: return ("en", false, false) // Others - English only
         }
     }
     

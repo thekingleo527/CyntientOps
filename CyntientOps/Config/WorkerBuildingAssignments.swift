@@ -30,14 +30,16 @@ public struct WorkerBuildingAssignments {
         case "5": return "Mercedes Inamagua"  // 138 West 17th
         case "13": return "Mercedes Inamagua" // 136 West 17th (Weber Farhat)
         
-        // Luis Lopez - Perry Street maintenance
-        case "6": return "Luis Lopez"          // 68 Perry
-        case "4": return "Luis Lopez"          // 104 Franklin (Citadel Realty)
+        // Luis Lopez - Elizabeth Street PRIMARY + coverage
+        case "8": return "Luis Lopez"          // 41 Elizabeth (PRIMARY - Bathrooms, Lobby, Elevator, Mail)
+        case "4": return "Luis Lopez"          // 104 Franklin - Sidewalk Hose
+        case "18": return "Luis Lopez"         // 36 Walker - Sidewalk Sweep
         
-        // Angel Guiracocha - Evening DSNY specialist
-        case "7": return "Angel Guiracocha"   // 112 West 18th
-        case "8": return "Angel Guiracocha"   // 41 Elizabeth (Grand Elizabeth)
-        case "18": return "Angel Guiracocha"  // 36 Walker (Citadel Realty)
+        // Kevin Dutan - Perry Streets + Rubin Museum
+        case "6": return "Kevin Dutan"         // 68 Perry (Sidewalk, Building Clean, Stairwell, Roof)
+        
+        // Angel Guiracocha - Evening DSNY specialist  
+        case "7": return "Angel Guiracocha"   // 112 West 18th - Night shift
         
         // Shawn Magloire - HVAC/Advanced maintenance
         case "3": return "Shawn Magloire"     // 135-139 West 17th
@@ -86,7 +88,7 @@ public struct WorkerBuildingAssignments {
         case rubinMuseumSpecialist      // Kevin
         case stuyvesantCoveSpecialist   // Edwin
         case glassCleaningSpecialist    // Mercedes
-        case perryStreetMaintenance     // Luis
+        case elizabethStreetSpecialist  // Luis - CORRECTED
         case eveningDSNYSpecialist      // Angel
         case hvacAdvancedMaintenance    // Shawn
         case manager                    // Greg
@@ -98,7 +100,7 @@ public struct WorkerBuildingAssignments {
         case "Kevin Dutan": return .rubinMuseumSpecialist
         case "Edwin Lema": return .stuyvesantCoveSpecialist
         case "Mercedes Inamagua": return .glassCleaningSpecialist
-        case "Luis Lopez": return .perryStreetMaintenance
+        case "Luis Lopez": return .elizabethStreetSpecialist
         case "Angel Guiracocha": return .eveningDSNYSpecialist
         case "Shawn Magloire": return .hvacAdvancedMaintenance
         case "Greg Hutson": return .manager

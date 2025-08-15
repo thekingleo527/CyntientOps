@@ -793,44 +793,13 @@ private final class Debouncer {
 
 #if DEBUG
 extension ClientDashboardViewModel {
+    // Preview disabled due to async ServiceContainer initialization requirements
+    // Use the app directly for testing dashboard functionality
+    /*
     static func preview() -> ClientDashboardViewModel {
-        // ServiceContainer requires async initialization, so create a minimal preview container
-        // This is a simplified version for SwiftUI previews only
-        let previewContainer = PreviewServiceContainer()
-        let viewModel = ClientDashboardViewModel(container: previewContainer)
-        
-        // Set up preview data
-        Task { @MainActor in
-            viewModel.totalBuildings = 12
-            viewModel.activeWorkers = 8
-            viewModel.completionRate = 0.85
-            viewModel.criticalIssues = 2
-            viewModel.complianceScore = 92
-            viewModel.monthlyTrend = .improving
-            
-            viewModel.buildingsList = [
-                CoreTypes.NamedCoordinate(
-                    id: "14",
-                    name: "Rubin Museum",
-                    address: "150 W 17th St, New York, NY 10011",
-                    latitude: 40.7397,
-                    longitude: -73.9978
-                ),
-                CoreTypes.NamedCoordinate(
-                    id: "4",
-                    name: "131 Perry Street",
-                    address: "131 Perry St, New York, NY 10014",
-                    latitude: 40.7350,
-                    longitude: -74.0045
-                )
-            ]
-            
-            viewModel.createPortfolioIntelligence()
-        }
-        
-        return viewModel
+        // ServiceContainer requires async initialization - cannot be used in static preview
+        // Run the app directly to test ClientDashboardViewModel functionality
     }
-    
-    // REMOVED: Mock container - previews now use real ServiceContainer
+    */
 }
 #endif

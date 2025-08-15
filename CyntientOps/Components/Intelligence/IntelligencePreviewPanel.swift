@@ -37,7 +37,7 @@ import SwiftUI
 // - Mercedes Inamagua (ID: 5): Glass cleaning circuit
 // - Edwin Lema (ID: 2): Park and East side maintenance
 // - Angel Guiracocha (ID: 7): Evening DSNY operations
-// - Luis Lopez (ID: 6): Perry St and downtown maintenance
+// - Luis Lopez (ID: 6): 41 Elizabeth St PRIMARY + Franklin/Walker coverage
 
 struct IntelligencePreviewPanel: View {
     let insights: [CoreTypes.IntelligenceInsight]

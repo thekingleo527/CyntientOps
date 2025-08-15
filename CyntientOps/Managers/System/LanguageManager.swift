@@ -2,68 +2,157 @@
 //  LanguageManager.swift
 //  CyntientOps
 //
-//  Created by Shawn Magloire on 7/31/25.
+//  Manages language switching based on user preferences after login
 //
 
-
+import Foundation
 import SwiftUI
 import Combine
 
 @MainActor
-class LanguageManager: ObservableObject {
-    static let shared = LanguageManager()
+public class LanguageManager: ObservableObject {
+    public static let shared = LanguageManager()
     
-    @Published var currentLanguage: Language = .english {
-        didSet {
-            UserDefaults.standard.set(currentLanguage.rawValue, forKey: "preferredLanguage")
-            updateLanguage()
-        }
-    }
+    // Published properties for UI updates
+    @Published public var currentLanguage: String = "en"
+    @Published public var canToggleLanguage: Bool = false
+    @Published public var availableLanguages: [String] = ["en", "es"]
     
-    enum Language: String, CaseIterable {
-        case english = "en"
-        case spanish = "es"
+    // User capabilities
+    private var userLanguageToggle: Bool = false
+    private var userPrimaryLanguage: String = "en"
+    
+    private let authManager = NewAuthManager.shared
+    private var cancellables = Set<AnyCancellable>()
+    
+    private init() {
+        // Always start with English (for LoginView)
+        currentLanguage = "en"
+        canToggleLanguage = false
         
-        var displayName: String {
-            switch self {
-            case .english: return "English"
-            case .spanish: return "Español"
+        // Listen for authentication changes
+        authManager.$isAuthenticated
+            .sink { [weak self] isAuthenticated in
+                if isAuthenticated {
+                    Task { @MainActor in
+                        await self?.loadUserLanguagePreferences()
+                    }
+                } else {
+                    // Reset to English when logged out
+                    self?.resetToEnglish()
+                }
             }
-        }
+            .store(in: &cancellables)
     }
     
-    init() {
-        if let saved = UserDefaults.standard.string(forKey: "preferredLanguage"),
-           let language = Language(rawValue: saved) {
-            self.currentLanguage = language
-        } else {
-            // Auto-detect based on device language
-            let deviceLanguage = Locale.current.language.languageCode?.identifier ?? "en"
-            self.currentLanguage = deviceLanguage.hasPrefix("es") ? .spanish : .english
-        }
-    }
-    
-    private func updateLanguage() {
-        // Force UI update
-        Bundle.main.localizations.forEach { _ in
-            UserDefaults.standard.set([currentLanguage.rawValue], forKey: "AppleLanguages")
+    /// Load user language preferences after successful login
+    private func loadUserLanguagePreferences() async {
+        guard let user = authManager.currentUser else {
+            resetToEnglish()
+            return
         }
         
-        // Show alert to restart app
-        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-           let window = windowScene.windows.first {
-            let alert = UIAlertController(
-                title: NSLocalizedString("Language Changed", comment: ""),
-                message: NSLocalizedString("Please restart the app for the language change to take effect", comment: ""),
-                preferredStyle: .alert
-            )
-            alert.addAction(UIAlertAction(title: NSLocalizedString("OK", comment: ""), style: .default))
-            window.rootViewController?.present(alert, animated: true)
+        do {
+            // Get user capabilities from database
+            let capabilities = try await getUserCapabilities(for: user.id)
+            
+            // Set language preferences
+            userPrimaryLanguage = capabilities.language
+            userLanguageToggle = capabilities.languageToggle
+            
+            // Apply user preferences
+            currentLanguage = userPrimaryLanguage
+            canToggleLanguage = userLanguageToggle
+            
+            print("✅ Language preferences loaded for \(user.name):")
+            print("   - Primary language: \(userPrimaryLanguage)")
+            print("   - Can toggle: \(userLanguageToggle)")
+            print("   - Current language: \(currentLanguage)")
+            
+        } catch {
+            print("❌ Failed to load language preferences: \(error)")
+            // Fallback to English
+            resetToEnglish()
         }
     }
     
-    // Helper for SwiftUI views
-    func localizedString(_ key: String) -> String {
-        NSLocalizedString(key, comment: "")
+    /// Get user capabilities from database
+    private func getUserCapabilities(for userId: String) async throws -> UserLanguageCapabilities {
+        let results = try await GRDBManager.shared.query(
+            "SELECT language, requires_photo_for_sanitation FROM worker_capabilities WHERE worker_id = ?",
+            [userId]
+        )
+        
+        guard let result = results.first else {
+            // Return default capabilities if not found
+            return UserLanguageCapabilities(language: "en", languageToggle: false)
+        }
+        
+        let language = result["language"] as? String ?? "en"
+        // For now, determine toggle capability based on user (this should come from DB)
+        let canToggle = getLanguageToggleCapability(for: userId)
+        
+        return UserLanguageCapabilities(language: language, languageToggle: canToggle)
     }
+    
+    /// Determine if user can toggle languages (based on UserAccountSeeder configuration)
+    private func getLanguageToggleCapability(for userId: String) -> Bool {
+        // Based on UserAccountSeeder configuration
+        switch userId {
+        case "2": return true  // Edwin - can toggle
+        case "4": return true  // Kevin - can toggle  
+        case "6": return true  // Luis - can toggle
+        case "7": return true  // Angel - can toggle
+        case "5": return false // Mercedes - Spanish only, no toggle
+        default: return false // Default no toggle
+        }
+    }
+    
+    /// Toggle between English and Spanish (only if user has toggle capability)
+    public func toggleLanguage() {
+        guard canToggleLanguage else {
+            print("⚠️ User cannot toggle language")
+            return
+        }
+        
+        let newLanguage = currentLanguage == "en" ? "es" : "en"
+        currentLanguage = newLanguage
+        
+        print("🌐 Language toggled to: \(newLanguage)")
+        
+        // Save preference
+        UserDefaults.standard.set(newLanguage, forKey: "user_current_language_\(authManager.currentUser?.id ?? "")")
+    }
+    
+    /// Reset to English (used on logout or initialization)
+    private func resetToEnglish() {
+        currentLanguage = "en"
+        canToggleLanguage = false
+        userPrimaryLanguage = "en"
+        userLanguageToggle = false
+    }
+    
+    /// Get localized string for current language
+    public func localizedString(_ key: String) -> String {
+        // For now, return English strings
+        // This would be replaced with actual localization system
+        return NSLocalizedString(key, comment: "")
+    }
+    
+    /// Check if current language is Spanish
+    public var isSpanish: Bool {
+        return currentLanguage == "es"
+    }
+    
+    /// Check if current language is English
+    public var isEnglish: Bool {
+        return currentLanguage == "en"
+    }
+}
+
+// MARK: - Supporting Types
+
+private struct UserLanguageCapabilities {
+    let language: String
+    let languageToggle: Bool
 }

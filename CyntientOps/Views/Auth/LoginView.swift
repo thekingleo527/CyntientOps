@@ -462,8 +462,8 @@ struct LoginView: View {
         Button(action: {
             withAnimation(Animation.easeInOut(duration: 0.2)) {
                 self.email = email
-                // For testing - use simple password for all users
-                self.password = "password"
+                // Use actual seeded passwords
+                self.password = getPasswordForEmail(email)
             }
             Task {
                 await performLogin()
@@ -501,6 +501,30 @@ struct LoginView: View {
         }
         .buttonStyle(PlainButtonStyle())
     }
+    
+    // Helper function to get the correct password for each user
+    private func getPasswordForEmail(_ email: String) -> String {
+        switch email {
+        case "shawn.magloire@cyntientops.com":
+            return "ShawnHVAC2025!"
+        case "David@jmrealty.org":
+            return "DavidClient2025!"
+        case "kevin.dutan@cyntientops.com":
+            return "KevinRubin2025!"
+        case "edwin.lema@cyntientops.com":
+            return "EdwinPark2025!"
+        case "greg.hutson@cyntientops.com":
+            return "GregWorker2025!"
+        case "luis.lopez@cyntientops.com":
+            return "LuisElizabeth2025!"
+        case "mercedes.inamagua@cyntientops.com":
+            return "MercedesGlass2025!"
+        case "angel.guiracocha@cyntientops.com":
+            return "AngelBuilding2025!"
+        default:
+            return "password" // Fallback
+        }
+    }
     #endif
     
     private var isValidForm: Bool {
@@ -509,6 +533,8 @@ struct LoginView: View {
     
     private func performLogin() async {
         guard !isLoading else { return }
+        
+        print("🔐 LoginView: Starting login attempt for email: \(email)")
         
         await MainActor.run {
             withAnimation(Animation.easeInOut(duration: 0.2)) {

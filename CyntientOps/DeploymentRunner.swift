@@ -175,13 +175,13 @@ public class DeploymentRunner: ObservableObject {
     private func validateConfiguration() {
         addLog("\n🔧 PHASE 4: Validating Configuration...")
         
-        // Test worker assignments
+        // Test worker assignments - CORRECTED per OperationalDataManager
         let testAssignments = [
-            ("14", "Kevin Dutan"),   // Rubin Museum
+            ("14", "Kevin Dutan"),   // Rubin Museum - PRIMARY assignment
             ("16", "Edwin Lema"),    // Stuyvesant Cove
-            ("5", "Mercedes Inamagua"), // 138 West 17th
-            ("6", "Luis Lopez"),     // 68 Perry
-            ("7", "Angel Guiracocha") // 112 West 18th
+            ("20", "Mercedes Inamagua"), // CyntientOps HQ - Evening shift
+            ("8", "Luis Lopez"),     // 41 Elizabeth Street - PRIMARY assignment
+            ("7", "Angel Guiracocha") // 112 West 18th - Night shift
         ]
         
         var assignmentErrors = 0

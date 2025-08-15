@@ -240,7 +240,7 @@ class AdminDashboardViewModel: ObservableObject {
         let complianceData = self.generateComplianceData(for: building)
         
         // Generate violations data (realistic but generated)
-        let violations = self.generateViolationsData(for: building)
+        let violations = await self.generateViolationsData(for: building)
         
         let propertyData = CoreTypes.NYCPropertyData(
             bbl: bbl,
@@ -315,7 +315,7 @@ class AdminDashboardViewModel: ObservableObject {
         )
     }
     
-    func generateViolationsData(for building: CoreTypes.NamedCoordinate) -> [CoreTypes.PropertyViolation] {
+    func generateViolationsData(for building: CoreTypes.NamedCoordinate) async -> [CoreTypes.PropertyViolation] {
         // Generate realistic violation data
         var violations: [CoreTypes.PropertyViolation] = []
         
@@ -475,19 +475,66 @@ class AdminDashboardViewModel: ObservableObject {
     /// Load active workers from database
     @MainActor
     private func loadActiveWorkers() async {
-        // Implementation for loading workers would go here
-        // For now, we'll use mock data to avoid compilation issues
-        activeWorkers = [] // This should load from container.workers
-        print("✅ Loaded \(activeWorkers.count) active workers")
+        do {
+            let rows = try await container.database.query("""
+                SELECT w.*, wc.language, wc.simplified_interface 
+                FROM workers w
+                LEFT JOIN worker_capabilities wc ON w.id = wc.worker_id
+                WHERE w.isActive = 1
+            """)
+            
+            activeWorkers = rows.compactMap { row in
+                guard let id = row["id"] as? String,
+                      let name = row["name"] as? String,
+                      let email = row["email"] as? String,
+                      let role = row["role"] as? String else { return nil }
+                
+                return CoreTypes.WorkerProfile(
+                    id: id,
+                    name: name,
+                    email: email,
+                    role: role,
+                    isActive: (row["isActive"] as? Int64 ?? 1) == 1,
+                    language: row["language"] as? String ?? "en",
+                    simplifiedInterface: (row["simplified_interface"] as? Int64 ?? 0) == 1
+                )
+            }
+            print("✅ Loaded \(activeWorkers.count) active workers from database")
+        } catch {
+            print("❌ Failed to load active workers: \(error)")
+            activeWorkers = []
+        }
     }
     
     /// Load buildings from database  
     @MainActor
     private func loadBuildings() async {
-        // Implementation for loading buildings would go here
-        // For now, we'll use mock data to avoid compilation issues
-        buildings = [] // This should load from container.buildings
-        print("✅ Loaded \(buildings.count) buildings")
+        do {
+            let rows = try await container.database.query("""
+                SELECT * FROM buildings WHERE isActive = 1
+            """)
+            
+            buildings = rows.compactMap { row in
+                guard let id = row["id"] as? String,
+                      let name = row["name"] as? String,
+                      let address = row["address"] as? String else { return nil }
+                
+                let lat = row["latitude"] as? Double ?? 0.0
+                let lng = row["longitude"] as? Double ?? 0.0
+                
+                return CoreTypes.Building(
+                    id: id,
+                    name: name,
+                    address: address,
+                    coordinate: CoreTypes.Coordinate(latitude: lat, longitude: lng),
+                    isActive: (row["isActive"] as? Int64 ?? 1) == 1
+                )
+            }
+            print("✅ Loaded \(buildings.count) buildings from database")
+        } catch {
+            print("❌ Failed to load buildings: \(error)")
+            buildings = []
+        }
     }
     
     /// Load portfolio metrics

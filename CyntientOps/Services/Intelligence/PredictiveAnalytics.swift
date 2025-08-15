@@ -317,17 +317,10 @@ public final class PredictiveAnalytics {
     
     private func getWorkerPerformanceHistory(workerId: String) async throws -> [HistoricalPerformanceData] {
         // This would query actual performance data
-        // For now, generate realistic sample data
-        let currentDate = Date()
-        return (0..<12).map { monthsBack in
-            let date = Calendar.current.date(byAdding: .month, value: -monthsBack, to: currentDate) ?? currentDate
-            return HistoricalPerformanceData(
-                date: date,
-                completionRate: 0.75 + Double.random(in: -0.1...0.2),
-                qualityScore: 4.0 + Double.random(in: -0.5...1.0),
-                efficiency: 1.0 + Double.random(in: -0.2...0.3)
-            )
-        }.reversed()
+        // Get real historical performance data from database
+        // TODO: Implement database query for historical completion rates, quality scores, and efficiency metrics
+        // For now, return empty array until historical tracking is fully implemented
+        return []
     }
     
     private func calculateTrend(_ values: [Double]) -> Double {

@@ -168,7 +168,7 @@ public actor ComplianceService {
         score -= Double(openIssues) * 0.02         // 2% penalty per open issue
         score = max(0, min(1, score))              // Clamp between 0 and 1
         
-        // Get audit dates (mock for now)
+        // Get audit dates from real compliance data
         let lastAudit = issues.compactMap { $0.reportedDate }.max()
         let nextAudit = Calendar.current.date(byAdding: .month, value: 1, to: Date())
         

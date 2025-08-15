@@ -363,32 +363,32 @@ extension View {
 struct TaskDisplayHelpers_Previews: PreviewProvider {
     static var previews: some View {
         VStack(spacing: 16) {
-            // ✅ FIXED: Using completedAt instead of completedDate
+            // Real-world task from OperationalDataManager - Kevin Dutan at Rubin Museum
             let sampleTask = ContextualTask(
-                id: "preview-task",
-                title: "Clean Lobby",
-                description: "Daily lobby cleaning",
-                completedAt: nil,  // This makes isCompleted false
-                dueDate: Date().addingTimeInterval(3600),
-                category: .cleaning,
+                id: "rubin-sanitation-kevin",
+                title: "DSNY Bag Removal & Sidewalk Cleaning",
+                description: "Remove DSNY bags from sidewalk and clean surrounding area - Rubin Museum daily routine",
+                completedAt: nil,
+                dueDate: Calendar.current.date(bySettingHour: 10, minute: 0, second: 0, of: Date()),
+                category: .sanitation,
                 urgency: .high,
                 building: nil,
                 worker: nil,
-                buildingId: "building_preview_id",
+                buildingId: "14", // Rubin Museum canonical ID
                 priority: .high
             )
             
             let completedTask = ContextualTask(
-                id: "preview-task-2",
-                title: "Replace Light Bulbs",
-                description: "Replace bulbs in hallway",
-                completedAt: Date(),  // This makes isCompleted true
+                id: "elizabeth-bathrooms-luis",
+                title: "Bathrooms Clean",
+                description: "Daily bathroom cleaning and maintenance - 41 Elizabeth Street",
+                completedAt: Date().addingTimeInterval(-1800), // Completed 30 minutes ago
                 dueDate: Date().addingTimeInterval(-3600),
-                category: .maintenance,
+                category: .cleaning,
                 urgency: .medium,
                 building: nil,
                 worker: nil,
-                buildingId: "456 Park Ave",
+                buildingId: "8", // 41 Elizabeth Street canonical ID
                 priority: .medium
             )
             

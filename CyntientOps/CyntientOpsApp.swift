@@ -28,6 +28,7 @@ struct CyntientOpsApp: App {
     private let locationManager = LocationManager.shared
     @StateObject private var databaseInitializer = DatabaseInitializer.shared
     @StateObject private var initViewModel = InitializationViewModel()
+    @StateObject private var languageManager = LanguageManager.shared
     
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     @State private var showingSplash = true
@@ -75,6 +76,7 @@ struct CyntientOpsApp: App {
                     OnboardingView(onComplete: {
                         hasCompletedOnboarding = true
                     })
+                    .environmentObject(languageManager) // Always English for onboarding
                     .transition(.opacity)
                 } else if authManager.isAuthenticated {
                     // Step 4: If the user is authenticated, show the main app content.
@@ -85,6 +87,7 @@ struct CyntientOpsApp: App {
                             .environmentObject(locationManager)
                             .environmentObject(contextEngine)
                             .environmentObject(databaseInitializer)
+                            .environmentObject(languageManager) // Language management
                             .environmentObject(container) // Phase 2: Service Container
                             .environmentObject(container.novaManager) // Nova AI from Container
                             .environmentObject(container.dashboardSync) // Dashboard Sync Service
@@ -105,15 +108,31 @@ struct CyntientOpsApp: App {
                         }
                     }
                 } else {
-                    // Step 5: If none of the above, show the login screen.
-                    LoginView()
-                        .environmentObject(authManager)
-                        .transition(.opacity)
+                    // Step 5: Ensure database is properly initialized before showing login
+                    if databaseInitializer.dataStatus == .complete || databaseInitializer.dataStatus == .unknown {
+                        // Database should be ready - show login (always English)
+                        LoginView()
+                            .environmentObject(authManager)
+                            .environmentObject(languageManager) // Always English for login
+                            .transition(.opacity)
+                    } else {
+                        // Database not ready - show initialization
+                        InitializationView(viewModel: initViewModel)
+                            .transition(.opacity)
+                            .onAppear {
+                                if !initViewModel.isInitializing && !initViewModel.isComplete {
+                                    Task {
+                                        await initViewModel.startInitialization()
+                                    }
+                                }
+                            }
+                    }
                 }
             }
             // Animate transitions between the major app states for a smoother experience.
             .animation(.easeInOut(duration: 0.3), value: showingSplash)
             .animation(.easeInOut(duration: 0.3), value: databaseInitializer.isInitialized)
+            .animation(.easeInOut(duration: 0.3), value: databaseInitializer.dataStatus)
             .animation(.easeInOut(duration: 0.3), value: hasCompletedOnboarding)
             .animation(.easeInOut(duration: 0.3), value: authManager.isAuthenticated)
             .animation(.easeInOut(duration: 0.3), value: serviceContainer != nil)
@@ -210,8 +229,8 @@ struct CyntientOpsApp: App {
             options.enableAutoSessionTracking = true
             options.sessionTrackingIntervalMillis = 30000
             
-            options.enableNetworkTracking = true
-            options.enableNetworkBreadcrumbs = true
+            options.enableNetworkTracking = false
+            options.enableNetworkBreadcrumbs = false
             
             options.enableUIViewControllerTracing = true
             options.enableUserInteractionTracing = true
@@ -299,30 +318,8 @@ struct CyntientOpsApp: App {
             checkDailyOperations()
         }
         
-        // Phase 0A: Seed user accounts if needed
-        print("🔍 DEBUG: Current environment: \(ProductionConfiguration.environment.rawValue)")
-        if ProductionConfiguration.environment == .development {
-            print("🌱 DEBUG: Starting development seeding...")
-            Task {
-                do {
-                    let seeder = UserAccountSeeder()
-                    print("🌱 DEBUG: About to call seedAccounts...")
-                    try await seeder.seedAccounts()
-                    print("✅ DEBUG: seedAccounts completed")
-                    
-                    // Wait for daily operations to complete before seeding client structure
-                    // This ensures buildings exist before creating client-building relationships
-                    await waitForDailyOperations()
-                    
-                    let clientSeeder = ClientBuildingSeeder()
-                    try await clientSeeder.seedClientStructure()
-                } catch {
-                    print("❌ Seeding error: \(error)")
-                }
-            }
-        } else {
-            print("⚠️ DEBUG: Not in development environment, seeding skipped")
-        }
+        // Note: User account seeding is now handled by DatabaseInitializer.initializeIfNeeded()
+        // This ensures proper initialization flow and avoids conflicts
     }
     
     private func waitForDailyOperations() async {

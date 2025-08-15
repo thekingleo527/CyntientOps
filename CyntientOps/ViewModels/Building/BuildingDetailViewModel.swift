@@ -1005,7 +1005,7 @@ public class BuildingDetailViewModel: ObservableObject {
                         id: UUID().uuidString,
                         type: .workerArrived,
                         description: "\(worker.name) arrived on site",
-                        timestamp: Date().addingTimeInterval(-Double.random(in: 0...7200)), // Random within 2 hours
+                        timestamp: Date(), // Use current time - real arrival times would come from clock-in data
                         workerName: worker.name
                     ))
                 }
