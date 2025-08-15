@@ -103,7 +103,7 @@ public final class ProductionConfiguration {
     // MARK: - Monitoring & Analytics
     
     public struct Monitoring {
-        public static let sentryDSN = "https://your-sentry-dsn@sentry.io/project-id"
+        public static let sentryDSN = "https://c77b2dddf9eca868ead5142d23a438cf@o4509764891901952.ingest.us.sentry.io/4509764893081600"
         public static let mixpanelToken = "your-mixpanel-token"
         public static let firebaseProjectID = "cyntientops-prod"
         

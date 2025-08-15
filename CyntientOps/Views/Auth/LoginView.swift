@@ -347,7 +347,7 @@ struct LoginView: View {
                                 quickAccessButton(
                                     email: "shawn.magloire@cyntientops.com",
                                     name: "Shawn (Admin)",
-                                    icon: "shield.checkmark",
+                                    icon: "shield.fill",
                                     color: .purple
                                 )
                                 
@@ -462,27 +462,8 @@ struct LoginView: View {
         Button(action: {
             withAnimation(Animation.easeInOut(duration: 0.2)) {
                 self.email = email
-                // Set correct password based on user
-                switch email {
-                case "shawn.magloire@cyntientops.com":
-                    self.password = "ShawnHVAC2025!"
-                case "David@jmrealty.org":
-                    self.password = "DavidJM2025!"
-                case "kevin.dutan@cyntientops.com":
-                    self.password = "KevinRubin2025!"
-                case "edwin.lema@cyntientops.com":
-                    self.password = "EdwinPark2025!"
-                case "greg.hutson@cyntientops.com":
-                    self.password = "GregWorker2025!"
-                case "luis.lopez@cyntientops.com":
-                    self.password = "LuisBuilding2025!"
-                case "mercedes.inamagua@cyntientops.com":
-                    self.password = "MercedesGlass2025!"
-                case "angel.guiracocha@cyntientops.com":
-                    self.password = "AngelDSNY2025!"
-                default:
-                    self.password = "password"
-                }
+                // For testing - use simple password for all users
+                self.password = "password"
             }
             Task {
                 await performLogin()

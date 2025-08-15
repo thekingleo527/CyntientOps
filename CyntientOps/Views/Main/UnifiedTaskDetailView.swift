@@ -782,7 +782,7 @@ struct UnifiedTaskDetailView: View {
     
     private var workerAssignmentCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Label("Worker Assignment", systemImage: "person.badge.shield.checkmark")
+            Label("Worker Assignment", systemImage: "person.badge.shield.fill")
                 .font(.headline)
                 .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
             
