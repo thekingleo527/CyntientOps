@@ -514,7 +514,7 @@ class AdminDashboardViewModel: ObservableObject {
                 SELECT * FROM buildings WHERE isActive = 1
             """)
             
-            buildings = rows.compactMap { row in
+            buildings = rows.compactMap { row -> CoreTypes.Building? in
                 guard let id = row["id"] as? String,
                       let name = row["name"] as? String,
                       let address = row["address"] as? String else { return nil }
@@ -1037,41 +1037,34 @@ class AdminDashboardViewModel: ObservableObject {
     /// Load comprehensive property data for a specific building using all available NYC APIs
     @MainActor
     private func loadComprehensivePropertyData(_ building: CoreTypes.NamedCoordinate) async {
-        do {
-            let coordinate = CLLocationCoordinate2D(
-                latitude: building.latitude,
-                longitude: building.longitude
-            )
-            
-            print("🏢 Loading comprehensive data for: \(building.name)")
-            
-            // Generate comprehensive property data for building
-            let property = await self.generatePropertyDataForBuilding(building, coordinate: coordinate)
-            
-            if let property = property {
-                await MainActor.run {
-                    propertyData[building.id] = property
-                }
-                
-                // Log detailed information
-                print("✅ Loaded comprehensive data for: \(building.name)")
-                print("   📍 BBL: \(property.bbl)")
-                print("   💰 Market Value: $\(Int(property.financialData.marketValue).formatted(.number))")
-                print("   🏛️ Violations: \(property.violations.count)")
-                print("   ⚖️ LL97 Status: \(property.complianceData.ll97Status)")
-                
-                // Load additional enrichment data
-                await loadAdditionalBuildingEnrichments(building, property: property)
-                
-            } else {
-                print("⚠️ No property data found for: \(building.name) at \(building.address) - skipping building")
-                // Skip buildings without real data - no placeholder data in production
-                return
+        let coordinate = CLLocationCoordinate2D(
+            latitude: building.latitude,
+            longitude: building.longitude
+        )
+        
+        print("🏢 Loading comprehensive data for: \(building.name)")
+        
+        // Generate comprehensive property data for building
+        let property = await self.generatePropertyDataForBuilding(building, coordinate: coordinate)
+        
+        if let property = property {
+            await MainActor.run {
+                propertyData[building.id] = property
             }
             
-        } catch {
-            print("❌ Error loading property data for \(building.name): \(error)")
-            // Skip buildings with errors - no placeholder data in production
+            // Log detailed information
+            print("✅ Loaded comprehensive data for: \(building.name)")
+            print("   📍 BBL: \(property.bbl)")
+            print("   💰 Market Value: $\(Int(property.financialData.marketValue).formatted(.number))")
+            print("   🏛️ Violations: \(property.violations.count)")
+            print("   ⚖️ LL97 Status: \(property.complianceData.ll97Status)")
+            
+            // Load additional enrichment data
+            await loadAdditionalBuildingEnrichments(building, property: property)
+            
+        } else {
+            print("⚠️ No property data found for: \(building.name) at \(building.address) - skipping building")
+            // Skip buildings without real data - no placeholder data in production
             return
         }
     }
