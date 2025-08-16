@@ -12,6 +12,7 @@ import Foundation
 import SwiftUI
 import Combine
 import CoreLocation
+import MapKit
 
 // MARK: - Supporting Types
 
@@ -564,6 +565,10 @@ public class WorkerDashboardViewModel: ObservableObject {
     @Published public private(set) var heroNextTask: CoreTypes.ContextualTask?
     @Published public private(set) var weatherHint: String?
     @Published public private(set) var buildingsForMap: [BuildingPin] = []
+    @Published public var mapRegion: MKCoordinateRegion = MKCoordinateRegion(
+        center: CLLocationCoordinate2D(latitude: 40.7580, longitude: -73.9855), // Manhattan center
+        span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
+    )
     
     // MARK: - Vendor Access Logging Properties
     @Published public var showingVendorAccessLog: Bool = false
@@ -1214,6 +1219,55 @@ public class WorkerDashboardViewModel: ObservableObject {
         await startTask(contextualTask)
     }
     
+    /// Prioritize a task based on weather or other conditions
+    public func prioritizeTask(_ taskId: String) async {
+        guard let taskIndex = todaysTasks.firstIndex(where: { $0.id == taskId }) else {
+            print("❌ Task not found for prioritization: \(taskId)")
+            return
+        }
+        
+        // Move task to higher priority by creating new TaskItem with updated urgency
+        let task = todaysTasks[taskIndex]
+        if task.urgency == .low || task.urgency == .normal {
+            let updatedTask = TaskItem(
+                id: task.id,
+                title: task.title,
+                description: task.description,
+                buildingId: task.buildingId,
+                dueDate: task.dueDate,
+                urgency: .high,
+                isCompleted: task.isCompleted,
+                category: task.category,
+                requiresPhoto: task.requiresPhoto
+            )
+            todaysTasks[taskIndex] = updatedTask
+            
+            // Sort tasks by priority using custom comparison
+            todaysTasks.sort { lhs, rhs in
+                let lhsPriority = getUrgencyPriority(lhs.urgency)
+                let rhsPriority = getUrgencyPriority(rhs.urgency)
+                
+                if lhsPriority != rhsPriority {
+                    return lhsPriority > rhsPriority
+                }
+                return (lhs.dueDate ?? Date.distantFuture) < (rhs.dueDate ?? Date.distantFuture)
+            }
+            
+            print("✅ Prioritized task: \(task.title)")
+        }
+    }
+    
+    private func getUrgencyPriority(_ urgency: TaskItem.TaskUrgency) -> Int {
+        switch urgency {
+        case .emergency: return 6
+        case .critical: return 5
+        case .urgent: return 4
+        case .high: return 3
+        case .normal: return 2
+        case .low: return 1
+        }
+    }
+    
     /// Force sync with server
     public func forceSyncWithServer() async {
         await performSync { [weak self] in
@@ -1393,11 +1447,50 @@ public class WorkerDashboardViewModel: ObservableObject {
                 }
             
             assignedBuildings = uniqueBuildings
+            
+            // Calculate optimal map region from assigned buildings
+            updateMapRegion()
+            
             print("✅ Loaded \(uniqueBuildings.count) assigned buildings for worker \(workerId) from real operational data")
         } catch {
             print("❌ Failed to load assigned buildings: \(error)")
             assignedBuildings = []
         }
+    }
+    
+    /// Update map region to show assigned buildings optimally
+    private func updateMapRegion() {
+        guard !assignedBuildings.isEmpty else { return }
+        
+        if assignedBuildings.count == 1 {
+            // Single building - center with 1km span
+            let building = assignedBuildings[0]
+            mapRegion = MKCoordinateRegion(
+                center: building.coordinate,
+                span: MKCoordinateSpan(latitudeDelta: 0.008, longitudeDelta: 0.008) // ~1km
+            )
+        } else {
+            // Multiple buildings - calculate bounding region
+            let coordinates = assignedBuildings.map { $0.coordinate }
+            let minLat = coordinates.min { $0.latitude < $1.latitude }?.latitude ?? 40.7580
+            let maxLat = coordinates.max { $0.latitude < $1.latitude }?.latitude ?? 40.7580
+            let minLon = coordinates.min { $0.longitude < $1.longitude }?.longitude ?? -73.9855
+            let maxLon = coordinates.max { $0.longitude < $1.longitude }?.longitude ?? -73.9855
+            
+            let center = CLLocationCoordinate2D(
+                latitude: (minLat + maxLat) / 2,
+                longitude: (minLon + maxLon) / 2
+            )
+            
+            let span = MKCoordinateSpan(
+                latitudeDelta: max(0.008, (maxLat - minLat) * 1.3), // 30% padding
+                longitudeDelta: max(0.008, (maxLon - minLon) * 1.3)
+            )
+            
+            mapRegion = MKCoordinateRegion(center: center, span: span)
+        }
+        
+        print("✅ Updated map region for \(assignedBuildings.count) assigned buildings")
     }
     
     private func loadAllBuildings() async {

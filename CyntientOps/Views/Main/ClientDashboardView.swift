@@ -216,7 +216,8 @@ struct ClientDashboardView: View {
                     routineMetrics: viewModel.realtimeRoutineMetrics,
                     onTabTap: handleNovaTabTap,
                     onMaintenanceRequest: { sheet = .maintenanceRequest },
-                    onMapToggle: handlePortfolioMapToggle
+                    onMapToggle: handlePortfolioMapToggle,
+                    viewModel: viewModel
                 )
                 .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
@@ -324,6 +325,17 @@ struct ClientDashboardView: View {
     // MARK: - Helper Methods
     private func getClientName() -> String {
         return viewModel.clientName ?? "David Edelman"
+    }
+    
+    private func getClientInitials() -> String {
+        guard let name = viewModel.clientName else { return "DE" }
+        let components = name.split(separator: " ")
+        if components.count >= 2 {
+            return String(components[0].prefix(1) + components[1].prefix(1)).uppercased()
+        } else if let first = components.first {
+            return String(first.prefix(2)).uppercased()
+        }
+        return "CL"
     }
     
     private func hasUrgentItems() -> Bool {
@@ -1158,6 +1170,7 @@ struct ClientNovaIntelligenceBar: View {
     let onTabTap: (ClientDashboardView.NovaTab) -> Void
     let onMaintenanceRequest: () -> Void
     let onMapToggle: () -> Void
+    @ObservedObject var viewModel: ClientDashboardViewModel
     
     var body: some View {
         VStack(spacing: 0) {
@@ -1227,13 +1240,15 @@ struct ClientNovaIntelligenceBar: View {
                         buildingsList: buildingsList,
                         monthlyMetrics: monthlyMetrics,
                         routineMetrics: routineMetrics,
+                        portfolioValue: viewModel.portfolioAssessedValue,
                         onMapToggle: onMapToggle
                     )
                     
                 case .compliance:
                     ClientComplianceDetailContent(
                         complianceOverview: complianceOverview,
-                        buildingsList: buildingsList
+                        buildingsList: buildingsList,
+                        viewModel: viewModel
                     )
                     
                 case .analytics:
@@ -1451,6 +1466,7 @@ struct ClientPortfolioContent: View {
     let buildingsList: [CoreTypes.NamedCoordinate]
     let monthlyMetrics: CoreTypes.MonthlyMetrics
     let routineMetrics: CoreTypes.RealtimeRoutineMetrics
+    let portfolioValue: Double
     let onMapToggle: () -> Void
     
     var body: some View {
@@ -1477,7 +1493,7 @@ struct ClientPortfolioContent: View {
                 Spacer()
                 
                 VStack(alignment: .trailing, spacing: 4) {
-                    Text("$\(formatLargeNumber(monthlyMetrics.monthlyBudget))")
+                    Text("$\(formatLargeNumber(portfolioValue))")
                         .font(.title2)
                         .fontWeight(.bold)
                         .foregroundColor(CyntientOpsDesign.DashboardColors.success)
@@ -1601,6 +1617,7 @@ struct ClientPortfolioContent: View {
 struct ClientComplianceDetailContent: View {
     let complianceOverview: CoreTypes.ComplianceOverview
     let buildingsList: [CoreTypes.NamedCoordinate]
+    @ObservedObject var viewModel: ClientDashboardViewModel
     
     var body: some View {
         VStack(spacing: 12) {
@@ -1734,23 +1751,19 @@ struct ClientComplianceDetailContent: View {
     }
     
     private func getHPDViolations() -> Int {
-        // Real implementation would query HPD API
-        return max(0, complianceOverview.criticalViolations / 3)
+        return viewModel.hpdViolationsData.values.flatMap { $0 }.filter { $0.isActive }.count
     }
     
     private func getDOBViolations() -> Int {
-        // Real implementation would query DOB API
-        return max(0, complianceOverview.criticalViolations / 4)
+        return viewModel.dobPermitsData.values.flatMap { $0 }.filter { $0.isExpired }.count
     }
     
     private func getDSNYViolations() -> Int {
-        // Real implementation would query DSNY API
-        return max(0, complianceOverview.criticalViolations / 5)
+        return viewModel.dsnyScheduleData.values.flatMap { $0 }.count
     }
     
     private func getLL97Issues() -> Int {
-        // Real implementation would query LL97 compliance API
-        return buildingsList.count > 10 ? 2 : 0
+        return viewModel.ll97EmissionsData.values.flatMap { $0 }.filter { !$0.isCompliant }.count
     }
     
     private func getHPDColor() -> Color {
@@ -2046,7 +2059,7 @@ struct ClientProfileView: View {
         NavigationView {
             ScrollView {
                 VStack(spacing: 20) {
-                    // Client Profile Header for David Edelman
+                    // Dynamic Client Profile Header
                     clientProfileHeader
                     
                     // Portfolio Buildings Only 
@@ -2130,7 +2143,7 @@ struct ClientProfileView: View {
     
     private var clientProfileHeader: some View {
         VStack(spacing: 16) {
-            // David Edelman Profile Image
+            // Client Profile Image
             ZStack {
                 Circle()
                     .fill(
@@ -2145,15 +2158,15 @@ struct ClientProfileView: View {
                     )
                     .frame(width: 100, height: 100)
                 
-                // Use initials for David Edelman
-                Text("DE")
+                // Use initials for current client
+                Text(getClientInitials())
                     .font(.system(size: 36, weight: .bold))
                     .foregroundColor(.white)
             }
             
             // Client Information
             VStack(spacing: 8) {
-                Text("David Edelman")
+                Text(viewModel.clientName ?? "David Edelman")
                     .font(.title2)
                     .fontWeight(.bold)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
@@ -2287,6 +2300,17 @@ struct ClientProfileView: View {
         }
         .padding(16)
         .francoDarkCardBackground()
+    }
+    
+    private func getClientInitials() -> String {
+        guard let name = viewModel.clientName else { return "DE" }
+        let components = name.split(separator: " ")
+        if components.count >= 2 {
+            return String(components[0].prefix(1) + components[1].prefix(1)).uppercased()
+        } else if let first = components.first {
+            return String(first.prefix(2)).uppercased()
+        }
+        return "DE"
     }
 }
 

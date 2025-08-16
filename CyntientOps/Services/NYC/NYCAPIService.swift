@@ -36,6 +36,7 @@ public final class NYCAPIService: ObservableObject {
         static let depURL = "https://data.cityofnewyork.us/resource/66be-66yr.json"  // DEP Water
         static let fdnyURL = "https://data.cityofnewyork.us/resource/3h2n-5cm9.json" // FDNY Inspections
         static let complaints311URL = "https://data.cityofnewyork.us/resource/erm2-nwe9.json" // 311 Complaints
+        static let dofURL = "https://data.cityofnewyork.us/resource/yjxr-fw9i.json" // DOF Property Assessment
         
         // Rate limiting: NYC OpenData allows 1000 calls/hour per endpoint
         static let rateLimitDelay: TimeInterval = 3.6 // seconds between calls
@@ -52,6 +53,7 @@ public final class NYCAPIService: ObservableObject {
         case fdnyInspections(bin: String)
         case conEdisonOutages(zip: String)
         case complaints311(bin: String)
+        case dofPropertyAssessment(bbl: String)
         
         var url: String {
             switch self {
@@ -71,6 +73,8 @@ public final class NYCAPIService: ObservableObject {
                 return "https://storm.coned.com/stormcenter_external/default.html?zip=\(zip)"
             case .complaints311(let bin):
                 return "\(APIConfig.complaints311URL)?bin=\(bin)"
+            case .dofPropertyAssessment(let bbl):
+                return "\(APIConfig.dofURL)?bbl=\(bbl)"
             }
         }
         
@@ -84,6 +88,7 @@ public final class NYCAPIService: ObservableObject {
             case .fdnyInspections(let bin): return "fdny_inspections_\(bin)"
             case .conEdisonOutages(let zip): return "coned_outages_\(zip)"
             case .complaints311(let bin): return "311_complaints_\(bin)"
+            case .dofPropertyAssessment(let bbl): return "dof_property_\(bbl)"
             }
         }
     }
@@ -149,6 +154,12 @@ public final class NYCAPIService: ObservableObject {
     /// Fetch 311 complaints
     public func fetch311Complaints(bin: String) async throws -> [Complaint311] {
         let endpoint = APIEndpoint.complaints311(bin: bin)
+        return try await fetch(endpoint)
+    }
+    
+    /// Fetch DOF Property Assessment data
+    public func fetchDOFPropertyAssessment(bbl: String) async throws -> [DOFPropertyAssessment] {
+        let endpoint = APIEndpoint.dofPropertyAssessment(bbl: bbl)
         return try await fetch(endpoint)
     }
     

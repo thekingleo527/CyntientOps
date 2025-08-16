@@ -310,6 +310,67 @@ public struct Complaint311: Codable, Identifiable {
     }
 }
 
+// MARK: - DOF Property Assessment
+
+public struct DOFPropertyAssessment: Codable, Identifiable {
+    public let id = UUID()
+    public let bbl: String
+    public let block: String
+    public let lot: String
+    public let easement: String?
+    public let ownerName: String
+    public let buildingClassAtPresent: String
+    public let addressLine1: String
+    public let zipCode: String
+    public let residentialUnits: Int?
+    public let commercialUnits: Int?
+    public let totalUnits: Int?
+    public let yearBuilt: Int?
+    public let taxClassAtPresent: String
+    public let buildingClassAtTimeOfSale: String?
+    public let lotArea: Double?
+    public let buildingArea: Double?
+    public let assessedValueTotal: Double?
+    public let exemptionValue: Double?
+    public let marketValue: Double?
+    
+    private enum CodingKeys: String, CodingKey {
+        case bbl = "bbl"
+        case block = "block"
+        case lot = "lot"
+        case easement = "easement"
+        case ownerName = "owner_name"
+        case buildingClassAtPresent = "building_class_at_present"
+        case addressLine1 = "address_1"
+        case zipCode = "zip_code"
+        case residentialUnits = "residential_units"
+        case commercialUnits = "commercial_units"
+        case totalUnits = "total_units"
+        case yearBuilt = "year_built"
+        case taxClassAtPresent = "tax_class_at_present"
+        case buildingClassAtTimeOfSale = "building_class_at_time_of_sale"
+        case lotArea = "lot_area"
+        case buildingArea = "building_area"
+        case assessedValueTotal = "assessed_value_total"
+        case exemptionValue = "exemption_value"
+        case marketValue = "market_value"
+    }
+    
+    public var estimatedValue: Double {
+        return marketValue ?? assessedValueTotal ?? 0
+    }
+    
+    public var propertyType: String {
+        switch buildingClassAtPresent.prefix(1) {
+        case "A": return "Residential"
+        case "B": return "Residential"
+        case "C": return "Commercial"
+        case "D": return "Mixed Use"
+        default: return "Other"
+        }
+    }
+}
+
 // MARK: - Consolidated Compliance Data
 
 public struct NYCBuildingCompliance: Codable {

@@ -12,7 +12,8 @@ import MapKit
 
 struct WorkerDashboardView: View {
     @StateObject private var viewModel: WorkerDashboardViewModel
-    @StateObject private var contextEngine: WorkerContextEngine
+    @EnvironmentObject private var authManager: NewAuthManager
+    @EnvironmentObject private var novaManager: NovaAIManager
     
     // MARK: - Responsive Layout
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
@@ -23,7 +24,6 @@ struct WorkerDashboardView: View {
     init(container: ServiceContainer) {
         self.container = container
         self._viewModel = StateObject(wrappedValue: WorkerDashboardViewModel(container: container))
-        self._contextEngine = StateObject(wrappedValue: WorkerContextEngine.shared)
     }
     
     // MARK: - Sheet Navigation
@@ -44,160 +44,133 @@ struct WorkerDashboardView: View {
         }
     }
     
-    // MARK: - Intelligence Tabs (Action-Focused)
+    // MARK: - Nova Intelligence Tabs (Mirroring Client Design)
     enum NovaTab: String, CaseIterable {
-        case routeMap = "Route Map"
-        case liveUpdates = "Live Updates"
-        case supplyCheck = "Supply Check"
-        case novaAssist = "Nova Assist"
+        case routines = "Routines"
+        case portfolio = "Portfolio"
+        case analytics = "Analytics"
+        case schedule = "Schedule"
         
         var icon: String {
             switch self {
-            case .routeMap: return "map.fill"
-            case .liveUpdates: return "bell.badge.fill"
-            case .supplyCheck: return "shippingbox.fill"
-            case .novaAssist: return "brain.head.profile"
+            case .routines: return "checklist"
+            case .portfolio: return "building.2"
+            case .analytics: return "chart.bar"
+            case .schedule: return "calendar"
             }
         }
     }
     
     // MARK: - State
     @State private var heroExpanded = true
-    @State private var selectedNovaTab: NovaTab = .routeMap
+    @State private var selectedNovaTab: NovaTab = .routines
     @State private var sheet: WorkerRoute?
-    @State private var isMapRevealed = false
+    @State private var isPortfolioMapRevealed = false
     
     var body: some View {
         ZStack {
-            // Dark Background
-            CyntientOpsDesign.DashboardColors.baseBackground
-                .ignoresSafeArea()
-            
-            VStack(spacing: 0) {
-                // Header
-                WorkerHeaderV3B(
-                    name: viewModel.worker?.name ?? "Worker",
-                    initials: String((viewModel.worker?.name ?? "W").prefix(2)).uppercased(),
-                    photoURL: nil,
-                    nextTaskName: viewModel.heroNextTask?.title,
-                    showClockPill: viewModel.isClockedIn,
-                    isNovaProcessing: false,
-                    onRoute: handleHeaderRoute
-                )
-                .environmentObject(container.novaManager)
-                .zIndex(100)
-                
-                // Weather Guidance Strip (Ultra-thin, 40px)
-                if let weather = viewModel.weatherData {
-                    WeatherGuidanceStrip(
-                        weather: weather,
-                        nextTask: viewModel.todaysTasks.first { !$0.isCompleted },
-                        workflowState: getWorkflowState()
+            // Map as underlay (prevents layout conflicts)
+            MapRevealContainer(
+                buildings: viewModel.assignedBuildings.map { building in
+                    CoreTypes.NamedCoordinate(
+                        id: building.id,
+                        name: building.name,
+                        address: building.address,
+                        latitude: building.coordinate.latitude,
+                        longitude: building.coordinate.longitude
                     )
-                    .zIndex(90)
+                },
+                currentBuildingId: viewModel.currentBuilding?.id,
+                isRevealed: $isPortfolioMapRevealed,
+                onBuildingTap: { building in
+                    sheet = .buildingDetail(building.id)
+                }
+            ) {
+                EmptyView()
+            }
+            .ignoresSafeArea()
+            
+            // Main content layer
+            VStack(spacing: 0) {
+                // Unified Header (CyntientOps branding + Nova avatar + worker pill)
+                WorkerHeaderWithNova(
+                    workerName: viewModel.worker?.name ?? authManager.currentUser?.name ?? "Worker",
+                    workerInitials: getWorkerInitials(),
+                    isClockedIn: viewModel.isClockedIn,
+                    currentBuilding: viewModel.currentBuilding?.name,
+                    onNovaInteraction: { sheet = .novaInteraction },
+                    onProfileTap: { sheet = .profile },
+                    onClockAction: handleClockIn
+                )
+                
+                // Weather-based task suggestions (slim, intelligent)
+                if let weather = viewModel.weatherData {
+                    WeatherBasedTaskSuggestions(
+                        weather: weather,
+                        todaysTasks: viewModel.todaysTasks,
+                        onTaskSelect: { taskId in
+                            Task { await viewModel.prioritizeTask(taskId) }
+                        }
+                    )
                 }
                 
-                // Main content wrapped in MapRevealContainer (like Admin/Client)
-                MapRevealContainer(
-                    buildings: viewModel.assignedBuildings.map { building in
-                        CoreTypes.NamedCoordinate(
-                            id: building.id,
-                            name: building.name,
-                            address: building.address,
-                            latitude: building.coordinate.latitude,
-                            longitude: building.coordinate.longitude
-                        )
-                    },
-                    currentBuildingId: viewModel.currentBuilding?.id,
-                    isRevealed: $isMapRevealed,
-                    onBuildingTap: { building in
-                        sheet = .buildingDetail(building.id)
-                    }
-                ) {
-                    // Scrollable Content with Dynamic Bottom Padding
-                    ScrollView {
+                // Scrollable content
+                ScrollView {
                     VStack(spacing: 16) {
-                        // Next Action Hero Card
-                        WorkerNextActionHeroCard(
-                            isExpanded: $heroExpanded,
+                        // Hero Card - Assigned Buildings with real-time data
+                        WorkerHeroCard(
+                            assignedBuildings: viewModel.assignedBuildings,
                             currentBuilding: viewModel.currentBuilding,
                             nextTask: viewModel.todaysTasks.first { !$0.isCompleted },
-                            upcomingTasks: Array(viewModel.todaysTasks.filter { !$0.isCompleted }.dropFirst().prefix(2)),
-                            currentTimeBlock: getCurrentTimeBlock(),
                             isClockedIn: viewModel.isClockedIn,
-                            workflowState: getWorkflowState(),
-                            onStartTask: { taskId in
-                                Task { await viewModel.startTask(taskId) }
+                            completionRate: viewModel.completionRate,
+                            onBuildingTap: { buildingId in
+                                sheet = .buildingDetail(buildingId)
                             },
-                            onViewDetails: { taskId in
-                                sheet = .taskDetail(taskId)
+                            onViewAllBuildings: {
+                                withAnimation(.spring()) {
+                                    isPortfolioMapRevealed.toggle()
+                                }
                             },
-                            onSkipTask: { taskId in
-                                // Handle skip logic
-                            },
-                            onClockIn: handleClockIn,
-                            onNavigateToBuilding: handleNavigateToBuilding
+                            onStartNext: {
+                                if let nextTask = viewModel.todaysTasks.first(where: { !$0.isCompleted }) {
+                                    Task { await viewModel.startTask(nextTask.id) }
+                                }
+                            }
                         )
-                        
-                        // Time-based Progressive Disclosure
-                        TimeBasedContentSection(
-                            todaysTasks: viewModel.todaysTasks,
-                            workflowState: getWorkflowState(),
-                            isHeroExpanded: heroExpanded,
-                            onTaskTap: { taskId in sheet = .taskDetail(taskId) },
-                            onTaskAction: handleTaskAction
-                        )
-                        
-                        // Urgent Items Section (worker-specific)
-                        if hasUrgentItems() {
-                            WorkerUrgentItemsSection(
-                                urgentTasks: getUrgentTasks(),
-                                overdueCount: getOverdueCount(),
-                                clockInRequired: !viewModel.isClockedIn && shouldBeWorking(),
-                                onUrgentTap: { selectedNovaTab = .novaAssist }
-                            )
-                        }
-                        
-                        // Dynamic spacer for intelligence panel
-                        Spacer(minLength: getIntelligencePanelTotalHeight())
                     }
                     .padding(.horizontal, 20)
-                    .padding(.top, 8)
-                    }
-                    .refreshable {
-                        await viewModel.refreshData()
-                    }
+                    .padding(.top, 16)
                 }
-                
-                // Nova Worker Intelligence Bar
-                WorkerNovaIntelligenceBar(
-                    selectedTab: $selectedNovaTab,
-                    todaysTasks: viewModel.todaysTasks,
-                    weeklySchedule: viewModel.scheduleWeek,
-                    currentBuilding: viewModel.currentBuilding,
-                    assignedBuildings: viewModel.assignedBuildings,
-                    allBuildings: viewModel.allBuildings,
-                    isMapRevealed: isMapRevealed,
-                    weatherData: viewModel.weatherData,
-                    onTabTap: handleNovaTabTap,
-                    onTaskAction: handleTaskAction,
-                    onBuildingTap: { buildingId in
-                        // Navigate to building detail with database connection
-                        if let building = (viewModel.assignedBuildings + viewModel.allBuildings).first(where: { $0.id == buildingId }) {
-                            sheet = .buildingDetail(building.id)
-                        }
-                    },
-                    onRevealMap: {
-                        withAnimation(.spring()) {
-                            isMapRevealed.toggle()
-                        }
-                    }
-                )
-                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .refreshable {
+                    await viewModel.refreshData()
+                }
             }
+            .background(CyntientOpsDesign.DashboardColors.baseBackground)
+        }
+        .safeAreaInset(edge: .bottom) {
+            // Intelligence Panel as safe area inset (prevents scroll conflicts)
+            WorkerNovaIntelligencePanel(
+                selectedTab: $selectedNovaTab,
+                todaysTasks: viewModel.todaysTasks,
+                weeklySchedule: viewModel.scheduleWeek,
+                assignedBuildings: viewModel.assignedBuildings,
+                completionRate: viewModel.completionRate,
+                onTabTap: handleNovaTabTap,
+                onScheduleExpand: { sheet = .schedule },
+                onMapToggle: {
+                    withAnimation(.spring()) {
+                        isPortfolioMapRevealed.toggle()
+                    }
+                },
+                viewModel: viewModel
+            )
+            .padding(.horizontal, 16)
+            .padding(.bottom, 8)
         }
         .navigationBarHidden(true)
         .preferredColorScheme(.dark)
+        .environment(\.locale, Locale(identifier: "en_US"))
         .sheet(item: $sheet) { route in
             NavigationView {
                 workerSheetContent(for: route)
@@ -213,6 +186,14 @@ struct WorkerDashboardView: View {
     private func getFirstName() -> String {
         guard let fullName = viewModel.worker?.name else { return "Worker" }
         return fullName.components(separatedBy: " ").first ?? "Worker"
+    }
+    
+    private func getWorkerInitials() -> String {
+        guard let fullName = viewModel.worker?.name else { return "W" }
+        let components = fullName.components(separatedBy: " ")
+        let firstInitial = components.first?.prefix(1) ?? "W"
+        let lastInitial = components.count > 1 ? components.last?.prefix(1) ?? "" : ""
+        return "\(firstInitial)\(lastInitial)".uppercased()
     }
     
     private func hasUrgentTasks() -> Bool {
@@ -252,7 +233,7 @@ struct WorkerDashboardView: View {
             sheet = .buildingDetail(currentBuilding.id)
         } else {
             // Show building selection if not clocked in
-            selectedNovaTab = .routeMap
+            selectedNovaTab = .portfolio
         }
     }
     
@@ -264,14 +245,14 @@ struct WorkerDashboardView: View {
     
     private func getIntelligencePanelContentHeight() -> CGFloat {
         switch selectedNovaTab {
-        case .routeMap:
+        case .portfolio:
             return 240 // Map needs more height
-        case .liveUpdates:
-            return 180 // Live alerts and updates
-        case .supplyCheck:
-            return 180 // Supply lists
-        case .novaAssist:
-            return 140 // Quick actions
+        case .analytics:
+            return 180 // Analytics and performance data
+        case .schedule:
+            return 180 // Schedule and time management
+        case .routines:
+            return 140 // Daily routines and workflows
         }
     }
     
@@ -294,19 +275,19 @@ struct WorkerDashboardView: View {
     
     private func handleNovaTabTap(_ tab: NovaTab) {
         switch tab {
-        case .routeMap:
+        case .portfolio:
             // Interactive map showing today's route - reveal the map
             withAnimation(.spring()) {
-                isMapRevealed = true
+                isPortfolioMapRevealed = true
             }
-        case .liveUpdates:
-            // Real-time alerts and schedule changes
+        case .analytics:
+            // Analytics and performance data
             break
-        case .supplyCheck:
-            // Supplies needed, inventory warnings, quick request
+        case .schedule:
+            // Schedule and time management
             break
-        case .novaAssist:
-            // NOT a chat - context-aware quick actions
+        case .routines:
+            // Daily routines and workflows
             sheet = .novaInteraction
         }
     }
@@ -1150,21 +1131,16 @@ struct WorkerUrgentItem: View {
     }
 }
 
-// MARK: - Worker Nova Intelligence Bar
-
-struct WorkerNovaIntelligenceBar: View {
+struct WorkerNovaIntelligencePanel: View {
     @Binding var selectedTab: WorkerDashboardView.NovaTab
     let todaysTasks: [WorkerDashboardViewModel.TaskItem]
     let weeklySchedule: [WorkerDashboardViewModel.DaySchedule]
-    let currentBuilding: WorkerDashboardViewModel.BuildingSummary?
     let assignedBuildings: [WorkerDashboardViewModel.BuildingSummary]
-    let allBuildings: [WorkerDashboardViewModel.BuildingSummary] // For coverage
-    let isMapRevealed: Bool
-    let weatherData: CoreTypes.WeatherData?
+    let completionRate: Double
     let onTabTap: (WorkerDashboardView.NovaTab) -> Void
-    let onTaskAction: (WorkerTaskAction) -> Void
-    let onBuildingTap: (String) -> Void // Building navigation callback
-    let onRevealMap: () -> Void
+    let onScheduleExpand: () -> Void
+    let onMapToggle: () -> Void
+    @ObservedObject var viewModel: WorkerDashboardViewModel
     
     var body: some View {
         VStack(spacing: 0) {
@@ -1200,13 +1176,13 @@ struct WorkerNovaIntelligenceBar: View {
     
     private func getIntelligencePanelHeight() -> CGFloat {
         switch selectedTab {
-        case .novaAssist:
+        case .routines:
             return min(CGFloat(todaysTasks.count * 60 + 120), 260)
-        case .liveUpdates:
+        case .analytics:
             return 240
-        case .routeMap:
+        case .portfolio:
             return assignedBuildings.count > 3 ? 200 : 160
-        case .supplyCheck:
+        case .schedule:
             return 140
         }
     }
@@ -1216,33 +1192,31 @@ struct WorkerNovaIntelligenceBar: View {
         ScrollView {
             VStack(spacing: 16) {
                 switch selectedTab {
-                case .routeMap:
-                    WorkerRouteMapContent(
-                        currentBuilding: currentBuilding,
+                case .portfolio:
+                    WorkerPortfolioContent(
                         assignedBuildings: assignedBuildings,
-                        todaysTasks: todaysTasks,
-                        onBuildingTap: onBuildingTap,
-                        isMapRevealed: isMapRevealed,
-                        onRevealMap: onRevealMap
+                        onMapToggle: onMapToggle
                     )
                     
-                case .liveUpdates:
-                    WorkerLiveUpdatesContent(
-                        weather: weatherData,
+                case .analytics:
+                    WorkerAnalyticsContent(
+                        completionRate: completionRate,
                         todaysTasks: todaysTasks,
-                        currentBuilding: currentBuilding
+                        weeklySchedule: weeklySchedule
                     )
                     
-                case .supplyCheck:
-                    WorkerSupplyCheckContent(
+                case .schedule:
+                    WorkerScheduleContent(
                         todaysTasks: todaysTasks,
-                        currentBuilding: currentBuilding
+                        weeklySchedule: weeklySchedule,
+                        onExpandSchedule: onScheduleExpand
                     )
                     
-                case .novaAssist:
-                    WorkerNovaAssistContent(
-                        currentBuilding: currentBuilding,
-                        nextTask: todaysTasks.first { !$0.isCompleted }
+                case .routines:
+                    WorkerRoutinesContent(
+                        todaysTasks: todaysTasks,
+                        completionRate: completionRate,
+                        onExpandSchedule: onScheduleExpand
                     )
                 }
             }
@@ -1254,15 +1228,19 @@ struct WorkerNovaIntelligenceBar: View {
     
     private func getBadgeCount(for tab: WorkerDashboardView.NovaTab) -> Int {
         switch tab {
-        case .routeMap:
+        case .portfolio:
             return assignedBuildings.count // Show total buildings for today
-        case .liveUpdates:
-            return getLiveUpdatesCount() // Count of active alerts/updates
-        case .supplyCheck:
-            return getSupplyWarnings() // Count of low supplies
-        case .novaAssist:
+        case .analytics:
+            return 0 // No badge for analytics
+        case .schedule:
+            return getScheduleItemsCount() // Count of scheduled items
+        case .routines:
             return 0 // No badge for quick actions
         }
+    }
+    
+    private func getScheduleItemsCount() -> Int {
+        return weeklySchedule.flatMap { $0.items }.count
     }
     
     private func getSupplyWarnings() -> Int {
@@ -1272,13 +1250,13 @@ struct WorkerNovaIntelligenceBar: View {
     
     private func getLiveUpdatesCount() -> Int {
         // Count active alerts: schedule changes, emergency alerts, weather warnings
-        var count = 0
+        let count = 0
         
-        // Weather urgency
-        if let weather = weatherData, 
-           (weather.condition == .rain || weather.condition == .snow || weather.temperature < 32 || weather.temperature > 90) {
-            count += 1
-        }
+        // Weather urgency (would need to access through viewModel)
+        // if let weather = viewModel.weatherData,
+        //    (weather.condition == .rain || weather.condition == .snow) {
+        //     count += 1
+        // }
         
         // Task reassignments (placeholder)
         // count += taskReassignments.count
@@ -3801,6 +3779,630 @@ struct BuildingRouteCard: View {
         }
         .padding(12)
         .francoDarkCardBackground()
+    }
+}
+
+// MARK: - New Worker Dashboard Components (Mirroring Client Design)
+
+struct WorkerHeaderWithNova: View {
+    let workerName: String
+    let workerInitials: String
+    let isClockedIn: Bool
+    let currentBuilding: String?
+    let onNovaInteraction: () -> Void
+    let onProfileTap: () -> Void
+    let onClockAction: () -> Void
+    
+    var body: some View {
+        HStack {
+            // CyntientOps branding (left)
+            Text("CyntientOps")
+                .font(.title2)
+                .fontWeight(.bold)
+                .foregroundColor(.white)
+            
+            Spacer()
+            
+            // Nova Avatar (center-right)
+            Button(action: onNovaInteraction) {
+                Circle()
+                    .fill(Color.purple.opacity(0.2))
+                    .frame(width: 40, height: 40)
+                    .overlay(
+                        Image(systemName: "brain.head.profile")
+                            .font(.system(size: 18))
+                            .foregroundColor(.purple)
+                    )
+            }
+            
+            // Worker Profile Pill (right)
+            Button(action: onProfileTap) {
+                HStack(spacing: 8) {
+                    // Worker initials circle
+                    Circle()
+                        .fill(CyntientOpsDesign.DashboardColors.workerAccent)
+                        .frame(width: 32, height: 32)
+                        .overlay(
+                            Text(workerInitials)
+                                .font(.caption)
+                                .fontWeight(.bold)
+                                .foregroundColor(.white)
+                        )
+                    
+                    // Clock status
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(getFirstName(from: workerName))
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.white)
+                        
+                        Text(isClockedIn ? "On Duty" : "Off Duty")
+                            .font(.caption2)
+                            .foregroundColor(isClockedIn ? .green : .orange)
+                    }
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(Color.black.opacity(0.3))
+                .clipShape(Capsule())
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 16)
+        .background(CyntientOpsDesign.DashboardColors.baseBackground)
+    }
+    
+    private func getFirstName(from fullName: String) -> String {
+        return fullName.components(separatedBy: " ").first ?? "Worker"
+    }
+}
+
+struct WeatherBasedTaskSuggestions: View {
+    let weather: CoreTypes.WeatherData
+    let todaysTasks: [WorkerDashboardViewModel.TaskItem]
+    let onTaskSelect: (String) -> Void
+    
+    var body: some View {
+        if let suggestedTask = getWeatherBasedSuggestion() {
+            HStack(spacing: 12) {
+                // Weather icon
+                Image(systemName: getWeatherIcon())
+                    .font(.system(size: 16))
+                    .foregroundColor(getWeatherColor())
+                
+                // Suggestion text
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Weather Suggestion")
+                        .font(.caption2)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.white.opacity(0.7))
+                    
+                    Text(suggestedTask.title)
+                        .font(.caption)
+                        .foregroundColor(.white)
+                        .lineLimit(1)
+                }
+                
+                Spacer()
+                
+                // Action button
+                Button("Prioritize") {
+                    onTaskSelect(suggestedTask.id)
+                }
+                .font(.caption2)
+                .fontWeight(.semibold)
+                .foregroundColor(.blue)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(Color.blue.opacity(0.2))
+                .clipShape(Capsule())
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 8)
+            .background(Color.black.opacity(0.2))
+        }
+    }
+    
+    private func getWeatherBasedSuggestion() -> WorkerDashboardViewModel.TaskItem? {
+        // Prioritize outdoor tasks on good weather, indoor on bad weather
+        let isGoodWeather = weather.temperature > 50 && (weather.condition == .clear || weather.condition == .sunny || weather.condition == .cloudy)
+        
+        if isGoodWeather {
+            return todaysTasks.first { task in
+                task.title.lowercased().contains("exterior") || 
+                task.title.lowercased().contains("roof") ||
+                task.title.lowercased().contains("window")
+            }
+        } else {
+            return todaysTasks.first { task in
+                task.title.lowercased().contains("interior") ||
+                task.title.lowercased().contains("hvac") ||
+                task.title.lowercased().contains("plumbing")
+            }
+        }
+    }
+    
+    private func getWeatherIcon() -> String {
+        if weather.condition == .rain {
+            return "cloud.rain.fill"
+        } else if weather.condition == .snow {
+            return "cloud.snow.fill"
+        } else if weather.temperature > 70 {
+            return "sun.max.fill"
+        } else {
+            return "cloud.sun.fill"
+        }
+    }
+    
+    private func getWeatherColor() -> Color {
+        if weather.condition == .rain {
+            return .blue
+        } else if weather.temperature > 70 {
+            return .orange
+        } else {
+            return .yellow
+        }
+    }
+}
+
+struct WorkerHeroCard: View {
+    let assignedBuildings: [WorkerDashboardViewModel.BuildingSummary]
+    let currentBuilding: WorkerDashboardViewModel.BuildingSummary?
+    let nextTask: WorkerDashboardViewModel.TaskItem?
+    let isClockedIn: Bool
+    let completionRate: Double
+    let onBuildingTap: (String) -> Void
+    let onViewAllBuildings: () -> Void
+    let onStartNext: () -> Void
+    
+    var body: some View {
+        VStack(spacing: 16) {
+            // Header
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Assigned Buildings")
+                        .font(.title3)
+                        .fontWeight(.bold)
+                        .foregroundColor(.white)
+                    
+                    Text("\(assignedBuildings.count) properties • \(Int(completionRate * 100))% complete today")
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.7))
+                }
+                
+                Spacer()
+                
+                Button("View All") {
+                    onViewAllBuildings()
+                }
+                .font(.caption)
+                .fontWeight(.semibold)
+                .foregroundColor(.blue)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(Color.blue.opacity(0.2))
+                .clipShape(Capsule())
+            }
+            
+            // Current building highlight
+            if let current = currentBuilding {
+                HStack(spacing: 12) {
+                    // Building icon
+                    Circle()
+                        .fill(CyntientOpsDesign.DashboardColors.workerAccent)
+                        .frame(width: 40, height: 40)
+                        .overlay(
+                            Image(systemName: "building.fill")
+                                .font(.system(size: 18))
+                                .foregroundColor(.white)
+                        )
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Current Location")
+                            .font(.caption2)
+                            .foregroundColor(.white.opacity(0.6))
+                        
+                        Text(current.name)
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.white)
+                    }
+                    
+                    Spacer()
+                    
+                    Button(action: { onBuildingTap(current.id) }) {
+                        Image(systemName: "arrow.right.circle.fill")
+                            .font(.system(size: 20))
+                            .foregroundColor(CyntientOpsDesign.DashboardColors.workerAccent)
+                    }
+                }
+                .padding()
+                .background(Color.black.opacity(0.3))
+                .cornerRadius(12)
+            }
+            
+            // Immediate next steps
+            if let next = nextTask {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Immediate Next Steps")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.white.opacity(0.7))
+                    
+                    HStack(spacing: 12) {
+                        // Task urgency indicator
+                        Circle()
+                            .fill(getUrgencyColor(next.urgency))
+                            .frame(width: 8, height: 8)
+                        
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(next.title)
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                                .foregroundColor(.white)
+                            
+                            if let buildingName = getBuildingName(for: next.buildingId) {
+                                Text(buildingName)
+                                    .font(.caption2)
+                                    .foregroundColor(.white.opacity(0.6))
+                            }
+                        }
+                        
+                        Spacer()
+                        
+                        if isClockedIn {
+                            Button("Start") {
+                                onStartNext()
+                            }
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 8)
+                            .background(CyntientOpsDesign.DashboardColors.workerAccent)
+                            .clipShape(Capsule())
+                        }
+                    }
+                }
+                .padding()
+                .background(Color.black.opacity(0.2))
+                .cornerRadius(8)
+            }
+        }
+        .padding()
+        .francoDarkCardBackground(cornerRadius: 16)
+    }
+    
+    private func getBuildingName(for buildingId: String?) -> String? {
+        guard let buildingId = buildingId else { return nil }
+        return assignedBuildings.first { $0.id == buildingId }?.name
+    }
+    
+    private func getUrgencyColor(_ urgency: WorkerDashboardViewModel.TaskItem.TaskUrgency) -> Color {
+        switch urgency {
+        case .emergency, .critical: return .red
+        case .urgent: return .orange
+        case .high: return .yellow
+        case .normal: return .green
+        case .low: return .blue
+        }
+    }
+}
+
+
+// MARK: - Intelligence Panel Content Components
+
+struct WorkerRoutinesContent: View {
+    let todaysTasks: [WorkerDashboardViewModel.TaskItem]
+    let completionRate: Double
+    let onExpandSchedule: () -> Void
+    
+    var body: some View {
+        VStack(spacing: 12) {
+            // Day progress summary
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Today's Progress")
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.white)
+                    
+                    Text("\(completedTasksCount()) of \(todaysTasks.count) tasks completed")
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.7))
+                }
+                
+                Spacer()
+                
+                Text("\(Int(completionRate * 100))%")
+                    .font(.title2)
+                    .fontWeight(.bold)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.workerAccent)
+            }
+            .padding()
+            .background(Color.black.opacity(0.3))
+            .cornerRadius(8)
+            
+            // Next routines preview
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Text("Upcoming Routines")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.white.opacity(0.7))
+                    
+                    Spacer()
+                    
+                    Button("Full Schedule") {
+                        onExpandSchedule()
+                    }
+                    .font(.caption2)
+                    .foregroundColor(.blue)
+                }
+                
+                ForEach(getNextRoutines().prefix(3), id: \.id) { task in
+                    HStack(spacing: 8) {
+                        Circle()
+                            .fill(getUrgencyColor(task.urgency))
+                            .frame(width: 6, height: 6)
+                        
+                        Text(task.title)
+                            .font(.caption)
+                            .foregroundColor(.white)
+                            .lineLimit(1)
+                        
+                        Spacer()
+                        
+                        if let dueDate = task.dueDate {
+                            Text(formatTime(dueDate))
+                                .font(.caption2)
+                                .foregroundColor(.white.opacity(0.6))
+                        }
+                    }
+                }
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+    }
+    
+    private func completedTasksCount() -> Int {
+        return todaysTasks.filter { $0.isCompleted }.count
+    }
+    
+    private func getNextRoutines() -> [WorkerDashboardViewModel.TaskItem] {
+        return todaysTasks.filter { !$0.isCompleted }.sorted { 
+            ($0.dueDate ?? Date.distantFuture) < ($1.dueDate ?? Date.distantFuture)
+        }
+    }
+    
+    private func getUrgencyColor(_ urgency: WorkerDashboardViewModel.TaskItem.TaskUrgency) -> Color {
+        switch urgency {
+        case .emergency, .critical: return .red
+        case .urgent: return .orange
+        case .high: return .yellow
+        case .normal: return .green
+        case .low: return .blue
+        }
+    }
+    
+    private func formatTime(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.timeStyle = .short
+        return formatter.string(from: date)
+    }
+}
+
+struct WorkerPortfolioContent: View {
+    let assignedBuildings: [WorkerDashboardViewModel.BuildingSummary]
+    let onMapToggle: () -> Void
+    
+    var body: some View {
+        VStack(spacing: 12) {
+            // Portfolio overview
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Your Portfolio")
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.white)
+                    
+                    Text("\(assignedBuildings.count) buildings assigned")
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.7))
+                }
+                
+                Spacer()
+                
+                Button("Map View") {
+                    onMapToggle()
+                }
+                .font(.caption)
+                .fontWeight(.semibold)
+                .foregroundColor(.blue)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(Color.blue.opacity(0.2))
+                .clipShape(Capsule())
+            }
+            .padding()
+            .background(Color.black.opacity(0.3))
+            .cornerRadius(8)
+            
+            // Building list preview
+            ForEach(assignedBuildings.prefix(3), id: \.id) { building in
+                HStack(spacing: 12) {
+                    Circle()
+                        .fill(CyntientOpsDesign.DashboardColors.workerAccent)
+                        .frame(width: 8, height: 8)
+                    
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(building.name)
+                            .font(.caption)
+                            .fontWeight(.medium)
+                            .foregroundColor(.white)
+                        
+                        Text(building.address)
+                            .font(.caption2)
+                            .foregroundColor(.white.opacity(0.6))
+                            .lineLimit(1)
+                    }
+                    
+                    Spacer()
+                }
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+    }
+}
+
+struct WorkerAnalyticsContent: View {
+    let completionRate: Double
+    let todaysTasks: [WorkerDashboardViewModel.TaskItem]
+    let weeklySchedule: [WorkerDashboardViewModel.DaySchedule]
+    
+    var body: some View {
+        VStack(spacing: 12) {
+            // Daily progress summary
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Performance Analytics")
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.white)
+                    
+                    Text("Daily completion rate")
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.7))
+                }
+                
+                Spacer()
+                
+                Text("\(Int(completionRate * 100))%")
+                    .font(.title2)
+                    .fontWeight(.bold)
+                    .foregroundColor(getPerformanceColor())
+            }
+            .padding()
+            .background(Color.black.opacity(0.3))
+            .cornerRadius(8)
+            
+            // Weekly summary
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("This Week")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.white.opacity(0.7))
+                    
+                    Text("\(Int(completionRate * Double(todaysTasks.count))) tasks completed")
+                        .font(.caption)
+                        .foregroundColor(.white)
+                }
+                
+                Spacer()
+                
+                Text("\(getWeeklyEfficiency())%")
+                    .font(.subheadline)
+                    .fontWeight(.bold)
+                    .foregroundColor(.green)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+    }
+    
+    private func getPerformanceColor() -> Color {
+        if completionRate >= 0.9 { return .green }
+        else if completionRate >= 0.7 { return .yellow }
+        else { return .orange }
+    }
+    
+    private func getWeeklyScheduleItemsCount() -> Int {
+        return weeklySchedule.flatMap { (day: WorkerDashboardViewModel.DaySchedule) in day.items }.count
+    }
+    
+    private func getWeeklyEfficiency() -> Int {
+        let totalScheduledItems = getWeeklyScheduleItemsCount()
+        // Use the completion rate from tasks instead of schedule items
+        return Int(completionRate * 100)
+    }
+}
+
+struct WorkerScheduleContent: View {
+    let todaysTasks: [WorkerDashboardViewModel.TaskItem]
+    let weeklySchedule: [WorkerDashboardViewModel.DaySchedule]
+    let onExpandSchedule: () -> Void
+    
+    var body: some View {
+        VStack(spacing: 12) {
+            // Schedule overview
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Day Route Optimization")
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.white)
+                    
+                    Text("\(todaysTasks.count) tasks scheduled")
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.7))
+                }
+                
+                Spacer()
+                
+                Button("Full Schedule") {
+                    onExpandSchedule()
+                }
+                .font(.caption)
+                .fontWeight(.semibold)
+                .foregroundColor(.blue)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(Color.blue.opacity(0.2))
+                .clipShape(Capsule())
+            }
+            .padding()
+            .background(Color.black.opacity(0.3))
+            .cornerRadius(8)
+            
+            // Next tasks preview
+            ForEach(getNextScheduledTasks().prefix(4), id: \.id) { task in
+                HStack(spacing: 8) {
+                    Circle()
+                        .fill(.blue)
+                        .frame(width: 6, height: 6)
+                    
+                    Text(task.title)
+                        .font(.caption)
+                        .foregroundColor(.white)
+                        .lineLimit(1)
+                    
+                    Spacer()
+                    
+                    if let dueDate = task.dueDate {
+                        Text(formatTime(dueDate))
+                            .font(.caption2)
+                            .foregroundColor(.white.opacity(0.6))
+                    }
+                }
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+    }
+    
+    private func getNextScheduledTasks() -> [WorkerDashboardViewModel.TaskItem] {
+        return todaysTasks.filter { !$0.isCompleted }.sorted {
+            ($0.dueDate ?? Date.distantFuture) < ($1.dueDate ?? Date.distantFuture)
+        }
+    }
+    
+    private func formatTime(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.timeStyle = .short
+        return formatter.string(from: date)
     }
 }
 

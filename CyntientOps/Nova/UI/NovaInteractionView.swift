@@ -27,7 +27,6 @@ struct NovaInteractionView: View {
     
     // Enhanced Tab System
     @State private var selectedTab: NovaTab = .chat
-    @State private var showingHolographicView = false
     
     // Gesture Navigation State
     @State private var dragOffset: CGSize = .zero
@@ -119,28 +118,6 @@ struct NovaInteractionView: View {
         .task {
             await initializeNovaContext()
             checkForActiveScenarios()
-        }
-        .sheet(isPresented: $showingHolographicView) {
-            // NovaHolographicView temporarily disabled due to module visibility
-            VStack(spacing: 20) {
-                Image(systemName: "cube.transparent")
-                    .font(.system(size: 60))
-                    .foregroundColor(.cyan)
-                
-                Text("🔮 Holographic Mode")
-                    .font(.title)
-                    .foregroundColor(.white)
-                
-                Text("Holographic interface coming soon...")
-                    .foregroundColor(.secondary)
-                
-                Button("Close") {
-                    showingHolographicView = false
-                }
-                .buttonStyle(.borderedProminent)
-            }
-            .padding()
-            .background(.black)
         }
     }
     
@@ -477,16 +454,6 @@ struct NovaInteractionView: View {
     
     private func addContextualGestures<Content: View>(to content: Content) -> some View {
         content
-            .onLongPressGesture(minimumDuration: 0.5) {
-                // Trigger holographic mode on any long press
-                withAnimation(.spring()) {
-                    showingHolographicView = true
-                }
-                
-                // Haptic feedback
-                let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
-                impactFeedback.impactOccurred()
-            }
             .onTapGesture(count: 2) {
                 // Double tap to show context
                 withAnimation(.spring()) {

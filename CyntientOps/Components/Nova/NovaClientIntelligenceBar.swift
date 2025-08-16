@@ -11,6 +11,7 @@ import SwiftUI
 struct NovaClientIntelligenceBar: View {
     let container: ServiceContainer
     let clientContext: [String: Any]
+    @ObservedObject var viewModel: ClientDashboardViewModel
     
     @State private var isExpanded = false
     @State private var currentInsight: String = "Analyzing portfolio performance..."
@@ -59,6 +60,7 @@ struct NovaClientIntelligenceBar: View {
         case hpd = "HPD"
         case dob = "DOB" 
         case dsny = "DSNY"
+        case ll97 = "LL97"
         
         var icon: String {
             switch self {
@@ -66,6 +68,7 @@ struct NovaClientIntelligenceBar: View {
             case .hpd: return "house.fill"
             case .dob: return "hammer.fill"
             case .dsny: return "trash.fill"
+            case .ll97: return "leaf.fill"
             }
         }
     }
@@ -541,13 +544,22 @@ struct NovaClientIntelligenceBar: View {
     @ViewBuilder
     private var hpdComplianceContent: some View {
         VStack(spacing: 6) {
-            Text("HPD Violations: 2 Class B")
-                .font(.caption2)
-                .foregroundColor(.orange)
+            let activeViolations = viewModel.hpdViolationsData.values.flatMap { $0 }.filter { $0.isActive }
+            let criticalViolations = activeViolations.filter { $0.severity == .critical }
             
-            Text("Registration: Current")
+            Text("Violations: \(activeViolations.count) active")
                 .font(.caption2)
-                .foregroundColor(.green)
+                .foregroundColor(activeViolations.isEmpty ? .green : .orange)
+            
+            if criticalViolations.count > 0 {
+                Text("Critical: \(criticalViolations.count) urgent")
+                    .font(.caption2)
+                    .foregroundColor(.red)
+            } else {
+                Text("Registration: Current")
+                    .font(.caption2)
+                    .foregroundColor(.green)
+            }
         }
         .padding(8)
         .background(Color.black.opacity(0.3))
@@ -557,13 +569,27 @@ struct NovaClientIntelligenceBar: View {
     @ViewBuilder
     private var dobComplianceContent: some View {
         VStack(spacing: 6) {
-            Text("LL97: Compliant until 2025")
+            let allPermits = viewModel.dobPermitsData.values.flatMap { $0 }
+            let expiredPermits = allPermits.filter { $0.isExpired }
+            let pendingPermits = allPermits.filter { $0.permitStatus.lowercased().contains("pending") }
+            
+            Text("Permits: \(allPermits.count) total")
                 .font(.caption2)
                 .foregroundColor(.green)
             
-            Text("LL11: Due in 6 months")
-                .font(.caption2)
-                .foregroundColor(.yellow)
+            if expiredPermits.count > 0 {
+                Text("Expired: \(expiredPermits.count) need renewal")
+                    .font(.caption2)
+                    .foregroundColor(.red)
+            } else if pendingPermits.count > 0 {
+                Text("Pending: \(pendingPermits.count) in review")
+                    .font(.caption2)
+                    .foregroundColor(.yellow)
+            } else {
+                Text("All permits current")
+                    .font(.caption2)
+                    .foregroundColor(.green)
+            }
         }
         .padding(8)
         .background(Color.black.opacity(0.3))
@@ -573,13 +599,38 @@ struct NovaClientIntelligenceBar: View {
     @ViewBuilder
     private var dsnyComplianceContent: some View {
         VStack(spacing: 6) {
-            Text("Violations: 1 active")
+            let dsnyViolations = viewModel.dsnyScheduleData.values.flatMap { $0 }.count
+            Text("Routes: \(dsnyViolations) monitored")
                 .font(.caption2)
-                .foregroundColor(.orange)
+                .foregroundColor(.green)
             
             Text("Collection: On schedule")
                 .font(.caption2)
                 .foregroundColor(.green)
+        }
+        .padding(8)
+        .background(Color.black.opacity(0.3))
+        .cornerRadius(6)
+    }
+    
+    @ViewBuilder
+    private var ll97ComplianceContent: some View {
+        VStack(spacing: 6) {
+            let ll97Issues = viewModel.ll97EmissionsData.values.flatMap { $0 }.filter { !$0.isCompliant }
+            Text("Emissions: \(ll97Issues.count) over limit")
+                .font(.caption2)
+                .foregroundColor(ll97Issues.isEmpty ? .green : .orange)
+            
+            let totalFines = ll97Issues.compactMap { $0.potentialFine }.reduce(0, +)
+            if totalFines > 0 {
+                Text("Potential fines: $\(Int(totalFines))")
+                    .font(.caption2)
+                    .foregroundColor(.red)
+            } else {
+                Text("No fines projected")
+                    .font(.caption2)
+                    .foregroundColor(.green)
+            }
         }
         .padding(8)
         .background(Color.black.opacity(0.3))
@@ -704,6 +755,8 @@ struct NovaClientIntelligenceBar: View {
                 dobComplianceContent
             case .dsny:
                 dsnyComplianceContent
+            case .ll97:
+                ll97ComplianceContent
             }
         }
     }
