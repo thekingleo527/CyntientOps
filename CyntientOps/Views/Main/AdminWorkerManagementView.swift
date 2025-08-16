@@ -28,7 +28,25 @@ struct AdminWorkerManagementView: View {
     @EnvironmentObject private var novaEngine: NovaAIManager
     @ObservedObject private var clockManager = ClockInManager.shared
     @EnvironmentObject private var dashboardSync: DashboardSyncService
-    @EnvironmentObject private var adminViewModel: AdminDashboardViewModel
+    
+    // Optional admin view model - for admin context
+    private var adminViewModel: AdminDashboardViewModel? {
+        // Try to get from environment, but don't require it
+        return nil // Will be handled differently for client vs admin contexts
+    }
+    
+    // Optional buildings parameter for client context
+    let clientBuildings: [CoreTypes.NamedCoordinate]?
+    
+    // Computed property for buildings
+    private var buildings: [CoreTypes.NamedCoordinate] {
+        return clientBuildings ?? []
+    }
+    
+    // Default initializer for client context
+    init(clientBuildings: [CoreTypes.NamedCoordinate]? = nil) {
+        self.clientBuildings = clientBuildings
+    }
     
     // Real worker data from ServiceContainer
     @State private var allWorkers: [CoreTypes.WorkerProfile] = []
@@ -233,7 +251,7 @@ struct AdminWorkerManagementView: View {
         .sheet(isPresented: $showingScheduleManager) {
             ScheduleManagerSheet(
                 workers: allWorkers,
-                buildings: adminViewModel.buildings,
+                buildings: buildings,
                 onSchedule: { scheduleData in
                     applySchedule(scheduleData)
                 }
@@ -244,7 +262,7 @@ struct AdminWorkerManagementView: View {
         .sheet(isPresented: $showingBulkAssignment) {
             BulkAssignmentSheet(
                 workers: filteredWorkers,
-                buildings: adminViewModel.buildings,
+                buildings: buildings,
                 onAssign: { assignments in
                     processBulkAssignments(assignments)
                 }
@@ -281,7 +299,7 @@ struct AdminWorkerManagementView: View {
         .sheet(isPresented: $showingShiftPlanner) {
             ShiftPlannerSheet(
                 workers: allWorkers,
-                buildings: adminViewModel.buildings,
+                buildings: buildings,
                 onPlan: { shiftPlan in
                     applyShiftPlan(shiftPlan)
                 }

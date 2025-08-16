@@ -315,7 +315,7 @@ struct ClientDashboardView: View {
                 .navigationBarTitleDisplayMode(.inline)
                 
         case .workerManagement:
-            AdminWorkerManagementView()
+            AdminWorkerManagementView(clientBuildings: viewModel.buildingsList)
                 .navigationTitle("Portfolio Workers")
                 .navigationBarTitleDisplayMode(.large)
         }
