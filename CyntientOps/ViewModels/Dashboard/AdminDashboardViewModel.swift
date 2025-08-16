@@ -483,7 +483,7 @@ class AdminDashboardViewModel: ObservableObject {
                 WHERE w.isActive = 1
             """)
             
-            activeWorkers = rows.compactMap { row in
+            activeWorkers = rows.compactMap { row -> CoreTypes.WorkerProfile? in
                 guard let id = row["id"] as? String,
                       let name = row["name"] as? String,
                       let email = row["email"] as? String,
@@ -493,10 +493,8 @@ class AdminDashboardViewModel: ObservableObject {
                     id: id,
                     name: name,
                     email: email,
-                    role: role,
-                    isActive: (row["isActive"] as? Int64 ?? 1) == 1,
-                    language: row["language"] as? String ?? "en",
-                    simplifiedInterface: (row["simplified_interface"] as? Int64 ?? 0) == 1
+                    role: CoreTypes.UserRole(rawValue: role) ?? .worker,
+                    isActive: (row["isActive"] as? Int64 ?? 1) == 1
                 )
             }
             print("✅ Loaded \(activeWorkers.count) active workers from database")
@@ -514,7 +512,7 @@ class AdminDashboardViewModel: ObservableObject {
                 SELECT * FROM buildings WHERE isActive = 1
             """)
             
-            buildings = rows.compactMap { row -> CoreTypes.Building? in
+            buildings = rows.compactMap { row -> CoreTypes.NamedCoordinate? in
                 guard let id = row["id"] as? String,
                       let name = row["name"] as? String,
                       let address = row["address"] as? String else { return nil }
@@ -522,12 +520,12 @@ class AdminDashboardViewModel: ObservableObject {
                 let lat = row["latitude"] as? Double ?? 0.0
                 let lng = row["longitude"] as? Double ?? 0.0
                 
-                return CoreTypes.Building(
+                return CoreTypes.NamedCoordinate(
                     id: id,
                     name: name,
                     address: address,
-                    coordinate: CoreTypes.Coordinate(latitude: lat, longitude: lng),
-                    isActive: (row["isActive"] as? Int64 ?? 1) == 1
+                    latitude: lat,
+                    longitude: lng
                 )
             }
             print("✅ Loaded \(buildings.count) buildings from database")
@@ -635,10 +633,8 @@ class AdminDashboardViewModel: ObservableObject {
             await generatePortfolioFinancialSummary()
             await generateComplianceDeadlines()
             
-        } catch {
             await MainActor.run {
                 self.isLoadingPropertyData = false
-                print("⚠️ Failed to load portfolio property data: \\(error)")
             }
         }
     }
