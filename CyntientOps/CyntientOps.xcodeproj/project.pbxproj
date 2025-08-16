@@ -268,6 +268,13 @@
 		23A150802E4D301200CBE1C9 /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = 23A1507F2E4D301200CBE1C9 /* GRDB */; };
 		23A150832E4D302700CBE1C9 /* OpenMeteoSdk in Frameworks */ = {isa = PBXBuildFile; productRef = 23A150822E4D302700CBE1C9 /* OpenMeteoSdk */; };
 		23E8FB0F2E43436300F8771C /* AdminContextEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23E8FB0E2E43436300F8771C /* AdminContextEngine.swift */; };
+		23FAE4A92E51376E008AD66F /* ClientBulkAssignmentSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23FAE4A22E51376E008AD66F /* ClientBulkAssignmentSheet.swift */; };
+		23FAE4AA2E51376E008AD66F /* ClientCriticalAlertsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23FAE4A32E51376E008AD66F /* ClientCriticalAlertsSheet.swift */; };
+		23FAE4AB2E51376E008AD66F /* ClientWorkerDetailSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23FAE4A62E51376E008AD66F /* ClientWorkerDetailSheet.swift */; };
+		23FAE4AC2E51376E008AD66F /* ClientAISuggestionsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23FAE4A12E51376E008AD66F /* ClientAISuggestionsSheet.swift */; };
+		23FAE4AD2E51376E008AD66F /* ClientScheduleManagerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23FAE4A42E51376E008AD66F /* ClientScheduleManagerSheet.swift */; };
+		23FAE4AE2E51376E008AD66F /* ClientShiftPlannerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23FAE4A52E51376E008AD66F /* ClientShiftPlannerSheet.swift */; };
+		23FAE4AF2E51376E008AD66F /* PortfolioOverviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23FAE4A72E51376E008AD66F /* PortfolioOverviewView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -550,6 +557,13 @@
 		23E8FB0C2E42F96400F8771C /* CyntientOpsTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CyntientOpsTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		23E8FB0D2E42F96400F8771C /* CyntientOpsUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CyntientOpsUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		23E8FB0E2E43436300F8771C /* AdminContextEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdminContextEngine.swift; sourceTree = "<group>"; };
+		23FAE4A12E51376E008AD66F /* ClientAISuggestionsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClientAISuggestionsSheet.swift; sourceTree = "<group>"; };
+		23FAE4A22E51376E008AD66F /* ClientBulkAssignmentSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClientBulkAssignmentSheet.swift; sourceTree = "<group>"; };
+		23FAE4A32E51376E008AD66F /* ClientCriticalAlertsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClientCriticalAlertsSheet.swift; sourceTree = "<group>"; };
+		23FAE4A42E51376E008AD66F /* ClientScheduleManagerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClientScheduleManagerSheet.swift; sourceTree = "<group>"; };
+		23FAE4A52E51376E008AD66F /* ClientShiftPlannerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClientShiftPlannerSheet.swift; sourceTree = "<group>"; };
+		23FAE4A62E51376E008AD66F /* ClientWorkerDetailSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClientWorkerDetailSheet.swift; sourceTree = "<group>"; };
+		23FAE4A72E51376E008AD66F /* PortfolioOverviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PortfolioOverviewView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -683,6 +697,7 @@
 		2319321C2E42E91200640977 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				23FAE4A82E51376E008AD66F /* Client */,
 				231931EA2E42E91200640977 /* Auth */,
 				231932032E42E91200640977 /* Components */,
 				2319321B2E42E91200640977 /* Main */,
@@ -1392,6 +1407,20 @@
 			);
 			sourceTree = "<group>";
 		};
+		23FAE4A82E51376E008AD66F /* Client */ = {
+			isa = PBXGroup;
+			children = (
+				23FAE4A12E51376E008AD66F /* ClientAISuggestionsSheet.swift */,
+				23FAE4A22E51376E008AD66F /* ClientBulkAssignmentSheet.swift */,
+				23FAE4A32E51376E008AD66F /* ClientCriticalAlertsSheet.swift */,
+				23FAE4A42E51376E008AD66F /* ClientScheduleManagerSheet.swift */,
+				23FAE4A52E51376E008AD66F /* ClientShiftPlannerSheet.swift */,
+				23FAE4A62E51376E008AD66F /* ClientWorkerDetailSheet.swift */,
+				23FAE4A72E51376E008AD66F /* PortfolioOverviewView.swift */,
+			);
+			path = Client;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -1598,6 +1627,13 @@
 				231932292E42E91200640977 /* ClientDashboardView.swift in Sources */,
 				2319322A2E42E91200640977 /* TaskTimelineView.swift in Sources */,
 				2319322B2E42E91200640977 /* ComplianceOverviewView.swift in Sources */,
+				23FAE4A92E51376E008AD66F /* ClientBulkAssignmentSheet.swift in Sources */,
+				23FAE4AA2E51376E008AD66F /* ClientCriticalAlertsSheet.swift in Sources */,
+				23FAE4AB2E51376E008AD66F /* ClientWorkerDetailSheet.swift in Sources */,
+				23FAE4AC2E51376E008AD66F /* ClientAISuggestionsSheet.swift in Sources */,
+				23FAE4AD2E51376E008AD66F /* ClientScheduleManagerSheet.swift in Sources */,
+				23FAE4AE2E51376E008AD66F /* ClientShiftPlannerSheet.swift in Sources */,
+				23FAE4AF2E51376E008AD66F /* PortfolioOverviewView.swift in Sources */,
 				231932672E42E94900640977 /* StringExtensions.swift in Sources */,
 				231932692E42E94900640977 /* DatabaseSchemaVerifier.swift in Sources */,
 				2319322C2E42E91200640977 /* BuildingTeamComponents.swift in Sources */,

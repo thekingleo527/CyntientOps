@@ -340,35 +340,37 @@ struct ClientDashboardView: View {
             .navigationTitle("Shift Planner")
             
         case .bulkAssignment:
-            // TODO: Add ClientBulkAssignmentSheet to Xcode project target
-            Text("Bulk Assignment - Coming Soon")
-                .foregroundColor(.white)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color.black)
+            ClientBulkAssignmentSheet(
+                workers: viewModel.getAvailableWorkers(),
+                buildings: viewModel.clientBuildings,
+                capabilities: viewModel.getWorkerCapabilities(),
+                container: container
+            )
             .navigationTitle("Bulk Assignment")
             
         case .scheduleManager:
-            // TODO: Add ClientScheduleManagerSheet to Xcode project target  
-            Text("Schedule Manager - Coming Soon")
-                .foregroundColor(.white)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color.black)
+            ClientScheduleManagerSheet(
+                schedules: viewModel.getWorkerSchedules(),
+                locations: viewModel.clientBuildings,
+                container: container
+            )
             .navigationTitle("Schedule Manager")
             
         case .criticalAlerts:
-            // TODO: Add ClientCriticalAlertsSheet to Xcode project target
-            Text("Critical Alerts - Coming Soon")
-                .foregroundColor(.white)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color.black)
+            ClientCriticalAlertsSheet(
+                alerts: viewModel.getCriticalAlerts(),
+                workers: viewModel.getAvailableWorkers(),
+                container: container
+            )
             .navigationTitle("Critical Alerts")
             
         case .aiSuggestions:
-            // TODO: Add ClientAISuggestionsSheet to Xcode project target
-            Text("AI Suggestions - Coming Soon")
-                .foregroundColor(.white)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color.black)
+            ClientAISuggestionsSheet(
+                workers: viewModel.getAvailableWorkers(),
+                buildings: viewModel.clientBuildings,
+                routines: viewModel.getClientRoutines(),
+                container: container
+            )
             .navigationTitle("AI Suggestions")
         }
     }

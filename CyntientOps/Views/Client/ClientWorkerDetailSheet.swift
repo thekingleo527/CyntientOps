@@ -231,38 +231,7 @@ struct ClientWorkerDetailSheet: View {
 
 // MARK: - Supporting Views
 
-struct TaskRowView: View {
-    let task: CoreTypes.ContextualTask
-    
-    var body: some View {
-        HStack {
-            Circle()
-                .fill(task.status == .completed ? .green : .orange)
-                .frame(width: 8, height: 8)
-            
-            VStack(alignment: .leading, spacing: 2) {
-                Text(task.name)
-                    .font(.subheadline)
-                    .foregroundColor(.white)
-                
-                Text(task.buildingName ?? "Unknown Location")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
-            
-            Spacer()
-            
-            Text(task.status.rawValue)
-                .font(.caption)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 2)
-                .background(task.status == .completed ? .green.opacity(0.2) : .orange.opacity(0.2))
-                .foregroundColor(task.status == .completed ? .green : .orange)
-                .clipShape(Capsule())
-        }
-        .padding(.vertical, 4)
-    }
-}
+// Removed duplicate TaskRowView - using existing one from WeatherDashboardComponent
 
 struct ScheduleItemView: View {
     let item: CoreTypes.WorkerScheduleItem

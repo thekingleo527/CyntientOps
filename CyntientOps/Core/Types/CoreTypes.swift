@@ -3415,4 +3415,20 @@ public typealias SuggestionStatus = CoreTypes.SuggestionStatus
 // Note: These types are already public in AdminOperationalIntelligence.swift
 // The ViewModels should import that file directly to access these types
 
+    // MARK: - Portfolio Types
+    
+    public enum StrategicRecommendationType: String, Codable, CaseIterable {
+        case efficiency = "Efficiency"
+        case cost = "Cost Optimization"
+        case compliance = "Compliance"
+        case maintenance = "Maintenance"
+        case staffing = "Staffing"
+    }
+    
+    public enum BenchmarkComparison: String, Codable, CaseIterable {
+        case above = "Above Average"
+        case average = "Average"
+        case below = "Below Average"
+    }
+
 // MARK: - Report Types (Defined in AdminReportsView)
