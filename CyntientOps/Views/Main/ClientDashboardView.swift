@@ -10,6 +10,11 @@
 
 import SwiftUI
 
+// Explicit references to ensure Client sheets are in scope
+typealias _ClientBulkAssignmentSheet = ClientBulkAssignmentSheet
+typealias _ClientCriticalAlertsSheet = ClientCriticalAlertsSheet  
+typealias _ClientAISuggestionsSheet = ClientAISuggestionsSheet
+
 struct ClientDashboardView: View {
     @StateObject private var viewModel: ClientDashboardViewModel
     
@@ -276,7 +281,7 @@ struct ClientDashboardView: View {
         case .profile:
             ClientProfileView(viewModel: viewModel)
                 .navigationTitle("Profile")
-                .navigationBarTitleDisplayMode(.inline)
+                .toolbarTitleDisplayMode(.inline)
                 
         case .buildings:
             ClientBuildingsListView(
@@ -287,7 +292,7 @@ struct ClientDashboardView: View {
                 }
             )
                 .navigationTitle("My Properties")
-                .navigationBarTitleDisplayMode(.inline)
+                .toolbarTitleDisplayMode(.inline)
             
         case .buildingDetail(let buildingId):
             if let building = viewModel.buildingsList.first(where: { $0.id == buildingId }) {
@@ -297,33 +302,33 @@ struct ClientDashboardView: View {
                     buildingAddress: building.address
                 )
                 .navigationTitle(building.name)
-                .navigationBarTitleDisplayMode(.inline)
+                .toolbarTitleDisplayMode(.inline)
             }
             
         case .compliance:
             ComplianceOverviewView()
                 .navigationTitle("Compliance Report")
-                .navigationBarTitleDisplayMode(.inline)
+                .toolbarTitleDisplayMode(.inline)
             
         case .chat:
             NovaInteractionView()
                 .navigationTitle("Nova Assistant")
-                .navigationBarTitleDisplayMode(.inline)
+                .toolbarTitleDisplayMode(.inline)
                 
         case .settings:
             ClientProfileView(viewModel: viewModel) // Use ClientProfileView as settings for now
                 .navigationTitle("Settings")
-                .navigationBarTitleDisplayMode(.inline)
+                .toolbarTitleDisplayMode(.inline)
                 
         case .maintenanceRequest:
             TaskRequestView()
                 .navigationTitle("New Maintenance Request")
-                .navigationBarTitleDisplayMode(.inline)
+                .toolbarTitleDisplayMode(.inline)
                 
         case .workerManagement:
             AdminWorkerManagementView(clientBuildings: viewModel.buildingsList)
                 .navigationTitle("Portfolio Workers")
-                .navigationBarTitleDisplayMode(.inline)
+                .toolbarTitleDisplayMode(.inline)
                 
         case .workerDetail(let workerId):
             ClientWorkerDetailSheet(
@@ -337,7 +342,7 @@ struct ClientDashboardView: View {
                 }
             )
             .navigationTitle("Worker Details")
-            .navigationBarTitleDisplayMode(.inline)
+            .toolbarTitleDisplayMode(.inline)
             
         case .shiftPlanner:
             ClientShiftPlannerSheet(
@@ -347,7 +352,7 @@ struct ClientDashboardView: View {
                 container: container
             )
             .navigationTitle("Shift Planner")
-            .navigationBarTitleDisplayMode(.inline)
+            .toolbarTitleDisplayMode(.inline)
             
         case .bulkAssignment:
             ClientBulkAssignmentSheet(
@@ -357,7 +362,7 @@ struct ClientDashboardView: View {
                 container: container
             )
             .navigationTitle("Bulk Assignment")
-            .navigationBarTitleDisplayMode(.inline)
+            .toolbarTitleDisplayMode(.inline)
             
         case .scheduleManager:
             ClientScheduleManagerSheet(
@@ -366,7 +371,7 @@ struct ClientDashboardView: View {
                 container: container
             )
             .navigationTitle("Schedule Manager")
-            .navigationBarTitleDisplayMode(.inline)
+            .toolbarTitleDisplayMode(.inline)
             
         case .criticalAlerts:
             ClientCriticalAlertsSheet(
@@ -375,7 +380,7 @@ struct ClientDashboardView: View {
                 container: container
             )
             .navigationTitle("Critical Alerts")
-            .navigationBarTitleDisplayMode(.inline)
+            .toolbarTitleDisplayMode(.inline)
             
         case .aiSuggestions:
             ClientAISuggestionsSheet(
@@ -385,7 +390,7 @@ struct ClientDashboardView: View {
                 container: container
             )
             .navigationTitle("AI Suggestions")
-            .navigationBarTitleDisplayMode(.inline)
+            .toolbarTitleDisplayMode(.inline)
         }
     }
     
@@ -1438,7 +1443,7 @@ struct ClientPrioritiesContent: View {
         .sheet(item: $selectedWeatherAction) { action in
             NavigationView {
                 weatherActionView(for: action)
-                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbarTitleDisplayMode(.inline)
                     .toolbar {
                         ToolbarItem(placement: .navigationBarTrailing) {
                             Button("Done") { selectedWeatherAction = nil }
@@ -2115,7 +2120,7 @@ struct ClientProfileView: View {
             }
             .background(CyntientOpsDesign.DashboardColors.baseBackground.ignoresSafeArea())
             .navigationTitle("Client Profile")
-            .navigationBarTitleDisplayMode(.inline)
+            .toolbarTitleDisplayMode(.inline)
             .navigationBarBackButtonHidden(true)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
