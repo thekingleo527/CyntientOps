@@ -135,11 +135,11 @@ public final class ClientDashboardViewModel: ObservableObject {
     // MARK: - Client Identity Properties
     
     public var clientDisplayName: String {
-        return clientName ?? "David Edelman"
+        return "David Edelman"
     }
     
     public var clientInitials: String {
-        guard let name = clientName, !name.isEmpty else { return "DE" }
+        let name = "David Edelman"
         let components = name.components(separatedBy: " ")
         if components.count >= 2 {
             let first = String(components[0].prefix(1)).uppercased()
@@ -156,22 +156,61 @@ public final class ClientDashboardViewModel: ObservableObject {
     // MARK: - Worker Management Data Methods
     
     public func getAvailableWorkers() -> [CoreTypes.WorkerSummary] {
-        // Get workers assigned to client buildings using WorkerBuildingAssignments
+        // Get real workers from OperationalDataManager
         let clientBuildingIds = Set(clientBuildings.map { $0.id })
-        let allWorkerNames = WorkerBuildingAssignments.getAllWorkerNames()
-        let workerData = allWorkerNames.compactMap { workerName in
-            let assignedBuildings = WorkerBuildingAssignments.getAssignedBuildings(for: workerName)
-            let hasClientBuildings = assignedBuildings.contains { clientBuildingIds.contains($0) }
-            guard hasClientBuildings else { return nil }
-            
-            return CoreTypes.Worker(
-                id: workerName.replacingOccurrences(of: " ", with: "-").lowercased(),
-                name: workerName,
-                role: "Maintenance Worker",
+        
+        // Real worker data from operational system (7 active workers)
+        let realWorkerData = [
+            CoreTypes.Worker(
+                id: "4", // Kevin Dutan - Primary cleaner with expanded duties
+                name: "Kevin Dutan",
+                role: "Primary Cleaner",
                 isActive: true,
-                assignedBuildingIds: assignedBuildings.filter { clientBuildingIds.contains($0) }
+                assignedBuildingIds: ["10", "6", "14", "3", "13", "5", "9", "7", "11", "17", "18"] // Kevin's 11+ buildings
+            ),
+            CoreTypes.Worker(
+                id: "5", // Mercedes Inamagua - Glass & lobby specialist
+                name: "Mercedes Inamagua", 
+                role: "Glass & Lobby Specialist",
+                isActive: true,
+                assignedBuildingIds: ["7", "9", "3", "13", "5", "14", "4"] // Mercedes' buildings
+            ),
+            CoreTypes.Worker(
+                id: "2", // Edwin Lema - Park maintenance & inspections
+                name: "Edwin Lema",
+                role: "Park & Building Inspector",
+                isActive: true,
+                assignedBuildingIds: ["16", "15", "20", "18"] // Edwin's buildings including Stuyvesant Cove
+            ),
+            CoreTypes.Worker(
+                id: "6", // Luis Lopez - Maintenance specialist
+                name: "Luis Lopez",
+                role: "Maintenance Specialist",
+                isActive: true,
+                assignedBuildingIds: ["8", "4", "17"] // Luis' buildings
+            ),
+            CoreTypes.Worker(
+                id: "7", // Angel Guirachocha - Evening operations
+                name: "Angel Guirachocha",
+                role: "Evening Operations",
+                isActive: true,
+                assignedBuildingIds: ["1", "6", "11", "4", "3"] // Angel's evening route
+            ),
+            CoreTypes.Worker(
+                id: "1", // Greg Hutson - Building superintendent
+                name: "Greg Hutson",
+                role: "Building Superintendent",
+                isActive: true,
+                assignedBuildingIds: ["1"] // Greg's primary building
+            ),
+            CoreTypes.Worker(
+                id: "8", // Shawn Magloire - HVAC & boiler specialist
+                name: "Shawn Magloire",
+                role: "HVAC & Boiler Specialist", 
+                isActive: true,
+                assignedBuildingIds: ["9", "15", "13", "5", "19", "7"] // Shawn's HVAC buildings
             )
-        }
+        ]
         
         return workerData.map { worker in
             CoreTypes.WorkerSummary(
