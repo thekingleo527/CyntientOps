@@ -3436,6 +3436,32 @@ public typealias StrategicRecommendationType = CoreTypes.StrategicRecommendation
 public typealias BenchmarkComparison = CoreTypes.BenchmarkComparison
 public typealias RecommendationPriority = CoreTypes.RecommendationPriority
 
+    // MARK: - Worker Types
+    
+    public struct Worker: Codable, Hashable, Identifiable {
+        public let id: String
+        public let name: String
+        public let role: String
+        public let isActive: Bool
+        public let assignedBuildingIds: [String]
+        
+        public init(
+            id: String,
+            name: String,
+            role: String,
+            isActive: Bool,
+            assignedBuildingIds: [String]
+        ) {
+            self.id = id
+            self.name = name
+            self.role = role
+            self.isActive = isActive
+            self.assignedBuildingIds = assignedBuildingIds
+        }
+    }
+
+}
+
 // MARK: - AdminOperationalIntelligence Types (Direct Access)
 // Note: These types are already public in AdminOperationalIntelligence.swift
 // The ViewModels should import that file directly to access these types

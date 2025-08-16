@@ -212,7 +212,7 @@ public final class ClientDashboardViewModel: ObservableObject {
             )
         ]
         
-        return workerData.map { worker in
+        return realWorkerData.map { worker in
             CoreTypes.WorkerSummary(
                 id: worker.id,
                 name: worker.name,
