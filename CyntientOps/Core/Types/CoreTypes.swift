@@ -1442,13 +1442,6 @@ public struct CoreTypes {
         public let timestamp: Date
         public let metadata: [String: String]
         
-        public enum AlertType: String, Codable {
-            case compliance = "compliance"
-            case worker = "worker"
-            case building = "building"
-            case task = "task"
-            case system = "system"
-        }
         
         public init(
             id: String = UUID().uuidString,
@@ -3256,15 +3249,6 @@ public struct WorkerPerformance: Codable, Identifiable {
             self.timestamp = timestamp
             self.isResolved = isResolved
         }
-    }
-    
-    public enum AlertType: String, Codable, CaseIterable {
-        case safety = "Safety"
-        case maintenance = "Maintenance"
-        case security = "Security"
-        case compliance = "Compliance"
-        case operational = "Operational"
-        case all = "All"
     }
     
     public enum ImpactLevel: String, Codable, CaseIterable {

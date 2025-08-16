@@ -338,16 +338,6 @@ public final class ClientDashboardViewModel: ObservableObject {
         }
     }
     
-    public func getWorkerSchedules() -> [CoreTypes.WorkerSchedule] {
-        // Get schedules for all client workers - using synchronous data access
-        return getAvailableWorkers().compactMap { worker in
-            return CoreTypes.WorkerSchedule(
-                workerId: worker.id,
-                date: Date(),
-                shifts: [] // Empty shifts for now - to be populated by OperationalDataManager
-            )
-        }
-    }
     
     public func getCriticalAlerts() -> [CoreTypes.CriticalAlert] {
         // Generate alerts from compliance violations, worker issues, schedule conflicts
