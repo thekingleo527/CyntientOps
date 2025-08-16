@@ -167,13 +167,14 @@ public final class ClientDashboardViewModel: ObservableObject {
                     )
                     
                     self.clientBuildingsWithImages = buildingData.map { row in
-                        CoreTypes.BuildingWithImage(
-                            id: row["id"] as? String ?? "",
+                        let buildingId = row["id"] as? String ?? ""
+                        return CoreTypes.BuildingWithImage(
+                            id: buildingId,
                             name: row["name"] as? String ?? "",
                             address: row["address"] as? String ?? "",
                             latitude: row["latitude"] as? Double ?? 0.0,
                             longitude: row["longitude"] as? Double ?? 0.0,
-                            imageAssetName: row["imageAssetName"] as? String,
+                            imageAssetName: getImageAssetName(for: buildingId),
                             numberOfUnits: row["numberOfUnits"] as? Int,
                             yearBuilt: row["yearBuilt"] as? Int,
                             squareFootage: row["squareFootage"] as? Double
@@ -546,6 +547,31 @@ public final class ClientDashboardViewModel: ObservableObject {
     }
     
     // MARK: - Private Helper Methods
+    
+    private func getImageAssetName(for buildingId: String) -> String? {
+        // Map building IDs to their corresponding asset names in Assets.xcassets
+        let buildingAssetMap: [String: String] = [
+            "1": "12_West_18th_Street",
+            "2": "29_31_East_20th_Street", 
+            "3": "36_Walker_Street",
+            "4": "41_Elizabeth_Street",
+            "5": "68_Perry_Street",
+            "6": "104_Franklin_Street",
+            "7": "112_West_18th_Street",
+            "8": "117_West_17th_Street",
+            "9": "123_1st_Avenue",
+            "10": "131_Perry_Street",
+            "11": "133_East_15th_Street",
+            "12": "135West17thStreet",
+            "13": "136_West_17th_Street",
+            "14": "Rubin_Museum_142_148_West_17th_Street",
+            "15": "138West17thStreet",
+            "16": "41_Elizabeth_Street",
+            "park": "Stuyvesant_Cove_Park"
+        ]
+        
+        return buildingAssetMap[buildingId]
+    }
     
     private func updateComputedMetrics() {
         // Calculate average completion rate

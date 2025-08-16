@@ -868,32 +868,49 @@ struct ClientBuildingGridItemWithImage: View {
     let building: CoreTypes.BuildingWithImage
     let onTap: () -> Void
     
+    @ViewBuilder
+    private var fallbackImageView: some View {
+        // Fallback gradient background
+        LinearGradient(
+            gradient: Gradient(colors: [
+                CyntientOpsDesign.DashboardColors.clientPrimary.opacity(0.3),
+                CyntientOpsDesign.DashboardColors.clientPrimary.opacity(0.1)
+            ]),
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+        .frame(height: 80)
+        .overlay(
+            Image(systemName: "building.2.fill")
+                .font(.title)
+                .foregroundColor(CyntientOpsDesign.DashboardColors.clientPrimary.opacity(0.4))
+        )
+    }
+    
     var body: some View {
         Button(action: onTap) {
             VStack(alignment: .leading, spacing: 0) {
                 // Building image or fallback
                 ZStack {
-                    if let imageAssetName = building.imageAssetName, let buildingImage = UIImage(named: imageAssetName) {
+                    if let imageAssetName = building.imageAssetName,
+                       let buildingImage = UIImage(named: imageAssetName) {
                         Image(uiImage: buildingImage)
                             .resizable()
                             .aspectRatio(contentMode: .fill)
                             .frame(height: 80)
                             .clipped()
+                            .onAppear {
+                                print("✅ Building \(building.id) - Image '\(imageAssetName)' loaded successfully")
+                            }
                     } else {
-                        // Fallback gradient background
-                        LinearGradient(
-                            gradient: Gradient(colors: [
-                                CyntientOpsDesign.DashboardColors.clientPrimary.opacity(0.3),
-                                CyntientOpsDesign.DashboardColors.clientPrimary.opacity(0.1)
-                            ]),
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                        .frame(height: 80)
-                        
-                        Image(systemName: "building.2.fill")
-                            .font(.title)
-                            .foregroundColor(CyntientOpsDesign.DashboardColors.clientPrimary.opacity(0.4))
+                        fallbackImageView
+                            .onAppear {
+                                if let imageAssetName = building.imageAssetName {
+                                    print("⚠️ Building \(building.id) - Image '\(imageAssetName)' not found in assets")
+                                } else {
+                                    print("⚠️ Building \(building.id) - No imageAssetName provided")
+                                }
+                            }
                     }
                     
                     // Status indicator overlay
