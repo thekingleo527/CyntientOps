@@ -12,7 +12,6 @@ import SwiftUI
 
 struct ClientDashboardView: View {
     @StateObject private var viewModel: ClientDashboardViewModel
-    @StateObject private var contextEngine: ClientContextEngine
     
     // MARK: - Responsive Layout
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
@@ -23,12 +22,12 @@ struct ClientDashboardView: View {
     init(container: ServiceContainer) {
         self.container = container
         self._viewModel = StateObject(wrappedValue: ClientDashboardViewModel(container: container))
-        self._contextEngine = StateObject(wrappedValue: ClientContextEngine(container: container))
     }
     
     // MARK: - Sheet Navigation
     enum ClientRoute: Identifiable {
         case profile, buildings, buildingDetail(String), compliance, chat, settings, maintenanceRequest, workerManagement
+        case workerDetail(String), shiftPlanner, bulkAssignment, scheduleManager, criticalAlerts, aiSuggestions
         
         var id: String {
             switch self {
@@ -40,6 +39,12 @@ struct ClientDashboardView: View {
             case .settings: return "settings"
             case .maintenanceRequest: return "maintenance-request"
             case .workerManagement: return "worker-management"
+            case .workerDetail(let id): return "worker-\(id)"
+            case .shiftPlanner: return "shift-planner"
+            case .bulkAssignment: return "bulk-assignment"
+            case .scheduleManager: return "schedule-manager"
+            case .criticalAlerts: return "critical-alerts"
+            case .aiSuggestions: return "ai-suggestions"
             }
         }
     }
@@ -165,9 +170,9 @@ struct ClientDashboardView: View {
                         )
                         
                         // Buildings Grid (when hero expanded and client has properties)
-                        if heroExpanded && !viewModel.buildingsWithImages.isEmpty {
+                        if heroExpanded && !viewModel.clientBuildingsWithImages.isEmpty {
                             ClientBuildingsGrid(
-                                buildings: Array(viewModel.buildingsWithImages.prefix(6)),
+                                buildings: Array(viewModel.clientBuildingsWithImages.prefix(6)),
                                 columns: adaptiveColumns,
                                 onBuildingTap: { building in
                                     sheet = .buildingDetail(building.id)
@@ -175,7 +180,6 @@ struct ClientDashboardView: View {
                                 onViewAllTap: { sheet = .buildings }
                             )
                         } else if heroExpanded && !viewModel.buildingsList.isEmpty {
-                            // Use buildings with images for David Edelman's properties
                             ClientBuildingsGrid(
                                 buildings: Array(viewModel.clientBuildingsWithImages.prefix(6)),
                                 columns: adaptiveColumns,
@@ -198,7 +202,6 @@ struct ClientDashboardView: View {
                         }
                         
                         // Dynamic spacer for intelligence panel
-                        Spacer(minLength: getIntelligencePanelTotalHeight())
                     }
                     .padding(.horizontal, 20)
                     .padding(.top, 8)
@@ -207,7 +210,7 @@ struct ClientDashboardView: View {
                     await viewModel.refreshData()
                 }
                 
-                // Nova Client Intelligence Bar
+                // Intelligence Bar - Expands upward, compacts content
                 ClientNovaIntelligenceBar(
                     selectedTab: $selectedNovaTab,
                     complianceOverview: viewModel.complianceOverview,
@@ -219,7 +222,8 @@ struct ClientDashboardView: View {
                     onMapToggle: handlePortfolioMapToggle,
                     viewModel: viewModel
                 )
-                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .padding(.horizontal, 16)
+                .padding(.bottom, 8)
                 }
             }
         }
@@ -252,7 +256,8 @@ struct ClientDashboardView: View {
         case .portfolio:
             selectedNovaTab = .portfolio
         case .compliance:
-            selectedNovaTab = .compliance
+            // Route to full compliance view
+            sheet = .compliance
         case .analytics:
             selectedNovaTab = .analytics
         }
@@ -319,24 +324,75 @@ struct ClientDashboardView: View {
             AdminWorkerManagementView(clientBuildings: viewModel.buildingsList)
                 .navigationTitle("Portfolio Workers")
                 .navigationBarTitleDisplayMode(.large)
+                
+        case .workerDetail(let workerId):
+            ClientWorkerDetailSheet(
+                workerId: workerId,
+                container: container,
+                onAssignTask: { task in
+                    // Handle task assignment
+                },
+                onScheduleUpdate: { schedule in
+                    // Handle schedule update
+                }
+            )
+            .navigationTitle("Worker Details")
+            .navigationBarTitleDisplayMode(.large)
+            
+        case .shiftPlanner:
+            ClientShiftPlannerSheet(
+                workers: viewModel.getAvailableWorkers(),
+                buildings: viewModel.clientBuildings,
+                routines: viewModel.getClientRoutines(),
+                container: container
+            )
+            .navigationTitle("Shift Planner")
+            .navigationBarTitleDisplayMode(.large)
+            
+        case .bulkAssignment:
+            ClientBulkAssignmentSheet(
+                workers: viewModel.getAvailableWorkers(),
+                buildings: viewModel.clientBuildings,
+                capabilities: viewModel.getWorkerCapabilities(),
+                container: container
+            )
+            .navigationTitle("Bulk Assignment")
+            .navigationBarTitleDisplayMode(.large)
+            
+        case .scheduleManager:
+            ClientScheduleManagerSheet(
+                schedules: viewModel.getWorkerSchedules(),
+                locations: viewModel.clientBuildings,
+                container: container
+            )
+            .navigationTitle("Schedule Manager")
+            .navigationBarTitleDisplayMode(.large)
+            
+        case .criticalAlerts:
+            ClientCriticalAlertsSheet(
+                alerts: viewModel.getCriticalAlerts(),
+                workers: viewModel.getAvailableWorkers(),
+                container: container
+            )
+            .navigationTitle("Critical Alerts")
+            .navigationBarTitleDisplayMode(.large)
+            
+        case .aiSuggestions:
+            ClientAISuggestionsSheet(
+                suggestions: viewModel.getAISuggestions(),
+                workerPerformance: viewModel.getWorkerPerformanceData(),
+                container: container
+            )
+            .navigationTitle("AI Suggestions")
+            .navigationBarTitleDisplayMode(.large)
         }
     }
     
     // MARK: - Helper Methods
     private func getClientName() -> String {
-        return viewModel.clientName ?? "David Edelman"
+        return viewModel.clientDisplayName
     }
     
-    private func getClientInitials() -> String {
-        guard let name = viewModel.clientName else { return "DE" }
-        let components = name.split(separator: " ")
-        if components.count >= 2 {
-            return String(components[0].prefix(1) + components[1].prefix(1)).uppercased()
-        } else if let first = components.first {
-            return String(first.prefix(2)).uppercased()
-        }
-        return "CL"
-    }
     
     private func hasUrgentItems() -> Bool {
         return viewModel.complianceOverview.criticalViolations > 0 ||
@@ -346,26 +402,6 @@ struct ClientDashboardView: View {
     }
     
     
-    private func getIntelligencePanelTotalHeight() -> CGFloat {
-        // Calculate total height to prevent content cutoff
-        let contentHeight = getIntelligencePanelContentHeight()
-        let tabBarHeight: CGFloat = 65
-        return contentHeight + tabBarHeight + 20 // Extra padding
-    }
-    
-    private func getIntelligencePanelContentHeight() -> CGFloat {
-        switch selectedNovaTab {
-        case .priorities:
-            let hasItems = viewModel.complianceOverview.criticalViolations > 0 || viewModel.monthlyMetrics.budgetUtilization > 1.0
-            return hasItems ? 220 : 160
-        case .portfolio:
-            return viewModel.buildingsList.count > 3 ? 200 : 160
-        case .compliance:
-            return viewModel.complianceOverview.criticalViolations > 0 ? 240 : 180
-        case .analytics:
-            return 200
-        }
-    }
 }
 
 // MARK: - Client Header Component
@@ -1198,7 +1234,7 @@ struct ClientNovaIntelligenceBar: View {
             .frame(height: 65) // Slightly taller to prevent text cutoff
             .francoDarkCardBackground(cornerRadius: 0)
         }
-        .francoGlassBackground()
+        .background(CyntientOpsDesign.DashboardColors.cardBackground)
         .clipShape(RoundedRectangle(cornerRadius: 16))
     }
     
@@ -2166,7 +2202,7 @@ struct ClientProfileView: View {
             
             // Client Information
             VStack(spacing: 8) {
-                Text(viewModel.clientName ?? "David Edelman")
+                Text(viewModel.clientDisplayName)
                     .font(.title2)
                     .fontWeight(.bold)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
@@ -2296,6 +2332,24 @@ struct ClientProfileView: View {
                     title: "Support",
                     subtitle: "Help and contact information"
                 )
+                
+                Divider()
+                    .background(CyntientOpsDesign.DashboardColors.borderSubtle)
+                    .padding(.vertical, 8)
+                
+                Button(action: {
+                    Task {
+                        await authManager.logout()
+                        dismiss()
+                    }
+                }) {
+                    ClientSettingsRow(
+                        icon: "rectangle.portrait.and.arrow.right",
+                        title: "Sign Out",
+                        subtitle: "Log out of your account"
+                    )
+                }
+                .buttonStyle(.plain)
             }
         }
         .padding(16)
@@ -2303,14 +2357,7 @@ struct ClientProfileView: View {
     }
     
     private func getClientInitials() -> String {
-        guard let name = viewModel.clientName else { return "DE" }
-        let components = name.split(separator: " ")
-        if components.count >= 2 {
-            return String(components[0].prefix(1) + components[1].prefix(1)).uppercased()
-        } else if let first = components.first {
-            return String(first.prefix(2)).uppercased()
-        }
-        return "DE"
+        return viewModel.clientInitials
     }
 }
 

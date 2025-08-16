@@ -13,6 +13,7 @@ import Foundation
 import SwiftUI
 import Combine
 import CoreLocation
+import MapKit
 
 // Import BBLGenerationService
 // BBLGenerationService accessed directly as singleton
@@ -38,6 +39,21 @@ class AdminDashboardViewModel: ObservableObject {
         complianceScore: 0.0
     )
     @Published var criticalAlerts: [CoreTypes.AdminAlert] = []
+    
+    // MARK: - Digital Twin Core Properties
+    @Published var buildingCount: Int = 0
+    @Published var workersActive: Int = 0
+    @Published var workersTotal: Int = 0
+    @Published var completionToday: Double = 0.0
+    @Published var complianceScore: Double = 0.0
+    @Published var intelTab: AdminIntelTab = .priorities
+    @Published var sheet: AdminRoute?
+    @Published var mapRegion: MKCoordinateRegion = MKCoordinateRegion(
+        center: CLLocationCoordinate2D(latitude: 40.7589, longitude: -73.9851), // Manhattan focus
+        span: MKCoordinateSpan(latitudeDelta: 0.02, longitudeDelta: 0.02)
+    )
+    @Published var isSynced: Bool = true
+    @Published var lastSyncAt: Date = Date()
     
     // Computed property for sync status - using CoreTypes.DashboardSyncStatus
     @Published var dashboardSyncStatus: CoreTypes.DashboardSyncStatus = .synced
@@ -71,11 +87,83 @@ class AdminDashboardViewModel: ObservableObject {
         }
     }
     
+    // MARK: - Admin Enums
+    
+    enum AdminIntelTab: String, CaseIterable {
+        case priorities = "Priorities"
+        case workerMgmt = "Workers"
+        case compliance = "Compliance"
+        case analytics = "Analytics"
+        case chat = "Chat"
+        case map = "Map"
+        
+        var icon: String {
+            switch self {
+            case .priorities: return "exclamationmark.triangle.fill"
+            case .workerMgmt: return "person.2.fill"
+            case .compliance: return "checkmark.shield.fill"
+            case .analytics: return "chart.bar.fill"
+            case .chat: return "message.fill"
+            case .map: return "map.fill"
+            }
+        }
+    }
+    
+    enum AdminRoute: Identifiable {
+        case buildings, workers, compliance, reports, emergencies, analytics, profile, settings
+        
+        var id: String { 
+            String(describing: self) 
+        }
+    }
+    
     // Refresh method for UI components
     func refresh() {
         Task {
             await loadDashboardData()
         }
+    }
+    
+    // MARK: - Digital Twin Core Updates
+    
+    @MainActor
+    func updateDigitalTwinMetrics() {
+        // Update core KPI metrics for hero/intelligence bar
+        buildingCount = buildings.count
+        workersTotal = workers.count
+        workersActive = activeWorkers.count
+        completionToday = portfolioMetrics.overallCompletionRate
+        complianceScore = portfolioMetrics.complianceScore
+        
+        // Update sync status
+        isSynced = dashboardSyncStatus == .synced
+        lastSyncAt = Date()
+        
+        print("🔄 Updated digital twin metrics: \(buildingCount) buildings, \(workersActive)/\(workersTotal) workers, \(Int(completionToday*100))% completion")
+    }
+    
+    @MainActor
+    func setInitialMapRegion() {
+        guard !buildings.isEmpty else { return }
+        
+        // Calculate centroid of all buildings
+        let latitudes = buildings.map { $0.latitude }
+        let longitudes = buildings.map { $0.longitude }
+        
+        guard let minLat = latitudes.min(), let maxLat = latitudes.max(),
+              let minLon = longitudes.min(), let maxLon = longitudes.max() else { return }
+        
+        let centerLat = (minLat + maxLat) / 2
+        let centerLon = (minLon + maxLon) / 2
+        let spanLat = (maxLat - minLat) * 1.3  // Add 30% padding
+        let spanLon = (maxLon - minLon) * 1.3
+        
+        mapRegion = MKCoordinateRegion(
+            center: CLLocationCoordinate2D(latitude: centerLat, longitude: centerLon),
+            span: MKCoordinateSpan(latitudeDelta: max(spanLat, 0.01), longitudeDelta: max(spanLon, 0.01))
+        )
+        
+        print("🗺️ Set admin map region to center: \(centerLat), \(centerLon)")
     }
     
     /// Get pressing tasks for hero card display (includes operational intelligence)
@@ -430,6 +518,10 @@ class AdminDashboardViewModel: ObservableObject {
             self.errorMessage = "\(baseError). \(NSLocalizedString("Please check your network connection.", comment: "Network error advice"))"
             print("❌ Failed to load admin dashboard: \(error)")
         }
+        
+        // Update digital twin metrics after all data is loaded
+        updateDigitalTwinMetrics()
+        setInitialMapRegion()
         
         isLoading = false
     }

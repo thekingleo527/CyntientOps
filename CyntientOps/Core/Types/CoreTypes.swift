@@ -2940,6 +2940,385 @@ public struct CoreTypes {
             self.thisWeeksTasks = thisWeeksTasks
         }
     }
+    
+    // MARK: - Client Worker Management Types
+    
+    public struct ClientRoutine: Codable, Identifiable {
+        public let id: String
+        public let buildingId: String
+        public let buildingName: String
+        public let routineType: String
+        public let frequency: String
+        public let estimatedDuration: Int
+        public let requiredCapabilities: [String]
+        
+        public init(id: String = UUID().uuidString, buildingId: String, buildingName: String, routineType: String, frequency: String, estimatedDuration: Int, requiredCapabilities: [String]) {
+            self.id = id
+            self.buildingId = buildingId
+            self.buildingName = buildingName
+            self.routineType = routineType
+            self.frequency = frequency
+            self.estimatedDuration = estimatedDuration
+            self.requiredCapabilities = requiredCapabilities
+        }
+    }
+
+public struct WorkerSummary: Codable, Identifiable {
+    public let id: String
+    public let name: String
+    public let role: String
+    public let capabilities: [String]
+    public let isActive: Bool
+    public let currentBuildingId: String?
+    public let shiftStart: Date?
+    public let shiftEnd: Date?
+    
+    public init(id: String = UUID().uuidString, name: String, role: String, capabilities: [String], isActive: Bool, currentBuildingId: String? = nil, shiftStart: Date? = nil, shiftEnd: Date? = nil) {
+        self.id = id
+        self.name = name
+        self.role = role
+        self.capabilities = capabilities
+        self.isActive = isActive
+        self.currentBuildingId = currentBuildingId
+        self.shiftStart = shiftStart
+        self.shiftEnd = shiftEnd
+    }
+}
+
+public struct WorkerCapability: Codable, Identifiable {
+    public let id: String
+    public let name: String
+    public let workers: Int
+    public let demandLevel: DemandLevel
+    
+    public init(id: String = UUID().uuidString, name: String, workers: Int, demandLevel: DemandLevel) {
+        self.id = id
+        self.name = name
+        self.workers = workers
+        self.demandLevel = demandLevel
+    }
+}
+
+public enum DemandLevel: String, Codable, CaseIterable {
+    case high = "High"
+    case medium = "Medium"
+    case low = "Low"
+}
+
+public struct WorkerSchedule: Codable, Identifiable {
+    public let id: String
+    public let workerId: String
+    public let date: Date
+    public let shifts: [WorkerScheduleItem]
+    
+    public init(id: String = UUID().uuidString, workerId: String, date: Date, shifts: [WorkerScheduleItem]) {
+        self.id = id
+        self.workerId = workerId
+        self.date = date
+        self.shifts = shifts
+    }
+}
+
+public struct WorkerScheduleItem: Codable, Identifiable {
+    public let id: String
+    public let startTime: Date
+    public let endTime: Date
+    public let taskName: String
+    public let location: String
+    
+    public init(id: String = UUID().uuidString, startTime: Date, endTime: Date, taskName: String, location: String) {
+        self.id = id
+        self.startTime = startTime
+        self.endTime = endTime
+        self.taskName = taskName
+        self.location = location
+    }
+}
+
+public struct WorkerDetail: Codable, Identifiable {
+    public let id: String
+    public let name: String
+    public let role: String
+    public let capabilities: [String]
+    public let isActive: Bool
+    public let currentLocation: String?
+    public let completionRate: Double
+    public let efficiency: Double
+    public let qualityScore: Double
+    
+    public init(id: String = UUID().uuidString, name: String, role: String, capabilities: [String], isActive: Bool, currentLocation: String? = nil, completionRate: Double, efficiency: Double, qualityScore: Double) {
+        self.id = id
+        self.name = name
+        self.role = role
+        self.capabilities = capabilities
+        self.isActive = isActive
+        self.currentLocation = currentLocation
+        self.completionRate = completionRate
+        self.efficiency = efficiency
+        self.qualityScore = qualityScore
+    }
+}
+
+public struct WorkerPerformance: Codable, Identifiable {
+    public let id: String
+    public let workerId: String
+    public let completionRate: Double
+    public let efficiency: Double
+    public let punctuality: Double
+    public let taskCount: Int
+    
+    public init(id: String = UUID().uuidString, workerId: String, completionRate: Double, efficiency: Double, punctuality: Double, taskCount: Int) {
+        self.id = id
+        self.workerId = workerId
+        self.completionRate = completionRate
+        self.efficiency = efficiency
+        self.punctuality = punctuality
+        self.taskCount = taskCount
+    }
+}
+    
+    public struct WeeklySchedule: Codable, Identifiable {
+        public let id: String
+        public let workerId: String
+        public let weekStartDate: Date
+        public let shifts: [WorkerShift]
+        
+        public init(id: String = UUID().uuidString, workerId: String, weekStartDate: Date, shifts: [WorkerShift]) {
+            self.id = id
+            self.workerId = workerId
+            self.weekStartDate = weekStartDate
+            self.shifts = shifts
+        }
+    }
+    
+    public struct WorkerShift: Codable, Identifiable {
+        public let id: String
+        public let workerId: String
+        public let buildingId: String
+        public let buildingName: String
+        public let startTime: Date
+        public let endTime: Date
+        public let routines: [ClientRoutine]
+        public let status: ShiftStatus
+        
+        public init(id: String = UUID().uuidString, workerId: String, buildingId: String, buildingName: String, startTime: Date, endTime: Date, routines: [ClientRoutine], status: ShiftStatus) {
+            self.id = id
+            self.workerId = workerId
+            self.buildingId = buildingId
+            self.buildingName = buildingName
+            self.startTime = startTime
+            self.endTime = endTime
+            self.routines = routines
+            self.status = status
+        }
+    }
+    
+    public enum ShiftStatus: String, Codable, CaseIterable {
+        case scheduled = "Scheduled"
+        case active = "Active"
+        case completed = "Completed"
+        case cancelled = "Cancelled"
+    }
+    
+    public struct ScheduleConflict: Codable, Identifiable {
+        public let id: String
+        public let type: ConflictType
+        public let workerId: String
+        public let shiftIds: [String]
+        public let description: String
+        public let severity: ConflictSeverity
+        
+        public init(id: String = UUID().uuidString, type: ConflictType, workerId: String, shiftIds: [String], description: String, severity: ConflictSeverity) {
+            self.id = id
+            self.type = type
+            self.workerId = workerId
+            self.shiftIds = shiftIds
+            self.description = description
+            self.severity = severity
+        }
+    }
+    
+    public enum ConflictType: String, Codable, CaseIterable {
+        case timeOverlap = "Time Overlap"
+        case capabilityMismatch = "Capability Mismatch"
+        case locationConflict = "Location Conflict"
+        case overallocation = "Overallocation"
+    }
+    
+    public enum ConflictSeverity: String, Codable, CaseIterable {
+        case critical = "Critical"
+        case high = "High"
+        case medium = "Medium"
+        case low = "Low"
+    }
+    
+    public struct OptimizedShift: Codable, Identifiable {
+        public let id: String
+        public let workerId: String
+        public let workerName: String
+        public let buildingId: String
+        public let buildingName: String
+        public let startTime: Date
+        public let endTime: Date
+        public let routines: [ClientRoutine]
+        public let estimatedEfficiency: Double
+        public let travelOptimization: Double
+        
+        public init(id: String = UUID().uuidString, workerId: String, workerName: String, buildingId: String, buildingName: String, startTime: Date, endTime: Date, routines: [ClientRoutine], estimatedEfficiency: Double, travelOptimization: Double) {
+            self.id = id
+            self.workerId = workerId
+            self.workerName = workerName
+            self.buildingId = buildingId
+            self.buildingName = buildingName
+            self.startTime = startTime
+            self.endTime = endTime
+            self.routines = routines
+            self.estimatedEfficiency = estimatedEfficiency
+            self.travelOptimization = travelOptimization
+        }
+    }
+    
+    public enum ShiftTemplate: String, Codable, CaseIterable {
+        case standard = "Standard"
+        case extended = "Extended"
+        case flexible = "Flexible"
+        case emergency = "Emergency"
+    }
+    
+    public struct BulkAssignment: Codable, Identifiable {
+        public let id: String
+        public let workerId: String
+        public let workerName: String
+        public let taskType: BulkTaskType
+        public let buildingId: String
+        public let buildingName: String
+        public let estimatedDuration: TimeInterval
+        public let capabilityMatch: Double
+        public let priority: Int
+        
+        public init(id: String = UUID().uuidString, workerId: String, workerName: String, taskType: BulkTaskType, buildingId: String, buildingName: String, estimatedDuration: TimeInterval, capabilityMatch: Double, priority: Int) {
+            self.id = id
+            self.workerId = workerId
+            self.workerName = workerName
+            self.taskType = taskType
+            self.buildingId = buildingId
+            self.buildingName = buildingName
+            self.estimatedDuration = estimatedDuration
+            self.capabilityMatch = capabilityMatch
+            self.priority = priority
+        }
+    }
+    
+    public enum BulkTaskType: String, Codable, CaseIterable {
+        case inspection = "Inspection"
+        case maintenance = "Maintenance"
+        case cleaning = "Cleaning"
+        case security = "Security"
+        case compliance = "Compliance"
+        
+        public var displayName: String { return rawValue }
+    }
+    
+    public enum CapabilityRequirement: String, Codable, CaseIterable {
+        case any = "Any"
+        case all = "All"
+        case none = "None"
+    }
+    
+    public struct CriticalAlert: Codable, Identifiable {
+        public let id: String
+        public let title: String
+        public let description: String
+        public let severity: CoreTypes.AlertSeverity
+        public let type: AlertType
+        public let buildingId: String?
+        public let workerId: String?
+        public let timestamp: Date
+        public let isResolved: Bool
+        
+        public init(id: String = UUID().uuidString, title: String, description: String, severity: CoreTypes.AlertSeverity, type: AlertType, buildingId: String? = nil, workerId: String? = nil, timestamp: Date = Date(), isResolved: Bool = false) {
+            self.id = id
+            self.title = title
+            self.description = description
+            self.severity = severity
+            self.type = type
+            self.buildingId = buildingId
+            self.workerId = workerId
+            self.timestamp = timestamp
+            self.isResolved = isResolved
+        }
+    }
+    
+    public enum AlertType: String, Codable, CaseIterable {
+        case safety = "Safety"
+        case maintenance = "Maintenance"
+        case security = "Security"
+        case compliance = "Compliance"
+        case operational = "Operational"
+        case all = "All"
+    }
+    
+    public enum ImpactLevel: String, Codable, CaseIterable {
+        case high = "High"
+        case medium = "Medium"
+        case low = "Low"
+        case all = "All"
+    }
+    
+    public enum ComplexityLevel: String, Codable, CaseIterable {
+        case low = "Low"
+        case medium = "Medium"
+        case high = "High"
+        case all = "All"
+    }
+    
+    public enum SuggestionCategory: String, Codable, CaseIterable {
+        case efficiency = "Efficiency"
+        case optimization = "Optimization"
+        case safety = "Safety"
+        case compliance = "Compliance"
+        case scheduling = "Scheduling"
+        case maintenance = "Maintenance"
+    }
+    
+    public struct AISuggestionExtended: Codable, Identifiable {
+        public let id: String
+        public let category: SuggestionCategory
+        public let priority: CoreTypes.AIPriority
+        public let impact: ImpactLevel
+        public let complexity: ComplexityLevel
+        public let title: String
+        public let description: String
+        public let estimatedSavings: String
+        public let confidence: Double
+        public let affectedWorkers: [String]
+        public let affectedBuildings: [String]
+        public let implementationSteps: [String]
+        public let status: SuggestionStatus
+        
+        public init(id: String = UUID().uuidString, category: SuggestionCategory, priority: CoreTypes.AIPriority, impact: ImpactLevel, complexity: ComplexityLevel, title: String, description: String, estimatedSavings: String, confidence: Double, affectedWorkers: [String], affectedBuildings: [String], implementationSteps: [String], status: SuggestionStatus) {
+            self.id = id
+            self.category = category
+            self.priority = priority
+            self.impact = impact
+            self.complexity = complexity
+            self.title = title
+            self.description = description
+            self.estimatedSavings = estimatedSavings
+            self.confidence = confidence
+            self.affectedWorkers = affectedWorkers
+            self.affectedBuildings = affectedBuildings
+            self.implementationSteps = implementationSteps
+            self.status = status
+        }
+    }
+    
+    public enum SuggestionStatus: String, Codable, CaseIterable {
+        case pending = "Pending"
+        case inProgress = "In Progress"
+        case implemented = "Implemented"
+        case dismissed = "Dismissed"
+    }
 
 } // END of CoreTypes namespace
 
@@ -3009,6 +3388,30 @@ public typealias ConflictLevel = CoreTypes.ConflictLevel
 public typealias SkillLevel = CoreTypes.SkillLevel
 public typealias DataHealthStatus = CoreTypes.DataHealthStatus
 public typealias RealtimeMetrics = CoreTypes.RealtimeMetrics
+
+// Client Worker Management Types
+public typealias ClientRoutine = CoreTypes.ClientRoutine
+public typealias WeeklySchedule = CoreTypes.WeeklySchedule
+public typealias WorkerShift = CoreTypes.WorkerShift
+public typealias ShiftStatus = CoreTypes.ShiftStatus
+public typealias ScheduleConflict = CoreTypes.ScheduleConflict
+public typealias ConflictType = CoreTypes.ConflictType
+public typealias ConflictSeverity = CoreTypes.ConflictSeverity
+public typealias OptimizedShift = CoreTypes.OptimizedShift
+public typealias ShiftTemplate = CoreTypes.ShiftTemplate
+public typealias BulkAssignment = CoreTypes.BulkAssignment
+public typealias BulkTaskType = CoreTypes.BulkTaskType
+public typealias CapabilityRequirement = CoreTypes.CapabilityRequirement
+public typealias CriticalAlert = CoreTypes.CriticalAlert
+public typealias AlertSeverity = CoreTypes.AlertSeverity
+public typealias AlertType = CoreTypes.AlertType
+public typealias Priority = CoreTypes.Priority
+public typealias ImpactLevel = CoreTypes.ImpactLevel
+public typealias ComplexityLevel = CoreTypes.ComplexityLevel
+public typealias SuggestionCategory = CoreTypes.SuggestionCategory
+public typealias AISuggestionExtended = CoreTypes.AISuggestionExtended
+public typealias SuggestionStatus = CoreTypes.SuggestionStatus
+
 
 // MARK: - AdminOperationalIntelligence Types (Direct Access)
 // Note: These types are already public in AdminOperationalIntelligence.swift
