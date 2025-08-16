@@ -384,7 +384,7 @@ struct WorkerDashboardView: View {
                 .navigationBarTitleDisplayMode(.large)
                 
         case .novaInteraction:
-            NovaInteractionView(workerName: viewModel.worker?.name ?? "Worker")
+            NovaInteractionView()
                 .environmentObject(container.novaManager)
                 .navigationTitle("Nova Assistant")
                 .navigationBarTitleDisplayMode(.inline)
@@ -1222,7 +1222,7 @@ struct WorkerNovaIntelligenceBar: View {
                     
                 case .liveUpdates:
                     WorkerLiveUpdatesContent(
-                        weather: viewModel.weatherData,
+                        weather: weather,
                         todaysTasks: todaysTasks,
                         currentBuilding: currentBuilding
                     )
@@ -1980,7 +1980,6 @@ struct TaskOverviewCard: View {
         case .critical: return CyntientOpsDesign.DashboardColors.critical
         case .urgent: return CyntientOpsDesign.DashboardColors.warning
         case .high: return CyntientOpsDesign.DashboardColors.warning
-        case .normal: return CyntientOpsDesign.DashboardColors.secondaryText
         case .normal: return CyntientOpsDesign.DashboardColors.secondaryText
         case .low: return CyntientOpsDesign.DashboardColors.tertiaryText
         }
