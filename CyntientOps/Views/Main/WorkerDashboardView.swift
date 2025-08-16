@@ -465,7 +465,13 @@ struct WorkerDashboardView: View {
         // Handle clock in logic
         Task {
             if let building = viewModel.currentBuilding {
-                await viewModel.clockIn(at: building)
+                let coordinate = CoreTypes.NamedCoordinate(
+                    id: building.id,
+                    name: building.name,
+                    latitude: building.coordinate.latitude,
+                    longitude: building.coordinate.longitude
+                )
+                await viewModel.clockIn(at: coordinate)
             }
         }
     }
@@ -1969,7 +1975,7 @@ struct TaskOverviewCard: View {
         case .urgent: return "High"
         case .high: return "High"
         case .normal: return "Normal"
-        case .medium: return "Medium"
+        case .normal: return "Normal"
         case .low: return "Low"
         }
     }
@@ -2300,7 +2306,7 @@ struct WorkerLiveUpdatesContent: View {
                 title: "Schedule Update",
                 message: "Elevator maintenance moved to 3 PM at Rubin Museum",
                 timestamp: Date().addingTimeInterval(-1800), // 30 min ago
-                priority: .medium
+                priority: .normal
             )
             
             // Task reassignments (placeholder)
@@ -2380,7 +2386,7 @@ struct LiveUpdateCard: View {
         var color: Color {
             switch self {
             case .low: return CyntientOpsDesign.DashboardColors.tertiaryText
-            case .medium: return CyntientOpsDesign.DashboardColors.warning
+            case .normal: return CyntientOpsDesign.DashboardColors.secondaryText
             case .high: return CyntientOpsDesign.DashboardColors.critical
             }
         }
