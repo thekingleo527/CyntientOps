@@ -2902,6 +2902,45 @@ public struct CoreTypes {
         }
     }
     
+    // MARK: - Client Task Metrics
+    
+    public struct ClientTaskMetrics: Codable {
+        public let totalTasks: Int
+        public let completedTasks: Int
+        public let overdueTasks: Int
+        public let upcomingTasks: Int
+        public let tasksByBuilding: [String: Int]
+        public let tasksByWorker: [String: Int]
+        public let averageCompletionTime: TimeInterval
+        public let completionRate: Double
+        public let todaysTasks: Int
+        public let thisWeeksTasks: Int
+        
+        public init(
+            totalTasks: Int = 0,
+            completedTasks: Int = 0,
+            overdueTasks: Int = 0,
+            upcomingTasks: Int = 0,
+            tasksByBuilding: [String: Int] = [:],
+            tasksByWorker: [String: Int] = [:],
+            averageCompletionTime: TimeInterval = 0,
+            completionRate: Double = 0,
+            todaysTasks: Int = 0,
+            thisWeeksTasks: Int = 0
+        ) {
+            self.totalTasks = totalTasks
+            self.completedTasks = completedTasks
+            self.overdueTasks = overdueTasks
+            self.upcomingTasks = upcomingTasks
+            self.tasksByBuilding = tasksByBuilding
+            self.tasksByWorker = tasksByWorker
+            self.averageCompletionTime = averageCompletionTime
+            self.completionRate = totalTasks > 0 ? Double(completedTasks) / Double(totalTasks) : 0
+            self.todaysTasks = todaysTasks
+            self.thisWeeksTasks = thisWeeksTasks
+        }
+    }
+
 } // END of CoreTypes namespace
 
 // MARK: - Global Type Aliases for Direct Access

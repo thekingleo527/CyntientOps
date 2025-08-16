@@ -14,57 +14,57 @@
 */
 
 // MARK: - General UI
-"OK" = "Aceptar";
-"Cancel" = "Cancelar";
-"Save" = "Guardar";
-"Submit" = "Enviar";
+"OK" = "OK";
+"Cancel" = "Cancel";
+"Save" = "Save";
+"Submit" = "Submit";
 "Error" = "Error";
-"Success" = "Éxito";
-"Loading..." = "Cargando...";
-"Retry" = "Reintentar";
-"Back" = "Atrás";
-"Done" = "Hecho";
+"Success" = "Success";
+"Loading..." = "Loading...";
+"Retry" = "Retry";
+"Back" = "Back";
+"Done" = "Done";
 
 // MARK: - Login & Auth
-"Login" = "Iniciar Sesión";
-"Email" = "Correo Electrónico";
-"Password" = "Contraseña";
-"Authentication required" = "Autenticación requerida";
-"Invalid credentials" = "Credenciales no válidas";
+"Login" = "Login";
+"Email" = "Email";
+"Password" = "Password";
+"Authentication required" = "Authentication required";
+"Invalid credentials" = "Invalid credentials";
 
 // MARK: - Dashboard
-"Dashboard" = "Panel";
-"Good Morning" = "Buenos Días";
-"Good Afternoon" = "Buenas Tardes";
-"Good Evening" = "Buenas Noches";
-"Today's Tasks" = "Tareas de Hoy";
-"All tasks complete!" = "¡Todas las tareas completas!";
-"Great job. You are all caught up for today." = "Buen trabajo. Estás al día por hoy.";
-"Current Building" = "Edificio Actual";
-"Not currently clocked in at a building." = "No ha registrado entrada en un edificio.";
-"Clock In" = "Registrar Entrada";
-"Clock Out" = "Registrar Salida";
+"Dashboard" = "Dashboard";
+"Good Morning" = "Good Morning";
+"Good Afternoon" = "Good Afternoon";
+"Good Evening" = "Good Evening";
+"Today's Tasks" = "Today's Tasks";
+"All tasks complete!" = "All tasks complete!";
+"Great job. You are all caught up for today." = "Great job. You are all caught up for today.";
+"Current Building" = "Current Building";
+"Not currently clocked in at a building." = "Not currently clocked in at a building.";
+"Clock In" = "Clock In";
+"Clock Out" = "Clock Out";
 
 // MARK: - Tasks
 "Task" = "Tarea";
 "Tasks" = "Tareas";
 "Complete" = "Complete";
-"Completed" = "Completado";
-"Pending" = "Pendiente";
-"Overdue" = "Atrasado";
-"Due Time" = "Hora de Entrega";
-"Building" = "Edificio";
-"Photo Required" = "Se Requiere Foto";
-"Take Photo" = "Tomar Foto";
-"Task marked as complete." = "Tarea marcada como completada.";
+"Completed" = "Completed";
+"Pending" = "Pending";
+"Overdue" = "Overdue";
+"Due Time" = "Due Time";
+"Building" = "Building";
+"Photo Required" = "Photo Required";
+"Take Photo" = "Take Photo";
+"Task marked as complete." = "Task marked as complete.";
 "Complete Task" = "Complete Task";
 
 // MARK: - Urgency
-"Urgent" = "Urgente";
+"Urgent" = "Urgent";
 "Normal" = "Normal";
-"Low" = "Baja";
-"High" = "Alta";
-"Critical" = "Crítica";
+"Low" = "Low";
+"High" = "High";
+"Critical" = "Critical";
 
 // MARK: - Admin & Client Dashboards
 "Admin Dashboard" = "Panel de Administrador";

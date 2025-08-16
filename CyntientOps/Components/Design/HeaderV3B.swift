@@ -94,94 +94,39 @@ struct WorkerHeaderV3B: View {
     // MARK: - Components
     
     private var brandMenuButton: some View {
-        Button(action: { onRoute(.mainMenu) }) {
-            HStack(spacing: 8) {
-                // CyntientOps Logo Mark
-                ZStack {
-                    RoundedRectangle(cornerRadius: 6)
-                        .fill(
-                            LinearGradient(
-                                colors: [CyntientOpsDesign.DashboardColors.workerPrimary, CyntientOpsDesign.DashboardColors.workerPrimary.opacity(0.8)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
+        HStack(spacing: 8) {
+            // CyntientOps Logo Mark - no tap action
+            ZStack {
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(
+                        LinearGradient(
+                            colors: [CyntientOpsDesign.DashboardColors.workerPrimary, CyntientOpsDesign.DashboardColors.workerPrimary.opacity(0.8)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
                         )
-                        .frame(width: 28, height: 28)
-                    
-                    Text("C")
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundColor(.white)
-                }
+                    )
+                    .frame(width: 28, height: 28)
                 
-                Text("CyntientOps")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                Text("C")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundColor(.white)
             }
+            
+            Text("CyntientOps")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
         }
-        .buttonStyle(.plain)
     }
     
     private var novaStatusButton: some View {
         Button(action: { onRoute(.novaChat) }) {
-            HStack(spacing: 8) {
-                // Beautiful animated Nova icon
-                ZStack {
-                    Circle()
-                        .fill(
-                            LinearGradient(
-                                colors: [novaStatusColor, novaStatusColor.opacity(0.8)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .frame(width: 24, height: 24)
-                        .scaleEffect(isNovaProcessing ? 1.1 : 1.0)
-                        .animation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true), value: isNovaProcessing)
-                    
-                    Image(systemName: isNovaProcessing ? "brain.head.profile" : "sparkles")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(.white)
-                        .symbolEffect(.pulse.wholeSymbol, options: .repeating, isActive: isNovaProcessing)
-                    
-                    // Elegant processing ring
-                    if isNovaProcessing {
-                        Circle()
-                            .trim(from: 0, to: 0.7)
-                            .stroke(
-                                AngularGradient(
-                                    colors: [.white.opacity(0.8), .white.opacity(0.1)],
-                                    center: .center
-                                ),
-                                style: StrokeStyle(lineWidth: 1.5, lineCap: .round)
-                            )
-                            .frame(width: 28, height: 28)
-                            .rotationEffect(.degrees(isNovaProcessing ? 360 : 0))
-                            .animation(
-                                .linear(duration: 2).repeatForever(autoreverses: false),
-                                value: isNovaProcessing
-                            )
-                    }
-                }
-                
-                Text(novaStatusText)
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-                    .animation(.easeInOut(duration: 0.3), value: novaStatusText)
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(
-                Capsule()
-                    .fill(.ultraThinMaterial)
-                    .overlay(
-                        Capsule()
-                            .stroke(novaStatusColor.opacity(0.3), lineWidth: 1)
-                    )
+            NovaAvatarView(
+                state: isNovaProcessing ? .thinking : .idle,
+                size: 32,
+                hasUrgent: hasUrgentContext
             )
         }
         .buttonStyle(.plain)
-        .scaleEffect(1.0)
-        .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isNovaProcessing)
     }
     
     private var clockPillButton: some View {
@@ -397,6 +342,101 @@ struct HeaderV3B: View {
         }
     }
 }
+
+// MARK: - NovaAvatarView Component
+
+struct NovaAvatarView: View {
+    let state: NovaState
+    let size: CGFloat
+    let hasUrgent: Bool
+    
+    @State private var pulseAnimation = false
+    @State private var rotationAngle: Double = 0
+    @EnvironmentObject var novaManager: NovaAIManager
+    
+    var body: some View {
+        ZStack {
+            // Background glow
+            Circle()
+                .fill(
+                    RadialGradient(
+                        colors: [stateColor.opacity(0.3), Color.clear],
+                        center: .center,
+                        startRadius: size * 0.3,
+                        endRadius: size * 0.8
+                    )
+                )
+                .frame(width: size * 1.5, height: size * 1.5)
+                .blur(radius: 5)
+                .opacity(pulseAnimation ? 1 : 0.5)
+            
+            // AI Image or Icon
+            if let image = novaManager.novaImage {
+                Image(uiImage: image)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: size, height: size)
+                    .clipShape(Circle())
+                    .overlay(
+                        Circle()
+                            .stroke(stateColor, lineWidth: 2)
+                    )
+                    .rotationEffect(.degrees(rotationAngle))
+                    .scaleEffect(pulseAnimation ? 1.1 : 1.0)
+            } else {
+                // Fallback icon
+                Image(systemName: "brain")
+                    .font(.system(size: size * 0.6))
+                    .foregroundColor(stateColor)
+                    .frame(width: size, height: size)
+                    .background(Circle().fill(Color.black))
+                    .overlay(
+                        Circle()
+                            .stroke(stateColor, lineWidth: 2)
+                    )
+            }
+            
+            // Urgent indicator
+            if hasUrgent {
+                Circle()
+                    .fill(Color.red)
+                    .frame(width: size * 0.3, height: size * 0.3)
+                    .overlay(
+                        Text("!")
+                            .font(.system(size: size * 0.2, weight: .bold))
+                            .foregroundColor(.white)
+                    )
+                    .offset(x: size * 0.3, y: -size * 0.3)
+            }
+        }
+        .onAppear {
+            startAnimations()
+        }
+    }
+    
+    var stateColor: Color {
+        switch state {
+        case .idle: return .blue.opacity(0.5)
+        case .thinking: return .purple
+        case .active: return .blue
+        case .urgent: return .red
+        case .error: return .orange
+        }
+    }
+    
+    func startAnimations() {
+        withAnimation(.easeInOut(duration: 2).repeatForever(autoreverses: true)) {
+            pulseAnimation = true
+        }
+        
+        if state == .thinking {
+            withAnimation(.linear(duration: 3).repeatForever(autoreverses: false)) {
+                rotationAngle = 360
+            }
+        }
+    }
+}
+
 
 // MARK: - Preview
 

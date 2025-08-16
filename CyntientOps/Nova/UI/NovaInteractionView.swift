@@ -147,73 +147,28 @@ struct NovaInteractionView: View {
     // MARK: - Enhanced Tab System
     
     private var enhancedTabBar: some View {
-        HStack(spacing: 0) {
-            ForEach(NovaTab.allCases, id: \.self) { tab in
-                Button(action: {
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                        if tab == .holographic {
-                            showingHolographicView = true
-                        } else {
-                            selectedTab = tab
-                        }
-                    }
-                }) {
-                    VStack(spacing: 6) {
-                        Image(systemName: tab.icon)
-                            .font(.system(size: 18, weight: .medium))
-                            .foregroundColor(selectedTab == tab ? .cyan : .white.opacity(0.6))
-                        
-                        Text(tab.displayName)
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundColor(selectedTab == tab ? .cyan : .white.opacity(0.6))
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background(
-                        selectedTab == tab ?
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(.ultraThinMaterial)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .stroke(.cyan.opacity(0.5), lineWidth: 1)
-                            ) :
-                        nil
-                    )
-                    .shadow(color: selectedTab == tab ? .cyan.opacity(0.3) : .clear, radius: 3)
-                }
-                .buttonStyle(.plain)
-            }
+        // Simplified to just show chat header since we only have one tab
+        HStack {
+            Image(systemName: "message.circle.fill")
+                .font(.system(size: 18, weight: .medium))
+                .foregroundColor(.cyan)
+            
+            Text("Chat with Nova")
+                .font(.subheadline)
+                .fontWeight(.medium)
+                .foregroundColor(.white)
+            
+            Spacer()
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 8)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(.ultraThinMaterial.opacity(0.8))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .stroke(.white.opacity(0.1), lineWidth: 1)
-                )
-        )
+        .padding(.vertical, 12)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
         .padding(.horizontal)
     }
     
     private var tabContent: some View {
-        TabView(selection: $selectedTab) {
-            // Chat Tab
-            chatTabContent
-                .tag(NovaTab.chat)
-            
-            // Map Tab  
-            mapTabContent
-                .tag(NovaTab.map)
-            
-            // Portfolio Tab
-            portfolioTabContent
-                .tag(NovaTab.portfolio)
-        }
-        .tabViewStyle(.page(indexDisplayMode: .never))
-        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: selectedTab)
-        .gesture(tabSwipeGesture)
+        // Only chat tab now - simplified Nova interface
+        chatTabContent
     }
     
     private var chatTabContent: some View {
@@ -253,68 +208,6 @@ struct NovaInteractionView: View {
         )
     }
     
-    private var mapTabContent: some View {
-        addContextualGestures(to:
-            VStack(spacing: 20) {
-            // Map header
-            VStack(spacing: 12) {
-                HStack {
-                    Image(systemName: "map.circle.fill")
-                        .font(.title2)
-                        .foregroundColor(.cyan)
-                    
-                    Text("Building Portfolio Map")
-                        .font(.headline)
-                        .foregroundColor(.white)
-                    
-                    Spacer()
-                }
-                
-                Text("Interactive map view of your assigned buildings")
-                    .font(.subheadline)
-                    .foregroundColor(.white.opacity(0.7))
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .padding(20)
-            .background(.ultraThinMaterial)
-            .cornerRadius(16)
-            .padding(.horizontal)
-            
-            // Building cards grid
-            if !contextAdapter.assignedBuildings.isEmpty {
-                ScrollView {
-                    LazyVGrid(columns: [
-                        GridItem(.flexible()),
-                        GridItem(.flexible())
-                    ], spacing: 16) {
-                        ForEach(contextAdapter.assignedBuildings) { building in
-                            buildingMapCard(building)
-                        }
-                    }
-                    .padding(.horizontal)
-                }
-            } else {
-                VStack(spacing: 16) {
-                    Image(systemName: "building.2.crop.circle")
-                        .font(.system(size: 48))
-                        .foregroundColor(.white.opacity(0.3))
-                    
-                    Text("No buildings assigned")
-                        .font(.headline)
-                        .foregroundColor(.white.opacity(0.7))
-                    
-                    Text("Buildings will appear here once assigned")
-                        .font(.subheadline)
-                        .foregroundColor(.white.opacity(0.5))
-                        .multilineTextAlignment(.center)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
-            
-            Spacer()
-            }
-        )
-    }
     
     private func buildingMapCard(_ building: CoreTypes.NamedCoordinate) -> some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -565,7 +458,7 @@ struct NovaInteractionView: View {
     }
     
     private func handleTabSwipe(_ direction: SwipeDirection) {
-        let tabs = NovaTab.allCases.filter { $0 != .holographic }
+        let tabs = NovaTab.allCases
         guard let currentIndex = tabs.firstIndex(of: selectedTab) else { return }
         
         switch direction {
@@ -1620,23 +1513,17 @@ enum SwipeDirection {
 }
 
 enum NovaTab: CaseIterable {
-    case chat, map, portfolio, holographic
+    case chat
     
     var displayName: String {
         switch self {
         case .chat: return "Chat"
-        case .map: return "Map"
-        case .portfolio: return "Portfolio"
-        case .holographic: return "Holographic"
         }
     }
     
     var icon: String {
         switch self {
         case .chat: return "message.circle"
-        case .map: return "map.circle"
-        case .portfolio: return "building.2.crop.circle"
-        case .holographic: return "cube.transparent"
         }
     }
 }
