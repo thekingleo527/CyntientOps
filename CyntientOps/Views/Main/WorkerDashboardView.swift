@@ -1228,7 +1228,7 @@ struct WorkerNovaIntelligenceBar: View {
                     
                 case .liveUpdates:
                     WorkerLiveUpdatesContent(
-                        weather: viewModel.weatherData,
+                        weather: weatherData,
                         todaysTasks: todaysTasks,
                         currentBuilding: currentBuilding
                     )
