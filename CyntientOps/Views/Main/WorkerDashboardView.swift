@@ -1975,7 +1975,6 @@ struct TaskOverviewCard: View {
         case .urgent: return "High"
         case .high: return "High"
         case .normal: return "Normal"
-        case .normal: return "Normal"
         case .low: return "Low"
         }
     }
@@ -2306,7 +2305,7 @@ struct WorkerLiveUpdatesContent: View {
                 title: "Schedule Update",
                 message: "Elevator maintenance moved to 3 PM at Rubin Museum",
                 timestamp: Date().addingTimeInterval(-1800), // 30 min ago
-                priority: .normal
+                priority: .medium
             )
             
             // Task reassignments (placeholder)
@@ -2386,7 +2385,7 @@ struct LiveUpdateCard: View {
         var color: Color {
             switch self {
             case .low: return CyntientOpsDesign.DashboardColors.tertiaryText
-            case .normal: return CyntientOpsDesign.DashboardColors.secondaryText
+            case .medium: return CyntientOpsDesign.DashboardColors.secondaryText
             case .high: return CyntientOpsDesign.DashboardColors.critical
             }
         }
