@@ -3229,14 +3229,14 @@ public struct WorkerPerformance: Codable, Identifiable {
         public let id: String
         public let title: String
         public let description: String
-        public let severity: CoreTypes.AlertSeverity
-        public let type: AlertType
+        public let severity: String
+        public let type: String
         public let buildingId: String?
         public let workerId: String?
         public let timestamp: Date
         public let isResolved: Bool
         
-        public init(id: String = UUID().uuidString, title: String, description: String, severity: CoreTypes.AlertSeverity, type: AlertType, buildingId: String? = nil, workerId: String? = nil, timestamp: Date = Date(), isResolved: Bool = false) {
+        public init(id: String = UUID().uuidString, title: String, description: String, severity: String, type: String, buildingId: String? = nil, workerId: String? = nil, timestamp: Date = Date(), isResolved: Bool = false) {
             self.id = id
             self.title = title
             self.description = description
@@ -3284,7 +3284,7 @@ public struct WorkerPerformance: Codable, Identifiable {
     public struct AISuggestionExtended: Codable, Identifiable {
         public let id: String
         public let category: SuggestionCategory
-        public let priority: CoreTypes.AIPriority
+        public let priority: AIPriority
         public let impact: ImpactLevel
         public let complexity: ComplexityLevel
         public let title: String
@@ -3296,7 +3296,7 @@ public struct WorkerPerformance: Codable, Identifiable {
         public let implementationSteps: [String]
         public let status: SuggestionStatus
         
-        public init(id: String = UUID().uuidString, category: SuggestionCategory, priority: CoreTypes.AIPriority, impact: ImpactLevel, complexity: ComplexityLevel, title: String, description: String, estimatedSavings: String, confidence: Double, affectedWorkers: [String], affectedBuildings: [String], implementationSteps: [String], status: SuggestionStatus) {
+        public init(id: String = UUID().uuidString, category: SuggestionCategory, priority: AIPriority, impact: ImpactLevel, complexity: ComplexityLevel, title: String, description: String, estimatedSavings: String, confidence: Double, affectedWorkers: [String], affectedBuildings: [String], implementationSteps: [String], status: SuggestionStatus) {
             self.id = id
             self.category = category
             self.priority = priority
@@ -3399,13 +3399,11 @@ public typealias ConflictType = CoreTypes.ConflictType
 public typealias ConflictSeverity = CoreTypes.ConflictSeverity
 public typealias OptimizedShift = CoreTypes.OptimizedShift
 public typealias ShiftTemplate = CoreTypes.ShiftTemplate
-public typealias BulkAssignment = CoreTypes.BulkAssignment
 public typealias BulkTaskType = CoreTypes.BulkTaskType
 public typealias CapabilityRequirement = CoreTypes.CapabilityRequirement
 public typealias CriticalAlert = CoreTypes.CriticalAlert
 public typealias AlertSeverity = CoreTypes.AlertSeverity
 public typealias AlertType = CoreTypes.AlertType
-public typealias Priority = CoreTypes.Priority
 public typealias ImpactLevel = CoreTypes.ImpactLevel
 public typealias ComplexityLevel = CoreTypes.ComplexityLevel
 public typealias SuggestionCategory = CoreTypes.SuggestionCategory

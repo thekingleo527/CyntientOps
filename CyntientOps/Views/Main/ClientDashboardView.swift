@@ -276,7 +276,7 @@ struct ClientDashboardView: View {
         case .profile:
             ClientProfileView(viewModel: viewModel)
                 .navigationTitle("Profile")
-                .navigationBarTitleDisplayMode(.large)
+                .navigationBarTitleDisplayMode(.inline)
                 
         case .buildings:
             ClientBuildingsListView(
@@ -287,7 +287,7 @@ struct ClientDashboardView: View {
                 }
             )
                 .navigationTitle("My Properties")
-                .navigationBarTitleDisplayMode(.large)
+                .navigationBarTitleDisplayMode(.inline)
             
         case .buildingDetail(let buildingId):
             if let building = viewModel.buildingsList.first(where: { $0.id == buildingId }) {
@@ -303,7 +303,7 @@ struct ClientDashboardView: View {
         case .compliance:
             ComplianceOverviewView()
                 .navigationTitle("Compliance Report")
-                .navigationBarTitleDisplayMode(.large)
+                .navigationBarTitleDisplayMode(.inline)
             
         case .chat:
             NovaInteractionView()
@@ -313,7 +313,7 @@ struct ClientDashboardView: View {
         case .settings:
             ClientProfileView(viewModel: viewModel) // Use ClientProfileView as settings for now
                 .navigationTitle("Settings")
-                .navigationBarTitleDisplayMode(.large)
+                .navigationBarTitleDisplayMode(.inline)
                 
         case .maintenanceRequest:
             TaskRequestView()
@@ -323,7 +323,7 @@ struct ClientDashboardView: View {
         case .workerManagement:
             AdminWorkerManagementView(clientBuildings: viewModel.buildingsList)
                 .navigationTitle("Portfolio Workers")
-                .navigationBarTitleDisplayMode(.large)
+                .navigationBarTitleDisplayMode(.inline)
                 
         case .workerDetail(let workerId):
             ClientWorkerDetailSheet(
@@ -337,7 +337,7 @@ struct ClientDashboardView: View {
                 }
             )
             .navigationTitle("Worker Details")
-            .navigationBarTitleDisplayMode(.large)
+            .navigationBarTitleDisplayMode(.inline)
             
         case .shiftPlanner:
             ClientShiftPlannerSheet(
@@ -347,7 +347,7 @@ struct ClientDashboardView: View {
                 container: container
             )
             .navigationTitle("Shift Planner")
-            .navigationBarTitleDisplayMode(.large)
+            .navigationBarTitleDisplayMode(.inline)
             
         case .bulkAssignment:
             ClientBulkAssignmentSheet(
@@ -357,7 +357,7 @@ struct ClientDashboardView: View {
                 container: container
             )
             .navigationTitle("Bulk Assignment")
-            .navigationBarTitleDisplayMode(.large)
+            .navigationBarTitleDisplayMode(.inline)
             
         case .scheduleManager:
             ClientScheduleManagerSheet(
@@ -366,7 +366,7 @@ struct ClientDashboardView: View {
                 container: container
             )
             .navigationTitle("Schedule Manager")
-            .navigationBarTitleDisplayMode(.large)
+            .navigationBarTitleDisplayMode(.inline)
             
         case .criticalAlerts:
             ClientCriticalAlertsSheet(
@@ -375,7 +375,7 @@ struct ClientDashboardView: View {
                 container: container
             )
             .navigationTitle("Critical Alerts")
-            .navigationBarTitleDisplayMode(.large)
+            .navigationBarTitleDisplayMode(.inline)
             
         case .aiSuggestions:
             ClientAISuggestionsSheet(
@@ -384,7 +384,7 @@ struct ClientDashboardView: View {
                 container: container
             )
             .navigationTitle("AI Suggestions")
-            .navigationBarTitleDisplayMode(.large)
+            .navigationBarTitleDisplayMode(.inline)
         }
     }
     
@@ -1437,7 +1437,7 @@ struct ClientPrioritiesContent: View {
         .sheet(item: $selectedWeatherAction) { action in
             NavigationView {
                 weatherActionView(for: action)
-                    .navigationBarTitleDisplayMode(.large)
+                    .navigationBarTitleDisplayMode(.inline)
                     .toolbar {
                         ToolbarItem(placement: .navigationBarTrailing) {
                             Button("Done") { selectedWeatherAction = nil }
@@ -2114,7 +2114,7 @@ struct ClientProfileView: View {
             }
             .background(CyntientOpsDesign.DashboardColors.baseBackground.ignoresSafeArea())
             .navigationTitle("Client Profile")
-            .navigationBarTitleDisplayMode(.large)
+            .navigationBarTitleDisplayMode(.inline)
             .navigationBarBackButtonHidden(true)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
