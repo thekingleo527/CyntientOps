@@ -3319,6 +3319,22 @@ public struct WorkerPerformance: Codable, Identifiable {
         case implemented = "Implemented"
         case dismissed = "Dismissed"
     }
+    
+    // MARK: - Portfolio Types
+    
+    public enum StrategicRecommendationType: String, Codable, CaseIterable {
+        case efficiency = "Efficiency"
+        case cost = "Cost Optimization"
+        case compliance = "Compliance"
+        case maintenance = "Maintenance"
+        case staffing = "Staffing"
+    }
+    
+    public enum BenchmarkComparison: String, Codable, CaseIterable {
+        case above = "Above Average"
+        case average = "Average"
+        case below = "Below Average"
+    }
 
 } // END of CoreTypes namespace
 
@@ -3409,26 +3425,11 @@ public typealias ComplexityLevel = CoreTypes.ComplexityLevel
 public typealias SuggestionCategory = CoreTypes.SuggestionCategory
 public typealias AISuggestionExtended = CoreTypes.AISuggestionExtended
 public typealias SuggestionStatus = CoreTypes.SuggestionStatus
-
+public typealias StrategicRecommendationType = CoreTypes.StrategicRecommendationType
+public typealias BenchmarkComparison = CoreTypes.BenchmarkComparison
 
 // MARK: - AdminOperationalIntelligence Types (Direct Access)
 // Note: These types are already public in AdminOperationalIntelligence.swift
 // The ViewModels should import that file directly to access these types
-
-    // MARK: - Portfolio Types
-    
-    public enum StrategicRecommendationType: String, Codable, CaseIterable {
-        case efficiency = "Efficiency"
-        case cost = "Cost Optimization"
-        case compliance = "Compliance"
-        case maintenance = "Maintenance"
-        case staffing = "Staffing"
-    }
-    
-    public enum BenchmarkComparison: String, Codable, CaseIterable {
-        case above = "Above Average"
-        case average = "Average"
-        case below = "Below Average"
-    }
 
 // MARK: - Report Types (Defined in AdminReportsView)

@@ -647,4 +647,48 @@ struct AISuggestionCard: View {
     }
 }
 
-// Removed duplicate badge components - using existing ones from BuildingHistoryComponents
+// MARK: - Badge Components
+
+struct ImpactBadge: View {
+    let impact: CoreTypes.ImpactLevel
+    
+    var body: some View {
+        Text(impact.rawValue)
+            .font(.caption2)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(getImpactColor(impact).opacity(0.2))
+            .foregroundColor(getImpactColor(impact))
+            .clipShape(Capsule())
+    }
+    
+    private func getImpactColor(_ impact: CoreTypes.ImpactLevel) -> Color {
+        switch impact {
+        case .high: return .green
+        case .medium: return .blue
+        case .low: return .gray
+        case .all: return .gray
+        }
+    }
+}
+
+struct ConfidenceBadge: View {
+    let confidence: Double
+    
+    var body: some View {
+        Text("\(Int(confidence * 100))%")
+            .font(.caption2)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(getConfidenceColor(confidence).opacity(0.2))
+            .foregroundColor(getConfidenceColor(confidence))
+            .clipShape(Capsule())
+    }
+    
+    private func getConfidenceColor(_ confidence: Double) -> Color {
+        if confidence >= 0.9 { return .green }
+        else if confidence >= 0.7 { return .blue }
+        else if confidence >= 0.5 { return .orange }
+        else { return .red }
+    }
+}
