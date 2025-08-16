@@ -887,6 +887,15 @@ public struct CoreTypes {
         }
     }
     
+    public enum AlertType: String, Codable, CaseIterable {
+        case all = "All"
+        case compliance = "Compliance"
+        case maintenance = "Maintenance"
+        case safety = "Safety"
+        case schedule = "Schedule"
+        case worker = "Worker"
+    }
+    
     public enum ComplianceIssueType: String, Codable, CaseIterable {
         case safety = "Safety"
         case environmental = "Environmental"
@@ -3460,57 +3469,7 @@ public typealias RecommendationPriority = CoreTypes.RecommendationPriority
         }
     }
     
-    // MARK: - Alert Types
-    
-    public enum AlertSeverity: String, Codable, CaseIterable {
-        case low = "Low"
-        case medium = "Medium"
-        case high = "High"
-        case critical = "Critical"
-    }
-    
-    public enum AlertType: String, Codable, CaseIterable {
-        case all = "All"
-        case compliance = "Compliance"
-        case maintenance = "Maintenance"
-        case safety = "Safety"
-        case schedule = "Schedule"
-        case worker = "Worker"
-    }
-    
-    public struct CriticalAlert: Codable, Hashable, Identifiable {
-        public let id: String
-        public let title: String
-        public let description: String
-        public let severity: String
-        public let type: String
-        public let buildingId: String?
-        public let workerId: String?
-        public let timestamp: Date
-        public let isResolved: Bool
-        
-        public init(
-            id: String,
-            title: String,
-            description: String,
-            severity: String,
-            type: String,
-            buildingId: String? = nil,
-            workerId: String? = nil,
-            timestamp: Date = Date(),
-            isResolved: Bool = false
-        ) {
-            self.id = id
-            self.title = title
-            self.description = description
-            self.severity = severity
-            self.type = type
-            self.buildingId = buildingId
-            self.workerId = workerId
-            self.timestamp = timestamp
-            self.isResolved = isResolved
-        }
-    }
+}
 
 // MARK: - AdminOperationalIntelligence Types (Direct Access)
 // Note: These types are already public in AdminOperationalIntelligence.swift
