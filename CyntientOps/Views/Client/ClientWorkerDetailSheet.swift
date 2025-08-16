@@ -123,9 +123,9 @@ struct ClientWorkerDetailSheet: View {
                 .foregroundColor(.white)
             
             HStack(spacing: 12) {
-                MetricCard(title: "Completion", value: "\(Int(worker.completionRate * 100))%", color: .green, icon: "checkmark.circle")
-                MetricCard(title: "Efficiency", value: "\(Int(worker.efficiency * 100))%", color: .blue, icon: "speedometer")
-                MetricCard(title: "Quality", value: "\(Int(worker.qualityScore * 100))%", color: .purple, icon: "star.circle")
+                MetricCard(title: "Completion", value: "\(Int(worker.completionRate * 100))%", icon: "checkmark.circle", color: .green)
+                MetricCard(title: "Efficiency", value: "\(Int(worker.efficiency * 100))%", icon: "speedometer", color: .blue)
+                MetricCard(title: "Quality", value: "\(Int(worker.qualityScore * 100))%", icon: "star.circle", color: .purple)
             }
         }
         .padding()
@@ -200,13 +200,18 @@ struct ClientWorkerDetailSheet: View {
                     efficiency: 0.88,
                     qualityScore: 0.92
                 )
-                tasks = [
-                    CoreTypes.ContextualTask(id: "kevin-rubin-daily", title: "Rubin Museum Daily Service", category: "Sanitation", buildingId: "14", isCompleted: false),
-                    CoreTypes.ContextualTask(id: "kevin-perry-sweep", title: "131 Perry Street Sweep", category: "Cleaning", buildingId: "10", isCompleted: true)
-                ]
+                var task1 = CoreTypes.ContextualTask(id: "kevin-rubin-daily", title: "Rubin Museum Daily Service", description: "Daily trash area and sidewalk maintenance", status: .pending, createdAt: Date(), updatedAt: Date())
+                task1.buildingId = "14"
+                task1.category = .sanitation
+                
+                var task2 = CoreTypes.ContextualTask(id: "kevin-perry-sweep", title: "131 Perry Street Sweep", description: "Morning sidewalk maintenance", status: .completed, createdAt: Date(), updatedAt: Date())
+                task2.buildingId = "10"
+                task2.category = .cleaning
+                
+                tasks = [task1, task2]
                 scheduleItems = [
-                    CoreTypes.WorkerScheduleItem(id: "kevin-morning", routineId: "perry-circuit", title: "Perry Street Circuit", description: "Morning sidewalk maintenance", buildingId: "10", buildingName: "131 Perry Street", startTime: Calendar.current.date(bySettingHour: 6, minute: 0, second: 0, of: Date()) ?? Date(), endTime: Calendar.current.date(bySettingHour: 7, minute: 0, second: 0, of: Date()) ?? Date(), category: "Cleaning", isWeatherDependent: false, estimatedDuration: 60),
-                    CoreTypes.WorkerScheduleItem(id: "kevin-rubin", routineId: "rubin-daily", title: "Rubin Museum Service", description: "Daily trash and sidewalk maintenance", buildingId: "14", buildingName: "Rubin Museum (142–148 W 17th)", startTime: Calendar.current.date(bySettingHour: 10, minute: 0, second: 0, of: Date()) ?? Date(), endTime: Calendar.current.date(bySettingHour: 11, minute: 0, second: 0, of: Date()) ?? Date(), category: "Sanitation", isWeatherDependent: false, estimatedDuration: 60)
+                    CoreTypes.WorkerScheduleItem(id: "kevin-morning", startTime: Calendar.current.date(bySettingHour: 6, minute: 0, second: 0, of: Date()) ?? Date(), endTime: Calendar.current.date(bySettingHour: 7, minute: 0, second: 0, of: Date()) ?? Date(), taskName: "Perry Street Circuit", location: "131 Perry Street"),
+                    CoreTypes.WorkerScheduleItem(id: "kevin-rubin", startTime: Calendar.current.date(bySettingHour: 10, minute: 0, second: 0, of: Date()) ?? Date(), endTime: Calendar.current.date(bySettingHour: 11, minute: 0, second: 0, of: Date()) ?? Date(), taskName: "Rubin Museum Service", location: "Rubin Museum (142–148 W 17th)")
                 ]
             case "5": // Mercedes Inamagua
                 workerData = CoreTypes.WorkerDetail(
@@ -220,12 +225,17 @@ struct ClientWorkerDetailSheet: View {
                     efficiency: 0.94,
                     qualityScore: 0.96
                 )
-                tasks = [
-                    CoreTypes.ContextualTask(id: "mercedes-glass-1", title: "112 West 18th Glass", category: "Cleaning", buildingId: "7", isCompleted: true),
-                    CoreTypes.ContextualTask(id: "mercedes-glass-2", title: "117 West 17th Glass", category: "Cleaning", buildingId: "9", isCompleted: false)
-                ]
+                var task1 = CoreTypes.ContextualTask(id: "mercedes-glass-1", title: "112 West 18th Glass", description: "Glass and lobby cleaning", status: .completed, createdAt: Date(), updatedAt: Date())
+                task1.buildingId = "7"
+                task1.category = .cleaning
+                
+                var task2 = CoreTypes.ContextualTask(id: "mercedes-glass-2", title: "117 West 17th Glass", description: "Glass and vestibule cleaning", status: .pending, createdAt: Date(), updatedAt: Date())
+                task2.buildingId = "9"
+                task2.category = .cleaning
+                
+                tasks = [task1, task2]
                 scheduleItems = [
-                    CoreTypes.WorkerScheduleItem(id: "mercedes-morning", routineId: "glass-circuit", title: "Glass Circuit", description: "Morning glass and lobby cleaning", buildingId: "7", buildingName: "112 West 18th Street", startTime: Calendar.current.date(bySettingHour: 6, minute: 0, second: 0, of: Date()) ?? Date(), endTime: Calendar.current.date(bySettingHour: 7, minute: 0, second: 0, of: Date()) ?? Date(), category: "Cleaning", isWeatherDependent: false, estimatedDuration: 60)
+                    CoreTypes.WorkerScheduleItem(id: "mercedes-morning", startTime: Calendar.current.date(bySettingHour: 6, minute: 0, second: 0, of: Date()) ?? Date(), endTime: Calendar.current.date(bySettingHour: 7, minute: 0, second: 0, of: Date()) ?? Date(), taskName: "Glass Circuit", location: "112 West 18th Street")
                 ]
             default:
                 workerData = CoreTypes.WorkerDetail(
