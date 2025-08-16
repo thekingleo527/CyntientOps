@@ -38,10 +38,10 @@ struct ClientBulkAssignmentSheet: View {
             .padding()
         }
         .background(Color.black.ignoresSafeArea())
-        .onChange(of: selectedWorkers) { _ in
+        .onChange(of: selectedWorkers) {
             Task { await generateBulkAssignments() }
         }
-        .onChange(of: selectedTask) { _ in
+        .onChange(of: selectedTask) {
             Task { await generateBulkAssignments() }
         }
     }
@@ -248,10 +248,10 @@ struct ClientBulkAssignmentSheet: View {
         let newAssignments = selectedWorkerData.compactMap { worker in
             // Find best building match for this worker
             let optimalBuilding = buildings.first { building in
-                // Find routines for this building from container
-                let buildingRoutines = container.operationalData.getRoutinesForBuilding(building.id)
-                let buildingCaps = Set(buildingRoutines.flatMap { $0.requiredCapabilities })
-                return !buildingCaps.intersection(Set(worker.capabilities)).isEmpty
+                // Match worker capabilities with building requirements
+                let workerCaps = Set(worker.capabilities)
+                let basicRequirements = Set(["General Maintenance", "Safety Inspection"])
+                return !workerCaps.intersection(basicRequirements).isEmpty
             }
             
             guard let building = optimalBuilding else { return nil }

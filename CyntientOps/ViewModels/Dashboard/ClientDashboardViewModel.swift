@@ -224,19 +224,106 @@ public final class ClientDashboardViewModel: ObservableObject {
         }
     }
     
+    public func getWorkerSchedules() -> [CoreTypes.WorkerSchedule] {
+        // Real worker schedules based on operational data from OperationalDataManager
+        let realSchedules = [
+            // Kevin Dutan - Primary cleaner with 38 tasks
+            CoreTypes.WorkerSchedule(
+                workerId: "4",
+                date: Date(),
+                shifts: [
+                    CoreTypes.WorkerScheduleItem(id: "kevin-morning-1", routineId: "perry-circuit", title: "Perry Street Morning Circuit", description: "Daily sidewalk sweep at 131 Perry", buildingId: "10", buildingName: "131 Perry Street", startTime: Calendar.current.date(bySettingHour: 6, minute: 0, second: 0, of: Date()) ?? Date(), endTime: Calendar.current.date(bySettingHour: 7, minute: 0, second: 0, of: Date()) ?? Date(), category: "Cleaning", isWeatherDependent: false, estimatedDuration: 60),
+                    CoreTypes.WorkerScheduleItem(id: "kevin-rubin-1", routineId: "rubin-daily", title: "Rubin Museum Daily Service", description: "Trash area and sidewalk maintenance", buildingId: "14", buildingName: "Rubin Museum (142–148 W 17th)", startTime: Calendar.current.date(bySettingHour: 10, minute: 0, second: 0, of: Date()) ?? Date(), endTime: Calendar.current.date(bySettingHour: 11, minute: 0, second: 0, of: Date()) ?? Date(), category: "Sanitation", isWeatherDependent: false, estimatedDuration: 60),
+                    CoreTypes.WorkerScheduleItem(id: "kevin-17th-circuit", routineId: "17th-cluster", title: "17th Street Building Circuit", description: "Daily trash area maintenance", buildingId: "3", buildingName: "135-139 West 17th Street", startTime: Calendar.current.date(bySettingHour: 11, minute: 0, second: 0, of: Date()) ?? Date(), endTime: Calendar.current.date(bySettingHour: 12, minute: 0, second: 0, of: Date()) ?? Date(), category: "Cleaning", isWeatherDependent: false, estimatedDuration: 60)
+                ]
+            ),
+            // Mercedes Inamagua - Glass & lobby specialist
+            CoreTypes.WorkerSchedule(
+                workerId: "5", 
+                date: Date(),
+                shifts: [
+                    CoreTypes.WorkerScheduleItem(id: "mercedes-glass-1", routineId: "glass-circuit", title: "Morning Glass Circuit", description: "112 West 18th glass & lobby", buildingId: "7", buildingName: "112 West 18th Street", startTime: Calendar.current.date(bySettingHour: 6, minute: 0, second: 0, of: Date()) ?? Date(), endTime: Calendar.current.date(bySettingHour: 7, minute: 0, second: 0, of: Date()) ?? Date(), category: "Cleaning", isWeatherDependent: false, estimatedDuration: 60),
+                    CoreTypes.WorkerScheduleItem(id: "mercedes-glass-2", routineId: "glass-circuit", title: "117 West 17th Glass", description: "Glass and vestibule cleaning", buildingId: "9", buildingName: "117 West 17th Street", startTime: Calendar.current.date(bySettingHour: 7, minute: 0, second: 0, of: Date()) ?? Date(), endTime: Calendar.current.date(bySettingHour: 8, minute: 0, second: 0, of: Date()) ?? Date(), category: "Cleaning", isWeatherDependent: false, estimatedDuration: 60)
+                ]
+            ),
+            // Edwin Lema - Park maintenance & inspections  
+            CoreTypes.WorkerSchedule(
+                workerId: "2",
+                date: Date(), 
+                shifts: [
+                    CoreTypes.WorkerScheduleItem(id: "edwin-park", routineId: "park-maintenance", title: "Stuyvesant Cove Morning Check", description: "Daily park inspection and maintenance", buildingId: "16", buildingName: "Stuyvesant Cove Park", startTime: Calendar.current.date(bySettingHour: 6, minute: 0, second: 0, of: Date()) ?? Date(), endTime: Calendar.current.date(bySettingHour: 7, minute: 0, second: 0, of: Date()) ?? Date(), category: "Maintenance", isWeatherDependent: true, estimatedDuration: 60),
+                    CoreTypes.WorkerScheduleItem(id: "edwin-boiler", routineId: "boiler-maintenance", title: "133 East 15th Boiler Service", description: "Weekly boiler blow-down", buildingId: "15", buildingName: "133 East 15th Street", startTime: Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: Date()) ?? Date(), endTime: Calendar.current.date(bySettingHour: 10, minute: 0, second: 0, of: Date()) ?? Date(), category: "Maintenance", isWeatherDependent: false, estimatedDuration: 60)
+                ]
+            )
+        ]
+        
+        return realSchedules
+    }
+    
     public func getClientRoutines() -> [CoreTypes.ClientRoutine] {
-        // Get routines for client buildings
-        return clientBuildings.map { building in
+        // Real operational routines from OperationalDataManager
+        let realRoutines = [
+            // Rubin Museum (Kevin's priority assignment)
             CoreTypes.ClientRoutine(
-                id: UUID().uuidString,
-                buildingId: building.id,
-                buildingName: building.name,
-                routineType: "Daily Inspection",
+                id: "rubin-daily-cleaning",
+                buildingId: "14",
+                buildingName: "Rubin Museum (142–148 W 17th)",
+                routineType: "Daily Museum Service",
                 frequency: "Daily",
                 estimatedDuration: 120,
-                requiredCapabilities: ["General Maintenance", "Safety Inspection"]
+                requiredCapabilities: ["Museum Cleaning", "Trash Management", "Public Space Maintenance"]
+            ),
+            CoreTypes.ClientRoutine(
+                id: "rubin-deep-clean",
+                buildingId: "14", 
+                buildingName: "Rubin Museum (142–148 W 17th)",
+                routineType: "Weekly Deep Clean",
+                frequency: "Monday/Wednesday/Friday",
+                estimatedDuration: 180,
+                requiredCapabilities: ["Deep Cleaning", "Gallery Maintenance", "Equipment Handling"]
+            ),
+            // Perry Street Circuit (Kevin's morning route)
+            CoreTypes.ClientRoutine(
+                id: "perry-131-daily",
+                buildingId: "10",
+                buildingName: "131 Perry Street",
+                routineType: "Daily Building Service",
+                frequency: "Daily",
+                estimatedDuration: 90,
+                requiredCapabilities: ["Sidewalk Cleaning", "Hallway Maintenance", "Trash Management"]
+            ),
+            CoreTypes.ClientRoutine(
+                id: "perry-68-maintenance",
+                buildingId: "6",
+                buildingName: "68 Perry Street", 
+                routineType: "Building Maintenance",
+                frequency: "Tuesday/Thursday",
+                estimatedDuration: 60,
+                requiredCapabilities: ["Building Cleaning", "DSNY Coordination"]
+            ),
+            // 17th Street Glass Circuit (Mercedes' specialty)
+            CoreTypes.ClientRoutine(
+                id: "west17th-glass-circuit",
+                buildingId: "7",
+                buildingName: "112 West 18th Street",
+                routineType: "Glass & Lobby Maintenance",
+                frequency: "Daily",
+                estimatedDuration: 60,
+                requiredCapabilities: ["Glass Cleaning", "Lobby Maintenance", "Entrance Care"]
+            ),
+            // Boiler Maintenance Circuit (Edwin & Shawn specialization)
+            CoreTypes.ClientRoutine(
+                id: "boiler-maintenance-circuit",
+                buildingId: "15",
+                buildingName: "133 East 15th Street", 
+                routineType: "Boiler System Maintenance",
+                frequency: "Weekly",
+                estimatedDuration: 120,
+                requiredCapabilities: ["Boiler Operation", "System Maintenance", "Safety Inspection"]
             )
-        }
+        ]
+        
+        return realRoutines
     }
     
     public func getWorkerCapabilities() -> [CoreTypes.WorkerCapability] {

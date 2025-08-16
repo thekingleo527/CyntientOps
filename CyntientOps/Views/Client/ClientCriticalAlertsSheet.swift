@@ -11,7 +11,7 @@ struct ClientCriticalAlertsSheet: View {
     
     var filteredAlerts: [CoreTypes.CriticalAlert] {
         alerts.filter { alert in
-            (selectedType == .all || alert.type == selectedType)
+            (selectedType == .all || alert.type == selectedType.rawValue)
         }
     }
     
@@ -195,7 +195,7 @@ struct ClientCriticalAlertsSheet: View {
     
     private func assignWorkerToAlert(_ alert: CoreTypes.CriticalAlert) {
         // Find best available worker and assign to alert
-        let availableWorkers = workers.filter { $0.isActive }
+        _ = workers.filter { $0.isActive }
         // Implementation would assign worker to handle alert
     }
 }
@@ -278,23 +278,23 @@ struct CriticalAlertCard: View {
         .opacity(isResolved ? 0.6 : 1.0)
     }
     
-    private func getSeverityIcon(_ severity: CoreTypes.AlertSeverity) -> String {
-        switch severity {
-        case .critical: return "exclamationmark.triangle.fill"
-        case .high: return "exclamationmark.circle.fill"
-        case .medium: return "info.circle.fill"
-        case .low: return "info.circle"
-        case .all: return "info.circle"
+    private func getSeverityIcon(_ severity: String) -> String {
+        switch severity.lowercased() {
+        case "critical": return "exclamationmark.triangle.fill"
+        case "high": return "exclamationmark.circle.fill"
+        case "medium": return "info.circle.fill"
+        case "low": return "info.circle"
+        default: return "info.circle"
         }
     }
     
-    private func getSeverityColor(_ severity: CoreTypes.AlertSeverity) -> Color {
-        switch severity {
-        case .critical: return .red
-        case .high: return .orange
-        case .medium: return .yellow
-        case .low: return .blue
-        case .all: return .gray
+    private func getSeverityColor(_ severity: String) -> Color {
+        switch severity.lowercased() {
+        case "critical": return .red
+        case "high": return .orange
+        case "medium": return .yellow
+        case "low": return .blue
+        default: return .gray
         }
     }
 }

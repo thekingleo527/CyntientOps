@@ -62,7 +62,7 @@ struct ClientShiftPlannerSheet: View {
                 }
             }
             .pickerStyle(.segmented)
-            .onChange(of: shiftTemplate) { _ in
+            .onChange(of: shiftTemplate) {
                 Task { await generateOptimizedShifts() }
             }
         }

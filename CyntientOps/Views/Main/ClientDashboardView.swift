@@ -350,8 +350,9 @@ struct ClientDashboardView: View {
             
         case .scheduleManager:
             ClientScheduleManagerSheet(
-                schedules: viewModel.getWorkerSchedules(),
-                locations: viewModel.clientBuildings,
+                workers: viewModel.getAvailableWorkers(),
+                buildings: viewModel.clientBuildings,
+                routines: viewModel.getClientRoutines(),
                 container: container
             )
             .navigationTitle("Schedule Manager")

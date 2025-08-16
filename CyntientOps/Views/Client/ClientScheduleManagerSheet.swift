@@ -130,7 +130,9 @@ struct ClientScheduleManagerSheet: View {
             }
             
             ForEach(conflicts.prefix(3), id: \.id) { conflict in
-                ConflictCard(conflict: conflict, onResolve: { resolveConflict(conflict) })
+                ConflictCard(conflict: conflict, onResolve: { 
+                    Task { await resolveConflict(conflict) }
+                })
             }
         }
         .padding()
