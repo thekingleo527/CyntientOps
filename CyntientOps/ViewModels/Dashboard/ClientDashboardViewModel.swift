@@ -771,28 +771,22 @@ public final class ClientDashboardViewModel: ObservableObject {
     // MARK: - Private Helper Methods
     
     private func getImageAssetName(for buildingId: String) -> String? {
-        // Map building IDs to their corresponding asset names in Assets.xcassets
-        let buildingAssetMap: [String: String] = [
-            "1": "12_West_18th_Street",
-            "2": "29_31_East_20th_Street", 
-            "3": "36_Walker_Street",
-            "4": "41_Elizabeth_Street",
-            "5": "68_Perry_Street",
-            "6": "104_Franklin_Street",
-            "7": "112_West_18th_Street",
-            "8": "117_West_17th_Street",
-            "9": "123_1st_Avenue",
-            "10": "131_Perry_Street",
-            "11": "133_East_15th_Street",
-            "12": "135West17thStreet",
-            "13": "136_West_17th_Street",
-            "14": "Rubin_Museum_142_148_West_17th_Street",
-            "15": "138West17thStreet",
-            "16": "41_Elizabeth_Street",
-            "park": "Stuyvesant_Cove_Park"
-        ]
+        // Get building from OperationalDataManager to derive correct asset name from address
+        let buildings = container.operationalData.buildings
+        guard let building = buildings.first(where: { $0.id == buildingId }) else { 
+            return nil 
+        }
         
-        return buildingAssetMap[buildingId]
+        // Convert address to asset name format (address → image asset name)
+        let address = building.address
+        let assetName = address
+            .replacingOccurrences(of: " ", with: "_")
+            .replacingOccurrences(of: "/", with: "_")
+            .replacingOccurrences(of: "-", with: "_")
+            .replacingOccurrences(of: ",", with: "")
+            .replacingOccurrences(of: ".", with: "")
+        
+        return assetName
     }
     
     private func setInitialRegion(for buildings: [CoreTypes.NamedCoordinate]) {
@@ -1572,17 +1566,14 @@ public final class ClientDashboardViewModel: ObservableObject {
     }
     
     private func generateViolationsData(for building: CoreTypes.NamedCoordinate) async -> [CoreTypes.PropertyViolation] {
-        // Generate realistic violation data
-        var violations: [CoreTypes.PropertyViolation] = []
-        
         // Get real violations for this building from database
         do {
-            let realViolations = try await container.operationalDataData.getViolationsForBuilding(buildingId: building.id)
+            let realViolations = try await container.operationalData.getViolationsForBuilding(buildingId: building.id)
             return realViolations
         } catch {
-            // If no real violations, generate minimal realistic data
-            print("⚠️ No real violations found for \(building.name), using realistic generated data")
-            return violations
+            // If no real violations, return empty array
+            print("⚠️ No real violations found for \(building.name)")
+            return []
         }
     }
 }
