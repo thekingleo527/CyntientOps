@@ -525,7 +525,7 @@ struct AISuggestionCard: View {
                     }
                     
                     HStack(spacing: 8) {
-                        PriorityBadge(priority: suggestion.priority)
+                        PriorityBadge(priority: suggestion.priority.rawValue)
                         ImpactBadge(impact: suggestion.impact)
                         ConfidenceBadge(confidence: suggestion.confidence)
                     }

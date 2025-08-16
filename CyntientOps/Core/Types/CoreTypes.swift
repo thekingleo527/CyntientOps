@@ -3335,6 +3335,13 @@ public struct WorkerPerformance: Codable, Identifiable {
         case average = "Average"
         case below = "Below Average"
     }
+    
+    public enum RecommendationPriority: String, Codable, CaseIterable {
+        case low = "Low"
+        case medium = "Medium"
+        case high = "High"
+        case critical = "Critical"
+    }
 
 } // END of CoreTypes namespace
 
@@ -3427,6 +3434,7 @@ public typealias AISuggestionExtended = CoreTypes.AISuggestionExtended
 public typealias SuggestionStatus = CoreTypes.SuggestionStatus
 public typealias StrategicRecommendationType = CoreTypes.StrategicRecommendationType
 public typealias BenchmarkComparison = CoreTypes.BenchmarkComparison
+public typealias RecommendationPriority = CoreTypes.RecommendationPriority
 
 // MARK: - AdminOperationalIntelligence Types (Direct Access)
 // Note: These types are already public in AdminOperationalIntelligence.swift
