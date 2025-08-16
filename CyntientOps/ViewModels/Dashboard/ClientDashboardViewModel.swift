@@ -157,7 +157,7 @@ public final class ClientDashboardViewModel: ObservableObject {
     
     public func getAvailableWorkers() -> [CoreTypes.WorkerSummary] {
         // Get workers assigned to client buildings from OperationalDataManager
-        let workerData = container.operational.workers.filter { worker in
+        let workerData = container.operationalData.workers.filter { worker in
             clientBuildings.contains { building in
                 worker.assignedBuildingIds.contains(building.id)
             }
@@ -204,17 +204,12 @@ public final class ClientDashboardViewModel: ObservableObject {
     }
     
     public func getWorkerSchedules() -> [CoreTypes.WorkerSchedule] {
-        // Get schedules for all client workers
+        // Get schedules for all client workers - using synchronous data access
         return getAvailableWorkers().compactMap { worker in
-            guard let schedule = try? await container.operational.getWorkerScheduleForDate(
-                workerId: worker.id, 
-                date: Date()
-            ) else { return nil }
-            
             return CoreTypes.WorkerSchedule(
                 workerId: worker.id,
                 workerName: worker.name,
-                shifts: schedule,
+                shifts: [], // Empty shifts for now - to be populated by OperationalDataManager
                 availability: worker.isActive
             )
         }
@@ -228,11 +223,12 @@ public final class ClientDashboardViewModel: ObservableObject {
         for issue in complianceIssues where issue.severity == .critical {
             alerts.append(CoreTypes.CriticalAlert(
                 id: issue.id,
-                type: .compliance,
                 title: issue.title,
+                description: issue.description ?? "Compliance issue detected",
+                severity: "critical",
+                type: "compliance",
                 buildingId: issue.buildingId,
-                severity: .critical,
-                timestamp: issue.lastUpdated
+                timestamp: issue.timestamp
             ))
         }
         
@@ -241,10 +237,12 @@ public final class ClientDashboardViewModel: ObservableObject {
         for worker in workers where !worker.isActive {
             alerts.append(CoreTypes.CriticalAlert(
                 id: "worker-\(worker.id)",
-                type: .workerUnavailable,
                 title: "\(worker.name) unavailable",
+                description: "Worker \(worker.name) is currently unavailable for assignments",
+                severity: "high",
+                type: "worker",
                 buildingId: worker.currentLocation,
-                severity: .high,
+                workerId: worker.id,
                 timestamp: Date()
             ))
         }
@@ -292,12 +290,10 @@ public final class ClientDashboardViewModel: ObservableObject {
         return getAvailableWorkers().map { worker in
             CoreTypes.WorkerPerformance(
                 workerId: worker.id,
-                workerName: worker.name,
                 completionRate: calculateWorkerCompletionRate(worker.id),
                 efficiency: calculateWorkerEfficiency(worker.id),
-                qualityScore: calculateWorkerQuality(worker.id),
-                totalTasks: getWorkerTaskCount(worker.id),
-                onTimePercentage: calculateWorkerPunctuality(worker.id)
+                punctuality: calculateWorkerPunctuality(worker.id),
+                taskCount: getWorkerTaskCount(worker.id)
             )
         }
     }
@@ -317,7 +313,7 @@ public final class ClientDashboardViewModel: ObservableObject {
     
     private func calculateWorkerCompletionRate(_ workerId: String) -> Double {
         // Use OperationalDataManager to get real completion data
-        let tasks = container.taskService.getTasksForWorker(workerId: workerId)
+        let tasks = container.tasks.getTasksForWorker(workerId: workerId)
         guard !tasks.isEmpty else { return 0.0 }
         let completed = tasks.filter { $0.status == CoreTypes.TaskStatus.completed }.count
         return Double(completed) / Double(tasks.count)
@@ -334,7 +330,7 @@ public final class ClientDashboardViewModel: ObservableObject {
     }
     
     private func getWorkerTaskCount(_ workerId: String) -> Int {
-        return container.taskService.getTasksForWorker(workerId: workerId).count
+        return container.tasks.getTasksForWorker(workerId: workerId).count
     }
     
     private func calculateWorkerPunctuality(_ workerId: String) -> Double {
@@ -1581,7 +1577,7 @@ public final class ClientDashboardViewModel: ObservableObject {
         
         // Get real violations for this building from database
         do {
-            let realViolations = try await container.operationalData.getViolationsForBuilding(buildingId: building.id)
+            let realViolations = try await container.operationalDataData.getViolationsForBuilding(buildingId: building.id)
             return realViolations
         } catch {
             // If no real violations, generate minimal realistic data

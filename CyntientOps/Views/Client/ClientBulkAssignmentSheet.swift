@@ -249,7 +249,7 @@ struct ClientBulkAssignmentSheet: View {
             // Find best building match for this worker
             let optimalBuilding = buildings.first { building in
                 // Find routines for this building from container
-                let buildingRoutines = container.operational.getRoutinesForBuilding(building.id)
+                let buildingRoutines = container.operationalData.getRoutinesForBuilding(building.id)
                 let buildingCaps = Set(buildingRoutines.flatMap { $0.requiredCapabilities })
                 return !buildingCaps.intersection(Set(worker.capabilities)).isEmpty
             }
