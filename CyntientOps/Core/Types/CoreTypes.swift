@@ -894,6 +894,7 @@ public struct CoreTypes {
         case safety = "Safety"
         case schedule = "Schedule"
         case worker = "Worker"
+        case task = "Task"
     }
     
     public enum ComplianceIssueType: String, Codable, CaseIterable {
@@ -3452,8 +3453,6 @@ public typealias RecommendationPriority = CoreTypes.RecommendationPriority
             self.assignedBuildingIds = assignedBuildingIds
         }
     }
-    
-}
 
 // MARK: - AdminOperationalIntelligence Types (Direct Access)
 // Note: These types are already public in AdminOperationalIntelligence.swift
