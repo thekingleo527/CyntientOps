@@ -455,75 +455,7 @@ struct ClientAISuggestionsSheet: View {
         ]
     }
     
-    private var filtersSection: some View {
-        VStack(spacing: 12) {
-            // Category Filter
-            Picker("Category", selection: $selectedCategory) {
-                ForEach(SuggestionCategory.allCases, id: \.self) { category in
-                    Text(category.rawValue).tag(category)
-                }
-            }
-            .pickerStyle(.menu)
-            
-            // Advanced Filters
-            HStack(spacing: 8) {
-                Picker("Priority", selection: $suggestionFilters.priorityLevel) {
-                    ForEach(CoreTypes.AIPriority.allCases, id: \.self) { priority in
-                        Text(priority.rawValue).tag(priority)
-                    }
-                }
-                .pickerStyle(.menu)
-                
-                Picker("Impact", selection: $suggestionFilters.impactLevel) {
-                    ForEach(CoreTypes.ImpactLevel.allCases, id: \.self) { impact in
-                        Text(impact.rawValue).tag(impact)
-                    }
-                }
-                .pickerStyle(.menu)
-            }
-        }
-        .padding()
-        .background(CyntientOpsDesign.DashboardColors.cardBackground)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-    }
-    
-    private var insightsOverviewSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Current Insights")
-                .font(.headline)
-                .foregroundColor(.white)
-            
-            ForEach(getTopInsights(), id: \.self) { insight in
-                HStack {
-                    Image(systemName: "brain.head.profile")
-                        .foregroundColor(CyntientOpsDesign.DashboardColors.info)
-                    
-                    Text(insight)
-                        .font(.caption)
-                        .foregroundColor(.white)
-                    
-                    Spacer()
-                }
-                .padding(.vertical, 2)
-            }
-        }
-        .padding()
-        .background(CyntientOpsDesign.DashboardColors.cardBackground)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-    }
-    
-    private var suggestionsListSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            ForEach(filteredSuggestions, id: \.id) { suggestion in
-                AISuggestionCard(
-                    suggestion: suggestion,
-                    isImplemented: implementedSuggestions.contains(suggestion.id),
-                    onImplement: { implementSuggestion(suggestion) },
-                    onDismiss: { dismissSuggestion(suggestion) }
-                )
-            }
-        }
-    }
+    // Removed duplicate sections - using original implementations above
     
     private func getTopInsights() -> [String] {
         return [
@@ -534,12 +466,12 @@ struct ClientAISuggestionsSheet: View {
         ]
     }
     
-    private func implementSuggestion(_ suggestion: CoreTypes.AISuggestion) {
+    private func implementSuggestion(_ suggestion: CoreTypes.AISuggestionExtended) {
         implementedSuggestions.insert(suggestion.id)
         // Implementation would apply the suggestion through OperationalDataManager
     }
     
-    private func dismissSuggestion(_ suggestion: CoreTypes.AISuggestion) {
+    private func dismissSuggestion(_ suggestion: CoreTypes.AISuggestionExtended) {
         suggestions.removeAll { $0.id == suggestion.id }
     }
 }

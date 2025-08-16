@@ -379,8 +379,9 @@ struct ClientDashboardView: View {
             
         case .aiSuggestions:
             ClientAISuggestionsSheet(
-                suggestions: viewModel.getAISuggestions(),
-                workerPerformance: viewModel.getWorkerPerformanceData(),
+                workers: viewModel.getAvailableWorkers(),
+                buildings: viewModel.clientBuildings,
+                routines: viewModel.getClientRoutines(),
                 container: container
             )
             .navigationTitle("AI Suggestions")

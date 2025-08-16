@@ -5,13 +5,12 @@ struct ClientCriticalAlertsSheet: View {
     let workers: [CoreTypes.WorkerSummary]
     let container: ServiceContainer
     
-    @State private var selectedSeverity: CoreTypes.AlertSeverity = .all
+    @State private var selectedSeverity: CoreTypes.AlertSeverity = .low
     @State private var selectedType: CoreTypes.AlertType = .all
     @State private var resolvedAlerts: Set<String> = []
     
     var filteredAlerts: [CoreTypes.CriticalAlert] {
         alerts.filter { alert in
-            (selectedSeverity == .all || alert.severity == selectedSeverity) &&
             (selectedType == .all || alert.type == selectedType)
         }
     }
