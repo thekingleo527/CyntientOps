@@ -48,19 +48,19 @@ struct ClientCriticalAlertsSheet: View {
             HStack(spacing: 16) {
                 AlertSummaryCard(
                     title: "Critical", 
-                    count: alerts.filter { $0.severity == .critical }.count,
+                    count: alerts.filter { $0.severity.lowercased() == "critical" }.count,
                     color: .red
                 )
                 
                 AlertSummaryCard(
                     title: "High", 
-                    count: alerts.filter { $0.severity == .high }.count,
+                    count: alerts.filter { $0.severity.lowercased() == "high" }.count,
                     color: .orange
                 )
                 
                 AlertSummaryCard(
                     title: "Medium", 
-                    count: alerts.filter { $0.severity == .medium }.count,
+                    count: alerts.filter { $0.severity.lowercased() == "medium" }.count,
                     color: .yellow
                 )
             }

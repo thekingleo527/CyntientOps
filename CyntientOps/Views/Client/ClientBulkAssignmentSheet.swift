@@ -299,7 +299,7 @@ struct ClientBulkAssignmentSheet: View {
     
     private func applyBulkAssignments() async {
         // Apply all assignments to OperationalDataManager
-        for assignment in assignments {
+        for _ in assignments {
             // Implementation would create tasks in OperationalDataManager
         }
     }
