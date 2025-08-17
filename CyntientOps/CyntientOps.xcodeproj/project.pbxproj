@@ -30,7 +30,6 @@
 		231932312E42E91200640977 /* BuildingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231931F82E42E91200640977 /* BuildingsView.swift */; };
 		231932322E42E91200640977 /* RouteStatItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231932002E42E91200640977 /* RouteStatItem.swift */; };
 		231932332E42E91200640977 /* BuildingMetricsComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231931EF2E42E91200640977 /* BuildingMetricsComponents.swift */; };
-		231932342E42E91200640977 /* AdminDashboardMainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231932062E42E91200640977 /* AdminDashboardMainView.swift */; };
 		231932352E42E91200640977 /* BuildingComplianceComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231931EB2E42E91200640977 /* BuildingComplianceComponents.swift */; };
 		231932362E42E91200640977 /* BuildingDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231931F52E42E91200640977 /* BuildingDetailView.swift */; };
 		231932372E42E91200640977 /* TaskFormView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231931FC2E42E91200640977 /* TaskFormView.swift */; };
@@ -217,7 +216,6 @@
 		2319340D2E42EC7200640977 /* ClockInGlassModal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231933E72E42EC7200640977 /* ClockInGlassModal.swift */; };
 		2319340E2E42EC7200640977 /* StatCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231933CA2E42EC7200640977 /* StatCard.swift */; };
 		2319340F2E42EC7200640977 /* EmergencyContactsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231933FD2E42EC7200640977 /* EmergencyContactsSheet.swift */; };
-		231934102E42EC7200640977 /* NovaAdminIntelligenceBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231933F92E42EC7200640977 /* NovaAdminIntelligenceBar.swift */; };
 		231934112E42EC7200640977 /* GlassTabBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231933EF2E42EC7200640977 /* GlassTabBar.swift */; };
 		231934122E42EC7200640977 /* GlassStatusBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231933EE2E42EC7200640977 /* GlassStatusBadge.swift */; };
 		231934132E42EC7200640977 /* BuildingHeaderGlassOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231933E52E42EC7200640977 /* BuildingHeaderGlassOverlay.swift */; };
@@ -230,7 +228,6 @@
 		2319341D2E42EC7200640977 /* RoutinePriority.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231933D52E42EC7200640977 /* RoutinePriority.swift */; };
 		2319341E2E42EC7200640977 /* HeaderV3B.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231933E22E42EC7200640977 /* HeaderV3B.swift */; };
 		231934202E42EC7200640977 /* GlassNavigationBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231933ED2E42EC7200640977 /* GlassNavigationBar.swift */; };
-		231934212E42EC7200640977 /* NovaIntelligenceBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231933FB2E42EC7200640977 /* NovaIntelligenceBar.swift */; };
 		231934222E42EC7200640977 /* ProfileBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231933D42E42EC7200640977 /* ProfileBadge.swift */; };
 		231934232E42EC7200640977 /* TaskCategoryGlassCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231933F22E42EC7200640977 /* TaskCategoryGlassCard.swift */; };
 		231934242E42EC7200640977 /* TaskDisplayHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231933D72E42EC7200640977 /* TaskDisplayHelpers.swift */; };
@@ -251,7 +248,6 @@
 		231934342E42EC7200640977 /* PropertyCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231933C92E42EC7200640977 /* PropertyCard.swift */; };
 		231934362E42EC7200640977 /* WorkerAssignmentGlassCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231933F32E42EC7200640977 /* WorkerAssignmentGlassCard.swift */; };
 		231934372E42EC7200640977 /* AdminBuildingPerformanceSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231933C02E42EC7200640977 /* AdminBuildingPerformanceSection.swift */; };
-		231934382E42EC7200640977 /* BuildingIntelligencePanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231933D02E42EC7200640977 /* BuildingIntelligencePanel.swift */; };
 		231934392E42EC7200640977 /* BuildingStatsGlassCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231933E62E42EC7200640977 /* BuildingStatsGlassCard.swift */; };
 		2319343A2E42EC7200640977 /* GlassTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231933F02E42EC7200640977 /* GlassTypes.swift */; };
 		2319343B2E42EC7200640977 /* WeatherViewModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231933DC2E42EC7200640977 /* WeatherViewModifier.swift */; };
@@ -321,7 +317,6 @@
 		231932002E42E91200640977 /* RouteStatItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteStatItem.swift; sourceTree = "<group>"; };
 		231932012E42E91200640977 /* TrackableScrollView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackableScrollView.swift; sourceTree = "<group>"; };
 		231932042E42E91200640977 /* SimplifiedDashboard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SimplifiedDashboard.swift; sourceTree = "<group>"; };
-		231932062E42E91200640977 /* AdminDashboardMainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdminDashboardMainView.swift; sourceTree = "<group>"; };
 		231932072E42E91200640977 /* AdminDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdminDashboardView.swift; sourceTree = "<group>"; };
 		231932082E42E91200640977 /* AdminReportsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdminReportsView.swift; sourceTree = "<group>"; };
 		231932092E42E91200640977 /* AdminWorkerManagementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdminWorkerManagementView.swift; sourceTree = "<group>"; };
@@ -509,7 +504,6 @@
 		231933CC2E42EC7200640977 /* ClientDashboardComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClientDashboardComponents.swift; sourceTree = "<group>"; };
 		231933CE2E42EC7200640977 /* AdaptiveGlassModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdaptiveGlassModifier.swift; sourceTree = "<group>"; };
 		231933CF2E42EC7200640977 /* Building.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Building.swift; sourceTree = "<group>"; };
-		231933D02E42EC7200640977 /* BuildingIntelligencePanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuildingIntelligencePanel.swift; sourceTree = "<group>"; };
 		231933D12E42EC7200640977 /* ImagePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePicker.swift; sourceTree = "<group>"; };
 		231933D32E42EC7200640977 /* MyAssignedBuildingsSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MyAssignedBuildingsSection.swift; sourceTree = "<group>"; };
 		231933D42E42EC7200640977 /* ProfileBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileBadge.swift; sourceTree = "<group>"; };
@@ -545,9 +539,7 @@
 		231933F52E42EC7200640977 /* IntelligencePreviewPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntelligencePreviewPanel.swift; sourceTree = "<group>"; };
 		231933F62E42EC7200640977 /* SyncStatusComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncStatusComponents.swift; sourceTree = "<group>"; };
 		231933F72E42EC7200640977 /* SyncStatusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncStatusView.swift; sourceTree = "<group>"; };
-		231933F92E42EC7200640977 /* NovaAdminIntelligenceBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NovaAdminIntelligenceBar.swift; sourceTree = "<group>"; };
 		231933FA2E42EC7200640977 /* NovaClientIntelligenceBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NovaClientIntelligenceBar.swift; sourceTree = "<group>"; };
-		231933FB2E42EC7200640977 /* NovaIntelligenceBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NovaIntelligenceBar.swift; sourceTree = "<group>"; };
 		231933FD2E42EC7200640977 /* EmergencyContactsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmergencyContactsSheet.swift; sourceTree = "<group>"; };
 		231934432E42ECD600640977 /* TestRealDataIntegration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestRealDataIntegration.swift; sourceTree = "<group>"; };
 		231934462E42ECF300640977 /* CyntientOpsTests-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "CyntientOpsTests-Bridging-Header.h"; sourceTree = "<group>"; };
@@ -669,7 +661,6 @@
 			isa = PBXGroup;
 			children = (
 				231932052E42E91200640977 /* Simplified */,
-				231932062E42E91200640977 /* AdminDashboardMainView.swift */,
 				231932072E42E91200640977 /* AdminDashboardView.swift */,
 				231932082E42E91200640977 /* AdminReportsView.swift */,
 				231932092E42E91200640977 /* AdminWorkerManagementView.swift */,
@@ -1275,7 +1266,6 @@
 			children = (
 				231933CE2E42EC7200640977 /* AdaptiveGlassModifier.swift */,
 				231933CF2E42EC7200640977 /* Building.swift */,
-				231933D02E42EC7200640977 /* BuildingIntelligencePanel.swift */,
 				231933D12E42EC7200640977 /* ImagePicker.swift */,
 				231933D32E42EC7200640977 /* MyAssignedBuildingsSection.swift */,
 				231933D42E42EC7200640977 /* ProfileBadge.swift */,
@@ -1339,9 +1329,7 @@
 		231933FC2E42EC7200640977 /* Nova */ = {
 			isa = PBXGroup;
 			children = (
-				231933F92E42EC7200640977 /* NovaAdminIntelligenceBar.swift */,
 				231933FA2E42EC7200640977 /* NovaClientIntelligenceBar.swift */,
-				231933FB2E42EC7200640977 /* NovaIntelligenceBar.swift */,
 			);
 			path = Nova;
 			sourceTree = "<group>";
@@ -1645,7 +1633,6 @@
 				231933BA2E42EC4900640977 /* EnvironmentConfig.swift in Sources */,
 				231932322E42E91200640977 /* RouteStatItem.swift in Sources */,
 				231932332E42E91200640977 /* BuildingMetricsComponents.swift in Sources */,
-				231932342E42E91200640977 /* AdminDashboardMainView.swift in Sources */,
 				231932352E42E91200640977 /* BuildingComplianceComponents.swift in Sources */,
 				231933A12E42EC3200640977 /* WorkerActionType.swift in Sources */,
 				231933A22E42EC3200640977 /* WorkerConstants.swift in Sources */,
@@ -1684,7 +1671,6 @@
 				2319344A2E42ED3900640977 /* CyntientOpsApp.swift in Sources */,
 				2319340E2E42EC7200640977 /* StatCard.swift in Sources */,
 				2319340F2E42EC7200640977 /* EmergencyContactsSheet.swift in Sources */,
-				231934102E42EC7200640977 /* NovaAdminIntelligenceBar.swift in Sources */,
 				231934112E42EC7200640977 /* GlassTabBar.swift in Sources */,
 				231934122E42EC7200640977 /* GlassStatusBadge.swift in Sources */,
 				231934132E42EC7200640977 /* BuildingHeaderGlassOverlay.swift in Sources */,
@@ -1697,7 +1683,6 @@
 				2319341D2E42EC7200640977 /* RoutinePriority.swift in Sources */,
 				2319341E2E42EC7200640977 /* HeaderV3B.swift in Sources */,
 				231934202E42EC7200640977 /* GlassNavigationBar.swift in Sources */,
-				231934212E42EC7200640977 /* NovaIntelligenceBar.swift in Sources */,
 				231934222E42EC7200640977 /* ProfileBadge.swift in Sources */,
 				231934232E42EC7200640977 /* TaskCategoryGlassCard.swift in Sources */,
 				231934242E42EC7200640977 /* TaskDisplayHelpers.swift in Sources */,
@@ -1718,7 +1703,6 @@
 				231934342E42EC7200640977 /* PropertyCard.swift in Sources */,
 				231934362E42EC7200640977 /* WorkerAssignmentGlassCard.swift in Sources */,
 				231934372E42EC7200640977 /* AdminBuildingPerformanceSection.swift in Sources */,
-				231934382E42EC7200640977 /* BuildingIntelligencePanel.swift in Sources */,
 				231934392E42EC7200640977 /* BuildingStatsGlassCard.swift in Sources */,
 				2319343A2E42EC7200640977 /* GlassTypes.swift in Sources */,
 				2319343B2E42EC7200640977 /* WeatherViewModifier.swift in Sources */,

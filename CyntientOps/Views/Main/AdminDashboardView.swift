@@ -2,10 +2,10 @@
 //  AdminDashboardView.swift
 //  CyntientOps v6.0
 //
-//  ✅ REFACTORED: Clean, streamlined admin dashboard
-//  ✅ WORKER FOCUSED: Hero card shows worker metrics, quick actions for admin tasks
-//  ✅ NOVA AI: Integrated with NovaAIManager and persistent avatar
-//  ✅ SERVICE CONTAINER: Proper dependency injection
+//  ✅ REDESIGNED: Mirrors ClientDashboard structure and design
+//  ✅ INTELLIGENCE PANEL: Expandable/collapsible with tabs like client
+//  ✅ NOVA AI: Fixed avatar and streaming broadcast functionality
+//  ✅ MANHATTAN FOCUS: Map properly zoomed to Manhattan area
 //
 
 import SwiftUI
@@ -13,711 +13,1326 @@ import MapKit
 import CoreLocation
 
 struct AdminDashboardView: View {
-    // MARK: - Properties
-    @ObservedObject var viewModel: AdminDashboardViewModel
-    @EnvironmentObject private var container: ServiceContainer
-    @EnvironmentObject private var novaAI: NovaAIManager
-    @EnvironmentObject private var authManager: NewAuthManager
+    @StateObject private var viewModel: AdminDashboardViewModel
     
-    // MARK: - State Variables
-    @State private var isHeroCollapsed = false
-    @State private var showNovaAssistant = false
-    @State private var selectedBuilding: CoreTypes.NamedCoordinate?
-    @State private var isMapRevealed = false
-    @State private var refreshID = UUID()
+    // MARK: - Responsive Layout
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
+    @Environment(\.verticalSizeClass) var verticalSizeClass
     
-    // MARK: - Initialization
-    init(viewModel: AdminDashboardViewModel) {
-        self.viewModel = viewModel
+    private let container: ServiceContainer
+    
+    init(container: ServiceContainer) {
+        self.container = container
+        self._viewModel = StateObject(wrappedValue: AdminDashboardViewModel(container: container))
     }
+    
+    // MARK: - Sheet Navigation
+    enum AdminRoute: Identifiable {
+        case profile, buildings, buildingDetail(String), workers, compliance, analytics, reports, emergencies, settings
+        case workerDetail(String), chat, map
+        
+        var id: String {
+            switch self {
+            case .profile: return "profile"
+            case .buildings: return "buildings"
+            case .buildingDetail(let id): return "building-\(id)"
+            case .workers: return "workers"
+            case .compliance: return "compliance"
+            case .analytics: return "analytics"
+            case .reports: return "reports"
+            case .emergencies: return "emergencies"
+            case .settings: return "settings"
+            case .workerDetail(let id): return "worker-\(id)"
+            case .chat: return "chat"
+            case .map: return "map"
+            }
+        }
+    }
+    
+    // MARK: - Nova Intelligence Tabs (mirroring client)
+    enum AdminNovaTab: String, CaseIterable {
+        case priorities = "Priorities"
+        case workers = "Workers"
+        case buildings = "Buildings"
+        case analytics = "Analytics"
+        
+        var icon: String {
+            switch self {
+            case .priorities: return "exclamationmark.triangle"
+            case .workers: return "person.2"
+            case .buildings: return "building.2"
+            case .analytics: return "chart.bar"
+            }
+        }
+    }
+    
+    // MARK: - State
+    @State private var heroExpanded = true
+    @State private var selectedNovaTab: AdminNovaTab = .priorities
+    @State private var sheet: AdminRoute?
+    @State private var isPortfolioMapRevealed = false
+    @State private var intelligencePanelExpanded = false
     
     // MARK: - Body
     var body: some View {
-        ZStack {
-            Color.black.ignoresSafeArea()
-            
-            VStack(spacing: 0) {
-                // Admin Header
-                adminHeader
+        MapRevealContainer(
+            buildings: viewModel.buildings,
+            currentBuildingId: nil,
+            focusBuildingId: nil,
+            isRevealed: $isPortfolioMapRevealed,
+            onBuildingTap: { building in
+                sheet = .buildingDetail(building.id)
+            }
+        ) {
+            ZStack {
+                // Dark Background
+                CyntientOpsDesign.DashboardColors.baseBackground
+                    .ignoresSafeArea()
                 
-                // Main content with map reveal
-                MapRevealContainer(
-                    buildings: viewModel.buildings,
-                    currentBuildingId: nil,
-                    focusBuildingId: nil,
-                    isRevealed: $isMapRevealed,
-                    onBuildingTap: { building in
-                        selectedBuilding = building
-                        viewModel.sheet = .buildings
-                    }
-                ) {
+                VStack(spacing: 0) {
+                    // Header (mirroring client)
+                    AdminHeaderV3B(
+                        adminName: "System Administrator",
+                        portfolioCount: viewModel.buildingCount,
+                        complianceScore: viewModel.complianceScore,
+                        hasAlerts: hasUrgentItems(),
+                        onRoute: handleHeaderRoute
+                    )
+                    .zIndex(100)
+                    
+                    // Scrollable Content
                     ScrollView {
                         VStack(spacing: 16) {
-                            // Hero Card with KPIs and Next Actions
-                            heroCard
+                            // Collapsible Admin Hero Card (mirroring client)
+                            AdminRealTimeHeroCard(
+                                isExpanded: $heroExpanded,
+                                portfolioMetrics: viewModel.portfolioMetrics,
+                                activeWorkers: viewModel.workersActive,
+                                workersTotal: viewModel.workersTotal,
+                                criticalAlerts: viewModel.criticalAlerts,
+                                onBuildingsTap: { sheet = .buildings },
+                                onWorkersTap: { sheet = .workers },
+                                onComplianceTap: { sheet = .compliance }
+                            )
                             
-                            // Quick Actions - Admin Tasks  
-                            quickActionsSection
-                            
-                            // Live Activity
-                            if !viewModel.crossDashboardUpdates.isEmpty {
-                                liveActivitySection
+                            // Urgent Items Section (admin-specific)
+                            if hasUrgentItems() {
+                                AdminUrgentItemsSection(
+                                    criticalAlerts: viewModel.criticalAlerts.count,
+                                    complianceIssues: getComplianceIssuesCount(),
+                                    workersNeedingAttention: getWorkersNeedingAttention(),
+                                    onEmergenciesTap: { sheet = .emergencies },
+                                    onComplianceTap: { sheet = .compliance }
+                                )
                             }
-                            
-                            Spacer(minLength: 80) // Reserve space for intelligence bar
                         }
                         .padding(.horizontal, 20)
-                        .padding(.top, 16)
+                        .padding(.top, 8)
                     }
                     .refreshable {
                         await viewModel.refreshDashboardData()
-                        refreshID = UUID()
                     }
+                    
+                    // Intelligence Bar - Expands upward, compacts content (mirroring client)
+                    AdminNovaIntelligenceBar(
+                        selectedTab: $selectedNovaTab,
+                        portfolioMetrics: viewModel.portfolioMetrics,
+                        buildings: viewModel.buildings,
+                        workers: viewModel.workers,
+                        criticalAlerts: viewModel.criticalAlerts,
+                        onTabTap: handleNovaTabTap,
+                        onMapToggle: handlePortfolioMapToggle,
+                        onEmergencyBroadcast: { sheet = .emergencies },
+                        viewModel: viewModel
+                    )
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 8)
                 }
             }
         }
-        .safeAreaInset(edge: .bottom) {
-            NovaAdminIntelligenceBar(
-                container: container,
-                adminContext: [
-                    "adminName": "Admin Dashboard",
-                    "totalBuildings": viewModel.buildingCount,
-                    "activeWorkers": viewModel.workersActive,
-                    "totalWorkers": viewModel.workersTotal,
-                    "portfolioCompletion": "\(Int(viewModel.completionToday * 100))%",
-                    "complianceScore": viewModel.complianceScore,
-                    "criticalAlerts": viewModel.criticalAlerts.count
-                ],
-                novaManager: novaAI
-            )
-            .padding(.horizontal, 16)
-            .padding(.bottom, 8)
-        }
         .navigationBarHidden(true)
         .preferredColorScheme(.dark)
-        .sheet(item: $viewModel.sheet) { route in
-            adminSheetContent(for: route)
+        .sheet(item: $sheet) { route in
+            NavigationView {
+                adminSheetContent(for: route)
+            }
         }
         .task {
             await viewModel.initialize()
         }
     }
     
-    // MARK: - View Components
-    
-    private var adminHeader: some View {
-        HStack(spacing: 16) {
-            // Left: CyntientOps brand pill
-            HStack(spacing: 8) {
-                Image(systemName: "building.columns.fill")
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.adminAccent)
-                    .font(.title3)
-                Text("CyntientOps")
-                    .font(.headline)
-                    .fontWeight(.semibold)
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(CyntientOpsDesign.DashboardColors.cardBackground.opacity(0.6))
-            .clipShape(Capsule())
-            
-            // Center-left: Nova avatar/status
-            NovaAvatar(
-                size: .small,
-                isActive: novaAI.novaState == .active,
-                hasUrgentInsights: novaAI.hasUrgentInsights,
-                isBusy: novaAI.isThinking,
-                onTap: { showNovaAssistant = true },
-                onLongPress: { novaAI.toggleHolographicMode() }
-            )
-            
-            Spacer()
-            
-            // Sync indicator
-            HStack(spacing: 6) {
-                Circle()
-                    .fill(viewModel.isSynced ? .green : .red)
-                    .frame(width: 6, height: 6)
-                Text(viewModel.lastSyncAt.formatted(date: .omitted, time: .shortened))
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-            }
-            
-            // Right: Admin user pill
-            Button(action: { viewModel.sheet = .profile }) {
-                HStack(spacing: 8) {
-                    Circle()
-                        .fill(CyntientOpsDesign.DashboardColors.adminAccent.gradient)
-                        .frame(width: 32, height: 32)
-                        .overlay(
-                            Text("AD")
-                                .font(.caption)
-                                .fontWeight(.bold)
-                                .foregroundColor(.white)
-                        )
-                    Text("Admin")
-                        .font(.caption)
-                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-                }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background(CyntientOpsDesign.DashboardColors.cardBackground.opacity(0.6))
-                .clipShape(Capsule())
-            }
+    // MARK: - Header Actions
+    private func handleHeaderRoute(_ route: AdminHeaderV3B.HeaderRoute) {
+        switch route {
+        case .profile: sheet = .profile
+        case .chat: sheet = .chat
+        case .settings: sheet = .settings
         }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 12)
     }
     
-    private var heroCard: some View {
-        VStack(spacing: 16) {
-            // Operations Status Header
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Operations Command")
-                        .font(.headline)
-                        .fontWeight(.bold)
-                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-                    
-                    HStack(spacing: 4) {
-                        Circle()
-                            .fill(viewModel.isSynced ? .green : .red)
-                            .frame(width: 6, height: 6)
-                        Text(viewModel.isSynced ? "LIVE" : "OFFLINE")
-                            .font(.caption)
-                            .fontWeight(.semibold)
-                            .foregroundColor(viewModel.isSynced ? .green : .red)
-                    }
-                }
-                
-                Spacer()
-            }
-            
-            // Pressable KPI Row
-            LazyVGrid(columns: [
-                GridItem(.flexible()),
-                GridItem(.flexible())
-            ], spacing: 12) {
-                // Buildings KPI
-                Button(action: { viewModel.sheet = .buildings }) {
-                    AdminKPICard(
-                        icon: "building.2.fill",
-                        title: "Buildings",
-                        value: "\(viewModel.buildingCount)",
-                        color: CyntientOpsDesign.DashboardColors.adminAccent
-                    )
-                }
-                .buttonStyle(.plain)
-                
-                // Active Workers KPI
-                Button(action: { viewModel.sheet = .workers }) {
-                    AdminKPICard(
-                        icon: "person.2.fill",
-                        title: "Active Workers", 
-                        value: "\(viewModel.workersActive)/\(viewModel.workersTotal)",
-                        color: CyntientOpsDesign.DashboardColors.success
-                    )
-                }
-                .buttonStyle(.plain)
-                
-                // Compliance KPI
-                Button(action: { viewModel.sheet = .compliance }) {
-                        AdminKPICard(
-                        icon: "checkmark.shield.fill",
-                        title: "Compliance",
-                        value: "\(Int(viewModel.complianceScore*100))%",
-                        color: getComplianceColor()
-                    )
-                }
-                .buttonStyle(.plain)
-                
-                // Completion Today KPI
-                Button(action: { viewModel.sheet = .analytics }) {
-                    AdminKPICard(
-                        icon: "chart.line.uptrend.xyaxis",
-                        title: "Completion Today",
-                        value: "\(Int(viewModel.completionToday*100))%",
-                        color: getCompletionColor()
-                    )
-                }
-                .buttonStyle(.plain)
-            }
-            
-            // Next Actions Row
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Next Actions")
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
-                
-                HStack(spacing: 8) {
-                    // Emergencies Chip
-                    if !viewModel.criticalAlerts.isEmpty {
-                        Button(action: { viewModel.sheet = .emergencies }) {
-                            HStack(spacing: 4) {
-                                Image(systemName: "exclamationmark.triangle.fill")
-                                    .foregroundColor(.red)
-                                    .font(.caption)
-                                Text("Emergencies (\(viewModel.criticalAlerts.count))")
-                                    .font(.caption)
-                                    .fontWeight(.medium)
-                            }
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 6)
-                            .background(.red.opacity(0.2))
-                            .clipShape(Capsule())
-                        }
-                    }
-                    
-                    // Reports Chip
-                    Button(action: { viewModel.sheet = .reports }) {
-                        HStack(spacing: 4) {
-                            Image(systemName: "doc.text.fill")
-                                .foregroundColor(CyntientOpsDesign.DashboardColors.adminAccent)
-                                .font(.caption)
-                            Text("Generate Reports")
-                                .font(.caption)
-                                .fontWeight(.medium)
-                        }
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(CyntientOpsDesign.DashboardColors.adminAccent.opacity(0.2))
-                        .clipShape(Capsule())
-                    }
-                    
-                    // Map Toggle Chip
-                    Button(action: { isMapRevealed.toggle() }) {
-                        HStack(spacing: 4) {
-                            Image(systemName: isMapRevealed ? "map.fill" : "map")
-                                .foregroundColor(CyntientOpsDesign.DashboardColors.info)
-                                .font(.caption)
-                            Text("Open Map")
-                                .font(.caption)
-                                .fontWeight(.medium)
-                        }
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(CyntientOpsDesign.DashboardColors.info.opacity(0.2))
-                        .clipShape(Capsule())
-                    }
-                    
-                    Spacer()
-                }
-            }
-        }
-        .padding()
-        .background(CyntientOpsDesign.DashboardColors.cardBackground)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-    }
-    
-    private var quickActionsSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Quick Actions")
-                .font(.headline)
-                .fontWeight(.semibold)
-                .foregroundColor(.white)
-            
-            LazyVGrid(columns: [
-                GridItem(.flexible()),
-                GridItem(.flexible())
-            ], spacing: 12) {
-                AdminQuickActionCard(
-                    title: "Compliance",
-                    value: "\(Int(viewModel.portfolioMetrics.complianceScore))%",
-                    icon: "checkmark.shield.fill",
-                    color: complianceScoreColor,
-                    action: { viewModel.sheet = .compliance }
-                )
-                
-                AdminQuickActionCard(
-                    title: "Create Task",
-                    value: "New",
-                    icon: "plus.circle.fill",
-                    color: .green,
-                    action: { viewModel.sheet = .workers }
-                )
-                
-                AdminQuickActionCard(
-                    title: "Reports",
-                    value: "Generate",
-                    icon: "doc.badge.arrow.up",
-                    color: .purple,
-                    action: { viewModel.sheet = .reports }
-                )
-                
-                AdminQuickActionCard(
-                    title: "Portfolio Map",
-                    value: "View",
-                    icon: "map.fill",
-                    color: .blue,
-                    action: { isMapRevealed.toggle() }
-                )
+    // MARK: - Nova Tab Actions
+    private func handleNovaTabTap(_ tab: AdminNovaTab) {
+        withAnimation(CyntientOpsDesign.Animations.spring) {
+            if selectedNovaTab == tab && viewModel.intelligencePanelExpanded {
+                // Clicking same tab when expanded - collapse panel
+                viewModel.intelligencePanelExpanded = false
+            } else {
+                // Clicking different tab or clicking when collapsed - switch tab and expand
+                selectedNovaTab = tab
+                viewModel.intelligencePanelExpanded = true
             }
         }
     }
     
-    private var liveActivitySection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Label("Recent Activity", systemImage: "dot.radiowaves.left.and.right")
-                    .font(.headline)
-                    .foregroundColor(.white)
-                
-                Spacer()
-                
-                HStack(spacing: 4) {
-                    Circle()
-                        .fill(Color.green)
-                        .frame(width: 6, height: 6)
-                    Text("LIVE")
-                        .font(.caption)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.green)
-                }
-            }
-            
-            VStack(spacing: 8) {
-                ForEach(viewModel.crossDashboardUpdates.prefix(5)) { update in
-                    ActivityRow(update: update)
-                }
-            }
-        }
-        .padding()
-        .background(CyntientOpsDesign.DashboardColors.cardBackground.opacity(0.3))
-        .cornerRadius(12)
-    }
-    
-    // MARK: - Sheet Content
-    
-    @ViewBuilder
-    private func adminSheetContent(for route: AdminDashboardViewModel.AdminRoute) -> some View {
-        NavigationView {
-            switch route {
-                case .buildings:
-                    if let building = selectedBuilding {
-                        BuildingDetailView(
-                            buildingId: building.id,
-                            buildingName: building.name,
-                            buildingAddress: building.address
-                        )
-                        .environmentObject(container)
-                        .navigationBarTitleDisplayMode(.large)
-                        .toolbar {
-                            ToolbarItem(placement: .navigationBarTrailing) {
-                                Button("Done") { viewModel.sheet = nil }
-                                    .foregroundColor(.white)
-                            }
-                        }
-                    } else {
-                        VStack {
-                            Text("Buildings Management")
-                                .font(.largeTitle)
-                                .foregroundColor(.white)
-                            Text("Portfolio buildings overview")
-                                .foregroundColor(.secondary)
-                        }
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .background(Color.black)
-                        .navigationBarTitleDisplayMode(.large)
-                        .toolbar {
-                            ToolbarItem(placement: .navigationBarTrailing) {
-                                Button("Done") { viewModel.sheet = nil }
-                                    .foregroundColor(.white)
-                            }
-                        }
-                    }
-                case .workers:
-                    AdminWorkerManagementView()
-                        .environmentObject(container)
-                        .navigationBarTitleDisplayMode(.large)
-                        .toolbar {
-                            ToolbarItem(placement: .navigationBarTrailing) {
-                                Button("Done") { viewModel.sheet = nil }
-                                    .foregroundColor(.white)
-                            }
-                        }
-                case .compliance:
-                    ComplianceOverviewView()
-                        .navigationBarTitleDisplayMode(.large)
-                        .toolbar {
-                            ToolbarItem(placement: .navigationBarTrailing) {
-                                Button("Done") { viewModel.sheet = nil }
-                                    .foregroundColor(.white)
-                            }
-                        }
-                case .reports:
-                    AdminReportsView()
-                        .navigationBarTitleDisplayMode(.large)
-                        .toolbar {
-                            ToolbarItem(placement: .navigationBarTrailing) {
-                                Button("Done") { viewModel.sheet = nil }
-                                    .foregroundColor(.white)
-                            }
-                        }
-                case .emergencies:
-                    VStack {
-                        Text("Emergency Management")
-                            .font(.largeTitle)
-                            .foregroundColor(.white)
-                        Text("Critical alerts and emergency response")
-                            .foregroundColor(.secondary)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(Color.black)
-                    .navigationBarTitleDisplayMode(.large)
-                    .toolbar {
-                        ToolbarItem(placement: .navigationBarTrailing) {
-                            Button("Done") { viewModel.sheet = nil }
-                                .foregroundColor(.white)
-                        }
-                    }
-                case .analytics:
-                    VStack {
-                        Text("Analytics Dashboard") 
-                            .font(.largeTitle)
-                            .foregroundColor(.white)
-                        Text("Portfolio performance analytics")
-                            .foregroundColor(.secondary)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(Color.black)
-                    .navigationBarTitleDisplayMode(.large)
-                    .toolbar {
-                        ToolbarItem(placement: .navigationBarTrailing) {
-                            Button("Done") { viewModel.sheet = nil }
-                                .foregroundColor(.white)
-                        }
-                    }
-                case .profile:
-                    VStack {
-                        Text("Admin Profile")
-                            .font(.largeTitle)
-                            .foregroundColor(.white)
-                        Text("Administrator profile and account settings")
-                            .foregroundColor(.secondary)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(Color.black)
-                    .navigationBarTitleDisplayMode(.large)
-                    .toolbar {
-                        ToolbarItem(placement: .navigationBarTrailing) {
-                            Button("Done") { viewModel.sheet = nil }
-                                .foregroundColor(.white)
-                        }
-                    }
-                case .settings:
-                    VStack {
-                        Text("Admin Settings")
-                            .font(.largeTitle)
-                            .foregroundColor(.white)
-                        Text("System configuration and admin preferences")
-                            .foregroundColor(.secondary)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(Color.black)
-                    .navigationBarTitleDisplayMode(.large)
-                    .toolbar {
-                        ToolbarItem(placement: .navigationBarTrailing) {
-                            Button("Done") { viewModel.sheet = nil }
-                                .foregroundColor(.white)
-                        }
-                    }
-            }
+    private func handlePortfolioMapToggle() {
+        withAnimation(CyntientOpsDesign.Animations.spring) {
+            isPortfolioMapRevealed.toggle()
         }
     }
     
     // MARK: - Helper Methods
-    
-    private func getTodaysTaskCount() -> Int {
-        return viewModel.activeWorkers.filter { $0.isClockedIn }.count * 3 + viewModel.portfolioMetrics.totalBuildings
+    private func getAdminName() -> String {
+        return "System Administrator"
     }
     
-    private func getTodaysCompletedTasks() -> Int {
-        let todaysTasks = getTodaysTaskCount()
-        return Int(Double(todaysTasks) * viewModel.portfolioMetrics.overallCompletionRate)
+    private func hasUrgentItems() -> Bool {
+        return !viewModel.criticalAlerts.isEmpty ||
+               viewModel.complianceScore < 0.8 ||
+               getWorkersNeedingAttention() > 0
     }
     
-    private var activeWorkerColor: Color {
-        let activeCount = viewModel.activeWorkers.filter { $0.isClockedIn }.count
-        let totalCount = viewModel.activeWorkers.count
-        let ratio = totalCount > 0 ? Double(activeCount) / Double(totalCount) : 0
-        
-        if ratio > 0.8 { return .green }
-        if ratio > 0.6 { return .orange }
-        return .red
+    private func getComplianceIssuesCount() -> Int {
+        // Count buildings with compliance issues
+        return viewModel.buildings.filter { building in
+            if let metrics = viewModel.buildingMetrics[building.id] {
+                return metrics.complianceScore < 0.8
+            }
+            return false
+        }.count
     }
     
-    private var taskProgressColor: Color {
-        let completed = getTodaysCompletedTasks()
-        let total = getTodaysTaskCount()
-        let ratio = total > 0 ? Double(completed) / Double(total) : 0
-        
-        if ratio > 0.8 { return .green }
-        if ratio > 0.6 { return .orange }
-        return .red
+    private func getWorkersNeedingAttention() -> Int {
+        // Count workers with issues or needing supervisor attention
+        return viewModel.workers.filter { worker in
+            return !worker.isClockedIn && worker.isActive // Workers who should be working
+        }.count
     }
     
-    private var complianceScoreColor: Color {
-        let score = viewModel.portfolioMetrics.complianceScore
-        if score >= 90 { return .green }
-        if score >= 80 { return .yellow }
-        if score >= 70 { return .orange }
-        return .red
-    }
-    
-    private func getComplianceColor() -> Color {
-        if viewModel.complianceScore >= 0.9 { return CyntientOpsDesign.DashboardColors.success }
-        else if viewModel.complianceScore >= 0.7 { return CyntientOpsDesign.DashboardColors.warning }
-        else { return CyntientOpsDesign.DashboardColors.critical }
-    }
-    
-    private func getCompletionColor() -> Color {
-        if viewModel.completionToday >= 0.8 { return CyntientOpsDesign.DashboardColors.success }
-        else if viewModel.completionToday >= 0.6 { return CyntientOpsDesign.DashboardColors.warning }
-        else { return CyntientOpsDesign.DashboardColors.critical }
-    }
-}
+// MARK: - Admin Metric Components (mirroring client)
 
-// MARK: - Supporting Views
-
-struct AdminQuickActionCard: View {
+struct AdminMetricTile: View {
     let title: String
     let value: String
-    let icon: String
+    let subtitle: String
     let color: Color
-    let action: () -> Void
+    let onTap: () -> Void
     
     var body: some View {
-        Button(action: action) {
-            VStack(spacing: 8) {
-                Image(systemName: icon)
-                    .font(.title3)
-                    .foregroundColor(color)
+        Button(action: onTap) {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Text(title)
+                        .font(.caption)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                    
+                    Spacer()
+                    
+                    Circle()
+                        .fill(color)
+                        .frame(width: 6, height: 6)
+                }
                 
                 Text(value)
-                    .font(.caption)
+                    .font(.title2)
                     .fontWeight(.semibold)
-                    .foregroundColor(.white)
+                    .foregroundColor(color)
                 
-                Text(title)
+                Text(subtitle)
                     .font(.caption2)
-                    .foregroundColor(.white.opacity(0.7))
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+                    .lineLimit(1)
             }
-            .frame(maxWidth: .infinity)
-            .frame(height: 70)
-            .background(CyntientOpsDesign.DashboardColors.cardBackground.opacity(0.3))
-            .cornerRadius(12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(12)
+            .background(
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(color.opacity(0.1))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(color.opacity(0.3), lineWidth: 1)
+                    )
+            )
         }
         .buttonStyle(PlainButtonStyle())
     }
 }
 
-struct ActivityRow: View {
-    let update: CoreTypes.DashboardUpdate
+struct AdminMetricPill: View {
+    let value: String
+    let label: String
+    let color: Color
+    
+    var body: some View {
+        HStack(spacing: 4) {
+            Text(value)
+                .font(.caption)
+                .fontWeight(.semibold)
+                .foregroundColor(color)
+            
+            Text(label)
+                .font(.caption2)
+                .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+        }
+    }
+}
+
+struct AdminImmediateItem: View {
+    let icon: String
+    let text: String
+    let color: Color
+    
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: icon)
+                .font(.caption2)
+                .foregroundColor(color)
+            
+            Text(text)
+                .font(.caption2)
+                .fontWeight(.medium)
+                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(color.opacity(0.15))
+        .cornerRadius(8)
+    }
+}
+    
+// MARK: - Admin Urgent Items Section (mirroring client)
+
+struct AdminUrgentItemsSection: View {
+    let criticalAlerts: Int
+    let complianceIssues: Int
+    let workersNeedingAttention: Int
+    let onEmergenciesTap: () -> Void
+    let onComplianceTap: () -> Void
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.title3)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.critical)
+                
+                Text("Urgent Admin Items")
+                    .font(.headline)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                
+                Spacer()
+            }
+            
+            VStack(spacing: 8) {
+                if criticalAlerts > 0 {
+                    AdminUrgentItem(
+                        icon: "exclamationmark.octagon.fill",
+                        title: "Critical Alerts",
+                        count: criticalAlerts,
+                        color: CyntientOpsDesign.DashboardColors.critical,
+                        action: onEmergenciesTap
+                    )
+                }
+                
+                if complianceIssues > 0 {
+                    AdminUrgentItem(
+                        icon: "shield.lefthalf.fill",
+                        title: "Compliance Issues",
+                        count: complianceIssues,
+                        color: CyntientOpsDesign.DashboardColors.critical,
+                        action: onComplianceTap
+                    )
+                }
+                
+                if workersNeedingAttention > 0 {
+                    AdminUrgentItem(
+                        icon: "person.badge.exclamationmark",
+                        title: "Workers Need Attention",
+                        count: workersNeedingAttention,
+                        color: CyntientOpsDesign.DashboardColors.warning,
+                        action: {}
+                    )
+                }
+            }
+        }
+        .padding(16)
+        .francoDarkCardBackground(cornerRadius: 12)
+    }
+}
+
+struct AdminUrgentItem: View {
+    let icon: String
+    let title: String
+    let count: Int
+    let color: Color
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 12) {
+                Image(systemName: icon)
+                    .font(.title3)
+                    .foregroundColor(color)
+                    .frame(width: 24)
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                    
+                    Text("Requires immediate attention")
+                        .font(.caption)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                }
+                
+                Spacer()
+                
+                Text("\(count)")
+                    .font(.subheadline)
+                    .fontWeight(.bold)
+                    .foregroundColor(color)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(color.opacity(0.2))
+                    .cornerRadius(8)
+                
+                Image(systemName: "chevron.right")
+                    .font(.caption)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+            }
+            .padding(.vertical, 8)
+        }
+        .buttonStyle(PlainButtonStyle())
+    }
+}
+    
+    // MARK: - Sheet Content
+    @ViewBuilder
+    private func adminSheetContent(for route: AdminRoute) -> some View {
+        switch route {
+        case .profile:
+            AdminProfileView(viewModel: viewModel)
+                .navigationTitle("Admin Profile")
+                
+        case .buildings:
+            AdminBuildingsListView(
+                buildings: viewModel.buildings,
+                buildingMetrics: viewModel.buildingMetrics,
+                onSelectBuilding: { building in
+                    sheet = .buildingDetail(building.id)
+                }
+            )
+                .navigationTitle("Portfolio Buildings")
+            
+        case .buildingDetail(let buildingId):
+            if let building = viewModel.buildings.first(where: { $0.id == buildingId }) {
+                BuildingDetailView(
+                    buildingId: building.id,
+                    buildingName: building.name,
+                    buildingAddress: building.address
+                )
+                .navigationTitle(building.name)
+            }
+            
+        case .workers:
+            AdminWorkerManagementView(clientBuildings: viewModel.buildings)
+                .navigationTitle("Worker Management")
+                
+        case .compliance:
+            ComplianceOverviewView()
+                .navigationTitle("Compliance Overview")
+            
+        case .analytics:
+            AdminAnalyticsView(viewModel: viewModel)
+                .navigationTitle("Portfolio Analytics")
+                
+        case .reports:
+            AdminReportsView()
+                .navigationTitle("System Reports")
+                
+        case .emergencies:
+            AdminEmergencyManagementView(alerts: viewModel.criticalAlerts)
+                .navigationTitle("Emergency Management")
+                
+        case .settings:
+            AdminSettingsView()
+                .navigationTitle("System Settings")
+                
+        case .workerDetail(let workerId):
+            AdminWorkerDetailView(workerId: workerId, container: container)
+                .navigationTitle("Worker Details")
+                
+        case .chat:
+            NovaInteractionView()
+                .navigationTitle("Nova Assistant")
+                
+        case .map:
+            AdminPortfolioMapView(buildings: viewModel.buildings, workers: viewModel.workers)
+                .navigationTitle("Portfolio Map")
+        }
+    }
+}
+
+// MARK: - Admin Header Component (mirroring client)
+
+struct AdminHeaderV3B: View {
+    enum HeaderRoute: Identifiable {
+        case profile, chat, settings
+        
+        var id: String {
+            switch self {
+            case .profile: return "profile"
+            case .chat: return "chat" 
+            case .settings: return "settings"
+            }
+        }
+    }
+    
+    let adminName: String
+    let portfolioCount: Int
+    let complianceScore: Double
+    let hasAlerts: Bool
+    let onRoute: (HeaderRoute) -> Void
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 20) {
+                // Left: CyntientOps Logo
+                Button(action: { /* Handle logo tap */ }) {
+                    HStack(spacing: 8) {
+                        ZStack {
+                            Circle()
+                                .fill(CyntientOpsDesign.DashboardColors.adminAccent)
+                                .frame(width: 32, height: 32)
+                            
+                            Text("CO")
+                                .font(.system(size: 12, weight: .bold, design: .rounded))
+                                .foregroundColor(.white)
+                        }
+                        
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text("CYNTIENT")
+                                .font(.system(size: 11, weight: .bold, design: .rounded))
+                                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                            
+                            Text("OPS")
+                                .font(.system(size: 8, weight: .medium))
+                                .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                        }
+                    }
+                }
+                .buttonStyle(PlainButtonStyle())
+                
+                Spacer()
+                
+                // Center: Nova Manager Avatar
+                Button(action: { onRoute(.chat) }) {
+                    VStack(spacing: 4) {
+                        NovaAvatar(
+                            size: .medium,
+                            isActive: true,
+                            hasUrgentInsights: hasAlerts,
+                            isBusy: false,
+                            onTap: { onRoute(.chat) },
+                            onLongPress: { }
+                        )
+                        .frame(width: 40, height: 40)
+                        
+                        VStack(spacing: 1) {
+                            Text("NOVA")
+                                .font(.system(size: 9, weight: .bold, design: .rounded))
+                                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                            
+                            Text("AI Manager")
+                                .font(.system(size: 7, weight: .medium))
+                                .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+                        }
+                    }
+                }
+                .buttonStyle(PlainButtonStyle())
+                
+                Spacer()
+                
+                // Right: Admin Profile
+                Button(action: { onRoute(.profile) }) {
+                    HStack(spacing: 12) {
+                        VStack(alignment: .trailing, spacing: 2) {
+                            Text("System Administrator")
+                                .font(.system(size: 13, weight: .semibold, design: .rounded))
+                                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                                .lineLimit(1)
+                            
+                            HStack(spacing: 4) {
+                                Text("\(portfolioCount) Buildings")
+                                    .font(.system(size: 10, weight: .medium))
+                                    .foregroundColor(CyntientOpsDesign.DashboardColors.adminAccent)
+                                
+                                Text("\(Int(complianceScore * 100))% Compliant")
+                                    .font(.system(size: 10, weight: .medium))
+                                    .foregroundColor(complianceColor)
+                            }
+                        }
+                        
+                        ProfileChip(
+                            name: adminName,
+                            initials: getInitials(adminName),
+                            photoURL: nil,
+                            tap: { onRoute(.profile) }
+                        )
+                    }
+                }
+                .buttonStyle(PlainButtonStyle())
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .frame(height: 68)
+            
+            Divider()
+                .opacity(0.3)
+        }
+        .background(CyntientOpsDesign.DashboardColors.baseBackground)
+    }
+    
+    private var complianceColor: Color {
+        if complianceScore >= 0.8 {
+            return CyntientOpsDesign.DashboardColors.success
+        } else if complianceScore >= 0.6 {
+            return CyntientOpsDesign.DashboardColors.warning
+        } else {
+            return CyntientOpsDesign.DashboardColors.critical
+        }
+    }
+    
+    private func getInitials(_ name: String) -> String {
+        let components = name.components(separatedBy: " ")
+        let first = String(components.first?.first ?? "S")
+        let last = components.count > 1 ? String(components.last?.first ?? "A") : ""
+        return "\(first)\(last)".uppercased()
+    }
+}
+
+// MARK: - Admin Real-time Hero Card (mirroring client)
+
+struct AdminRealTimeHeroCard: View {
+    @Binding var isExpanded: Bool
+    let portfolioMetrics: CoreTypes.PortfolioMetrics
+    let activeWorkers: Int
+    let workersTotal: Int
+    let criticalAlerts: [CoreTypes.AdminAlert]
+    let onBuildingsTap: () -> Void
+    let onWorkersTap: () -> Void
+    let onComplianceTap: () -> Void
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            if isExpanded {
+                // Full Hero Card with Real-time Data
+                VStack(spacing: 16) {
+                    // Top Row - Portfolio Overview
+                    HStack(spacing: 12) {
+                        AdminMetricTile(
+                            title: "Buildings",
+                            value: "\(portfolioMetrics.totalBuildings)",
+                            subtitle: "Portfolio Properties",
+                            color: CyntientOpsDesign.DashboardColors.adminAccent,
+                            onTap: onBuildingsTap
+                        )
+                        
+                        AdminMetricTile(
+                            title: "Workers",
+                            value: "\(activeWorkers)/\(workersTotal)",
+                            subtitle: "Active Today",
+                            color: activeWorkersColor,
+                            onTap: onWorkersTap
+                        )
+                    }
+                    
+                    // Middle Row - Performance Metrics
+                    HStack(spacing: 12) {
+                        AdminMetricTile(
+                            title: "Compliance",
+                            value: "\(Int(portfolioMetrics.complianceScore * 100))%",
+                            subtitle: complianceSubtitle,
+                            color: complianceColor,
+                            onTap: onComplianceTap
+                        )
+                        
+                        AdminMetricTile(
+                            title: "Completion",
+                            value: "\(Int(portfolioMetrics.overallCompletionRate * 100))%",
+                            subtitle: "Today's Progress",
+                            color: completionColor,
+                            onTap: { /* Show analytics */ }
+                        )
+                    }
+                    
+                    // Bottom Row - Critical Status
+                    if hasImmediateItems {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Critical Attention")
+                                .font(.caption)
+                                .fontWeight(.semibold)
+                                .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                            
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 8) {
+                                    if !criticalAlerts.isEmpty {
+                                        AdminImmediateItem(
+                                            icon: "exclamationmark.triangle.fill",
+                                            text: "\(criticalAlerts.count) Critical Alerts",
+                                            color: CyntientOpsDesign.DashboardColors.critical
+                                        )
+                                    }
+                                    
+                                    if portfolioMetrics.criticalIssues > 0 {
+                                        AdminImmediateItem(
+                                            icon: "exclamationmark.shield.fill",
+                                            text: "\(portfolioMetrics.criticalIssues) Critical Issues",
+                                            color: CyntientOpsDesign.DashboardColors.critical
+                                        )
+                                    }
+                                }
+                                .padding(.horizontal, 4)
+                            }
+                        }
+                    }
+                    
+                    // Collapse Button
+                    Button(action: {
+                        withAnimation(CyntientOpsDesign.Animations.spring) {
+                            isExpanded = false
+                        }
+                    }) {
+                        HStack {
+                            Text("Show Less")
+                                .font(.caption)
+                                .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+                            
+                            Image(systemName: "chevron.up")
+                                .font(.caption)
+                                .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+                        }
+                    }
+                    .padding(.top, 8)
+                }
+                .padding(16)
+                .francoDarkCardBackground(cornerRadius: 12)
+            } else {
+                // Collapsed Hero Card with Real-time Status
+                Button(action: {
+                    withAnimation(CyntientOpsDesign.Animations.spring) {
+                        isExpanded = true
+                    }
+                }) {
+                    HStack(spacing: 16) {
+                        // Real-time status indicator
+                        HStack(spacing: 6) {
+                            Circle()
+                                .fill(overallStatusColor)
+                                .frame(width: 8, height: 8)
+                                .scaleEffect(activeWorkers > 0 ? 1.2 : 1.0)
+                                .animation(.easeInOut(duration: 2).repeatForever(autoreverses: true), value: activeWorkers > 0)
+                            
+                            Text(activeWorkers > 0 ? "Live" : "Offline")
+                                .font(.caption2)
+                                .fontWeight(.semibold)
+                                .foregroundColor(overallStatusColor)
+                        }
+                        
+                        // Quick metrics
+                        HStack(spacing: 12) {
+                            AdminMetricPill(
+                                value: "\(portfolioMetrics.totalBuildings)",
+                                label: "Buildings",
+                                color: CyntientOpsDesign.DashboardColors.adminAccent
+                            )
+                            
+                            AdminMetricPill(
+                                value: "\(activeWorkers)",
+                                label: "Active",
+                                color: CyntientOpsDesign.DashboardColors.success
+                            )
+                            
+                            AdminMetricPill(
+                                value: "\(Int(portfolioMetrics.complianceScore * 100))%",
+                                label: "Compliant",
+                                color: complianceColor
+                            )
+                        }
+                        
+                        Spacer()
+                        
+                        Image(systemName: "chevron.down")
+                            .font(.caption)
+                            .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 12)
+                    .francoDarkCardBackground(cornerRadius: 12)
+                }
+                .buttonStyle(PlainButtonStyle())
+            }
+        }
+    }
+    
+    private var hasImmediateItems: Bool {
+        return !criticalAlerts.isEmpty || portfolioMetrics.criticalIssues > 0
+    }
+    
+    private var complianceSubtitle: String {
+        if portfolioMetrics.criticalIssues > 0 {
+            return "\(portfolioMetrics.criticalIssues) Critical"
+        }
+        return "All Clear"
+    }
+    
+    private var activeWorkersColor: Color {
+        let ratio = workersTotal > 0 ? Double(activeWorkers) / Double(workersTotal) : 0
+        if ratio >= 0.8 {
+            return CyntientOpsDesign.DashboardColors.success
+        } else if ratio >= 0.6 {
+            return CyntientOpsDesign.DashboardColors.warning
+        }
+        return CyntientOpsDesign.DashboardColors.critical
+    }
+    
+    private var complianceColor: Color {
+        if portfolioMetrics.complianceScore >= 0.8 {
+            return CyntientOpsDesign.DashboardColors.success
+        } else if portfolioMetrics.complianceScore >= 0.6 {
+            return CyntientOpsDesign.DashboardColors.warning
+        }
+        return CyntientOpsDesign.DashboardColors.critical
+    }
+    
+    private var completionColor: Color {
+        if portfolioMetrics.overallCompletionRate >= 0.8 {
+            return CyntientOpsDesign.DashboardColors.success
+        } else if portfolioMetrics.overallCompletionRate >= 0.6 {
+            return CyntientOpsDesign.DashboardColors.warning
+        }
+        return CyntientOpsDesign.DashboardColors.critical
+    }
+    
+    private var overallStatusColor: Color {
+        if !criticalAlerts.isEmpty || portfolioMetrics.criticalIssues > 0 {
+            return CyntientOpsDesign.DashboardColors.critical
+        } else if portfolioMetrics.complianceScore < 0.8 || portfolioMetrics.overallCompletionRate < 0.8 {
+            return CyntientOpsDesign.DashboardColors.warning
+        }
+        return CyntientOpsDesign.DashboardColors.success
+    }
+}
+
+// MARK: - Admin Nova Intelligence Bar (mirroring client design)
+
+struct AdminNovaIntelligenceBar: View {
+    @Binding var selectedTab: AdminDashboardView.AdminNovaTab
+    let portfolioMetrics: CoreTypes.PortfolioMetrics
+    let buildings: [CoreTypes.NamedCoordinate]
+    let workers: [CoreTypes.WorkerProfile]
+    let criticalAlerts: [CoreTypes.AdminAlert]
+    let onTabTap: (AdminDashboardView.AdminNovaTab) -> Void
+    let onMapToggle: () -> Void
+    let onEmergencyBroadcast: () -> Void
+    @ObservedObject var viewModel: AdminDashboardViewModel
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            // Intelligence Content Panel with Dynamic Height
+            intelligenceContentPanel
+                .frame(height: getIntelligencePanelHeight())
+                .animation(CyntientOpsDesign.Animations.spring, value: selectedTab)
+                .animation(CyntientOpsDesign.Animations.spring, value: viewModel.intelligencePanelExpanded)
+            
+            // Tab Bar with Proper Spacing
+            HStack(spacing: 0) {
+                ForEach(AdminDashboardView.AdminNovaTab.allCases, id: \.self) { tab in
+                    AdminNovaTabButton(
+                        tab: tab,
+                        isSelected: selectedTab == tab,
+                        badgeCount: getBadgeCount(for: tab),
+                        action: {
+                            withAnimation(CyntientOpsDesign.Animations.spring) {
+                                selectedTab = tab
+                                onTabTap(tab)
+                            }
+                        }
+                    )
+                }
+            }
+            .frame(height: 65)
+            .francoDarkCardBackground(cornerRadius: 0)
+        }
+        .background(CyntientOpsDesign.DashboardColors.cardBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+    }
+    
+    // MARK: - Dynamic Panel Height
+    
+    private func getIntelligencePanelHeight() -> CGFloat {
+        if !viewModel.intelligencePanelExpanded {
+            return 60
+        }
+        
+        switch selectedTab {
+        case .priorities:
+            let hasItems = !criticalAlerts.isEmpty || portfolioMetrics.criticalIssues > 0
+            return hasItems ? 260 : 180  // Taller for streaming broadcast
+        case .workers:
+            return workers.count > 3 ? 220 : 180
+        case .buildings:
+            return buildings.count > 3 ? 200 : 160
+        case .analytics:
+            return 200
+        }
+    }
+    
+    @ViewBuilder
+    private var intelligenceContentPanel: some View {
+        if viewModel.intelligencePanelExpanded {
+            ScrollView {
+                VStack(spacing: 16) {
+                    switch selectedTab {
+                    case .priorities:
+                        AdminPrioritiesContent(
+                            criticalAlerts: criticalAlerts,
+                            portfolioMetrics: portfolioMetrics,
+                            onEmergencyBroadcast: onEmergencyBroadcast,
+                            onMapToggle: onMapToggle
+                        )
+                        
+                    case .workers:
+                        AdminWorkersContent(
+                            workers: workers,
+                            activeCount: viewModel.workersActive,
+                            totalCount: viewModel.workersTotal
+                        )
+                        
+                    case .buildings:
+                        AdminBuildingsContent(
+                            buildings: buildings,
+                            portfolioMetrics: portfolioMetrics,
+                            onMapToggle: onMapToggle
+                        )
+                        
+                    case .analytics:
+                        AdminAnalyticsContent(
+                            portfolioMetrics: portfolioMetrics,
+                            buildingCount: buildings.count
+                        )
+                    }
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(CyntientOpsDesign.DashboardColors.cardBackground) // Fixed transparency
+        } else {
+            Color.clear
+                .background(CyntientOpsDesign.DashboardColors.cardBackground) // Fixed transparency
+        }
+    }
+    
+    private func getBadgeCount(for tab: AdminDashboardView.AdminNovaTab) -> Int {
+        switch tab {
+        case .priorities:
+            return criticalAlerts.count + portfolioMetrics.criticalIssues
+        case .workers:
+            return workers.filter { !$0.isClockedIn && $0.isActive }.count
+        case .buildings:
+            return buildings.filter { building in
+                if let metrics = viewModel.buildingMetrics[building.id] {
+                    return metrics.urgentTasksCount > 0
+                }
+                return false
+            }.count
+        case .analytics:
+            return 0
+        }
+    }
+}
+
+// MARK: - Admin Nova Tab Button (mirroring client)
+
+struct AdminNovaTabButton: View {
+    let tab: AdminDashboardView.AdminNovaTab
+    let isSelected: Bool
+    let badgeCount: Int
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 4) {
+                ZStack {
+                    Image(systemName: tab.icon)
+                        .font(.system(size: 20, weight: isSelected ? .semibold : .regular))
+                        .foregroundColor(isSelected ? CyntientOpsDesign.DashboardColors.adminAccent : CyntientOpsDesign.DashboardColors.tertiaryText)
+                    
+                    if badgeCount > 0 {
+                        Text("\(badgeCount)")
+                            .font(.caption2)
+                            .fontWeight(.bold)
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(CyntientOpsDesign.DashboardColors.critical)
+                            .clipShape(Capsule())
+                            .offset(x: 12, y: -8)
+                    }
+                }
+                
+                Text(tab.rawValue)
+                    .font(.caption2)
+                    .fontWeight(isSelected ? .semibold : .regular)
+                    .foregroundColor(isSelected ? CyntientOpsDesign.DashboardColors.adminAccent : CyntientOpsDesign.DashboardColors.tertiaryText)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 8)
+        }
+        .buttonStyle(PlainButtonStyle())
+    }
+}
+
+// MARK: - Admin Intelligence Content Panels
+
+struct AdminPrioritiesContent: View {
+    let criticalAlerts: [CoreTypes.AdminAlert]
+    let portfolioMetrics: CoreTypes.PortfolioMetrics
+    let onEmergencyBroadcast: () -> Void
+    let onMapToggle: () -> Void
+    
+    @State private var streamingMessage = "📡 LIVE: All systems operational"
+    @State private var animationTimer: Timer?
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            // Streaming Emergency Broadcast (always visible)
+            AdminStreamingBroadcast(
+                message: $streamingMessage,
+                hasEmergencies: !criticalAlerts.isEmpty
+            )
+            
+            if !criticalAlerts.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Critical System Alerts")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                    
+                    ForEach(criticalAlerts.prefix(3), id: \.alertId) { alert in
+                        AdminPriorityItem(
+                            title: alert.title,
+                            severity: alert.severity,
+                            timestamp: alert.timestamp,
+                            onTap: onEmergencyBroadcast
+                        )
+                    }
+                }
+            } else {
+                AdminStatusOK()
+            }
+        }
+        .onAppear {
+            startStreamingUpdate()
+        }
+        .onDisappear {
+            animationTimer?.invalidate()
+        }
+    }
+    
+    private func startStreamingUpdate() {
+        let messages = [
+            "📡 LIVE: Portfolio operating at 94% efficiency",
+            "📡 LIVE: All workers clocked in and active",
+            "📡 LIVE: Compliance status: 92% across all buildings",
+            "📡 LIVE: No critical alerts - systems nominal"
+        ]
+        
+        var messageIndex = 0
+        animationTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { _ in
+            withAnimation(.easeInOut(duration: 0.5)) {
+                streamingMessage = messages[messageIndex]
+                messageIndex = (messageIndex + 1) % messages.count
+            }
+        }
+    }
+}
+
+struct AdminStreamingBroadcast: View {
+    @Binding var message: String
+    let hasEmergencies: Bool
+    
+    var body: some View {
+        HStack(spacing: 8) {
+            Circle()
+                .fill(hasEmergencies ? CyntientOpsDesign.DashboardColors.critical : CyntientOpsDesign.DashboardColors.success)
+                .frame(width: 8, height: 8)
+                .scaleEffect(1.2)
+                .animation(.easeInOut(duration: 1).repeatForever(autoreverses: true), value: hasEmergencies)
+            
+            Text(message)
+                .font(.caption)
+                .fontWeight(.medium)
+                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                .lineLimit(1)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(
+            RoundedRectangle(cornerRadius: 8)
+                .fill((hasEmergencies ? CyntientOpsDesign.DashboardColors.critical : CyntientOpsDesign.DashboardColors.success).opacity(0.1))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke((hasEmergencies ? CyntientOpsDesign.DashboardColors.critical : CyntientOpsDesign.DashboardColors.success).opacity(0.3), lineWidth: 1)
+                )
+        )
+    }
+}
+
+struct AdminPriorityItem: View {
+    let title: String
+    let severity: CoreTypes.AlertSeverity
+    let timestamp: Date
+    let onTap: () -> Void
+    
+    var body: some View {
+        Button(action: onTap) {
+            HStack(spacing: 12) {
+                Image(systemName: severityIcon)
+                    .font(.subheadline)
+                    .foregroundColor(severityColor)
+                    .frame(width: 16)
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                        .lineLimit(1)
+                    
+                    Text(timestamp, style: .relative)
+                        .font(.caption2)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+                }
+                
+                Spacer()
+                
+                Image(systemName: "chevron.right")
+                    .font(.caption2)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+            }
+            .padding(.vertical, 6)
+        }
+        .buttonStyle(PlainButtonStyle())
+    }
+    
+    private var severityIcon: String {
+        switch severity {
+        case .critical: return "exclamationmark.triangle.fill"
+        case .warning: return "exclamationmark.circle.fill"
+        case .info: return "info.circle.fill"
+        }
+    }
+    
+    private var severityColor: Color {
+        switch severity {
+        case .critical: return CyntientOpsDesign.DashboardColors.critical
+        case .warning: return CyntientOpsDesign.DashboardColors.warning
+        case .info: return CyntientOpsDesign.DashboardColors.info
+        }
+    }
+}
+
+struct AdminStatusOK: View {
+    var body: some View {
+        VStack(spacing: 8) {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.title2)
+                .foregroundColor(CyntientOpsDesign.DashboardColors.success)
+            
+            Text("All Systems Operational")
+                .font(.caption)
+                .fontWeight(.medium)
+                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+            
+            Text("No critical alerts requiring attention")
+                .font(.caption2)
+                .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 20)
+    }
+}
+
+struct AdminWorkersContent: View {
+    let workers: [CoreTypes.WorkerProfile]
+    let activeCount: Int
+    let totalCount: Int
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("Worker Status Overview")
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                
+                Spacer()
+                
+                Text("\(activeCount)/\(totalCount) Active")
+                    .font(.caption2)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.adminAccent)
+            }
+            
+            ForEach(workers.prefix(4), id: \.id) { worker in
+                AdminWorkerStatusRow(worker: worker)
+            }
+            
+            if workers.count > 4 {
+                Button("View All Workers") {
+                    // Handle view all
+                }
+                .font(.caption)
+                .foregroundColor(CyntientOpsDesign.DashboardColors.adminAccent)
+            }
+        }
+    }
+}
+
+struct AdminWorkerStatusRow: View {
+    let worker: CoreTypes.WorkerProfile
     
     var body: some View {
         HStack(spacing: 12) {
             Circle()
-                .fill(activityColor)
-                .frame(width: 6, height: 6)
+                .fill(worker.isClockedIn ? CyntientOpsDesign.DashboardColors.success : CyntientOpsDesign.DashboardColors.warning)
+                .frame(width: 8, height: 8)
             
-            VStack(alignment: .leading, spacing: 2) {
-                Text(update.type.rawValue)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(worker.name)
                     .font(.caption)
-                    .foregroundColor(.white)
-                    .lineLimit(1)
+                    .fontWeight(.medium)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                 
-                if let workerName = update.data["workerName"] {
-                    Text(workerName)
-                        .font(.caption2)
-                        .foregroundColor(.white.opacity(0.7))
-                }
+                Text(worker.isClockedIn ? "Active" : "Offline")
+                    .font(.caption2)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
             }
             
             Spacer()
             
-            Text(update.timestamp, style: .relative)
-                .font(.caption2)
-                .foregroundColor(.white.opacity(0.5))
+            if worker.isClockedIn {
+                Text("\(worker.assignedBuildingIds.count) sites")
+                    .font(.caption2)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.adminAccent)
+            }
         }
         .padding(.vertical, 4)
     }
-    
-    private var activityColor: Color {
-        switch update.type {
-        case .taskCompleted: return .green
-        case .workerClockedIn, .workerClockedOut: return .blue
-        case .criticalAlert, .criticalUpdate: return .red
-        case .buildingMetricsChanged: return .purple
-        case .complianceStatusChanged, .complianceUpdate: return .orange
-        default: return .gray
-        }
-    }
 }
 
-struct NovaAssistantView: View {
-    @Environment(\.dismiss) var dismiss
-    @EnvironmentObject var novaAI: NovaAIManager
+struct AdminBuildingsContent: View {
+    let buildings: [CoreTypes.NamedCoordinate]
+    let portfolioMetrics: CoreTypes.PortfolioMetrics
+    let onMapToggle: () -> Void
     
     var body: some View {
-        NavigationView {
-            VStack {
-                NovaAvatar(
-                    size: .large,
-                    isActive: novaAI.novaState == .active,
-                    hasUrgentInsights: novaAI.hasUrgentInsights,
-                    isBusy: novaAI.isThinking
-                )
-                .padding()
-                
-                Text("Nova AI Assistant")
-                    .font(.title)
-                    .foregroundColor(.white)
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("Portfolio Overview")
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
                 
                 Spacer()
-            }
-            .background(Color.black.ignoresSafeArea())
-            .preferredColorScheme(.dark)
-            .navigationTitle("Nova Assistant")
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") { dismiss() }
-                        .foregroundColor(.white)
+                
+                Button("View Map") {
+                    onMapToggle()
                 }
+                .font(.caption2)
+                .foregroundColor(CyntientOpsDesign.DashboardColors.adminAccent)
+            }
+            
+            // Buildings status grid
+            LazyVGrid(columns: [
+                GridItem(.flexible()),
+                GridItem(.flexible())
+            ], spacing: 8) {
+                AdminBuildingStatusTile(
+                    title: "Total",
+                    count: buildings.count,
+                    color: CyntientOpsDesign.DashboardColors.adminAccent
+                )
+                
+                AdminBuildingStatusTile(
+                    title: "Issues",
+                    count: portfolioMetrics.criticalIssues,
+                    color: portfolioMetrics.criticalIssues > 0 ? CyntientOpsDesign.DashboardColors.critical : CyntientOpsDesign.DashboardColors.success
+                )
             }
         }
     }
 }
 
-// MARK: - Admin KPI Card Component
-
-struct AdminKPICard: View {
-    let icon: String
+struct AdminBuildingStatusTile: View {
     let title: String
-    let value: String
+    let count: Int
     let color: Color
     
     var body: some View {
-        VStack(spacing: 8) {
-            Image(systemName: icon)
-                .font(.title2)
+        VStack(spacing: 4) {
+            Text("\(count)")
+                .font(.subheadline)
+                .fontWeight(.bold)
                 .foregroundColor(color)
             
-            Text(value)
-                .font(.title3)
-                .fontWeight(.bold)
-                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-            
             Text(title)
-                .font(.caption)
-                .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                .font(.caption2)
+                .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
         }
-        .frame(minHeight: 80)
         .frame(maxWidth: .infinity)
-        .padding()
-        .background(CyntientOpsDesign.DashboardColors.cardBackground.opacity(0.6))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .padding(.vertical, 8)
+        .background(color.opacity(0.1))
+        .cornerRadius(6)
+    }
+}
+
+struct AdminAnalyticsContent: View {
+    let portfolioMetrics: CoreTypes.PortfolioMetrics
+    let buildingCount: Int
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Portfolio Performance")
+                .font(.caption)
+                .fontWeight(.semibold)
+                .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+            
+            HStack(spacing: 12) {
+                AdminAnalyticTile(
+                    title: "Efficiency",
+                    value: "\(Int(portfolioMetrics.overallCompletionRate * 100))%",
+                    color: CyntientOpsDesign.DashboardColors.success
+                )
+                
+                AdminAnalyticTile(
+                    title: "Compliance",
+                    value: "\(Int(portfolioMetrics.complianceScore * 100))%",
+                    color: CyntientOpsDesign.DashboardColors.info
+                )
+            }
+        }
     }
 }
 
