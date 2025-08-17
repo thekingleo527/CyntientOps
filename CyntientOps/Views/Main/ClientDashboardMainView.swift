@@ -275,8 +275,12 @@ struct OverviewTabView: View {
             LazyVStack(spacing: 16) {
                 // Portfolio Performance Hero
                 ClientDashboardPortfolioHeroCard(
-                    intelligence: mockClientIntelligence,
-                    isCollapsed: $isPortfolioHeroCollapsed
+                    portfolioHealth: contextEngine.portfolioHealth,
+                    realtimeMetrics: contextEngine.realtimeMetrics,
+                    monthlyMetrics: contextEngine.monthlyMetrics,
+                    onDrillDown: {
+                        // TODO: Implement drill down functionality
+                    }
                 )
                 
                 // Quick Metrics Grid

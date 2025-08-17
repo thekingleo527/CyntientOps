@@ -543,10 +543,10 @@ class AdminDashboardViewModel: ObservableObject {
         print("🗽 Loading real NYC API compliance data...")
         let nycAPI = NYCAPIService.shared
         
-        var hpdData: [String: [CoreTypes.HPDViolation]] = [:]
-        var dobData: [String: [CoreTypes.DOBPermit]] = [:]
-        var dsnyData: [String: [CoreTypes.DSNYSchedule]] = [:]
-        var ll97Data: [String: [CoreTypes.LL97Emission]] = [:]
+        var hpdData: [String: [HPDViolation]] = [:]
+        var dobData: [String: [DOBPermit]] = [:]
+        var dsnyData: [String: [DSNYSchedule]] = [:]
+        var ll97Data: [String: [LL97Emission]] = [:]
         
         for building in buildings {
             do {
@@ -566,32 +566,14 @@ class AdminDashboardViewModel: ObservableObject {
                 
                 // Fetch real DOB permits
                 let dobPermits = try await nycAPI.fetchDOBPermits(bin: building.id)
-                dobData[building.id] = dobPermits.map { permit in
-                    CoreTypes.DOBPermit(
-                        permitNumber: permit.jobNumber,
-                        buildingId: building.id,
-                        permitType: permit.jobType,
-                        issuedDate: permit.issuedDate,
-                        expirationDate: permit.expirationDate,
-                        jobStatus: permit.jobStatus,
-                        workType: permit.workType
-                    )
-                }
+                dobData[building.id] = dobPermits
                 
                 // Fetch real DSNY violations (if available)
                 let dsnyViolations = try? await nycAPI.fetchDSNYViolations(bin: building.id)
                 
                 // Fetch real LL97 emissions
                 let ll97Emissions = try await nycAPI.fetchLL97Compliance(bbl: building.id)
-                ll97Data[building.id] = ll97Emissions.map { emission in
-                    CoreTypes.LL97Emission(
-                        buildingId: building.id,
-                        year: emission.reportingYear,
-                        emissions: emission.totalEmissions,
-                        limit: emission.emissionsLimit,
-                        isCompliant: emission.isCompliant
-                    )
-                }
+                ll97Data[building.id] = ll97Emissions
                 
                 print("✅ Loaded compliance data for \(building.name): HPD(\(hpdViolations.count)), DOB(\(dobPermits.count)), LL97(\(ll97Emissions.count))")
                 

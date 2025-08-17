@@ -956,10 +956,10 @@ public class BuildingDetailViewModel: ObservableObject {
             // Sync compliance data for this building
             await complianceService.syncBuildingCompliance(building: CoreTypes.NamedCoordinate(
                 id: buildingId,
-                name: building?.name ?? "Building \(buildingId)",
-                address: building?.address ?? "",
-                latitude: building?.latitude ?? 0,
-                longitude: building?.longitude ?? 0
+                name: buildingName,
+                address: buildingAddress,
+                latitude: 0, // Will be populated from building service
+                longitude: 0 // Will be populated from building service
             ))
             
             // Get real HPD violations data
@@ -970,6 +970,9 @@ public class BuildingDetailViewModel: ObservableObject {
             
             // Get real DSNY violations data  
             let dsnyViolations = try await nycAPI.fetchDSNYViolations(bin: buildingId)
+            
+            // Get real DSNY schedule data
+            let dsnySchedule = try await nycAPI.fetchDSNYSchedule(bin: buildingId)
             
             // Get real LL97 emissions data
             let ll97Data = try await nycAPI.fetchLL97Compliance(bbl: buildingId)
@@ -1181,7 +1184,7 @@ public class BuildingDetailViewModel: ObservableObject {
     
     public func savePhoto(_ photo: UIImage, category: CoreTypes.FrancoPhotoCategory, notes: String) async {
         do {
-            let location = locationManager.location
+            let _ = locationManager.location
             
             // Create a real task for photo evidence
             let photoTask = CoreTypes.ContextualTask(
