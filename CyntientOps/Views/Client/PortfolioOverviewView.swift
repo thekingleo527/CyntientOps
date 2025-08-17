@@ -589,6 +589,9 @@ struct ExecutiveSummaryItem: View {
         case .up: return "arrow.up"
         case .down: return "arrow.down"
         case .stable: return "arrow.right"
+        case .improving: return "arrow.up.right"
+        case .declining: return "arrow.down.right"
+        case .unknown: return "questionmark"
         }
     }
     
@@ -597,6 +600,9 @@ struct ExecutiveSummaryItem: View {
         case .up: return .green
         case .down: return .red
         case .stable: return .gray
+        case .improving: return .green
+        case .declining: return .red
+        case .unknown: return .gray
         }
     }
 }
@@ -672,58 +678,75 @@ struct BuildingPerformanceCard: View {
     
     var body: some View {
         Button(action: onTap) {
-            VStack(alignment: .leading, spacing: 8) {
-                Text(building.name)
-                    .font(.headline)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.white)
-                    .lineLimit(1)
-                
-                if let metrics = metrics {
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack {
-                            Text("Tasks:")
-                            Spacer()
-                            Text("\(metrics.completedTasks)/\(metrics.totalTasks)")
-                        }
-                        .font(.caption)
-                        .foregroundColor(.white.opacity(0.8))
-                        
-                        HStack {
-                            Text("Compliance:")
-                            Spacer()
-                            Text("\(Int(metrics.complianceScore))%")
-                        }
-                        .font(.caption)
-                        .foregroundColor(.white.opacity(0.8))
-                    }
-                }
-                
-                Spacer()
-                
-                // Performance indicator
-                HStack {
-                    Circle()
-                        .fill(performanceColor)
-                        .frame(width: 8, height: 8)
-                    
-                    Text(performanceStatus)
-                        .font(.caption2)
-                        .foregroundColor(performanceColor)
-                }
-            }
-            .padding()
-            .frame(width: 140, height: 120)
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Color.white.opacity(0.05))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(Color.white.opacity(0.1), lineWidth: 1)
-                    )
-            )
+            cardContent
         }
         .buttonStyle(PlainButtonStyle())
+    }
+    
+    private var cardContent: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            buildingNameHeader
+            
+            if let metrics = metrics {
+                metricsSection(metrics)
+            }
+            
+            Spacer()
+            
+            performanceIndicator
+        }
+        .padding()
+        .frame(width: 140, height: 120)
+        .background(cardBackground)
+    }
+    
+    private var buildingNameHeader: some View {
+        Text(building.name)
+            .font(.headline)
+            .fontWeight(.semibold)
+            .foregroundColor(.white)
+            .lineLimit(1)
+    }
+    
+    private func metricsSection(_ metrics: CoreTypes.BuildingMetrics) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text("Tasks:")
+                Spacer()
+                Text("\(metrics.totalTasks - metrics.pendingTasks)/\(metrics.totalTasks)")
+            }
+            .font(.caption)
+            .foregroundColor(.white.opacity(0.8))
+            
+            HStack {
+                Text("Compliance:")
+                Spacer()
+                Text("\(Int(metrics.complianceScore))%")
+            }
+            .font(.caption)
+            .foregroundColor(.white.opacity(0.8))
+        }
+    }
+    
+    private var performanceIndicator: some View {
+        HStack {
+            Circle()
+                .fill(performanceColor)
+                .frame(width: 8, height: 8)
+            
+            Text(performanceStatus)
+                .font(.caption2)
+                .foregroundColor(performanceColor)
+        }
+    }
+    
+    private var cardBackground: some View {
+        RoundedRectangle(cornerRadius: 12)
+            .fill(Color.white.opacity(0.05))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(Color.white.opacity(0.1), lineWidth: 1)
+            )
     }
     
     private var performanceColor: Color {
@@ -746,7 +769,7 @@ struct StrategicInsightCard: View {
     
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: recommendation.type.icon)
+            Image(systemName: recommendation.category.icon)
                 .foregroundColor(recommendation.priority.color)
                 .font(.title2)
             
@@ -763,7 +786,7 @@ struct StrategicInsightCard: View {
                     .lineLimit(2)
                 
                 HStack {
-                    Text("Impact: \(recommendation.expectedImpact)")
+                    Text("Impact: \(recommendation.estimatedImpact)")
                         .font(.caption2)
                         .foregroundColor(.blue)
                     
@@ -800,7 +823,7 @@ struct BenchmarkCard: View {
     
     var body: some View {
         VStack(spacing: 8) {
-            Text(benchmark.name)
+            Text(benchmark.metric)
                 .font(.headline)
                 .fontWeight(.semibold)
                 .foregroundColor(.white)
@@ -812,7 +835,7 @@ struct BenchmarkCard: View {
                         .font(.caption2)
                         .foregroundColor(.white.opacity(0.6))
                     
-                    Text("\(Int(benchmark.currentValue))")
+                    Text("\(Int(benchmark.value))")
                         .font(.title2)
                         .fontWeight(.bold)
                         .foregroundColor(.white)
@@ -825,7 +848,7 @@ struct BenchmarkCard: View {
                         .font(.caption2)
                         .foregroundColor(.white.opacity(0.6))
                     
-                    Text("\(Int(benchmark.industryAverage))")
+                    Text("\(Int(benchmark.benchmark))")
                         .font(.title2)
                         .fontWeight(.bold)
                         .foregroundColor(.blue)
@@ -834,15 +857,15 @@ struct BenchmarkCard: View {
             
             // Comparison indicator
             HStack {
-                Text(benchmark.comparison.rawValue)
+                Text(getComparisonText(benchmark))
                     .font(.caption)
                     .fontWeight(.medium)
-                    .foregroundColor(benchmark.comparison.color)
+                    .foregroundColor(getComparisonColor(benchmark))
                 
                 Spacer()
                 
-                Image(systemName: benchmark.comparison.icon)
-                    .foregroundColor(benchmark.comparison.color)
+                Image(systemName: getComparisonIcon(benchmark))
+                    .foregroundColor(getComparisonColor(benchmark))
             }
         }
         .padding()
@@ -851,9 +874,39 @@ struct BenchmarkCard: View {
                 .fill(Color.white.opacity(0.05))
                 .overlay(
                     RoundedRectangle(cornerRadius: 12)
-                        .stroke(benchmark.comparison.color.opacity(0.3), lineWidth: 1)
+                        .stroke(getComparisonColor(benchmark).opacity(0.3), lineWidth: 1)
                 )
         )
+    }
+    
+    private func getComparisonText(_ benchmark: CoreTypes.PortfolioBenchmark) -> String {
+        if benchmark.value > benchmark.benchmark {
+            return "Above Average"
+        } else if benchmark.value < benchmark.benchmark {
+            return "Below Average"
+        } else {
+            return "Average"
+        }
+    }
+    
+    private func getComparisonColor(_ benchmark: CoreTypes.PortfolioBenchmark) -> Color {
+        if benchmark.value > benchmark.benchmark {
+            return .green
+        } else if benchmark.value < benchmark.benchmark {
+            return .red
+        } else {
+            return .blue
+        }
+    }
+    
+    private func getComparisonIcon(_ benchmark: CoreTypes.PortfolioBenchmark) -> String {
+        if benchmark.value > benchmark.benchmark {
+            return "arrow.up.circle"
+        } else if benchmark.value < benchmark.benchmark {
+            return "arrow.down.circle"
+        } else {
+            return "equal.circle"
+        }
     }
 }
 
@@ -910,7 +963,7 @@ extension CoreTypes.BenchmarkComparison {
         switch self {
         case .above: return .green
         case .below: return .red
-        case .equal: return .blue
+        case .average: return .blue
         }
     }
     
@@ -918,7 +971,7 @@ extension CoreTypes.BenchmarkComparison {
         switch self {
         case .above: return "arrow.up.circle"
         case .below: return "arrow.down.circle"
-        case .equal: return "equal.circle"
+        case .average: return "equal.circle"
         }
     }
 }
@@ -1020,10 +1073,49 @@ struct CostAnalysisView: View {
 #if DEBUG
 struct PortfolioOverviewView_Previews: PreviewProvider {
     static var previews: some View {
-        PortfolioOverviewView(clientViewModel: ClientDashboardViewModel(container: ServiceContainer()))
-            .environmentObject(ServiceContainer())
-            .environmentObject(DashboardSyncService.shared)
-            .preferredColorScheme(.dark)
+        AsyncPreviewWrapper {
+            if let container = try? await ServiceContainer() {
+                PortfolioOverviewView(clientViewModel: ClientDashboardViewModel(container: container))
+                    .environmentObject(container)
+                    .environmentObject(DashboardSyncService.shared)
+                    .preferredColorScheme(.dark)
+            } else {
+                Text("Loading...")
+                    .foregroundColor(.white)
+                    .background(Color.black)
+            }
+        }
+    }
+}
+
+struct AsyncPreviewWrapper<Content: View>: View {
+    let content: () async throws -> Content
+    @State private var loadedContent: Content?
+    
+    init(@ViewBuilder content: @escaping () async throws -> Content) {
+        self.content = content
+    }
+    
+    var body: some View {
+        Group {
+            if let loadedContent = loadedContent {
+                loadedContent
+            } else {
+                ProgressView("Loading...")
+                    .foregroundColor(.white)
+                    .background(Color.black)
+            }
+        }
+        .task {
+            do {
+                let result = try await content()
+                await MainActor.run {
+                    self.loadedContent = result
+                }
+            } catch {
+                print("Preview loading failed: \(error)")
+            }
+        }
     }
 }
 #endif

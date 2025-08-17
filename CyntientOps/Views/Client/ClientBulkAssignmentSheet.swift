@@ -245,7 +245,7 @@ struct ClientBulkAssignmentSheet: View {
         let selectedWorkerData = workers.filter { selectedWorkers.contains($0.id) }
         let requiredCaps = getRequiredCapabilities(for: selectedTask)
         
-        let newAssignments = selectedWorkerData.compactMap { worker in
+        let newAssignments = selectedWorkerData.compactMap { worker -> CoreTypes.BulkAssignment? in
             // Find best building match for this worker
             let optimalBuilding = buildings.first { building in
                 // Match worker capabilities with building requirements

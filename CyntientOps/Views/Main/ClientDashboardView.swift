@@ -28,6 +28,7 @@ struct ClientDashboardView: View {
     enum ClientRoute: Identifiable {
         case profile, buildings, buildingDetail(String), compliance, chat, settings, maintenanceRequest, workerManagement
         case workerDetail(String), shiftPlanner, bulkAssignment, scheduleManager, criticalAlerts, aiSuggestions
+        case hpdCompliance, dobCompliance, dsnyCompliance, ll97Compliance
         
         var id: String {
             switch self {
@@ -45,6 +46,10 @@ struct ClientDashboardView: View {
             case .scheduleManager: return "schedule-manager"
             case .criticalAlerts: return "critical-alerts"
             case .aiSuggestions: return "ai-suggestions"
+            case .hpdCompliance: return "hpd-compliance"
+            case .dobCompliance: return "dob-compliance"
+            case .dsnyCompliance: return "dsny-compliance"
+            case .ll97Compliance: return "ll97-compliance"
             }
         }
     }
@@ -71,6 +76,7 @@ struct ClientDashboardView: View {
     @State private var selectedNovaTab: NovaTab = .priorities
     @State private var sheet: ClientRoute?
     @State private var isPortfolioMapRevealed = false
+    @State private var intelligencePanelExpanded = false
     
     // MARK: - Responsive Layout Computed Properties
     
@@ -250,16 +256,20 @@ struct ClientDashboardView: View {
     
     // MARK: - Nova Tab Actions
     private func handleNovaTabTap(_ tab: NovaTab) {
-        switch tab {
-        case .priorities:
-            selectedNovaTab = .priorities
-        case .portfolio:
-            selectedNovaTab = .portfolio
-        case .compliance:
-            // Route to full compliance view
-            sheet = .compliance
-        case .analytics:
-            selectedNovaTab = .analytics
+        withAnimation(CyntientOpsDesign.Animations.spring) {
+            if selectedNovaTab == tab && intelligencePanelExpanded {
+                // Clicking same tab when expanded - collapse panel
+                intelligencePanelExpanded = false
+            } else {
+                // Clicking different tab or clicking when collapsed - switch tab and expand
+                selectedNovaTab = tab
+                intelligencePanelExpanded = true
+                
+                // Special handling for compliance - route to full view if already expanded
+                if tab == .compliance && intelligencePanelExpanded {
+                    sheet = .compliance
+                }
+            }
         }
     }
     
@@ -373,6 +383,34 @@ struct ClientDashboardView: View {
                 container: container
             )
             .navigationTitle("AI Suggestions")
+            
+        case .hpdCompliance:
+            ClientHPDComplianceView(
+                violations: viewModel.hpdViolationsData,
+                buildings: viewModel.buildingsList
+            )
+            .navigationTitle("HPD Violations")
+            
+        case .dobCompliance:
+            ClientDOBComplianceView(
+                permits: viewModel.dobPermitsData,
+                buildings: viewModel.buildingsList
+            )
+            .navigationTitle("DOB Permits")
+            
+        case .dsnyCompliance:
+            ClientDSNYComplianceView(
+                schedules: viewModel.dsnyScheduleData,
+                buildings: viewModel.buildingsList
+            )
+            .navigationTitle("DSNY Sanitation")
+            
+        case .ll97Compliance:
+            ClientLL97ComplianceView(
+                emissions: viewModel.ll97EmissionsData,
+                buildings: viewModel.buildingsList
+            )
+            .navigationTitle("Local Law 97")
         }
     }
     
@@ -480,7 +518,7 @@ struct ClientHeaderV3B: View {
                     HStack(spacing: 12) {
                         // Client Info
                         VStack(alignment: .trailing, spacing: 2) {
-                            Text(clientName)
+                            Text("J&M Realty Portfolio")
                                 .font(.system(size: 13, weight: .semibold, design: .rounded))
                                 .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                                 .lineLimit(1)
@@ -490,13 +528,7 @@ struct ClientHeaderV3B: View {
                                     .font(.system(size: 10, weight: .medium))
                                     .foregroundColor(CyntientOpsDesign.DashboardColors.success)
                                 
-                                Text("•")
-                                    .font(.system(size: 8))
-                                    .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
-                                
-                                Text("\(Int(complianceScore * 100))%")
-                                    .font(.system(size: 10, weight: .medium))
-                                    .foregroundColor(complianceColor)
+                                // Removed compliance percentage as requested
                             }
                         }
                         
@@ -1202,6 +1234,7 @@ struct ClientNovaIntelligenceBar: View {
             intelligenceContentPanel
                 .frame(height: getIntelligencePanelHeight())
                 .animation(CyntientOpsDesign.Animations.spring, value: selectedTab)
+                .animation(CyntientOpsDesign.Animations.spring, value: intelligencePanelExpanded)
             
             // Tab Bar with Proper Spacing
             HStack(spacing: 0) {
@@ -1229,6 +1262,11 @@ struct ClientNovaIntelligenceBar: View {
     // MARK: - Dynamic Panel Height
     
     private func getIntelligencePanelHeight() -> CGFloat {
+        // Return minimal height when collapsed, full height when expanded
+        if !intelligencePanelExpanded {
+            return 60 // Just enough for tab bar
+        }
+        
         switch selectedTab {
         case .priorities:
             // Check if there are items to show - expand if needed
@@ -1248,9 +1286,10 @@ struct ClientNovaIntelligenceBar: View {
     
     @ViewBuilder
     private var intelligenceContentPanel: some View {
-        ScrollView {
-            VStack(spacing: 16) {
-                switch selectedTab {
+        if intelligencePanelExpanded {
+            ScrollView {
+                VStack(spacing: 16) {
+                    switch selectedTab {
                 case .priorities:
                     ClientPrioritiesContent(
                         criticalViolations: complianceOverview.criticalViolations,
@@ -1265,14 +1304,19 @@ struct ClientNovaIntelligenceBar: View {
                         monthlyMetrics: monthlyMetrics,
                         routineMetrics: routineMetrics,
                         portfolioValue: viewModel.portfolioAssessedValue,
-                        onMapToggle: onMapToggle
+                        onMapToggle: onMapToggle,
+                        onViewAllTap: { sheet = .buildings }
                     )
                     
                 case .compliance:
                     ClientComplianceDetailContent(
                         complianceOverview: complianceOverview,
                         buildingsList: buildingsList,
-                        viewModel: viewModel
+                        viewModel: viewModel,
+                        onHPDTap: { sheet = .hpdCompliance },
+                        onDOBTap: { sheet = .dobCompliance },
+                        onDSNYTap: { sheet = .dsnyCompliance },
+                        onLL97Tap: { sheet = .ll97Compliance }
                     )
                     
                 case .analytics:
@@ -1286,6 +1330,11 @@ struct ClientNovaIntelligenceBar: View {
             .padding(.vertical, 12)
         }
         .background(CyntientOpsDesign.DashboardColors.cardBackground.opacity(0.5))
+        } else {
+            // Collapsed state - empty view
+            Color.clear
+                .background(CyntientOpsDesign.DashboardColors.cardBackground.opacity(0.5))
+        }
     }
     
     private func getBadgeCount(for tab: ClientDashboardView.NovaTab) -> Int {
@@ -1491,6 +1540,7 @@ struct ClientPortfolioContent: View {
     let routineMetrics: CoreTypes.RealtimeRoutineMetrics
     let portfolioValue: Double
     let onMapToggle: () -> Void
+    let onViewAllTap: () -> Void
     
     var body: some View {
         VStack(spacing: 12) {
@@ -1573,7 +1623,7 @@ struct ClientPortfolioContent: View {
                         Spacer()
                         
                         if buildingsList.count > 3 {
-                            Text("View All")
+                            Button("View All", action: onViewAllTap)
                                 .font(.caption2)
                                 .foregroundColor(CyntientOpsDesign.DashboardColors.clientPrimary)
                         }
@@ -1641,6 +1691,10 @@ struct ClientComplianceDetailContent: View {
     let complianceOverview: CoreTypes.ComplianceOverview
     let buildingsList: [CoreTypes.NamedCoordinate]
     @ObservedObject var viewModel: ClientDashboardViewModel
+    let onHPDTap: () -> Void
+    let onDOBTap: () -> Void
+    let onDSNYTap: () -> Void
+    let onLL97Tap: () -> Void
     
     var body: some View {
         VStack(spacing: 12) {
@@ -1712,7 +1766,8 @@ struct ClientComplianceDetailContent: View {
                         count: getHPDViolations(),
                         icon: "building.fill",
                         color: getHPDColor(),
-                        subtitle: "Housing Dept"
+                        subtitle: "Housing Dept",
+                        onTap: onHPDTap
                     )
                     
                     // DOB Violations
@@ -1721,7 +1776,8 @@ struct ClientComplianceDetailContent: View {
                         count: getDOBViolations(),
                         icon: "hammer.fill",
                         color: getDOBColor(),
-                        subtitle: "Buildings Dept"
+                        subtitle: "Buildings Dept",
+                        onTap: onDOBTap
                     )
                     
                     // DSNY Compliance
@@ -1730,7 +1786,8 @@ struct ClientComplianceDetailContent: View {
                         count: getDSNYViolations(),
                         icon: "trash.fill",
                         color: getDSNYColor(),
-                        subtitle: "Sanitation"
+                        subtitle: "Sanitation",
+                        onTap: onDSNYTap
                     )
                     
                     // Local Law 97
@@ -1739,7 +1796,8 @@ struct ClientComplianceDetailContent: View {
                         count: getLL97Issues(),
                         icon: "leaf.fill",
                         color: getLL97Color(),
-                        subtitle: "Emissions"
+                        subtitle: "Emissions",
+                        onTap: onLL97Tap
                     )
                 }
                 .padding(.horizontal, 4)
@@ -1903,36 +1961,55 @@ struct ClientComplianceCategory: View {
     let icon: String
     let color: Color
     let subtitle: String
+    let onTap: (() -> Void)?
+    
+    init(title: String, count: Int, icon: String, color: Color, subtitle: String, onTap: (() -> Void)? = nil) {
+        self.title = title
+        self.count = count
+        self.icon = icon
+        self.color = color
+        self.subtitle = subtitle
+        self.onTap = onTap
+    }
     
     var body: some View {
-        VStack(spacing: 6) {
-            HStack(spacing: 4) {
-                Image(systemName: icon)
-                    .font(.caption)
-                    .foregroundColor(color)
+        Button(action: {
+            onTap?()
+        }) {
+            VStack(spacing: 6) {
+                HStack(spacing: 4) {
+                    Image(systemName: icon)
+                        .font(.caption)
+                        .foregroundColor(color)
+                    
+                    Text("\(count)")
+                        .font(.subheadline)
+                        .fontWeight(.bold)
+                        .foregroundColor(color)
+                }
                 
-                Text("\(count)")
-                    .font(.subheadline)
-                    .fontWeight(.bold)
-                    .foregroundColor(color)
+                VStack(spacing: 2) {
+                    Text(title)
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                    
+                    Text(subtitle)
+                        .font(.system(size: 9, weight: .regular))
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                }
             }
-            
-            VStack(spacing: 2) {
-                Text(title)
-                    .font(.caption2)
-                    .fontWeight(.semibold)
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-                
-                Text(subtitle)
-                    .font(.caption2)
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
-            }
+            .frame(minWidth: 70, maxWidth: 80)
+            .padding(.vertical, 8)
+            .padding(.horizontal, 8)
+            .background(color.opacity(0.1))
+            .cornerRadius(8)
         }
-        .frame(width: 70)
-        .padding(.vertical, 8)
-        .padding(.horizontal, 6)
-        .background(color.opacity(0.1))
-        .cornerRadius(8)
+        .buttonStyle(PlainButtonStyle())
+        .disabled(onTap == nil)
     }
 }
 
@@ -2433,6 +2510,417 @@ struct ClientSettingsRow: View {
             Image(systemName: "chevron.right")
                 .font(.caption)
                 .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+        }
+        .padding(.vertical, 4)
+    }
+}
+
+// MARK: - Compliance Category Detail Views
+
+struct ClientHPDComplianceView: View {
+    let violations: [String: [CoreTypes.HPDViolation]]
+    let buildings: [CoreTypes.NamedCoordinate]
+    @Environment(\.dismiss) private var dismiss
+    
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                // Summary Card
+                ComplianceSummaryCard(
+                    title: "HPD Housing Violations",
+                    totalCount: getTotalViolations(),
+                    activeCount: getActiveViolations(),
+                    icon: "building.fill",
+                    color: .orange
+                )
+                
+                // Violations by Building
+                ForEach(buildings, id: \.id) { building in
+                    if let buildingViolations = violations[building.id], !buildingViolations.isEmpty {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(building.name)
+                                .font(.headline)
+                                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                            
+                            ForEach(buildingViolations, id: \.violationId) { violation in
+                                HPDViolationRow(violation: violation)
+                            }
+                        }
+                        .padding()
+                        .francoDarkCardBackground()
+                    }
+                }
+            }
+            .padding()
+        }
+        .background(CyntientOpsDesign.DashboardColors.baseBackground)
+        .navigationBarBackButtonHidden(true)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button("Back") { dismiss() }
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.clientPrimary)
+            }
+        }
+    }
+    
+    private func getTotalViolations() -> Int {
+        return violations.values.flatMap { $0 }.count
+    }
+    
+    private func getActiveViolations() -> Int {
+        return violations.values.flatMap { $0 }.filter { $0.isActive }.count
+    }
+}
+
+struct ClientDOBComplianceView: View {
+    let permits: [String: [CoreTypes.DOBPermit]]
+    let buildings: [CoreTypes.NamedCoordinate]
+    @Environment(\.dismiss) private var dismiss
+    
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                // Summary Card
+                ComplianceSummaryCard(
+                    title: "DOB Permits & Inspections",
+                    totalCount: getTotalPermits(),
+                    activeCount: getExpiredPermits(),
+                    icon: "hammer.fill",
+                    color: .blue
+                )
+                
+                // Permits by Building
+                ForEach(buildings, id: \.id) { building in
+                    if let buildingPermits = permits[building.id], !buildingPermits.isEmpty {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(building.name)
+                                .font(.headline)
+                                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                            
+                            ForEach(buildingPermits, id: \.permitNumber) { permit in
+                                DOBPermitRow(permit: permit)
+                            }
+                        }
+                        .padding()
+                        .francoDarkCardBackground()
+                    }
+                }
+            }
+            .padding()
+        }
+        .background(CyntientOpsDesign.DashboardColors.baseBackground)
+        .navigationBarBackButtonHidden(true)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button("Back") { dismiss() }
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.clientPrimary)
+            }
+        }
+    }
+    
+    private func getTotalPermits() -> Int {
+        return permits.values.flatMap { $0 }.count
+    }
+    
+    private func getExpiredPermits() -> Int {
+        return permits.values.flatMap { $0 }.filter { $0.isExpired }.count
+    }
+}
+
+struct ClientDSNYComplianceView: View {
+    let schedules: [String: [CoreTypes.DSNYSchedule]]
+    let buildings: [CoreTypes.NamedCoordinate]
+    @Environment(\.dismiss) private var dismiss
+    
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                // Summary Card
+                ComplianceSummaryCard(
+                    title: "DSNY Sanitation Schedules",
+                    totalCount: getTotalSchedules(),
+                    activeCount: getTotalSchedules(),
+                    icon: "trash.fill",
+                    color: .green
+                )
+                
+                // Schedules by Building
+                ForEach(buildings, id: \.id) { building in
+                    if let buildingSchedules = schedules[building.id], !buildingSchedules.isEmpty {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(building.name)
+                                .font(.headline)
+                                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                            
+                            ForEach(buildingSchedules, id: \.scheduleId) { schedule in
+                                DSNYScheduleRow(schedule: schedule)
+                            }
+                        }
+                        .padding()
+                        .francoDarkCardBackground()
+                    }
+                }
+            }
+            .padding()
+        }
+        .background(CyntientOpsDesign.DashboardColors.baseBackground)
+        .navigationBarBackButtonHidden(true)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button("Back") { dismiss() }
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.clientPrimary)
+            }
+        }
+    }
+    
+    private func getTotalSchedules() -> Int {
+        return schedules.values.flatMap { $0 }.count
+    }
+}
+
+struct ClientLL97ComplianceView: View {
+    let emissions: [String: [CoreTypes.LL97Emission]]
+    let buildings: [CoreTypes.NamedCoordinate]
+    @Environment(\.dismiss) private var dismiss
+    
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                // Summary Card
+                ComplianceSummaryCard(
+                    title: "Local Law 97 Emissions",
+                    totalCount: getTotalEmissions(),
+                    activeCount: getNonCompliantCount(),
+                    icon: "leaf.fill",
+                    color: .cyan
+                )
+                
+                // Emissions by Building
+                ForEach(buildings, id: \.id) { building in
+                    if let buildingEmissions = emissions[building.id], !buildingEmissions.isEmpty {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(building.name)
+                                .font(.headline)
+                                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                            
+                            ForEach(buildingEmissions, id: \.emissionId) { emission in
+                                LL97EmissionRow(emission: emission)
+                            }
+                        }
+                        .padding()
+                        .francoDarkCardBackground()
+                    }
+                }
+            }
+            .padding()
+        }
+        .background(CyntientOpsDesign.DashboardColors.baseBackground)
+        .navigationBarBackButtonHidden(true)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button("Back") { dismiss() }
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.clientPrimary)
+            }
+        }
+    }
+    
+    private func getTotalEmissions() -> Int {
+        return emissions.values.flatMap { $0 }.count
+    }
+    
+    private func getNonCompliantCount() -> Int {
+        return emissions.values.flatMap { $0 }.filter { !$0.isCompliant }.count
+    }
+}
+
+// MARK: - Supporting Compliance Components
+
+struct ComplianceSummaryCard: View {
+    let title: String
+    let totalCount: Int
+    let activeCount: Int
+    let icon: String
+    let color: Color
+    
+    var body: some View {
+        HStack(spacing: 16) {
+            Image(systemName: icon)
+                .font(.title)
+                .foregroundColor(color)
+                .frame(width: 40)
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.headline)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                
+                HStack(spacing: 12) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("\(totalCount)")
+                            .font(.title2)
+                            .fontWeight(.bold)
+                            .foregroundColor(color)
+                        
+                        Text("Total")
+                            .font(.caption)
+                            .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("\(activeCount)")
+                            .font(.title2)
+                            .fontWeight(.bold)
+                            .foregroundColor(activeCount > 0 ? CyntientOpsDesign.DashboardColors.warning : CyntientOpsDesign.DashboardColors.success)
+                        
+                        Text("Active")
+                            .font(.caption)
+                            .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                    }
+                }
+            }
+            
+            Spacer()
+        }
+        .padding()
+        .francoDarkCardBackground()
+    }
+}
+
+struct HPDViolationRow: View {
+    let violation: CoreTypes.HPDViolation
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            Circle()
+                .fill(violation.isActive ? CyntientOpsDesign.DashboardColors.warning : CyntientOpsDesign.DashboardColors.success)
+                .frame(width: 8, height: 8)
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text(violation.violationType)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                
+                Text("Violation #\(violation.violationId)")
+                    .font(.caption)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+            }
+            
+            Spacer()
+            
+            Text(violation.isActive ? "Active" : "Resolved")
+                .font(.caption)
+                .fontWeight(.medium)
+                .foregroundColor(violation.isActive ? CyntientOpsDesign.DashboardColors.warning : CyntientOpsDesign.DashboardColors.success)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background((violation.isActive ? CyntientOpsDesign.DashboardColors.warning : CyntientOpsDesign.DashboardColors.success).opacity(0.2))
+                .cornerRadius(6)
+        }
+        .padding(.vertical, 4)
+    }
+}
+
+struct DOBPermitRow: View {
+    let permit: CoreTypes.DOBPermit
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            Circle()
+                .fill(permit.isExpired ? CyntientOpsDesign.DashboardColors.critical : CyntientOpsDesign.DashboardColors.success)
+                .frame(width: 8, height: 8)
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text(permit.permitType)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                
+                Text("Permit #\(permit.permitNumber)")
+                    .font(.caption)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+            }
+            
+            Spacer()
+            
+            Text(permit.isExpired ? "Expired" : "Valid")
+                .font(.caption)
+                .fontWeight(.medium)
+                .foregroundColor(permit.isExpired ? CyntientOpsDesign.DashboardColors.critical : CyntientOpsDesign.DashboardColors.success)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background((permit.isExpired ? CyntientOpsDesign.DashboardColors.critical : CyntientOpsDesign.DashboardColors.success).opacity(0.2))
+                .cornerRadius(6)
+        }
+        .padding(.vertical, 4)
+    }
+}
+
+struct DSNYScheduleRow: View {
+    let schedule: CoreTypes.DSNYSchedule
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            Circle()
+                .fill(CyntientOpsDesign.DashboardColors.success)
+                .frame(width: 8, height: 8)
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text(schedule.wasteType)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                
+                Text("\(schedule.pickupDay) - \(schedule.scheduleId)")
+                    .font(.caption)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+            }
+            
+            Spacer()
+            
+            Text("Active")
+                .font(.caption)
+                .fontWeight(.medium)
+                .foregroundColor(CyntientOpsDesign.DashboardColors.success)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(CyntientOpsDesign.DashboardColors.success.opacity(0.2))
+                .cornerRadius(6)
+        }
+        .padding(.vertical, 4)
+    }
+}
+
+struct LL97EmissionRow: View {
+    let emission: CoreTypes.LL97Emission
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            Circle()
+                .fill(emission.isCompliant ? CyntientOpsDesign.DashboardColors.success : CyntientOpsDesign.DashboardColors.warning)
+                .frame(width: 8, height: 8)
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Carbon Emissions Report")
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                
+                Text("Report #\(emission.emissionId)")
+                    .font(.caption)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+            }
+            
+            Spacer()
+            
+            Text(emission.isCompliant ? "Compliant" : "Review Needed")
+                .font(.caption)
+                .fontWeight(.medium)
+                .foregroundColor(emission.isCompliant ? CyntientOpsDesign.DashboardColors.success : CyntientOpsDesign.DashboardColors.warning)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background((emission.isCompliant ? CyntientOpsDesign.DashboardColors.success : CyntientOpsDesign.DashboardColors.warning).opacity(0.2))
+                .cornerRadius(6)
         }
         .padding(.vertical, 4)
     }

@@ -93,7 +93,9 @@ struct ClientWorkerDetailSheet: View {
                 .foregroundColor(.white)
             
             ForEach(currentTasks.prefix(5), id: \.id) { task in
-                TaskRowView(task: task)
+                TaskRowView(task: task) { selectedTask in
+                    onAssignTask(selectedTask)
+                }
             }
         }
         .padding()

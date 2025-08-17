@@ -118,9 +118,9 @@ struct EmergencyContactsSheet: View {
             
             VStack(spacing: 8) {
                 EmergencyContactCardRow(
-                    title: "Franco Management",
-                    subtitle: "Primary building management",
-                    number: "(555) 123-4567",
+                    title: "J&M Realty",
+                    subtitle: "David Edelman - Property Manager",
+                    number: "(212) 721-0424",
                     icon: "person.fill",
                     color: .blue
                 )

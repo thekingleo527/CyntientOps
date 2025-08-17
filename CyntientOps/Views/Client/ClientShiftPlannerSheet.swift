@@ -206,7 +206,7 @@ struct ClientShiftPlannerSheet: View {
         // 3. Worker availability and preferences
         // 4. Historical performance data
         
-        let shifts = selectedBuildingData.compactMap { building in
+        let shifts = selectedBuildingData.compactMap { building -> CoreTypes.OptimizedShift? in
             let buildingRoutines = routines.filter { $0.buildingId == building.id }
             let requiredCapabilities = Set(buildingRoutines.flatMap { $0.requiredCapabilities })
             

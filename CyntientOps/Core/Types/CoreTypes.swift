@@ -895,6 +895,7 @@ public struct CoreTypes {
         case schedule = "Schedule"
         case worker = "Worker"
         case task = "Task"
+        case building = "Building"
     }
     
     public enum ComplianceIssueType: String, Codable, CaseIterable {

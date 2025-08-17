@@ -161,49 +161,49 @@ public final class ClientDashboardViewModel: ObservableObject {
         
         // Real worker data from operational system (7 active workers)
         let realWorkerData = [
-            CoreTypes.Worker(
+            Worker(
                 id: "4", // Kevin Dutan - Primary cleaner with expanded duties
                 name: "Kevin Dutan",
                 role: "Primary Cleaner",
                 isActive: true,
                 assignedBuildingIds: ["10", "6", "14", "3", "13", "5", "9", "7", "11", "17", "18"] // Kevin's 11+ buildings
             ),
-            CoreTypes.Worker(
+            Worker(
                 id: "5", // Mercedes Inamagua - Glass & lobby specialist
                 name: "Mercedes Inamagua", 
                 role: "Glass & Lobby Specialist",
                 isActive: true,
                 assignedBuildingIds: ["7", "9", "3", "13", "5", "14", "4"] // Mercedes' buildings
             ),
-            CoreTypes.Worker(
+            Worker(
                 id: "2", // Edwin Lema - Park maintenance & inspections
                 name: "Edwin Lema",
                 role: "Park & Building Inspector",
                 isActive: true,
                 assignedBuildingIds: ["16", "15", "20", "18"] // Edwin's buildings including Stuyvesant Cove
             ),
-            CoreTypes.Worker(
+            Worker(
                 id: "6", // Luis Lopez - Maintenance specialist
                 name: "Luis Lopez",
                 role: "Maintenance Specialist",
                 isActive: true,
                 assignedBuildingIds: ["8", "4", "17"] // Luis' buildings
             ),
-            CoreTypes.Worker(
+            Worker(
                 id: "7", // Angel Guirachocha - Evening operations
                 name: "Angel Guirachocha",
                 role: "Evening Operations",
                 isActive: true,
                 assignedBuildingIds: ["1", "6", "11", "4", "3"] // Angel's evening route
             ),
-            CoreTypes.Worker(
+            Worker(
                 id: "1", // Greg Hutson - Building superintendent
                 name: "Greg Hutson",
                 role: "Building Superintendent",
                 isActive: true,
                 assignedBuildingIds: ["1"] // Greg's primary building
             ),
-            CoreTypes.Worker(
+            Worker(
                 id: "8", // Shawn Magloire - HVAC & boiler specialist
                 name: "Shawn Magloire",
                 role: "HVAC & Boiler Specialist", 
@@ -232,9 +232,9 @@ public final class ClientDashboardViewModel: ObservableObject {
                 workerId: "4",
                 date: Date(),
                 shifts: [
-                    CoreTypes.WorkerScheduleItem(id: "kevin-morning-1", routineId: "perry-circuit", title: "Perry Street Morning Circuit", description: "Daily sidewalk sweep at 131 Perry", buildingId: "10", buildingName: "131 Perry Street", startTime: Calendar.current.date(bySettingHour: 6, minute: 0, second: 0, of: Date()) ?? Date(), endTime: Calendar.current.date(bySettingHour: 7, minute: 0, second: 0, of: Date()) ?? Date(), category: "Cleaning", isWeatherDependent: false, estimatedDuration: 60),
-                    CoreTypes.WorkerScheduleItem(id: "kevin-rubin-1", routineId: "rubin-daily", title: "Rubin Museum Daily Service", description: "Trash area and sidewalk maintenance", buildingId: "14", buildingName: "Rubin Museum (142–148 W 17th)", startTime: Calendar.current.date(bySettingHour: 10, minute: 0, second: 0, of: Date()) ?? Date(), endTime: Calendar.current.date(bySettingHour: 11, minute: 0, second: 0, of: Date()) ?? Date(), category: "Sanitation", isWeatherDependent: false, estimatedDuration: 60),
-                    CoreTypes.WorkerScheduleItem(id: "kevin-17th-circuit", routineId: "17th-cluster", title: "17th Street Building Circuit", description: "Daily trash area maintenance", buildingId: "3", buildingName: "135-139 West 17th Street", startTime: Calendar.current.date(bySettingHour: 11, minute: 0, second: 0, of: Date()) ?? Date(), endTime: Calendar.current.date(bySettingHour: 12, minute: 0, second: 0, of: Date()) ?? Date(), category: "Cleaning", isWeatherDependent: false, estimatedDuration: 60)
+                    CoreTypes.WorkerScheduleItem(id: "kevin-morning-1", startTime: Calendar.current.date(bySettingHour: 6, minute: 0, second: 0, of: Date()) ?? Date(), endTime: Calendar.current.date(bySettingHour: 7, minute: 0, second: 0, of: Date()) ?? Date(), taskName: "Perry Street Morning Circuit", location: "131 Perry Street"),
+                    CoreTypes.WorkerScheduleItem(id: "kevin-rubin-1", startTime: Calendar.current.date(bySettingHour: 10, minute: 0, second: 0, of: Date()) ?? Date(), endTime: Calendar.current.date(bySettingHour: 11, minute: 0, second: 0, of: Date()) ?? Date(), taskName: "Rubin Museum Daily Service", location: "Rubin Museum (142–148 W 17th)"),
+                    CoreTypes.WorkerScheduleItem(id: "kevin-17th-circuit", startTime: Calendar.current.date(bySettingHour: 11, minute: 0, second: 0, of: Date()) ?? Date(), endTime: Calendar.current.date(bySettingHour: 12, minute: 0, second: 0, of: Date()) ?? Date(), taskName: "17th Street Building Circuit", location: "135-139 West 17th Street")
                 ]
             ),
             // Mercedes Inamagua - Glass & lobby specialist
@@ -242,8 +242,8 @@ public final class ClientDashboardViewModel: ObservableObject {
                 workerId: "5", 
                 date: Date(),
                 shifts: [
-                    CoreTypes.WorkerScheduleItem(id: "mercedes-glass-1", routineId: "glass-circuit", title: "Morning Glass Circuit", description: "112 West 18th glass & lobby", buildingId: "7", buildingName: "112 West 18th Street", startTime: Calendar.current.date(bySettingHour: 6, minute: 0, second: 0, of: Date()) ?? Date(), endTime: Calendar.current.date(bySettingHour: 7, minute: 0, second: 0, of: Date()) ?? Date(), category: "Cleaning", isWeatherDependent: false, estimatedDuration: 60),
-                    CoreTypes.WorkerScheduleItem(id: "mercedes-glass-2", routineId: "glass-circuit", title: "117 West 17th Glass", description: "Glass and vestibule cleaning", buildingId: "9", buildingName: "117 West 17th Street", startTime: Calendar.current.date(bySettingHour: 7, minute: 0, second: 0, of: Date()) ?? Date(), endTime: Calendar.current.date(bySettingHour: 8, minute: 0, second: 0, of: Date()) ?? Date(), category: "Cleaning", isWeatherDependent: false, estimatedDuration: 60)
+                    CoreTypes.WorkerScheduleItem(id: "mercedes-glass-1", startTime: Calendar.current.date(bySettingHour: 6, minute: 0, second: 0, of: Date()) ?? Date(), endTime: Calendar.current.date(bySettingHour: 7, minute: 0, second: 0, of: Date()) ?? Date(), taskName: "Morning Glass Circuit", location: "112 West 18th Street"),
+                    CoreTypes.WorkerScheduleItem(id: "mercedes-glass-2", startTime: Calendar.current.date(bySettingHour: 7, minute: 0, second: 0, of: Date()) ?? Date(), endTime: Calendar.current.date(bySettingHour: 8, minute: 0, second: 0, of: Date()) ?? Date(), taskName: "117 West 17th Glass", location: "117 West 17th Street")
                 ]
             ),
             // Edwin Lema - Park maintenance & inspections  
@@ -251,8 +251,8 @@ public final class ClientDashboardViewModel: ObservableObject {
                 workerId: "2",
                 date: Date(), 
                 shifts: [
-                    CoreTypes.WorkerScheduleItem(id: "edwin-park", routineId: "park-maintenance", title: "Stuyvesant Cove Morning Check", description: "Daily park inspection and maintenance", buildingId: "16", buildingName: "Stuyvesant Cove Park", startTime: Calendar.current.date(bySettingHour: 6, minute: 0, second: 0, of: Date()) ?? Date(), endTime: Calendar.current.date(bySettingHour: 7, minute: 0, second: 0, of: Date()) ?? Date(), category: "Maintenance", isWeatherDependent: true, estimatedDuration: 60),
-                    CoreTypes.WorkerScheduleItem(id: "edwin-boiler", routineId: "boiler-maintenance", title: "133 East 15th Boiler Service", description: "Weekly boiler blow-down", buildingId: "15", buildingName: "133 East 15th Street", startTime: Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: Date()) ?? Date(), endTime: Calendar.current.date(bySettingHour: 10, minute: 0, second: 0, of: Date()) ?? Date(), category: "Maintenance", isWeatherDependent: false, estimatedDuration: 60)
+                    CoreTypes.WorkerScheduleItem(id: "edwin-park", startTime: Calendar.current.date(bySettingHour: 6, minute: 0, second: 0, of: Date()) ?? Date(), endTime: Calendar.current.date(bySettingHour: 7, minute: 0, second: 0, of: Date()) ?? Date(), taskName: "Stuyvesant Cove Morning Check", location: "Stuyvesant Cove Park"),
+                    CoreTypes.WorkerScheduleItem(id: "edwin-boiler", startTime: Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: Date()) ?? Date(), endTime: Calendar.current.date(bySettingHour: 10, minute: 0, second: 0, of: Date()) ?? Date(), taskName: "133 East 15th Boiler Service", location: "133 East 15th Street")
                 ]
             )
         ]

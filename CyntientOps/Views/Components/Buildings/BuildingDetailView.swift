@@ -411,7 +411,12 @@ struct BuildingDetailView: View {
             VStack(spacing: 20) {
                 switch selectedTab {
                 case .overview:
-                    BuildingOverviewTab(viewModel: viewModel)
+                    BuildingOverviewTab(
+                        viewModel: viewModel,
+                        onTabChange: { tab in
+                            selectedTab = tab
+                        }
+                    )
                     
                 case .tasks:
                     BuildingTasksTab(
@@ -802,6 +807,7 @@ struct BuildingQuickStatCard: View {
 // Overview Tab
 struct BuildingOverviewTab: View {
     @ObservedObject var viewModel: BuildingDetailVM
+    let onTabChange: (BuildingDetailTab) -> Void
     
     var body: some View {
         VStack(spacing: 20) {
@@ -940,7 +946,8 @@ struct BuildingOverviewTab: View {
                 value: "\(viewModel.inventorySummary.cleaningLow) Low",
                 icon: "shippingbox",
                 color: viewModel.inventorySummary.cleaningLow > 0 ? CyntientOpsDesign.DashboardColors.warning : CyntientOpsDesign.DashboardColors.success,
-                trend: .stable
+                trend: .stable,
+                onTap: { onTabChange(.inventory) }
             )
         }
     }
@@ -1071,22 +1078,22 @@ struct BuildingTasksTab: View {
     private var dailyRoutinesCard: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
-                Label("Daily Routines", systemImage: "calendar.circle.fill")
+                Label(selectedTaskFilter == .week ? "Weekly Routines" : "Daily Routines", systemImage: "calendar.circle.fill")
                     .font(.headline)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                 
                 Spacer()
                 
-                Text("\(viewModel.completedRoutines)/\(viewModel.totalRoutines)")
+                Text("\(filteredCompletedRoutines)/\(filteredRoutines.count)")
                     .font(.caption)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.primaryAction)
             }
             
-            if viewModel.dailyRoutines.isEmpty {
-                EmptyStateMessage(message: "No routines scheduled today")
+            if filteredRoutines.isEmpty {
+                EmptyStateMessage(message: selectedTaskFilter == .week ? "No routines scheduled this week" : "No routines scheduled today")
             } else {
                 VStack(spacing: 12) {
-                    ForEach(viewModel.dailyRoutines) { routine in
+                    ForEach(filteredRoutines) { routine in
                         DailyRoutineRow(
                             routine: routine,
                             onToggle: { viewModel.toggleRoutineCompletion(routine) }
@@ -1097,6 +1104,30 @@ struct BuildingTasksTab: View {
         }
         .padding()
         .francoDarkCardBackground()
+    }
+    
+    private var filteredRoutines: [BDDailyRoutine] {
+        let calendar = Calendar.current
+        let now = Date()
+        
+        switch selectedTaskFilter {
+        case .today:
+            return viewModel.dailyRoutines.filter { routine in
+                guard let scheduledTime = routine.scheduledTime else { return true }
+                return calendar.isDateInToday(now) // Show today's routines
+            }
+        case .week:
+            // Show all routines from OperationalDataManager for this week
+            return viewModel.dailyRoutines // All routines are weekly operational data
+        case .overdue:
+            return viewModel.dailyRoutines.filter { !$0.isCompleted }
+        case .upcoming:
+            return viewModel.dailyRoutines.filter { !$0.isCompleted }
+        }
+    }
+    
+    private var filteredCompletedRoutines: Int {
+        filteredRoutines.filter { $0.isCompleted }.count
     }
     
     private var maintenanceTasksCard: some View {
@@ -1175,9 +1206,7 @@ struct BuildingWorkersTab: View {
             onSiteWorkersCard
                 .animatedGlassAppear(delay: 0.2)
             
-            // All assigned workers
-            allAssignedWorkersCard
-                .animatedGlassAppear(delay: 0.3)
+            // Removed allAssignedWorkersCard as requested
         }
     }
     
@@ -1837,26 +1866,42 @@ struct BuildingMetricTile: View {
     let icon: String
     let color: Color
     let trend: CoreTypes.TrendDirection
+    let onTap: (() -> Void)?
+    
+    init(title: String, value: String, icon: String, color: Color, trend: CoreTypes.TrendDirection, onTap: (() -> Void)? = nil) {
+        self.title = title
+        self.value = value
+        self.icon = icon
+        self.color = color
+        self.trend = trend
+        self.onTap = onTap
+    }
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Image(systemName: icon)
+        Button(action: {
+            onTap?()
+        }) {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Image(systemName: icon)
+                        .font(.caption)
+                        .foregroundColor(color)
+                    Spacer()
+                }
+                Text(value)
+                    .font(.title3)
+                    .fontWeight(.bold)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                Text(title)
                     .font(.caption)
-                    .foregroundColor(color)
-                Spacer()
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
             }
-            Text(value)
-                .font(.title3)
-                .fontWeight(.bold)
-                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-            Text(title)
-                .font(.caption)
-                .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+            .padding()
+            .frame(maxWidth: .infinity)
+            .francoDarkCardBackground()
         }
-        .padding()
-        .frame(maxWidth: .infinity)
-        .francoDarkCardBackground()
+        .buttonStyle(PlainButtonStyle())
+        .disabled(onTap == nil)
     }
 }
 
@@ -3270,42 +3315,105 @@ struct BuildingSanitationTab: View {
     
     private var dsnyScheduleCard: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Label("DSNY Collection Schedule", systemImage: "trash.circle.fill")
+            Label(selectedFilter == .schedule ? "DSNY Monthly Schedule" : "DSNY Collection Schedule", systemImage: "trash.circle.fill")
                 .font(.headline)
                 .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
             
             VStack(spacing: 12) {
-                DSNYScheduleRow(
-                    day: "Today",
-                    time: "8:00 PM - Set Out",
-                    items: "Trash, Recycling",
-                    isToday: true
-                )
-                
-                DSNYScheduleRow(
-                    day: "Monday",
-                    time: "6:00 AM - Collection",
-                    items: "Regular Pickup",
-                    isToday: false
-                )
-                
-                DSNYScheduleRow(
-                    day: "Wednesday",
-                    time: "6:00 AM - Collection", 
-                    items: "Regular Pickup",
-                    isToday: false
-                )
-                
-                DSNYScheduleRow(
-                    day: "Friday",
-                    time: "6:00 AM - Collection",
-                    items: "Regular Pickup",
-                    isToday: false
-                )
+                if selectedFilter == .schedule {
+                    // Show full month schedule
+                    ScrollView {
+                        VStack(spacing: 8) {
+                            ForEach(generateMonthlyDSNYSchedule(), id: \.day) { scheduleItem in
+                                DSNYScheduleRow(
+                                    day: scheduleItem.day,
+                                    time: scheduleItem.time,
+                                    items: scheduleItem.items,
+                                    isToday: scheduleItem.isToday
+                                )
+                            }
+                        }
+                    }
+                    .frame(maxHeight: 300)
+                } else {
+                    // Show current week schedule
+                    DSNYScheduleRow(
+                        day: "Today",
+                        time: "8:00 PM - Set Out",
+                        items: "Trash, Recycling",
+                        isToday: true
+                    )
+                    
+                    DSNYScheduleRow(
+                        day: "Monday",
+                        time: "6:00 AM - Collection",
+                        items: "Regular Pickup",
+                        isToday: false
+                    )
+                    
+                    DSNYScheduleRow(
+                        day: "Wednesday",
+                        time: "6:00 AM - Collection", 
+                        items: "Regular Pickup",
+                        isToday: false
+                    )
+                    
+                    DSNYScheduleRow(
+                        day: "Friday",
+                        time: "6:00 AM - Collection",
+                        items: "Regular Pickup",
+                        isToday: false
+                    )
+                }
             }
         }
         .padding()
         .francoDarkCardBackground()
+    }
+    
+    private func generateMonthlyDSNYSchedule() -> [(day: String, time: String, items: String, isToday: Bool)] {
+        let calendar = Calendar.current
+        let now = Date()
+        let startOfMonth = calendar.dateInterval(of: .month, for: now)?.start ?? now
+        let daysInMonth = calendar.range(of: .day, in: .month, for: now)?.count ?? 30
+        
+        var schedule: [(day: String, time: String, items: String, isToday: Bool)] = []
+        
+        for day in 1...daysInMonth {
+            guard let date = calendar.date(byAdding: .day, value: day - 1, to: startOfMonth) else { continue }
+            
+            let dayOfWeek = calendar.component(.weekday, from: date)
+            let dayName = calendar.weekdaySymbols[dayOfWeek - 1]
+            let dayNumber = calendar.component(.day, from: date)
+            let isToday = calendar.isDate(date, inSameDayAs: now)
+            
+            // Monday, Wednesday, Friday collection (2, 4, 6 in weekday where Sunday = 1)
+            if dayOfWeek == 2 || dayOfWeek == 4 || dayOfWeek == 6 {
+                schedule.append((
+                    day: "\(dayName) \(dayNumber)",
+                    time: "6:00 AM - Collection",
+                    items: "Regular Pickup",
+                    isToday: isToday
+                ))
+                
+                // Add set-out the night before
+                if let previousDay = calendar.date(byAdding: .day, value: -1, to: date) {
+                    let prevDayOfWeek = calendar.component(.weekday, from: previousDay)
+                    let prevDayName = calendar.weekdaySymbols[prevDayOfWeek - 1]
+                    let prevDayNumber = calendar.component(.day, from: previousDay)
+                    let isPrevToday = calendar.isDate(previousDay, inSameDayAs: now)
+                    
+                    schedule.append((
+                        day: "\(prevDayName) \(prevDayNumber)",
+                        time: "8:00 PM - Set Out",
+                        items: "Trash, Recycling",
+                        isToday: isPrevToday
+                    ))
+                }
+            }
+        }
+        
+        return schedule.sorted { $0.day < $1.day }
     }
     
     private var sanitationTasksCard: some View {

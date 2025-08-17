@@ -209,6 +209,38 @@ struct MapRevealContainer<Content: View>: View {
             HStack {
                 Spacer()
                 
+                // Zoom controls
+                VStack(spacing: 8) {
+                    // Zoom In button
+                    Button(action: zoomIn) {
+                        ZStack {
+                            Circle()
+                                .fill(.ultraThinMaterial)
+                                .frame(width: 44, height: 44)
+                            
+                            Image(systemName: "plus")
+                                .font(.title3)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.white)
+                        }
+                    }
+                    
+                    // Zoom Out button
+                    Button(action: zoomOut) {
+                        ZStack {
+                            Circle()
+                                .fill(.ultraThinMaterial)
+                                .frame(width: 44, height: 44)
+                            
+                            Image(systemName: "minus")
+                                .font(.title3)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.white)
+                        }
+                    }
+                }
+                .padding(.trailing, 8)
+                
                 // Close button
                 Button(action: closeMap) {
                     ZStack {
@@ -341,6 +373,38 @@ struct MapRevealContainer<Content: View>: View {
             // First tap - show preview
             withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
                 selectedBuildingForPreview = building
+            }
+        }
+    }
+    
+    // MARK: - Zoom Controls
+    
+    private func zoomIn() {
+        withAnimation(.easeInOut(duration: 0.3)) {
+            if case let .region(region) = position {
+                let newSpan = MKCoordinateSpan(
+                    latitudeDelta: region.span.latitudeDelta * 0.5,
+                    longitudeDelta: region.span.longitudeDelta * 0.5
+                )
+                position = .region(MKCoordinateRegion(
+                    center: region.center,
+                    span: newSpan
+                ))
+            }
+        }
+    }
+    
+    private func zoomOut() {
+        withAnimation(.easeInOut(duration: 0.3)) {
+            if case let .region(region) = position {
+                let newSpan = MKCoordinateSpan(
+                    latitudeDelta: min(region.span.latitudeDelta * 2.0, 0.1),
+                    longitudeDelta: min(region.span.longitudeDelta * 2.0, 0.1)
+                )
+                position = .region(MKCoordinateRegion(
+                    center: region.center,
+                    span: newSpan
+                ))
             }
         }
     }
