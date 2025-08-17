@@ -2738,16 +2738,8 @@ struct ClientDSNYComplianceView: View {
         return violations.values.flatMap { $0 }.count
     }
     
-    private func getActiveViolations() -> Int {
-        return violations.values.flatMap { $0 }.filter { $0.isActive }.count
-    }
-    
     private func getTotalSchedules() -> Int {
         return schedules.values.flatMap { $0 }.count
-    }
-    
-    private func getTotalViolations() -> Int {
-        return violations.values.flatMap { $0 }.count
     }
     
     private func getActiveViolations() -> Int {
