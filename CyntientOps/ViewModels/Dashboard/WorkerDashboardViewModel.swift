@@ -3217,6 +3217,38 @@ public class WorkerDashboardViewModel: ObservableObject {
         case .repair, .installation: return "routine"
         }
     }
+    
+    // MARK: - Quick Action Methods
+    
+    /// Add a quick action task (for floating button actions)
+    @MainActor
+    public func addTaskQuickAction(_ task: CoreTypes.ContextualTask) async {
+        do {
+            // Add task to the system
+            try await container.tasks.createTask(task)
+            
+            // Update local state
+            todaysTasks.append(TaskItem(
+                id: task.id,
+                title: task.title,
+                description: task.description,
+                buildingId: task.buildingId,
+                dueDate: task.dueDate,
+                urgency: task.urgency ?? .normal,
+                isCompleted: task.status == .completed,
+                category: task.category.rawValue,
+                requiresPhoto: task.category == .documentation
+            ))
+            
+            // Trigger refresh
+            await refreshData()
+            
+            print("✅ Added quick action task: \(task.title)")
+            
+        } catch {
+            print("❌ Failed to add quick action task: \(error)")
+        }
+    }
 }
 
 // MARK: - Production ViewModel

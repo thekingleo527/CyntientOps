@@ -28,7 +28,7 @@ struct WorkerDashboardView: View {
     
     // MARK: - Sheet Navigation
     enum WorkerRoute: Identifiable {
-        case profile, buildingDetail(String), taskDetail(String), schedule, routes, emergency, settings, novaInteraction
+        case profile, buildingDetail(String), taskDetail(String), schedule, routes, emergency, settings, novaInteraction, workerActions
         
         var id: String {
             switch self {
@@ -40,6 +40,7 @@ struct WorkerDashboardView: View {
             case .emergency: return "emergency"
             case .settings: return "settings"
             case .novaInteraction: return "novaInteraction"
+            case .workerActions: return "workerActions"
             }
         }
     }
@@ -167,6 +168,19 @@ struct WorkerDashboardView: View {
             )
             .padding(.horizontal, 16)
             .padding(.bottom, 8)
+            
+            // Floating Action Button
+            VStack {
+                Spacer()
+                HStack {
+                    Spacer()
+                    WorkerFloatingActionButton {
+                        sheet = .workerActions
+                    }
+                    .padding(.trailing, 20)
+                    .padding(.bottom, 100) // Above tab bar
+                }
+            }
         }
         .navigationBarHidden(true)
         .preferredColorScheme(.dark)
@@ -371,6 +385,9 @@ struct WorkerDashboardView: View {
                 .environmentObject(container.novaManager)
                 .navigationTitle("Nova Assistant")
                 .navigationBarTitleDisplayMode(.inline)
+                
+        case .workerActions:
+            WorkerActionSheet(viewModel: viewModel)
         }
     }
     
@@ -4498,6 +4515,401 @@ struct WorkerScheduleContent: View {
         let formatter = DateFormatter()
         formatter.timeStyle = .short
         return formatter.string(from: date)
+    }
+}
+
+// MARK: - Floating Action Button
+
+struct WorkerFloatingActionButton: View {
+    let onTap: () -> Void
+    
+    var body: some View {
+        Button(action: onTap) {
+            Image(systemName: "plus")
+                .font(.system(size: 24, weight: .semibold))
+                .foregroundColor(.white)
+                .frame(width: 56, height: 56)
+                .background(
+                    Circle()
+                        .fill(CyntientOpsDesign.DashboardColors.workerAccent)
+                        .shadow(color: .black.opacity(0.3), radius: 8, x: 0, y: 4)
+                )
+        }
+        .scaleEffect(1.0)
+        .animation(.spring(response: 0.3, dampingFraction: 0.6, blendDuration: 0), value: 1.0)
+    }
+}
+
+// MARK: - Worker Action Sheet
+
+struct WorkerActionSheet: View {
+    @ObservedObject var viewModel: WorkerDashboardViewModel
+    @Environment(\.dismiss) private var dismiss
+    
+    // Sheet state
+    @State private var showingCamera = false
+    @State private var showingPhotoLibrary = false
+    @State private var showingSignaturePad = false
+    @State private var showingNotesEditor = false
+    
+    // Action results
+    @State private var capturedImage: UIImage?
+    @State private var signatureData: String = ""
+    @State private var noteText: String = ""
+    
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 24) {
+                // Header
+                VStack(spacing: 12) {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.system(size: 48))
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.workerAccent)
+                    
+                    VStack(spacing: 6) {
+                        Text("Worker Actions")
+                            .font(.title2)
+                            .fontWeight(.bold)
+                        
+                        Text("Capture photos, notes, or signatures for your current building")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                    }
+                }
+                .padding(.top, 20)
+                
+                // Action Grid
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 16), count: 2), spacing: 16) {
+                    // Take Photo
+                    WorkerActionCard(
+                        icon: "camera.fill",
+                        title: "Take Photo",
+                        subtitle: "Document current work",
+                        color: .blue
+                    ) {
+                        showingCamera = true
+                    }
+                    
+                    // Photo Library
+                    WorkerActionCard(
+                        icon: "photo.on.rectangle",
+                        title: "Photo Library",
+                        subtitle: "Upload existing photo",
+                        color: .green
+                    ) {
+                        showingPhotoLibrary = true
+                    }
+                    
+                    // Signature
+                    WorkerActionCard(
+                        icon: "signature",
+                        title: "Signature",
+                        subtitle: "Capture vendor signature",
+                        color: .purple
+                    ) {
+                        showingSignaturePad = true
+                    }
+                    
+                    // Notes
+                    WorkerActionCard(
+                        icon: "note.text",
+                        title: "Add Note",
+                        subtitle: "Record observations",
+                        color: .orange
+                    ) {
+                        showingNotesEditor = true
+                    }
+                }
+                .padding(.horizontal, 20)
+                
+                Spacer()
+                
+                // Current Building Context
+                if let currentBuilding = viewModel.currentBuilding {
+                    VStack(spacing: 8) {
+                        Text("Current Building")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        
+                        Text(currentBuilding.name)
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                            .foregroundColor(CyntientOpsDesign.DashboardColors.workerAccent)
+                    }
+                    .padding(.bottom, 20)
+                }
+            }
+            .navigationTitle("Worker Actions")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Close") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+        .sheet(isPresented: $showingCamera) {
+            FrancoImagePicker(
+                image: $capturedImage,
+                sourceType: .camera,
+                onImagePicked: { image in
+                    savePhotoEvidence(image, category: .workInProgress, notes: "Work documentation")
+                }
+            )
+        }
+        .sheet(isPresented: $showingPhotoLibrary) {
+            FrancoImagePicker(
+                image: $capturedImage,
+                sourceType: .photoLibrary,
+                onImagePicked: { image in
+                    savePhotoEvidence(image, category: .workInProgress, notes: "Uploaded documentation")
+                }
+            )
+        }
+        .sheet(isPresented: $showingSignaturePad) {
+            NavigationView {
+                SignaturePad(
+                    onSignatureCapture: { signature in
+                        signatureData = signature
+                        showingSignaturePad = false
+                        saveSignatureRecord(signature)
+                    },
+                    onClear: {
+                        signatureData = ""
+                    }
+                )
+                .navigationTitle("Capture Signature")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarLeading) {
+                        Button("Cancel") {
+                            showingSignaturePad = false
+                        }
+                    }
+                }
+            }
+        }
+        .sheet(isPresented: $showingNotesEditor) {
+            WorkerNotesEditor(
+                initialNote: noteText,
+                buildingName: viewModel.currentBuilding?.name ?? "Current Building"
+            ) { note in
+                noteText = note
+                saveNoteRecord(note)
+                showingNotesEditor = false
+            }
+        }
+    }
+    
+    // MARK: - Action Handlers
+    
+    private func savePhotoEvidence(_ image: UIImage, category: CoreTypes.FrancoPhotoCategory, notes: String) {
+        Task {
+            guard let currentBuilding = viewModel.currentBuilding else { return }
+            
+            // Create photo evidence task
+            let photoTask = CoreTypes.ContextualTask(
+                id: UUID().uuidString,
+                title: "Photo Evidence",
+                description: notes,
+                buildingId: currentBuilding.id,
+                assignedWorkerId: viewModel.worker?.id ?? "",
+                status: .completed,
+                urgency: .normal,
+                estimatedDuration: 5,
+                category: .documentation,
+                dependencies: [],
+                createdAt: Date(),
+                updatedAt: Date(),
+                completedAt: Date(),
+                isActive: true
+            )
+            
+            // Add to viewModel
+            await viewModel.addTaskQuickAction(photoTask)
+            
+            // Show success feedback
+            HapticManager.shared.notification(.success)
+        }
+    }
+    
+    private func saveSignatureRecord(_ signature: String) {
+        Task {
+            guard let currentBuilding = viewModel.currentBuilding else { return }
+            
+            // Create signature task
+            let signatureTask = CoreTypes.ContextualTask(
+                id: UUID().uuidString,
+                title: "Signature Captured",
+                description: "Vendor/contractor signature collected for \(currentBuilding.name)",
+                buildingId: currentBuilding.id,
+                assignedWorkerId: viewModel.worker?.id ?? "",
+                status: .completed,
+                urgency: .normal,
+                estimatedDuration: 2,
+                category: .documentation,
+                dependencies: [],
+                createdAt: Date(),
+                updatedAt: Date(),
+                completedAt: Date(),
+                isActive: true
+            )
+            
+            await viewModel.addTaskQuickAction(signatureTask)
+            HapticManager.shared.notification(.success)
+        }
+    }
+    
+    private func saveNoteRecord(_ note: String) {
+        Task {
+            guard let currentBuilding = viewModel.currentBuilding else { return }
+            
+            // Create note task
+            let noteTask = CoreTypes.ContextualTask(
+                id: UUID().uuidString,
+                title: "Field Note",
+                description: note,
+                buildingId: currentBuilding.id,
+                assignedWorkerId: viewModel.worker?.id ?? "",
+                status: .completed,
+                urgency: .normal,
+                estimatedDuration: 3,
+                category: .documentation,
+                dependencies: [],
+                createdAt: Date(),
+                updatedAt: Date(),
+                completedAt: Date(),
+                isActive: true
+            )
+            
+            await viewModel.addTaskQuickAction(noteTask)
+            HapticManager.shared.notification(.success)
+        }
+    }
+}
+
+// MARK: - Worker Action Card
+
+struct WorkerActionCard: View {
+    let icon: String
+    let title: String
+    let subtitle: String
+    let color: Color
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 12) {
+                Image(systemName: icon)
+                    .font(.system(size: 32))
+                    .foregroundColor(color)
+                
+                VStack(spacing: 4) {
+                    Text(title)
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.primary)
+                    
+                    Text(subtitle)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+            }
+            .frame(maxWidth: .infinity, minHeight: 120)
+            .background(color.opacity(0.1))
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(color.opacity(0.3), lineWidth: 1)
+            )
+        }
+        .buttonStyle(PlainButtonStyle())
+    }
+}
+
+// MARK: - Worker Notes Editor
+
+struct WorkerNotesEditor: View {
+    @State private var noteText: String
+    let buildingName: String
+    let onSave: (String) -> Void
+    @Environment(\.dismiss) private var dismiss
+    
+    init(initialNote: String, buildingName: String, onSave: @escaping (String) -> Void) {
+        self._noteText = State(initialValue: initialNote)
+        self.buildingName = buildingName
+        self.onSave = onSave
+    }
+    
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 20) {
+                // Header
+                VStack(spacing: 8) {
+                    Text("Add Field Note")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                    
+                    Text("For: \(buildingName)")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+                .padding(.top, 20)
+                
+                // Text Editor
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Note Details")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                    
+                    TextEditor(text: $noteText)
+                        .frame(minHeight: 150)
+                        .padding(12)
+                        .background(Color(.systemGray6))
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(Color(.systemGray4), lineWidth: 1)
+                        )
+                }
+                .padding(.horizontal, 20)
+                
+                Spacer()
+                
+                // Save Button
+                Button(action: {
+                    onSave(noteText.trimmingCharacters(in: .whitespacesAndNewlines))
+                }) {
+                    HStack {
+                        Image(systemName: "checkmark.circle.fill")
+                        Text("Save Note")
+                            .fontWeight(.semibold)
+                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 50)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(noteText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? Color.gray : CyntientOpsDesign.DashboardColors.workerAccent)
+                    )
+                }
+                .disabled(noteText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                .padding(.horizontal, 20)
+                .padding(.bottom, 20)
+            }
+            .navigationTitle("Field Note")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
+            }
+        }
     }
 }
 
