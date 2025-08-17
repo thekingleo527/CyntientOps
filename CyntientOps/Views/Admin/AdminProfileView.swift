@@ -146,7 +146,7 @@ struct AdminProfileView: View {
             }
         }
         .padding()
-        .francoDarkCardBackground()
+        .cyntientOpsDarkCardBackground()
     }
     
     private var accountSettingsSection: some View {
@@ -187,7 +187,7 @@ struct AdminProfileView: View {
             }
         }
         .padding()
-        .francoDarkCardBackground()
+        .cyntientOpsDarkCardBackground()
     }
     
     private var systemInfoSection: some View {
@@ -205,7 +205,7 @@ struct AdminProfileView: View {
             }
         }
         .padding()
-        .francoDarkCardBackground()
+        .cyntientOpsDarkCardBackground()
     }
     
     private var logoutSection: some View {

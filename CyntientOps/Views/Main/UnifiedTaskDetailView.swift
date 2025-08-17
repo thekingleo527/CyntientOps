@@ -177,7 +177,7 @@ struct UnifiedTaskDetailView: View {
                 }
                 .padding(.vertical)
                 .frame(maxWidth: .infinity)
-                .francoDarkCardBackground()
+                .cyntientOpsDarkCardBackground()
                 
                 // 2. Essential Information Only
                 VStack(spacing: 24) {
@@ -196,7 +196,7 @@ struct UnifiedTaskDetailView: View {
                         }
                         .padding()
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .francoDarkCardBackground()
+                        .cyntientOpsDarkCardBackground()
                     }
                     
                     // Due time (if exists and not completed)
@@ -220,7 +220,7 @@ struct UnifiedTaskDetailView: View {
                             Spacer()
                         }
                         .padding()
-                        .francoDarkCardBackground()
+                        .cyntientOpsDarkCardBackground()
                     }
                 }
                 
@@ -284,7 +284,7 @@ struct UnifiedTaskDetailView: View {
                         }
                     }
                     .padding()
-                    .francoDarkCardBackground()
+                    .cyntientOpsDarkCardBackground()
                 }
                 
                 // 4. Status or Action
@@ -308,7 +308,7 @@ struct UnifiedTaskDetailView: View {
                     }
                     .padding(.vertical, 40)
                     .frame(maxWidth: .infinity)
-                    .francoDarkCardBackground()
+                    .cyntientOpsDarkCardBackground()
                 } else {
                     // Complete button
                     Button(action: completeSimplifiedTask) {
@@ -487,7 +487,7 @@ struct UnifiedTaskDetailView: View {
             }
         }
         .padding()
-        .francoDarkCardBackground()
+        .cyntientOpsDarkCardBackground()
     }
     
     private var taskDetailsCard: some View {
@@ -543,7 +543,7 @@ struct UnifiedTaskDetailView: View {
             }
         }
         .padding()
-        .francoDarkCardBackground()
+        .cyntientOpsDarkCardBackground()
     }
     
     private var locationCard: some View {
@@ -589,7 +589,7 @@ struct UnifiedTaskDetailView: View {
             }
         }
         .padding()
-        .francoDarkCardBackground()
+        .cyntientOpsDarkCardBackground()
     }
     
     private var photoEvidenceCard: some View {
@@ -678,7 +678,7 @@ struct UnifiedTaskDetailView: View {
             }
         }
         .padding()
-        .francoDarkCardBackground()
+        .cyntientOpsDarkCardBackground()
     }
     
     private var notesCard: some View {
@@ -709,7 +709,7 @@ struct UnifiedTaskDetailView: View {
             }
         }
         .padding()
-        .francoDarkCardBackground()
+        .cyntientOpsDarkCardBackground()
     }
     
     // MARK: - Action Sections
@@ -829,7 +829,7 @@ struct UnifiedTaskDetailView: View {
             }
         }
         .padding()
-        .francoDarkCardBackground()
+        .cyntientOpsDarkCardBackground()
     }
     
     private var taskHistoryCard: some View {
@@ -866,7 +866,7 @@ struct UnifiedTaskDetailView: View {
             }
         }
         .padding()
-        .francoDarkCardBackground()
+        .cyntientOpsDarkCardBackground()
     }
     
     private func historyItem(icon: String, text: String, date: Date, color: Color) -> some View {
@@ -963,7 +963,7 @@ struct UnifiedTaskDetailView: View {
             }
         }
         .padding()
-        .francoDarkCardBackground()
+        .cyntientOpsDarkCardBackground()
     }
     
     private func statItem(icon: String, value: String, label: String) -> some View {
@@ -1020,7 +1020,7 @@ struct UnifiedTaskDetailView: View {
             }
         }
         .padding()
-        .francoDarkCardBackground()
+        .cyntientOpsDarkCardBackground()
     }
     
     // MARK: - Toolbar

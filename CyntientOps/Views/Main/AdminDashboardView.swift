@@ -366,7 +366,7 @@ struct AdminUrgentItemsSection: View {
             }
         }
         .padding(16)
-        .francoDarkCardBackground(cornerRadius: 12)
+        .cyntientOpsDarkCardBackground(cornerRadius: 12)
     }
 }
 
@@ -642,17 +642,17 @@ struct AdminRealTimeHeroCard: View {
                     // Top Row - Portfolio Overview
                     HStack(spacing: 12) {
                         AdminMetricCard(
+                            icon: "building.2",
                             title: "Buildings",
                             value: "\(portfolioMetrics.totalBuildings)",
-                            subtitle: "Portfolio Properties",
                             color: CyntientOpsDesign.DashboardColors.adminAccent,
                             onTap: onBuildingsTap
                         )
                         
                         AdminMetricCard(
+                            icon: "person.2.fill",
                             title: "Workers",
                             value: "\(activeWorkers)/\(workersTotal)",
-                            subtitle: "Active Today",
                             color: activeWorkersColor,
                             onTap: onWorkersTap
                         )
@@ -661,17 +661,17 @@ struct AdminRealTimeHeroCard: View {
                     // Middle Row - Performance Metrics
                     HStack(spacing: 12) {
                         AdminMetricCard(
+                            icon: "shield.checkered",
                             title: "Compliance",
                             value: "\(Int(portfolioMetrics.complianceScore * 100))%",
-                            subtitle: complianceSubtitle,
                             color: complianceColor,
                             onTap: onComplianceTap
                         )
                         
                         AdminMetricCard(
+                            icon: "chart.line.uptrend.xyaxis",
                             title: "Completion",
                             value: "\(Int(portfolioMetrics.overallCompletionRate * 100))%",
-                            subtitle: "Today's Progress",
                             color: completionColor,
                             onTap: { /* Show analytics */ }
                         )
@@ -727,7 +727,7 @@ struct AdminRealTimeHeroCard: View {
                     .padding(.top, 8)
                 }
                 .padding(16)
-                .francoDarkCardBackground(cornerRadius: 12)
+                .cyntientOpsDarkCardBackground(cornerRadius: 12)
             } else {
                 // Collapsed Hero Card with Real-time Status
                 Button(action: {
@@ -779,7 +779,7 @@ struct AdminRealTimeHeroCard: View {
                     }
                     .padding(.horizontal, 20)
                     .padding(.vertical, 12)
-                    .francoDarkCardBackground(cornerRadius: 12)
+                    .cyntientOpsDarkCardBackground(cornerRadius: 12)
                 }
                 .buttonStyle(PlainButtonStyle())
             }
@@ -873,7 +873,7 @@ struct AdminNovaIntelligenceBar: View {
                 }
             }
             .frame(height: 65)
-            .francoDarkCardBackground(cornerRadius: 0)
+            .cyntientOpsDarkCardBackground(cornerRadius: 0)
         }
         .background(CyntientOpsDesign.DashboardColors.cardBackground)
         .clipShape(RoundedRectangle(cornerRadius: 16))
@@ -1030,10 +1030,10 @@ struct AdminPrioritiesContent: View {
                         .fontWeight(.semibold)
                         .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
                     
-                    ForEach(criticalAlerts.prefix(3), id: \.alertId) { alert in
+                    ForEach(criticalAlerts.prefix(3), id: \.id) { alert in
                         AdminPriorityItem(
                             title: alert.title,
-                            severity: alert.severity,
+                            severity: alert.urgency,
                             timestamp: alert.timestamp,
                             onTap: onEmergencyBroadcast
                         )
@@ -1102,7 +1102,7 @@ struct AdminStreamingBroadcast: View {
 
 struct AdminPriorityItem: View {
     let title: String
-    let severity: CoreTypes.AlertSeverity
+    let severity: CoreTypes.AIPriority
     let timestamp: Date
     let onTap: () -> Void
     
@@ -1139,17 +1139,19 @@ struct AdminPriorityItem: View {
     
     private var severityIcon: String {
         switch severity {
+        case .low: return "info.circle"
+        case .medium: return "exclamationmark.circle"
+        case .high: return "exclamationmark.triangle"
         case .critical: return "exclamationmark.triangle.fill"
-        case .warning: return "exclamationmark.circle.fill"
-        case .info: return "info.circle.fill"
         }
     }
     
     private var severityColor: Color {
         switch severity {
+        case .low: return CyntientOpsDesign.DashboardColors.info
+        case .medium: return CyntientOpsDesign.DashboardColors.warning
+        case .high: return CyntientOpsDesign.DashboardColors.critical
         case .critical: return CyntientOpsDesign.DashboardColors.critical
-        case .warning: return CyntientOpsDesign.DashboardColors.warning
-        case .info: return CyntientOpsDesign.DashboardColors.info
         }
     }
 }
@@ -1323,12 +1325,14 @@ struct AdminAnalyticsContent: View {
                 AdminAnalyticTile(
                     title: "Efficiency",
                     value: "\(Int(portfolioMetrics.overallCompletionRate * 100))%",
+                    trend: "+5%",
                     color: CyntientOpsDesign.DashboardColors.success
                 )
                 
                 AdminAnalyticTile(
                     title: "Compliance",
                     value: "\(Int(portfolioMetrics.complianceScore * 100))%",
+                    trend: "+2%",
                     color: CyntientOpsDesign.DashboardColors.info
                 )
             }

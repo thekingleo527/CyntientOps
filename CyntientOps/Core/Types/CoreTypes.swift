@@ -873,6 +873,7 @@ public struct CoreTypes {
         case low
         case medium
         case high
+        case info
         case warning
         case critical
         
@@ -881,7 +882,7 @@ public struct CoreTypes {
         }
         
         public static func < (lhs: AlertSeverity, rhs: AlertSeverity) -> Bool {
-            let order: [AlertSeverity] = [.low, .medium, .high, .warning, .critical]
+            let order: [AlertSeverity] = [.low, .medium, .high, .info, .warning, .critical]
             guard let lhsIndex = order.firstIndex(of: lhs),
                   let rhsIndex = order.firstIndex(of: rhs) else {
                 return false

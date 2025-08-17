@@ -744,7 +744,7 @@ extension View {
     }
     
     // Dark card background
-    func francoDarkCardBackground(
+    func cyntientOpsDarkCardBackground(
         cornerRadius: CGFloat = CyntientOpsDesign.CornerRadius.lg
     ) -> some View {
         self.background(

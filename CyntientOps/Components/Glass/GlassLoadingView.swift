@@ -51,7 +51,7 @@ struct GlassLoadingView: View {
             }
         }
         .padding(32)
-        .francoDarkCardBackground(cornerRadius: 20)
+        .cyntientOpsDarkCardBackground(cornerRadius: 20)
         .overlay(
             RoundedRectangle(cornerRadius: 20)
                 .stroke(
@@ -426,7 +426,7 @@ struct GlassLoadingView_Previews: PreviewProvider {
                     
                     SkeletonLoadingView(rows: 4)
                         .padding()
-                        .francoDarkCardBackground(cornerRadius: 12)
+                        .cyntientOpsDarkCardBackground(cornerRadius: 12)
                 }
                 .frame(width: 300)
             }

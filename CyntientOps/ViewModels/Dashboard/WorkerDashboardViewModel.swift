@@ -726,7 +726,7 @@ public class WorkerDashboardViewModel: ObservableObject {
     
     /// Today's schedule with time slots
     public var scheduleForToday: [ScheduledItem] {
-        guard let workerId = currentWorkerId,
+        guard let _ = currentWorkerId,
               let worker = workerProfile else {
             return []
         }
@@ -2729,7 +2729,7 @@ public class WorkerDashboardViewModel: ObservableObject {
                       let timestampString = row["timestamp"] as? String,
                       let vendorType = VendorType(rawValue: vendorTypeRaw),
                       let accessType = VendorAccessType(rawValue: accessTypeRaw),
-                      let timestamp = ISO8601DateFormatter().date(from: timestampString) else {
+                      let _ = ISO8601DateFormatter().date(from: timestampString) else {
                     return nil
                 }
                 
@@ -3236,7 +3236,7 @@ public class WorkerDashboardViewModel: ObservableObject {
                 dueDate: task.dueDate,
                 urgency: convertToTaskItemUrgency(task.urgency ?? .normal),
                 isCompleted: task.status == .completed,
-                category: task.category.rawValue,
+                category: task.category?.rawValue ?? "documentation",
                 requiresPhoto: task.category == .documentation
             ))
             
@@ -3259,6 +3259,24 @@ public class WorkerDashboardViewModel: ObservableObject {
         case .urgent: return .urgent
         case .critical: return .critical
         case .emergency: return .emergency
+        }
+    }
+    
+    /// Toggle task completion status (for site departure checklist)
+    public func toggleTaskCompletion(_ taskId: String) async {
+        guard let index = todaysTasks.firstIndex(where: { $0.id == taskId }) else { return }
+        todaysTasks[index].isCompleted.toggle()
+        
+        // Update in TaskService
+        let status: CoreTypes.TaskStatus = todaysTasks[index].isCompleted ? .completed : .pending
+        let task = todaysTasks[index].asContextualTask
+        var updatedTask = task
+        updatedTask.status = status
+        
+        do {
+            try await container.tasks.updateTask(updatedTask)
+        } catch {
+            print("❌ Failed to update task: \(error)")
         }
     }
 }

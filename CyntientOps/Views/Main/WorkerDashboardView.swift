@@ -50,6 +50,7 @@ struct WorkerDashboardView: View {
         case routines = "Routines"
         case portfolio = "Portfolio"
         case analytics = "Analytics"
+        case siteDeparture = "Site Departure"
         case schedule = "Schedule"
         
         var icon: String {
@@ -57,6 +58,7 @@ struct WorkerDashboardView: View {
             case .routines: return "checklist"
             case .portfolio: return "building.2"
             case .analytics: return "chart.bar"
+            case .siteDeparture: return "door.left.hand.closed"
             case .schedule: return "calendar"
             }
         }
@@ -265,6 +267,8 @@ struct WorkerDashboardView: View {
             return 180 // Analytics and performance data
         case .schedule:
             return 180 // Schedule and time management
+        case .siteDeparture:
+            return 200 // Site departure checklist
         case .routines:
             return 140 // Daily routines and workflows
         }
@@ -539,7 +543,7 @@ struct WorkerNextActionHeroCard: View {
                     }
                 }
                 .padding(16)
-                .francoDarkCardBackground(cornerRadius: 12)
+                .cyntientOpsDarkCardBackground(cornerRadius: 12)
             } else {
                 // Collapsed Next Action Summary (80px)
                 Button(action: {
@@ -594,7 +598,7 @@ struct WorkerNextActionHeroCard: View {
                     }
                     .padding(.horizontal, 20)
                     .padding(.vertical, 16)
-                    .francoDarkCardBackground(cornerRadius: 12)
+                    .cyntientOpsDarkCardBackground(cornerRadius: 12)
                 }
                 .buttonStyle(PlainButtonStyle())
             }
@@ -698,7 +702,7 @@ struct WorkerRealTimeHeroCard: View {
                     .padding(.top, 8)
                 }
                 .padding(16)
-                .francoDarkCardBackground(cornerRadius: 12)
+                .cyntientOpsDarkCardBackground(cornerRadius: 12)
             } else {
                 // Collapsed Hero Card with Real-time Status
                 Button(action: {
@@ -750,7 +754,7 @@ struct WorkerRealTimeHeroCard: View {
                     }
                     .padding(.horizontal, 20)
                     .padding(.vertical, 12)
-                    .francoDarkCardBackground(cornerRadius: 12)
+                    .cyntientOpsDarkCardBackground(cornerRadius: 12)
                 }
                 .buttonStyle(PlainButtonStyle())
             }
@@ -1058,7 +1062,7 @@ struct WorkerTasksGrid: View {
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(12)
-                    .francoDarkCardBackground(cornerRadius: 10)
+                    .cyntientOpsDarkCardBackground(cornerRadius: 10)
                 }
                 .buttonStyle(PlainButtonStyle())
             }
@@ -1116,7 +1120,7 @@ struct WorkerUrgentItemsSection: View {
             }
         }
         .padding(16)
-        .francoDarkCardBackground(cornerRadius: 12)
+        .cyntientOpsDarkCardBackground(cornerRadius: 12)
     }
 }
 
@@ -1185,7 +1189,7 @@ struct WorkerNovaIntelligencePanel: View {
                 }
             }
             .frame(height: 65)
-            .francoDarkCardBackground(cornerRadius: 0)
+            .cyntientOpsDarkCardBackground(cornerRadius: 0)
         }
         .francoGlassBackground()
         .clipShape(RoundedRectangle(cornerRadius: 16))
@@ -1205,6 +1209,8 @@ struct WorkerNovaIntelligencePanel: View {
             return 240
         case .portfolio:
             return assignedBuildings.count > 3 ? 200 : 160
+        case .siteDeparture:
+            return 200
         case .schedule:
             return 140
         }
@@ -1236,6 +1242,19 @@ struct WorkerNovaIntelligencePanel: View {
                             onExpandSchedule: onScheduleExpand
                         )
                         
+                    case .siteDeparture:
+                        WorkerSiteDepartureContent(
+                            todaysTasks: todaysTasks,
+                            currentBuilding: viewModel.currentBuilding,
+                            isClockedIn: viewModel.isClockedIn,
+                            onToggleTask: { taskId in
+                                Task { await viewModel.toggleTaskCompletion(taskId) }
+                            },
+                            onInitiateDeparture: {
+                                // Navigate to full SiteDepartureView
+                            }
+                        )
+                        
                     case .routines:
                         WorkerRoutinesContent(
                             todaysTasks: todaysTasks,
@@ -1259,6 +1278,8 @@ struct WorkerNovaIntelligencePanel: View {
             return 0 // No badge for analytics
         case .schedule:
             return getScheduleItemsCount() // Count of scheduled items
+        case .siteDeparture:
+            return getIncompleteTasks() // Count of incomplete tasks for departure checklist
         case .routines:
             return 0 // No badge for quick actions
         }
@@ -1266,6 +1287,10 @@ struct WorkerNovaIntelligencePanel: View {
     
     private func getScheduleItemsCount() -> Int {
         return weeklySchedule.flatMap { $0.items }.count
+    }
+    
+    private func getIncompleteTasks() -> Int {
+        return todaysTasks.filter { !$0.isCompleted }.count
     }
     
     private func getSupplyWarnings() -> Int {
@@ -1865,7 +1890,7 @@ struct DayOverviewSection: View {
                 }
             }
         }
-        .francoDarkCardBackground()
+        .cyntientOpsDarkCardBackground()
     }
 }
 
@@ -1883,7 +1908,7 @@ struct BuildingTasksSection: View {
                 QuickTaskActionRow(task: task, onAction: onTaskAction)
             }
         }
-        .francoDarkCardBackground()
+        .cyntientOpsDarkCardBackground()
     }
 }
 
@@ -1923,7 +1948,7 @@ struct NextBuildingPreview: View {
                 .buttonStyle(PlainButtonStyle())
             }
         }
-        .francoDarkCardBackground()
+        .cyntientOpsDarkCardBackground()
     }
 }
 
@@ -1965,7 +1990,7 @@ struct EndOfDaySection: View {
                     .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
             }
         }
-        .francoDarkCardBackground()
+        .cyntientOpsDarkCardBackground()
     }
 }
 
@@ -3281,7 +3306,7 @@ struct WorkerNovaChat: View {
             .cornerRadius(16)
         }
         .padding()
-        .francoDarkCardBackground(cornerRadius: 8)
+        .cyntientOpsDarkCardBackground(cornerRadius: 8)
     }
 }
 
@@ -3728,7 +3753,7 @@ struct WorkerScheduleView: View {
                         }
                     }
                     .padding(16)
-                    .francoDarkCardBackground()
+                    .cyntientOpsDarkCardBackground()
                 }
             }
             .padding(16)
@@ -3836,7 +3861,7 @@ struct BuildingRouteCard: View {
             }
         }
         .padding(12)
-        .francoDarkCardBackground()
+        .cyntientOpsDarkCardBackground()
     }
 }
 
@@ -4135,7 +4160,7 @@ struct WorkerHeroCard: View {
             }
         }
         .padding()
-        .francoDarkCardBackground(cornerRadius: 16)
+        .cyntientOpsDarkCardBackground(cornerRadius: 16)
     }
     
     private func getBuildingName(for buildingId: String?) -> String? {
@@ -4436,7 +4461,7 @@ struct WorkerAnalyticsContent: View {
     }
     
     private func getWeeklyEfficiency() -> Int {
-        let totalScheduledItems = getWeeklyScheduleItemsCount()
+        _ = getWeeklyScheduleItemsCount()
         // Use the completion rate from tasks instead of schedule items
         return Int(completionRate * 100)
     }
@@ -4714,17 +4739,14 @@ struct WorkerActionSheet: View {
                 id: UUID().uuidString,
                 title: "Photo Evidence",
                 description: notes,
-                buildingId: currentBuilding.id,
-                assignedWorkerId: viewModel.worker?.id ?? "",
-                status: .completed,
-                urgency: .normal,
-                estimatedDuration: 5,
-                category: .documentation,
-                dependencies: [],
+                status: CoreTypes.TaskStatus.completed,
+                urgency: CoreTypes.TaskUrgency.normal,
+                category: CoreTypes.TaskCategory.documentation,
                 createdAt: Date(),
                 updatedAt: Date(),
-                completedAt: Date(),
-                isActive: true
+                buildingId: currentBuilding.id,
+                assignedWorkerId: viewModel.worker?.id ?? "",
+                estimatedDuration: 5
             )
             
             // Add to viewModel
@@ -4771,17 +4793,14 @@ struct WorkerActionSheet: View {
                 id: UUID().uuidString,
                 title: "Field Note",
                 description: note,
-                buildingId: currentBuilding.id,
-                assignedWorkerId: viewModel.worker?.id ?? "",
-                status: .completed,
-                urgency: .normal,
-                estimatedDuration: 3,
-                category: .documentation,
-                dependencies: [],
+                status: CoreTypes.TaskStatus.completed,
+                urgency: CoreTypes.TaskUrgency.normal,
+                category: CoreTypes.TaskCategory.documentation,
                 createdAt: Date(),
                 updatedAt: Date(),
-                completedAt: Date(),
-                isActive: true
+                buildingId: currentBuilding.id,
+                assignedWorkerId: viewModel.worker?.id ?? "",
+                estimatedDuration: 3
             )
             
             await viewModel.addTaskQuickAction(noteTask)
@@ -4911,6 +4930,202 @@ struct WorkerNotesEditor: View {
             }
         }
     }
+}
+
+// MARK: - Worker Site Departure Content
+
+struct WorkerSiteDepartureContent: View {
+    let todaysTasks: [WorkerDashboardViewModel.TaskItem]
+    let currentBuilding: WorkerDashboardViewModel.BuildingSummary?
+    let isClockedIn: Bool
+    let onToggleTask: (String) async -> Void
+    let onInitiateDeparture: () -> Void
+    
+    @State private var departureChecklist: [DepartureChecklistItem] = []
+    @State private var showingDepartureConfirmation = false
+    
+    var body: some View {
+        VStack(spacing: 16) {
+            // Building Context Header
+            if let building = currentBuilding {
+                BuildingDepartureHeader(building: building, isClockedIn: isClockedIn)
+            }
+            
+            // Task Completion Checklist
+            TaskCompletionChecklist(
+                tasks: incompleteTasks,
+                onToggleTask: onToggleTask
+            )
+            
+            // Departure Actions
+            DepartureActionButtons(
+                canDepart: incompleteTasks.isEmpty,
+                onQuickDepart: onInitiateDeparture,
+                onFullChecklist: onInitiateDeparture
+            )
+        }
+    }
+    
+    private var incompleteTasks: [WorkerDashboardViewModel.TaskItem] {
+        todaysTasks.filter { !$0.isCompleted && $0.buildingId == currentBuilding?.id }
+    }
+}
+
+struct BuildingDepartureHeader: View {
+    let building: WorkerDashboardViewModel.BuildingSummary
+    let isClockedIn: Bool
+    
+    var body: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Departing From")
+                    .font(.caption)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                
+                Text(building.name)
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+            }
+            
+            Spacer()
+            
+            if isClockedIn {
+                StatusPill(text: "CLOCKED IN", color: CyntientOpsDesign.DashboardColors.success)
+            }
+        }
+    }
+}
+
+struct TaskCompletionChecklist: View {
+    let tasks: [WorkerDashboardViewModel.TaskItem]
+    let onToggleTask: (String) async -> Void
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Task Completion Status")
+                .font(.subheadline)
+                .fontWeight(.medium)
+                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+            
+            if tasks.isEmpty {
+                HStack {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.success)
+                    Text("All tasks completed")
+                        .font(.caption)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.success)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(CyntientOpsDesign.DashboardColors.success.opacity(0.1))
+                .cornerRadius(8)
+            } else {
+                ForEach(tasks.prefix(4)) { task in
+                    DepartureTaskRow(task: task, onToggle: onToggleTask)
+                }
+                
+                if tasks.count > 4 {
+                    Text("+ \(tasks.count - 4) more tasks")
+                        .font(.caption)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+                        .padding(.horizontal, 12)
+                }
+            }
+        }
+    }
+}
+
+struct DepartureTaskRow: View {
+    let task: WorkerDashboardViewModel.TaskItem
+    let onToggle: (String) async -> Void
+    
+    var body: some View {
+        Button {
+            Task { await onToggle(task.id) }
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle")
+                    .foregroundColor(task.isCompleted ? CyntientOpsDesign.DashboardColors.success : CyntientOpsDesign.DashboardColors.tertiaryText)
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(task.title)
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                    
+                    if task.requiresPhoto {
+                        Text("Photo required")
+                            .font(.caption2)
+                            .foregroundColor(CyntientOpsDesign.DashboardColors.warning)
+                    }
+                }
+                
+                Spacer()
+                
+                if let urgency = task.urgency, urgency == .urgent || urgency == .critical {
+                    Text("URGENT")
+                        .font(.caption2)
+                        .fontWeight(.bold)
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(CyntientOpsDesign.DashboardColors.critical)
+                        .cornerRadius(4)
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(task.isCompleted ? CyntientOpsDesign.DashboardColors.success.opacity(0.1) : CyntientOpsDesign.DashboardColors.cardBackground)
+            .cornerRadius(8)
+        }
+        .buttonStyle(PlainButtonStyle())
+    }
+}
+
+struct DepartureActionButtons: View {
+    let canDepart: Bool
+    let onQuickDepart: () -> Void
+    let onFullChecklist: () -> Void
+    
+    var body: some View {
+        VStack(spacing: 8) {
+            if canDepart {
+                Button("QUICK DEPARTURE") {
+                    onQuickDepart()
+                }
+                .font(.subheadline)
+                .fontWeight(.semibold)
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(CyntientOpsDesign.DashboardColors.success)
+                .cornerRadius(8)
+            } else {
+                Text("Complete remaining tasks to depart")
+                    .font(.caption)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.warning)
+                    .padding(.vertical, 8)
+            }
+            
+            Button("FULL DEPARTURE CHECKLIST") {
+                onFullChecklist()
+            }
+            .font(.caption)
+            .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 8)
+            .background(CyntientOpsDesign.DashboardColors.cardBackground)
+            .cornerRadius(6)
+        }
+    }
+}
+
+struct DepartureChecklistItem: Identifiable {
+    let id = UUID()
+    let title: String
+    let isRequired: Bool
+    var isCompleted: Bool
 }
 
 // These views are imported from their respective files:

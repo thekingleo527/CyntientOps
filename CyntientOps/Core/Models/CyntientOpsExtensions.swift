@@ -122,6 +122,7 @@ extension CoreTypes.TaskCategory {
         case .administrative: return "gray"
         case .emergency: return "red"
         case .sanitation: return "teal"
+        case .documentation: return "blue"
         case .installation: return "indigo"
         case .utilities: return "brown"
         case .renovation: return "pink"

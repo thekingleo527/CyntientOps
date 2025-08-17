@@ -480,7 +480,7 @@ struct AdminWorkerManagementView: View {
             }
         }
         .francoCardPadding()
-        .francoDarkCardBackground()
+        .cyntientOpsDarkCardBackground()
     }
     
     // MARK: - Worker Management Section
@@ -573,7 +573,7 @@ struct AdminWorkerManagementView: View {
             }
         }
         .francoCardPadding()
-        .francoDarkCardBackground()
+        .cyntientOpsDarkCardBackground()
     }
     
     // MARK: - Quick Actions Grid
@@ -1004,7 +1004,7 @@ struct MinimalWorkerHeroCard: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
-            .francoDarkCardBackground(cornerRadius: 12)
+            .cyntientOpsDarkCardBackground(cornerRadius: 12)
         }
         .buttonStyle(PlainButtonStyle())
     }
@@ -1054,7 +1054,7 @@ struct WorkerHeroStatusCard: View {
             quickActionButtons
         }
         .francoCardPadding()
-        .francoDarkCardBackground()
+        .cyntientOpsDarkCardBackground()
     }
     
     private var workforceOverviewSection: some View {
@@ -1259,7 +1259,7 @@ struct WorkerCard: View {
                 }
             }
             .francoCardPadding()
-            .francoDarkCardBackground()
+            .cyntientOpsDarkCardBackground()
         }
         .buttonStyle(PlainButtonStyle())
     }
@@ -1424,7 +1424,7 @@ struct QuickActionCard: View {
             }
             .frame(maxWidth: .infinity)
             .frame(height: 100)
-            .francoDarkCardBackground()
+            .cyntientOpsDarkCardBackground()
         }
     }
 }

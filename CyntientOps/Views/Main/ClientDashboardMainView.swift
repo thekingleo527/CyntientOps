@@ -414,7 +414,7 @@ struct ClientAnalyticsTabView: View {
                         .cornerRadius(12)
                 }
                 .padding()
-                .francoDarkCardBackground()
+                .cyntientOpsDarkCardBackground()
                 
                 // Key metrics breakdown
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 2), spacing: 12) {
@@ -484,7 +484,7 @@ struct AnalyticsMetricCard: View {
                 .foregroundColor(.white.opacity(0.7))
         }
         .padding()
-        .francoDarkCardBackground()
+        .cyntientOpsDarkCardBackground()
     }
 }
 
@@ -595,7 +595,7 @@ struct ReportCard: View {
                     .foregroundColor(.gray)
             }
             .padding()
-            .francoDarkCardBackground()
+            .cyntientOpsDarkCardBackground()
         }
         .buttonStyle(PlainButtonStyle())
     }
@@ -683,7 +683,7 @@ struct ClientMetricCard: View {
             Spacer()
         }
         .padding()
-        .francoDarkCardBackground()
+        .cyntientOpsDarkCardBackground()
     }
 }
 
@@ -734,7 +734,7 @@ struct RealtimeMetricsCard: View {
             }
         }
         .padding()
-        .francoDarkCardBackground()
+        .cyntientOpsDarkCardBackground()
     }
 }
 
@@ -766,7 +766,7 @@ struct ComplianceIssuesSection: View {
             }
         }
         .padding()
-        .francoDarkCardBackground()
+        .cyntientOpsDarkCardBackground()
     }
 }
 
@@ -832,7 +832,7 @@ struct IntelligenceInsightsSection: View {
             }
         }
         .padding()
-        .francoDarkCardBackground()
+        .cyntientOpsDarkCardBackground()
     }
 }
 

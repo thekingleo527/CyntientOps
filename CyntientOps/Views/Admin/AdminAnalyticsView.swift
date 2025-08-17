@@ -76,7 +76,7 @@ struct AdminAnalyticsView: View {
             }
         }
         .padding()
-        .francoDarkCardBackground()
+        .cyntientOpsDarkCardBackground()
     }
     
     private var performanceMetricsSection: some View {
@@ -91,7 +91,7 @@ struct AdminAnalyticsView: View {
                 .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
         }
         .padding()
-        .francoDarkCardBackground()
+        .cyntientOpsDarkCardBackground()
     }
     
     private var workerAnalyticsSection: some View {
@@ -106,7 +106,7 @@ struct AdminAnalyticsView: View {
                 .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
         }
         .padding()
-        .francoDarkCardBackground()
+        .cyntientOpsDarkCardBackground()
     }
 }
 

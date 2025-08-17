@@ -669,7 +669,7 @@ struct ClientComplianceScoreCard: View {
         }
         .padding(24)
         .frame(maxWidth: .infinity)
-        .francoDarkCardBackground()
+        .cyntientOpsDarkCardBackground()
     }
 }
 
@@ -781,7 +781,7 @@ struct ClientComplianceIssueCard: View {
                 }
             }
             .padding()
-            .francoDarkCardBackground()
+            .cyntientOpsDarkCardBackground()
         }
         .buttonStyle(PlainButtonStyle())
     }
@@ -845,7 +845,7 @@ struct ClientComplianceIssueDetailSheet: View {
                             .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
                     }
                     .padding()
-                    .francoDarkCardBackground()
+                    .cyntientOpsDarkCardBackground()
                     
                     // Details section
                     VStack(alignment: .leading, spacing: 16) {
@@ -867,7 +867,7 @@ struct ClientComplianceIssueDetailSheet: View {
                         }
                     }
                     .padding()
-                    .francoDarkCardBackground()
+                    .cyntientOpsDarkCardBackground()
                     
                     // Actions
                     VStack(spacing: 12) {

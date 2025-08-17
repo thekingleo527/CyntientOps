@@ -455,7 +455,7 @@ public struct InventoryItemRow: View {
                     .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
             }
             .padding()
-            .francoDarkCardBackground()
+            .cyntientOpsDarkCardBackground()
             .scaleEffect(isPressed ? 0.98 : 1.0)
             .animation(.spring(response: 0.3), value: isPressed)
         }
@@ -614,7 +614,7 @@ public struct AddInventoryItemView: View {
                 )
             }
             .padding()
-            .francoDarkCardBackground()
+            .cyntientOpsDarkCardBackground()
         }
     }
     
@@ -658,7 +658,7 @@ public struct AddInventoryItemView: View {
                 }
             }
             .padding()
-            .francoDarkCardBackground()
+            .cyntientOpsDarkCardBackground()
         }
     }
     
@@ -705,7 +705,7 @@ public struct AddInventoryItemView: View {
                 )
             }
             .padding()
-            .francoDarkCardBackground()
+            .cyntientOpsDarkCardBackground()
         }
     }
     
@@ -734,7 +734,7 @@ public struct AddInventoryItemView: View {
                 }
             }
             .padding()
-            .francoDarkCardBackground()
+            .cyntientOpsDarkCardBackground()
         }
     }
     
@@ -1027,7 +1027,7 @@ public struct InventoryItemDetailView: View {
             }
         }
         .padding()
-        .francoDarkCardBackground()
+        .cyntientOpsDarkCardBackground()
     }
     
     private var quickAdjustmentSection: some View {
@@ -1071,7 +1071,7 @@ public struct InventoryItemDetailView: View {
                 }
             }
             .padding()
-            .francoDarkCardBackground()
+            .cyntientOpsDarkCardBackground()
         }
     }
     
@@ -1111,7 +1111,7 @@ public struct InventoryItemDetailView: View {
                 }
             }
             .padding()
-            .francoDarkCardBackground()
+            .cyntientOpsDarkCardBackground()
         }
     }
     

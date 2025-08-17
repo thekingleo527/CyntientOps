@@ -46,7 +46,7 @@ struct BuildingDetailView: View {
     @State private var showingCallMenu = false
     @State private var selectedContact: BuildingContact?
     @State private var capturedImage: UIImage?
-    @State private var photoCategory: CoreTypes.FrancoPhotoCategory = .utilities
+    @State private var photoCategory: CoreTypes.CyntientOpsPhotoCategory = .utilities
     @State private var photoNotes: String = ""
     @State private var isHeaderExpanded = false
     @State private var animateCards = false
@@ -911,7 +911,7 @@ struct BuildingOverviewTab: View {
             }
         }
         .padding()
-        .francoDarkCardBackground()
+        .cyntientOpsDarkCardBackground()
     }
     
     // RENAMED FROM BuildingMetricCard to BuildingMetricTile to avoid conflict
@@ -981,7 +981,7 @@ struct BuildingOverviewTab: View {
             }
         }
         .padding()
-        .francoDarkCardBackground()
+        .cyntientOpsDarkCardBackground()
     }
     
     private var keyContactsCard: some View {
@@ -1009,7 +1009,7 @@ struct BuildingOverviewTab: View {
             }
         }
         .padding()
-        .francoDarkCardBackground()
+        .cyntientOpsDarkCardBackground()
     }
 }
 
@@ -1103,7 +1103,7 @@ struct BuildingTasksTab: View {
             }
         }
         .padding()
-        .francoDarkCardBackground()
+        .cyntientOpsDarkCardBackground()
     }
     
     private var filteredRoutines: [BDDailyRoutine] {
@@ -1147,7 +1147,7 @@ struct BuildingTasksTab: View {
             }
         }
         .padding()
-        .francoDarkCardBackground()
+        .cyntientOpsDarkCardBackground()
     }
     
     private var complianceTasksCard: some View {
@@ -1186,7 +1186,7 @@ struct BuildingTasksTab: View {
             }
         }
         .padding()
-        .francoDarkCardBackground()
+        .cyntientOpsDarkCardBackground()
     }
 }
 
@@ -1250,7 +1250,7 @@ struct BuildingWorkersTab: View {
             }
         }
         .padding()
-        .francoDarkCardBackground()
+        .cyntientOpsDarkCardBackground()
     }
     
     private var allAssignedWorkersCard: some View {
@@ -1266,7 +1266,7 @@ struct BuildingWorkersTab: View {
             }
         }
         .padding()
-        .francoDarkCardBackground()
+        .cyntientOpsDarkCardBackground()
     }
 }
 
@@ -1424,7 +1424,7 @@ struct BuildingMaintenanceTab: View {
             }
         }
         .padding()
-        .francoDarkCardBackground()
+        .cyntientOpsDarkCardBackground()
     }
     
     private var filteredMaintenanceRecords: [CoreTypes.MaintenanceRecord] {
@@ -1586,7 +1586,7 @@ struct BuildingInventoryTab: View {
             }
         }
         .padding()
-        .francoDarkCardBackground()
+        .cyntientOpsDarkCardBackground()
     }
     
     private var filteredInventoryItems: [CoreTypes.InventoryItem] {
@@ -1685,7 +1685,7 @@ struct BuildingSpacesTab: View {
             }
         }
         .padding()
-        .francoDarkCardBackground()
+        .cyntientOpsDarkCardBackground()
     }
     
     private var spacesGrid: some View {
@@ -1706,7 +1706,7 @@ struct BuildingSpacesTab: View {
             }
         }
         .padding()
-        .francoDarkCardBackground()
+        .cyntientOpsDarkCardBackground()
     }
     
     private var filteredSpaces: [SpaceAccess] {
@@ -1778,7 +1778,7 @@ struct BuildingEmergencyTab: View {
             }
         }
         .padding()
-        .francoDarkCardBackground()
+        .cyntientOpsDarkCardBackground()
     }
     
     private var emergencyActionsCard: some View {
@@ -1845,7 +1845,7 @@ struct BuildingEmergencyTab: View {
             }
         }
         .padding()
-        .francoDarkCardBackground()
+        .cyntientOpsDarkCardBackground()
     }
     
     private func callNumber(_ number: String) {
@@ -1896,7 +1896,7 @@ struct BuildingMetricTile: View {
             }
             .padding()
             .frame(maxWidth: .infinity)
-            .francoDarkCardBackground()
+            .cyntientOpsDarkCardBackground()
         }
         .buttonStyle(PlainButtonStyle())
         .disabled(onTap == nil)
@@ -2294,7 +2294,7 @@ class BuildingDetailVM: ObservableObject {
         await loadBuildingData()
     }
     
-    func savePhoto(_ image: UIImage, category: CoreTypes.FrancoPhotoCategory, notes: String) async {
+    func savePhoto(_ image: UIImage, category: CoreTypes.CyntientOpsPhotoCategory, notes: String) async {
         // Real photo saving implementation would go here
         print("📷 Saving photo for building \(buildingId), category: \(category), notes: \(notes)")
     }
@@ -2724,7 +2724,7 @@ struct SummaryStatCard: View {
         }
         .frame(maxWidth: .infinity)
         .padding()
-        .francoDarkCardBackground()
+        .cyntientOpsDarkCardBackground()
     }
 }
 
@@ -2815,7 +2815,7 @@ struct StatCard: View {
         }
         .padding()
         .frame(minWidth: 100)
-        .francoDarkCardBackground()
+        .cyntientOpsDarkCardBackground()
     }
 }
 
@@ -2873,7 +2873,7 @@ struct InventoryStatCard: View {
         }
         .padding()
         .frame(maxWidth: .infinity)
-        .francoDarkCardBackground()
+        .cyntientOpsDarkCardBackground()
     }
 }
 
@@ -3175,14 +3175,14 @@ struct SpaceDetailSheet: View {
 struct PhotoCaptureSheet: View {
     let buildingId: String
     let buildingName: String
-    let category: CoreTypes.FrancoPhotoCategory
-    let onCapture: (UIImage, CoreTypes.FrancoPhotoCategory, String) -> Void
+    let category: CoreTypes.CyntientOpsPhotoCategory
+    let onCapture: (UIImage, CoreTypes.CyntientOpsPhotoCategory, String) -> Void
     @State private var capturedImage: UIImage?
     @State private var notes = ""
-    @State private var selectedCategory: CoreTypes.FrancoPhotoCategory
+    @State private var selectedCategory: CoreTypes.CyntientOpsPhotoCategory
     @Environment(\.dismiss) private var dismiss
     
-    init(buildingId: String, buildingName: String, category: CoreTypes.FrancoPhotoCategory, onCapture: @escaping (UIImage, CoreTypes.FrancoPhotoCategory, String) -> Void) {
+    init(buildingId: String, buildingName: String, category: CoreTypes.CyntientOpsPhotoCategory, onCapture: @escaping (UIImage, CoreTypes.CyntientOpsPhotoCategory, String) -> Void) {
         self.buildingId = buildingId
         self.buildingName = buildingName
         self.category = category
@@ -3201,7 +3201,7 @@ struct PhotoCaptureSheet: View {
                     
                     Form {
                         Picker("Category", selection: $selectedCategory) {
-                            ForEach(CoreTypes.FrancoPhotoCategory.allCases, id: \.self) { cat in
+                            ForEach(CoreTypes.CyntientOpsPhotoCategory.allCases, id: \.self) { cat in
                                 Text(cat.rawValue.replacingOccurrences(of: "_", with: " ").capitalized)
                                     .tag(cat)
                             }
@@ -3421,7 +3421,7 @@ struct BuildingSanitationTab: View {
             }
         }
         .padding()
-        .francoDarkCardBackground()
+        .cyntientOpsDarkCardBackground()
     }
     
     private func generateMonthlyDSNYSchedule() -> [(day: String, time: String, items: String, isToday: Bool)] {
@@ -3488,7 +3488,7 @@ struct BuildingSanitationTab: View {
             }
         }
         .padding()
-        .francoDarkCardBackground()
+        .cyntientOpsDarkCardBackground()
     }
     
     private var sanitationComplianceCard: some View {
@@ -3518,7 +3518,7 @@ struct BuildingSanitationTab: View {
             }
         }
         .padding()
-        .francoDarkCardBackground()
+        .cyntientOpsDarkCardBackground()
     }
 }
 

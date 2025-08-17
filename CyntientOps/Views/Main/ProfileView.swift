@@ -229,7 +229,7 @@ struct ProfileView: View {
             }
         }
         .francoCardPadding()
-        .francoDarkCardBackground()
+        .cyntientOpsDarkCardBackground()
     }
     
     // MARK: - Statistics Section
@@ -271,7 +271,7 @@ struct ProfileView: View {
             }
         }
         .francoCardPadding()
-        .francoDarkCardBackground()
+        .cyntientOpsDarkCardBackground()
     }
     
     // MARK: - Settings Section
@@ -323,7 +323,7 @@ struct ProfileView: View {
             }
         }
         .francoCardPadding()
-        .francoDarkCardBackground()
+        .cyntientOpsDarkCardBackground()
     }
     
     // MARK: - Actions Section
@@ -379,16 +379,9 @@ struct ProfileView: View {
     private func handleLogout() {
         HapticManager.impact(.heavy)
         Task {
-            do {
-                try await authManager.logout()
-                await MainActor.run {
-                    dismiss()
-                }
-            } catch {
-                await MainActor.run {
-                    errorMessage = "Failed to sign out: \(error.localizedDescription)"
-                    showError = true
-                }
+            await authManager.logout()
+            await MainActor.run {
+                dismiss()
             }
         }
     }
@@ -525,47 +518,6 @@ struct SettingsRow: View {
     }
 }
 
-// MARK: - Image Picker
-
-struct CyntientOpsImagePicker: UIViewControllerRepresentable {
-    @Binding var isPresented: Bool
-    @Binding var selectedImage: UIImage?
-    
-    func makeUIViewController(context: Context) -> UIImagePickerController {
-        let picker = UIImagePickerController()
-        picker.sourceType = .photoLibrary
-        picker.allowsEditing = true
-        picker.delegate = context.coordinator
-        return picker
-    }
-    
-    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
-    
-    func makeCoordinator() -> Coordinator {
-        Coordinator(self)
-    }
-    
-    class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
-        let parent: CyntientOpsImagePicker
-        
-        init(_ parent: CyntientOpsImagePicker) {
-            self.parent = parent
-        }
-        
-        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
-            if let editedImage = info[.editedImage] as? UIImage {
-                parent.selectedImage = editedImage
-            } else if let originalImage = info[.originalImage] as? UIImage {
-                parent.selectedImage = originalImage
-            }
-            parent.isPresented = false
-        }
-        
-        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
-            parent.isPresented = false
-        }
-    }
-}
 
 // MARK: - Preview Provider
 

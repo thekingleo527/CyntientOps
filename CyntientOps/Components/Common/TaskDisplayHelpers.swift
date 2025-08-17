@@ -205,6 +205,8 @@ public struct TaskDisplayHelpers {
                     baseDuration = 1800 // 30 minutes
                 case .compliance:
                     baseDuration = 2400 // 40 minutes
+                case .documentation:
+                    baseDuration = 600  // 10 minutes
                 }
             } else {
                 baseDuration = 1800 // Default 30 minutes

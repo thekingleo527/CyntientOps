@@ -127,7 +127,7 @@ struct WorkerDashboardMainView: View {
                     }
                 }
                 .padding()
-                .francoDarkCardBackground()
+                .cyntientOpsDarkCardBackground()
                 
                 Spacer()
             }
@@ -143,7 +143,7 @@ struct WorkerDashboardMainView: View {
                         .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
                 }
                 .padding()
-                .francoDarkCardBackground()
+                .cyntientOpsDarkCardBackground()
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }

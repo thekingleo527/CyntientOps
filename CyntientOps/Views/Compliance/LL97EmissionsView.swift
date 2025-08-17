@@ -591,7 +591,7 @@ private struct BuildingRankingRow: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
-            .francoDarkCardBackground()
+            .cyntientOpsDarkCardBackground()
         }
         .buttonStyle(PlainButtonStyle())
     }
@@ -667,7 +667,7 @@ private struct EmissionsMetricCard: View {
         }
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
-        .francoDarkCardBackground()
+        .cyntientOpsDarkCardBackground()
     }
 }
 
@@ -705,7 +705,7 @@ private struct BuildingEmissionsCard: View {
                     .scaleEffect(x: 1, y: 1.5, anchor: .center)
             }
             .padding()
-            .francoDarkCardBackground()
+            .cyntientOpsDarkCardBackground()
         }
         .buttonStyle(PlainButtonStyle())
     }
@@ -868,7 +868,7 @@ private struct ComplianceActionCard: View {
                     .foregroundColor(.white.opacity(0.7))
             }
             .padding()
-            .francoDarkCardBackground()
+            .cyntientOpsDarkCardBackground()
         }
         .buttonStyle(PlainButtonStyle())
     }
@@ -948,7 +948,7 @@ private struct StrategyAnalysisRow: View {
                 }
             }
             .padding()
-            .francoDarkCardBackground()
+            .cyntientOpsDarkCardBackground()
         }
         .buttonStyle(PlainButtonStyle())
     }
@@ -1000,7 +1000,7 @@ private struct ImplementationPhaseRow: View {
                 .frame(width: 30)
         }
         .padding()
-        .francoDarkCardBackground()
+        .cyntientOpsDarkCardBackground()
     }
 }
 
@@ -1046,7 +1046,7 @@ private struct LL97EmissionsDetailView: View {
                         ComplianceStatusIndicator(status: emissionsData.complianceStatus)
                     }
                     .padding()
-                    .francoDarkCardBackground()
+                    .cyntientOpsDarkCardBackground()
                     
                     // Additional detail sections would go here
                     Rectangle()

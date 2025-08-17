@@ -821,6 +821,7 @@ struct FilterView: View {
         case .sanitation:      return .mint
         case .administrative:  return .gray
         case .compliance:      return .cyan
+        case .documentation:   return .blue
         }
     }
     

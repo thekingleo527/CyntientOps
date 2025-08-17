@@ -692,7 +692,7 @@ struct ClientRealTimeHeroCard: View {
                     .padding(.top, 8)
                 }
                 .padding(16)
-                .francoDarkCardBackground(cornerRadius: 12)
+                .cyntientOpsDarkCardBackground(cornerRadius: 12)
             } else {
                 // Collapsed Hero Card with Real-time Status
                 Button(action: {
@@ -744,7 +744,7 @@ struct ClientRealTimeHeroCard: View {
                     }
                     .padding(.horizontal, 20)
                     .padding(.vertical, 12)
-                    .francoDarkCardBackground(cornerRadius: 12)
+                    .cyntientOpsDarkCardBackground(cornerRadius: 12)
                 }
                 .buttonStyle(PlainButtonStyle())
             }
@@ -1018,7 +1018,7 @@ struct ClientBuildingGridItemWithImage: View {
                 }
                 .padding(12)
             }
-            .francoDarkCardBackground(cornerRadius: 10)
+            .cyntientOpsDarkCardBackground(cornerRadius: 10)
             .clipShape(RoundedRectangle(cornerRadius: 10))
         }
         .buttonStyle(PlainButtonStyle())
@@ -1093,7 +1093,7 @@ struct ClientBuildingGridItem: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(12)
-            .francoDarkCardBackground(cornerRadius: 10)
+            .cyntientOpsDarkCardBackground(cornerRadius: 10)
         }
         .buttonStyle(PlainButtonStyle())
     }
@@ -1165,7 +1165,7 @@ struct ClientUrgentItemsSection: View {
             }
         }
         .padding(16)
-        .francoDarkCardBackground(cornerRadius: 12)
+        .cyntientOpsDarkCardBackground(cornerRadius: 12)
     }
 }
 
@@ -1254,7 +1254,7 @@ struct ClientNovaIntelligenceBar: View {
                 }
             }
             .frame(height: 65) // Slightly taller to prevent text cutoff
-            .francoDarkCardBackground(cornerRadius: 0)
+            .cyntientOpsDarkCardBackground(cornerRadius: 0)
         }
         .background(CyntientOpsDesign.DashboardColors.cardBackground)
         .clipShape(RoundedRectangle(cornerRadius: 16))
@@ -1578,7 +1578,7 @@ struct ClientPortfolioContent: View {
                 }
             }
             .padding()
-            .francoDarkCardBackground(cornerRadius: 8)
+            .cyntientOpsDarkCardBackground(cornerRadius: 8)
             
             // Quick Portfolio Map Preview
             HStack {
@@ -1756,7 +1756,7 @@ struct ClientComplianceDetailContent: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
-            .francoDarkCardBackground(cornerRadius: 8)
+            .cyntientOpsDarkCardBackground(cornerRadius: 8)
             
             // API-Derived Compliance Categories
             ScrollView(.horizontal, showsIndicators: false) {
@@ -1919,7 +1919,7 @@ struct ClientPriorityItem: View {
                 .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
         }
         .padding(12)
-        .francoDarkCardBackground(cornerRadius: 8)
+        .cyntientOpsDarkCardBackground(cornerRadius: 8)
     }
 }
 
@@ -1950,7 +1950,7 @@ struct ClientQuickActionButton: View {
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 8)
-            .francoDarkCardBackground(cornerRadius: 6)
+            .cyntientOpsDarkCardBackground(cornerRadius: 6)
         }
         .buttonStyle(PlainButtonStyle())
     }
@@ -2092,7 +2092,7 @@ struct ClientAnalyticsContent: View {
                     .foregroundColor(CyntientOpsDesign.DashboardColors.success)
             }
             .padding()
-            .francoDarkCardBackground(cornerRadius: 8)
+            .cyntientOpsDarkCardBackground(cornerRadius: 8)
             
             // Budget Analytics
             HStack {
@@ -2116,7 +2116,7 @@ struct ClientAnalyticsContent: View {
                 .frame(width: 32, height: 32)
             }
             .padding()
-            .francoDarkCardBackground(cornerRadius: 8)
+            .cyntientOpsDarkCardBackground(cornerRadius: 8)
         }
     }
     
@@ -2317,7 +2317,7 @@ struct ClientProfileView: View {
             }
         }
         .padding(16)
-        .francoDarkCardBackground()
+        .cyntientOpsDarkCardBackground()
     }
     
     // MARK: - Client Statistics Section
@@ -2359,7 +2359,7 @@ struct ClientProfileView: View {
             }
         }
         .padding(16)
-        .francoDarkCardBackground()
+        .cyntientOpsDarkCardBackground()
     }
     
     // MARK: - Client Settings Section
@@ -2417,7 +2417,7 @@ struct ClientProfileView: View {
             }
         }
         .padding(16)
-        .francoDarkCardBackground()
+        .cyntientOpsDarkCardBackground()
     }
     
     private func getClientInitials() -> String {
@@ -2548,7 +2548,7 @@ struct ClientHPDComplianceView: View {
                             }
                         }
                         .padding()
-                        .francoDarkCardBackground()
+                        .cyntientOpsDarkCardBackground()
                     }
                 }
             }
@@ -2603,7 +2603,7 @@ struct ClientDOBComplianceView: View {
                             }
                         }
                         .padding()
-                        .francoDarkCardBackground()
+                        .cyntientOpsDarkCardBackground()
                     }
                 }
             }
@@ -2679,7 +2679,7 @@ struct ClientDSNYComplianceView: View {
                             }
                         }
                         .padding()
-                        .francoDarkCardBackground()
+                        .cyntientOpsDarkCardBackground()
                     }
                 }
                 
@@ -2706,7 +2706,7 @@ struct ClientDSNYComplianceView: View {
                         }
                     }
                     .padding()
-                    .francoDarkCardBackground()
+                    .cyntientOpsDarkCardBackground()
                 }
             }
             .padding()
@@ -2764,7 +2764,7 @@ struct ClientLL97ComplianceView: View {
                             }
                         }
                         .padding()
-                        .francoDarkCardBackground()
+                        .cyntientOpsDarkCardBackground()
                     }
                 }
             }
@@ -2838,7 +2838,7 @@ struct ComplianceSummaryCard: View {
             Spacer()
         }
         .padding()
-        .francoDarkCardBackground()
+        .cyntientOpsDarkCardBackground()
     }
 }
 

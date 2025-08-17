@@ -972,7 +972,7 @@ public class BuildingDetailViewModel: ObservableObject {
             let dsnyViolations = try await nycAPI.fetchDSNYViolations(bin: buildingId)
             
             // Get real DSNY schedule data
-            let dsnySchedule = try await nycAPI.fetchDSNYSchedule(bin: buildingId)
+            let dsnySchedule = try await nycAPI.fetchDSNYSchedule(district: buildingId)
             
             // Get real LL97 emissions data
             let ll97Data = try await nycAPI.fetchLL97Compliance(bbl: buildingId)

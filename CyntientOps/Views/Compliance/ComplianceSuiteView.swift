@@ -471,7 +471,7 @@ private struct ComplianceMetricCard: View {
         }
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
-        .francoDarkCardBackground()
+        .cyntientOpsDarkCardBackground()
     }
 }
 
@@ -513,7 +513,7 @@ private struct BuildingComplianceCard: View {
                     .foregroundColor(.white.opacity(0.7))
             }
             .padding()
-            .francoDarkCardBackground()
+            .cyntientOpsDarkCardBackground()
         }
         .buttonStyle(PlainButtonStyle())
     }
@@ -561,7 +561,7 @@ private struct ViolationRow: View {
             }
             .padding(.vertical, 8)
             .padding(.horizontal, 12)
-            .francoDarkCardBackground()
+            .cyntientOpsDarkCardBackground()
         }
         .buttonStyle(PlainButtonStyle())
     }
@@ -604,7 +604,7 @@ private struct PredictiveInsightCard: View {
             Spacer()
         }
         .padding()
-        .francoDarkCardBackground()
+        .cyntientOpsDarkCardBackground()
     }
 }
 

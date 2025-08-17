@@ -72,7 +72,7 @@ public class PhotoEvidenceService: ObservableObject {
     // MARK: - Batch Photo Processing
     
     /// Create a new photo batch for efficient multi-photo capture
-    public func createBatch(buildingId: String, category: CoreTypes.FrancoPhotoCategory, taskId: String? = nil, workerId: String) -> PhotoBatch {
+    public func createBatch(buildingId: String, category: CoreTypes.CyntientOpsPhotoCategory, taskId: String? = nil, workerId: String) -> PhotoBatch {
         return PhotoBatch(buildingId: buildingId, category: category, taskId: taskId, workerId: workerId)
     }
     
@@ -122,7 +122,7 @@ public class PhotoEvidenceService: ObservableObject {
     // MARK: - Quick Single Photo (for urgent/safety issues)
     
     /// Fast single photo capture for immediate issues
-    public func captureQuick(image: UIImage, category: CoreTypes.FrancoPhotoCategory, buildingId: String, workerId: String, notes: String = "") async throws -> CoreTypes.ProcessedPhoto {
+    public func captureQuick(image: UIImage, category: CoreTypes.CyntientOpsPhotoCategory, buildingId: String, workerId: String, notes: String = "") async throws -> CoreTypes.ProcessedPhoto {
         let quality = category.autoCompress ? standardQuality : highQuality
         
         let processed = try await processPhoto(
@@ -169,7 +169,7 @@ public class PhotoEvidenceService: ObservableObject {
     
     private func processPhoto(
         image: UIImage,
-        category: CoreTypes.FrancoPhotoCategory,
+        category: CoreTypes.CyntientOpsPhotoCategory,
         buildingId: String,
         workerId: String,
         quality: CGFloat,
@@ -348,7 +348,7 @@ public class PhotoEvidenceService: ObservableObject {
     
     // MARK: - Photo Retrieval (Optimized)
     
-    public func getRecentPhotos(buildingId: String, category: CoreTypes.FrancoPhotoCategory? = nil, limit: Int = 20) async throws -> [CoreTypes.ProcessedPhoto] {
+    public func getRecentPhotos(buildingId: String, category: CoreTypes.CyntientOpsPhotoCategory? = nil, limit: Int = 20) async throws -> [CoreTypes.ProcessedPhoto] {
         let categoryFilter = category != nil ? "AND category = ?" : ""
         let params: [Any] = category != nil ? [buildingId, category!.rawValue, limit] : [buildingId, limit]
         

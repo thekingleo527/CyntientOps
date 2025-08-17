@@ -64,7 +64,7 @@ struct TaskCategoryGlassCard: View {
             }
         }
         .padding(20)
-        .francoDarkCardBackground(cornerRadius: 20)
+        .cyntientOpsDarkCardBackground(cornerRadius: 20)
         .overlay(
             RoundedRectangle(cornerRadius: 20)
                 .stroke(

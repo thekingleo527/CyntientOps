@@ -492,7 +492,7 @@ public struct AdminReportsView: View {
                 }
             }
             .francoCardPadding()
-            .francoDarkCardBackground()
+            .cyntientOpsDarkCardBackground()
         }
     }
     
@@ -623,7 +623,7 @@ public struct AdminReportsView: View {
             }
         }
         .francoCardPadding()
-        .francoDarkCardBackground()
+        .cyntientOpsDarkCardBackground()
     }
     
     // MARK: - Report Templates Grid
@@ -1209,7 +1209,7 @@ struct MinimalReportsHeroCard: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
-            .francoDarkCardBackground(cornerRadius: 12)
+            .cyntientOpsDarkCardBackground(cornerRadius: 12)
         }
         .buttonStyle(PlainButtonStyle())
     }
@@ -1241,7 +1241,7 @@ struct ReportsHeroStatusCard: View {
             quickActionButtons
         }
         .francoCardPadding()
-        .francoDarkCardBackground()
+        .cyntientOpsDarkCardBackground()
     }
     
     private var reportsOverviewSection: some View {
@@ -1448,7 +1448,7 @@ struct ScheduledReportCard: View {
         }
         .padding(12)
         .frame(width: 200)
-        .francoDarkCardBackground()
+        .cyntientOpsDarkCardBackground()
     }
 }
 
@@ -1534,7 +1534,7 @@ struct TemplateCard: View {
             }
             .frame(maxWidth: .infinity)
             .frame(height: 100)
-            .francoDarkCardBackground()
+            .cyntientOpsDarkCardBackground()
         }
     }
 }

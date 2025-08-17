@@ -459,7 +459,7 @@ private struct HPDViolationCard: View {
                 }
             }
             .padding()
-            .francoDarkCardBackground()
+            .cyntientOpsDarkCardBackground()
         }
         .buttonStyle(PlainButtonStyle())
     }
@@ -634,7 +634,7 @@ private struct HPDPredictiveInsightCard: View {
             Spacer()
         }
         .padding()
-        .francoDarkCardBackground()
+        .cyntientOpsDarkCardBackground()
     }
 }
 

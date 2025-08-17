@@ -521,7 +521,7 @@ struct GlassStatusBadge_Previews: PreviewProvider {
                             Spacer()
                         }
                         .padding()
-                        .francoDarkCardBackground(cornerRadius: 12)
+                        .cyntientOpsDarkCardBackground(cornerRadius: 12)
                         .glassBadge("Onsite", icon: "location.fill", style: .success)
                         
                         // Another card with badge
@@ -539,7 +539,7 @@ struct GlassStatusBadge_Previews: PreviewProvider {
                             Spacer()
                         }
                         .padding()
-                        .francoDarkCardBackground(cornerRadius: 12)
+                        .cyntientOpsDarkCardBackground(cornerRadius: 12)
                         .glassBadge("Urgent", style: .danger, size: .large)
                     }
                 }

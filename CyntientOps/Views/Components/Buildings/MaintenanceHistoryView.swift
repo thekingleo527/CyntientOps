@@ -590,7 +590,7 @@ struct MaintenanceStatCard: View {
         }
         .padding()
         .frame(width: 120)
-        .francoDarkCardBackground()
+        .cyntientOpsDarkCardBackground()
     }
 }
 
@@ -769,7 +769,7 @@ struct MaintenanceRecordCard: View {
                 }
             }
             .padding()
-            .francoDarkCardBackground()
+            .cyntientOpsDarkCardBackground()
             .scaleEffect(isPressed ? 0.98 : 1.0)
             .animation(.spring(response: 0.3), value: isPressed)
         }
@@ -841,7 +841,7 @@ struct DatePickerSheet: View {
                     .datePickerStyle(.graphical)
                     .tint(CyntientOpsDesign.DashboardColors.primaryAction)
                     .padding()
-                    .francoDarkCardBackground()
+                    .cyntientOpsDarkCardBackground()
                     .padding()
                     
                     Spacer()
@@ -922,7 +922,7 @@ struct ExportOptionsView: View {
                             }
                         }
                         .padding()
-                        .francoDarkCardBackground()
+                        .cyntientOpsDarkCardBackground()
                         
                         // Content options
                         VStack(alignment: .leading, spacing: 16) {
@@ -972,7 +972,7 @@ struct ExportOptionsView: View {
                             }
                         }
                         .padding()
-                        .francoDarkCardBackground()
+                        .cyntientOpsDarkCardBackground()
                         
                         // Export button
                         Button(action: exportRecords) {

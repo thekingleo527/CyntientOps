@@ -39,7 +39,7 @@ struct CyntientOpsApp: App {
         initializeSentry()
         
         // Log production configuration
-        ProductionConfiguration.logConfiguration()
+        print("🚀 CyntientOps Production Ready")
     }
     
     // MARK: - App Body
@@ -141,12 +141,12 @@ struct CyntientOpsApp: App {
                 checkDailyOperations()
             }
             // Use the correct `onChange` syntax for wide compatibility.
-            .onChange(of: initViewModel.isComplete) { newValue in
+            .onChange(of: initViewModel.isComplete) { _, newValue in
                 if newValue {
                     checkDailyOperations()
                 }
             }
-            .onChange(of: authManager.currentUser) { newValue in
+            .onChange(of: authManager.currentUser) { _, newValue in
                 updateSentryUserContext(newValue)
             }
         }
@@ -188,7 +188,7 @@ struct CyntientOpsApp: App {
     // MARK: - Sentry Initialization (PRESERVED)
     
     private func initializeSentry() {
-        let dsn = ProductionConfiguration.Analytics.sentryDSN
+        let dsn = ProcessInfo.processInfo.environment["SENTRY_DSN"] ?? ""
         guard !dsn.isEmpty else {
             print("⚠️ Sentry DSN not configured")
             return
@@ -246,7 +246,7 @@ struct CyntientOpsApp: App {
             scope.setContext(value: [
                 "initialized": databaseInitializer.isInitialized,
                 "onboardingCompleted": hasCompletedOnboarding,
-                "environment": ProductionConfiguration.environment.rawValue
+                "environment": "production"
             ], key: "app_state")
         }
         
@@ -267,7 +267,7 @@ struct CyntientOpsApp: App {
         }
         
         event.breadcrumbs = event.breadcrumbs?.compactMap { breadcrumb in
-            var sanitizedBreadcrumb = breadcrumb
+            let sanitizedBreadcrumb = breadcrumb
             if var data = sanitizedBreadcrumb.data {
                 data.removeValue(forKey: "password")
                 data.removeValue(forKey: "token")

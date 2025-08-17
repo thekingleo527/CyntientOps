@@ -396,7 +396,7 @@ struct ComplianceOverviewView: View {
             }
         }
         .francoCardPadding()
-        .francoDarkCardBackground()
+        .cyntientOpsDarkCardBackground()
     }
     
     // MARK: - Audit Timeline Section
@@ -453,7 +453,7 @@ struct ComplianceOverviewView: View {
             }
         }
         .francoCardPadding()
-        .francoDarkCardBackground()
+        .cyntientOpsDarkCardBackground()
     }
     
     // MARK: - Quick Actions Grid
@@ -871,7 +871,7 @@ struct MinimalComplianceHeroCard: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
-            .francoDarkCardBackground(cornerRadius: 12)
+            .cyntientOpsDarkCardBackground(cornerRadius: 12)
         }
         .buttonStyle(PlainButtonStyle())
     }
@@ -921,7 +921,7 @@ struct ComplianceHeroStatusCard: View {
             quickActionButtons
         }
         .francoCardPadding()
-        .francoDarkCardBackground()
+        .cyntientOpsDarkCardBackground()
     }
     
     private func complianceScoreSection(_ intel: CoreTypes.PortfolioIntelligence) -> some View {
@@ -1187,7 +1187,7 @@ struct ComplianceQuickActionCard: View {
             }
             .frame(maxWidth: .infinity)
             .frame(height: 100)
-            .francoDarkCardBackground()
+            .cyntientOpsDarkCardBackground()
         }
     }
 }
@@ -1415,7 +1415,7 @@ struct NoUpcomingAuditsCard: View {
             .buttonStyle(ComplianceActionButtonStyle(color: CyntientOpsDesign.DashboardColors.primaryAction))
         }
         .padding()
-        .francoDarkCardBackground()
+        .cyntientOpsDarkCardBackground()
     }
 }
 
@@ -1701,7 +1701,7 @@ struct ComplianceIssueDetailView: View {
             }
         }
         .francoCardPadding()
-        .francoDarkCardBackground()
+        .cyntientOpsDarkCardBackground()
     }
     
     private var resolutionSection: some View {
@@ -1868,7 +1868,7 @@ struct AuditSchedulerSheet: View {
                         .foregroundColor(CyntientOpsDesign.DashboardColors.info)
                 }
                 .francoCardPadding()
-                .francoDarkCardBackground()
+                .cyntientOpsDarkCardBackground()
             }
         }
     }
@@ -1906,7 +1906,7 @@ struct AuditSchedulerSheet: View {
             // Building selection would go here
         }
         .francoCardPadding()
-        .francoDarkCardBackground()
+        .cyntientOpsDarkCardBackground()
     }
     
     private func daysUntilText(_ date: Date) -> String {
@@ -2023,7 +2023,7 @@ struct ComplianceExportSheet: View {
                 }
             }
             .francoCardPadding()
-            .francoDarkCardBackground()
+            .cyntientOpsDarkCardBackground()
         }
     }
     
@@ -2067,7 +2067,7 @@ struct ComplianceExportSheet: View {
                 .toggleStyle(SwitchToggleStyle(tint: CyntientOpsDesign.DashboardColors.primaryAction))
         }
         .francoCardPadding()
-        .francoDarkCardBackground()
+        .cyntientOpsDarkCardBackground()
     }
     
     private var exportButtonSection: some View {
@@ -2297,7 +2297,7 @@ struct ComplianceIssueRowCard: View {
             }
         }
         .francoCardPadding()
-        .francoDarkCardBackground()
+        .cyntientOpsDarkCardBackground()
     }
     
     private func issueTypeIcon(_ type: CoreTypes.ComplianceIssueType) -> String {
@@ -2406,7 +2406,7 @@ struct AuditHistoryCard: View {
             }
         }
         .francoCardPadding()
-        .francoDarkCardBackground()
+        .cyntientOpsDarkCardBackground()
     }
     
     private func scoreColor(_ score: Double) -> Color {
@@ -2545,7 +2545,7 @@ struct ComplianceTrendsView: View {
                 )
             }
             .francoCardPadding()
-            .francoDarkCardBackground()
+            .cyntientOpsDarkCardBackground()
         }
     }
 }
@@ -2581,7 +2581,7 @@ struct TrendMetricCard: View {
                 .foregroundColor(color)
         }
         .francoCardPadding()
-        .francoDarkCardBackground()
+        .cyntientOpsDarkCardBackground()
     }
 }
 
@@ -2706,7 +2706,7 @@ struct GuideSection: View {
             }
         }
         .francoCardPadding()
-        .francoDarkCardBackground()
+        .cyntientOpsDarkCardBackground()
     }
 }
 
