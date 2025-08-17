@@ -88,7 +88,6 @@
 		231932D72E42E9CD00640977 /* EmergencyContactService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231932922E42E9CD00640977 /* EmergencyContactService.swift */; };
 		231932D82E42E9CD00640977 /* ComplianceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231932812E42E9CD00640977 /* ComplianceService.swift */; };
 		231932D92E42E9CD00640977 /* CacheManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231932732E42E9CD00640977 /* CacheManager.swift */; };
-		231932DA2E42E9CD00640977 /* IntelligenceService_Legacy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2319329F2E42E9CD00640977 /* IntelligenceService_Legacy.swift */; };
 		231932DC2E42E9CD00640977 /* TelemetryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231932B92E42E9CD00640977 /* TelemetryService.swift */; };
 		231932DD2E42E9CD00640977 /* WorkerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2319328D2E42E9CD00640977 /* WorkerService.swift */; };
 		231932DE2E42E9CD00640977 /* BuildingFeatureConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2319327A2E42E9CD00640977 /* BuildingFeatureConfiguration.swift */; };
@@ -185,7 +184,6 @@
 		231933A12E42EC3200640977 /* WorkerActionType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2319339B2E42EC3200640977 /* WorkerActionType.swift */; };
 		231933A22E42EC3200640977 /* WorkerConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2319339C2E42EC3200640977 /* WorkerConstants.swift */; };
 		231933A32E42EC3200640977 /* CyntientOpsModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231933942E42EC3200640977 /* CyntientOpsModels.swift */; };
-		231933A42E42EC3200640977 /* FilteredTaskResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231933952E42EC3200640977 /* FilteredTaskResult.swift */; };
 		231933A52E42EC3200640977 /* UserExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231933992E42EC3200640977 /* UserExtensions.swift */; };
 		231933A62E42EC3200640977 /* ComplianceDataDTO.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2319338A2E42EC3200640977 /* ComplianceDataDTO.swift */; };
 		231933A82E42EC3200640977 /* CanonicalIDs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231933902E42EC3200640977 /* CanonicalIDs.swift */; };
@@ -212,7 +210,6 @@
 		231934092E42EC7200640977 /* AdminDashboardHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231933C12E42EC7200640977 /* AdminDashboardHeader.swift */; };
 		2319340A2E42EC7200640977 /* AdminMetricCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231933C32E42EC7200640977 /* AdminMetricCard.swift */; };
 		2319340B2E42EC7200640977 /* AdminWorkerStatusSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231933C52E42EC7200640977 /* AdminWorkerStatusSection.swift */; };
-		2319340C2E42EC7200640977 /* HeroStatusCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231933C82E42EC7200640977 /* HeroStatusCard.swift */; };
 		2319340D2E42EC7200640977 /* ClockInGlassModal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231933E72E42EC7200640977 /* ClockInGlassModal.swift */; };
 		2319340E2E42EC7200640977 /* StatCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231933CA2E42EC7200640977 /* StatCard.swift */; };
 		2319340F2E42EC7200640977 /* EmergencyContactsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231933FD2E42EC7200640977 /* EmergencyContactsSheet.swift */; };
@@ -221,7 +218,6 @@
 		231934132E42EC7200640977 /* BuildingHeaderGlassOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231933E52E42EC7200640977 /* BuildingHeaderGlassOverlay.swift */; };
 		231934142E42EC7200640977 /* NovaClientIntelligenceBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231933FA2E42EC7200640977 /* NovaClientIntelligenceBar.swift */; };
 		231934172E42EC7200640977 /* IntelligencePreviewPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231933F52E42EC7200640977 /* IntelligencePreviewPanel.swift */; };
-		231934182E42EC7200640977 /* ClientHeroCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231933C72E42EC7200640977 /* ClientHeroCard.swift */; };
 		231934192E42EC7200640977 /* CyntientOpsDesign.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231933E02E42EC7200640977 /* CyntientOpsDesign.swift */; };
 		2319341A2E42EC7200640977 /* MyAssignedBuildingsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231933D32E42EC7200640977 /* MyAssignedBuildingsSection.swift */; };
 		2319341C2E42EC7200640977 /* WorkersInlineList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231933DE2E42EC7200640977 /* WorkersInlineList.swift */; };
@@ -253,7 +249,6 @@
 		2319343B2E42EC7200640977 /* WeatherViewModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231933DC2E42EC7200640977 /* WeatherViewModifier.swift */; };
 		2319343C2E42EC7200640977 /* TodaysProgressDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231933D92E42EC7200640977 /* TodaysProgressDetailView.swift */; };
 		2319343D2E42EC7200640977 /* AccessModeComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231933BE2E42EC7200640977 /* AccessModeComponents.swift */; };
-		2319343E2E42EC7200640977 /* AdminHeroMetricsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231933C22E42EC7200640977 /* AdminHeroMetricsCard.swift */; };
 		2319343F2E42EC7200640977 /* Building.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231933CF2E42EC7200640977 /* Building.swift */; };
 		231934402E42EC7200640977 /* GlassCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231933E92E42EC7200640977 /* GlassCard.swift */; };
 		231934412E42EC7200640977 /* SyncStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231933F72E42EC7200640977 /* SyncStatusView.swift */; };
@@ -387,7 +382,6 @@
 		2319329C2E42E9CD00640977 /* BuildingMetricsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuildingMetricsService.swift; sourceTree = "<group>"; };
 		2319329D2E42E9CD00640977 /* ClientContextEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClientContextEngine.swift; sourceTree = "<group>"; };
 		2319329E2E42E9CD00640977 /* CostIntelligenceService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CostIntelligenceService.swift; sourceTree = "<group>"; };
-		2319329F2E42E9CD00640977 /* IntelligenceService_Legacy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntelligenceService_Legacy.swift; sourceTree = "<group>"; };
 		231932A02E42E9CD00640977 /* PredictiveAnalytics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PredictiveAnalytics.swift; sourceTree = "<group>"; };
 		231932A12E42E9CD00640977 /* RealTimeMonitoringService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RealTimeMonitoringService.swift; sourceTree = "<group>"; };
 		231932A22E42E9CD00640977 /* RouteOptimizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteOptimizer.swift; sourceTree = "<group>"; };
@@ -479,7 +473,6 @@
 		231933922E42EC3200640977 /* ComplianceIssue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComplianceIssue.swift; sourceTree = "<group>"; };
 		231933932E42EC3200640977 /* CyntientOpsExtensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CyntientOpsExtensions.swift; sourceTree = "<group>"; };
 		231933942E42EC3200640977 /* CyntientOpsModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CyntientOpsModels.swift; sourceTree = "<group>"; };
-		231933952E42EC3200640977 /* FilteredTaskResult.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilteredTaskResult.swift; sourceTree = "<group>"; };
 		231933962E42EC3200640977 /* ImportHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportHelper.swift; sourceTree = "<group>"; };
 		231933972E42EC3200640977 /* ModelExtensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelExtensions.swift; sourceTree = "<group>"; };
 		231933982E42EC3200640977 /* SharedTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedTypes.swift; sourceTree = "<group>"; };
@@ -493,12 +486,9 @@
 		231933BE2E42EC7200640977 /* AccessModeComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessModeComponents.swift; sourceTree = "<group>"; };
 		231933C02E42EC7200640977 /* AdminBuildingPerformanceSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdminBuildingPerformanceSection.swift; sourceTree = "<group>"; };
 		231933C12E42EC7200640977 /* AdminDashboardHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdminDashboardHeader.swift; sourceTree = "<group>"; };
-		231933C22E42EC7200640977 /* AdminHeroMetricsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdminHeroMetricsCard.swift; sourceTree = "<group>"; };
 		231933C32E42EC7200640977 /* AdminMetricCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdminMetricCard.swift; sourceTree = "<group>"; };
 		231933C42E42EC7200640977 /* AdminRealtimeSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdminRealtimeSection.swift; sourceTree = "<group>"; };
 		231933C52E42EC7200640977 /* AdminWorkerStatusSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdminWorkerStatusSection.swift; sourceTree = "<group>"; };
-		231933C72E42EC7200640977 /* ClientHeroCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClientHeroCard.swift; sourceTree = "<group>"; };
-		231933C82E42EC7200640977 /* HeroStatusCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeroStatusCard.swift; sourceTree = "<group>"; };
 		231933C92E42EC7200640977 /* PropertyCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PropertyCard.swift; sourceTree = "<group>"; };
 		231933CA2E42EC7200640977 /* StatCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatCard.swift; sourceTree = "<group>"; };
 		231933CC2E42EC7200640977 /* ClientDashboardComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClientDashboardComponents.swift; sourceTree = "<group>"; };
@@ -876,7 +866,6 @@
 				2319329C2E42E9CD00640977 /* BuildingMetricsService.swift */,
 				2319329D2E42E9CD00640977 /* ClientContextEngine.swift */,
 				2319329E2E42E9CD00640977 /* CostIntelligenceService.swift */,
-				2319329F2E42E9CD00640977 /* IntelligenceService_Legacy.swift */,
 				231932A02E42E9CD00640977 /* PredictiveAnalytics.swift */,
 				231932A12E42E9CD00640977 /* RealTimeMonitoringService.swift */,
 				231932A22E42E9CD00640977 /* RouteOptimizer.swift */,
@@ -1174,7 +1163,6 @@
 				231933922E42EC3200640977 /* ComplianceIssue.swift */,
 				231933932E42EC3200640977 /* CyntientOpsExtensions.swift */,
 				231933942E42EC3200640977 /* CyntientOpsModels.swift */,
-				231933952E42EC3200640977 /* FilteredTaskResult.swift */,
 				231933962E42EC3200640977 /* ImportHelper.swift */,
 				231933972E42EC3200640977 /* ModelExtensions.swift */,
 				231933982E42EC3200640977 /* SharedTypes.swift */,
@@ -1234,7 +1222,6 @@
 			children = (
 				231933C02E42EC7200640977 /* AdminBuildingPerformanceSection.swift */,
 				231933C12E42EC7200640977 /* AdminDashboardHeader.swift */,
-				231933C22E42EC7200640977 /* AdminHeroMetricsCard.swift */,
 				231933C32E42EC7200640977 /* AdminMetricCard.swift */,
 				231933C42E42EC7200640977 /* AdminRealtimeSection.swift */,
 				231933C52E42EC7200640977 /* AdminWorkerStatusSection.swift */,
@@ -1245,8 +1232,6 @@
 		231933CB2E42EC7200640977 /* Cards */ = {
 			isa = PBXGroup;
 			children = (
-				231933C72E42EC7200640977 /* ClientHeroCard.swift */,
-				231933C82E42EC7200640977 /* HeroStatusCard.swift */,
 				231933C92E42EC7200640977 /* PropertyCard.swift */,
 				231933CA2E42EC7200640977 /* StatCard.swift */,
 			);
@@ -1637,7 +1622,6 @@
 				231933A12E42EC3200640977 /* WorkerActionType.swift in Sources */,
 				231933A22E42EC3200640977 /* WorkerConstants.swift in Sources */,
 				231933A32E42EC3200640977 /* CyntientOpsModels.swift in Sources */,
-				231933A42E42EC3200640977 /* FilteredTaskResult.swift in Sources */,
 				231933A52E42EC3200640977 /* UserExtensions.swift in Sources */,
 				231933A62E42EC3200640977 /* ComplianceDataDTO.swift in Sources */,
 				231933A82E42EC3200640977 /* CanonicalIDs.swift in Sources */,
@@ -1666,7 +1650,6 @@
 				231934092E42EC7200640977 /* AdminDashboardHeader.swift in Sources */,
 				2319340A2E42EC7200640977 /* AdminMetricCard.swift in Sources */,
 				2319340B2E42EC7200640977 /* AdminWorkerStatusSection.swift in Sources */,
-				2319340C2E42EC7200640977 /* HeroStatusCard.swift in Sources */,
 				2319340D2E42EC7200640977 /* ClockInGlassModal.swift in Sources */,
 				2319344A2E42ED3900640977 /* CyntientOpsApp.swift in Sources */,
 				2319340E2E42EC7200640977 /* StatCard.swift in Sources */,
@@ -1676,7 +1659,6 @@
 				231934132E42EC7200640977 /* BuildingHeaderGlassOverlay.swift in Sources */,
 				231934142E42EC7200640977 /* NovaClientIntelligenceBar.swift in Sources */,
 				231934172E42EC7200640977 /* IntelligencePreviewPanel.swift in Sources */,
-				231934182E42EC7200640977 /* ClientHeroCard.swift in Sources */,
 				231934192E42EC7200640977 /* CyntientOpsDesign.swift in Sources */,
 				2319341A2E42EC7200640977 /* MyAssignedBuildingsSection.swift in Sources */,
 				2319341C2E42EC7200640977 /* WorkersInlineList.swift in Sources */,
@@ -1708,7 +1690,6 @@
 				2319343B2E42EC7200640977 /* WeatherViewModifier.swift in Sources */,
 				2319343C2E42EC7200640977 /* TodaysProgressDetailView.swift in Sources */,
 				2319343D2E42EC7200640977 /* AccessModeComponents.swift in Sources */,
-				2319343E2E42EC7200640977 /* AdminHeroMetricsCard.swift in Sources */,
 				2319343F2E42EC7200640977 /* Building.swift in Sources */,
 				231934402E42EC7200640977 /* GlassCard.swift in Sources */,
 				231934412E42EC7200640977 /* SyncStatusView.swift in Sources */,
@@ -1767,7 +1748,6 @@
 				231932D72E42E9CD00640977 /* EmergencyContactService.swift in Sources */,
 				231932D82E42E9CD00640977 /* ComplianceService.swift in Sources */,
 				231932D92E42E9CD00640977 /* CacheManager.swift in Sources */,
-				231932DA2E42E9CD00640977 /* IntelligenceService_Legacy.swift in Sources */,
 				231932DC2E42E9CD00640977 /* TelemetryService.swift in Sources */,
 				231932DD2E42E9CD00640977 /* WorkerService.swift in Sources */,
 				231932DE2E42E9CD00640977 /* BuildingFeatureConfiguration.swift in Sources */,
