@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct AdminBuildingsListView: View {
+public struct AdminBuildingsListView: View {
     let buildings: [CoreTypes.NamedCoordinate]
     let buildingMetrics: [String: CoreTypes.BuildingMetrics]
     let onSelectBuilding: (CoreTypes.NamedCoordinate) -> Void

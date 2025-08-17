@@ -267,48 +267,6 @@ struct AdminMetricTile: View {
         .buttonStyle(PlainButtonStyle())
     }
 }
-
-struct AdminMetricPill: View {
-    let value: String
-    let label: String
-    let color: Color
-    
-    var body: some View {
-        HStack(spacing: 4) {
-            Text(value)
-                .font(.caption)
-                .fontWeight(.semibold)
-                .foregroundColor(color)
-            
-            Text(label)
-                .font(.caption2)
-                .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
-        }
-    }
-}
-
-struct AdminImmediateItem: View {
-    let icon: String
-    let text: String
-    let color: Color
-    
-    var body: some View {
-        HStack(spacing: 6) {
-            Image(systemName: icon)
-                .font(.caption2)
-                .foregroundColor(color)
-            
-            Text(text)
-                .font(.caption2)
-                .fontWeight(.medium)
-                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-        }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 4)
-        .background(color.opacity(0.15))
-        .cornerRadius(8)
-    }
-}
     
 // MARK: - Admin Urgent Items Section (mirroring client)
 
@@ -481,6 +439,50 @@ struct AdminUrgentItem: View {
             AdminPortfolioMapView(buildings: viewModel.buildings, workers: viewModel.workers)
                 .navigationTitle("Portfolio Map")
         }
+    }
+}
+
+// MARK: - Admin Helper Components
+
+struct AdminMetricPill: View {
+    let value: String
+    let label: String
+    let color: Color
+    
+    var body: some View {
+        HStack(spacing: 4) {
+            Text(value)
+                .font(.caption)
+                .fontWeight(.semibold)
+                .foregroundColor(color)
+            
+            Text(label)
+                .font(.caption2)
+                .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+        }
+    }
+}
+
+struct AdminImmediateItem: View {
+    let icon: String
+    let text: String
+    let color: Color
+    
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: icon)
+                .font(.caption2)
+                .foregroundColor(color)
+            
+            Text(text)
+                .font(.caption2)
+                .fontWeight(.medium)
+                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(color.opacity(0.15))
+        .cornerRadius(8)
     }
 }
 

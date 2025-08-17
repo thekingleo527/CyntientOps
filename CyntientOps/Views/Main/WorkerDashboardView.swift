@@ -4681,19 +4681,19 @@ struct WorkerActionSheet: View {
         .sheet(isPresented: $showingCamera) {
             CyntientOpsImagePicker(
                 image: $capturedImage,
-                sourceType: .camera,
                 onImagePicked: { image in
-                    savePhotoEvidence(image, category: .documentation, notes: "Work documentation")
-                }
+                    savePhotoEvidence(image, category: .duringWork, notes: "Work documentation")
+                },
+                sourceType: .camera
             )
         }
         .sheet(isPresented: $showingPhotoLibrary) {
             CyntientOpsImagePicker(
                 image: $capturedImage,
-                sourceType: .photoLibrary,
                 onImagePicked: { image in
-                    savePhotoEvidence(image, category: .documentation, notes: "Uploaded documentation")
-                }
+                    savePhotoEvidence(image, category: .duringWork, notes: "Uploaded documentation")
+                },
+                sourceType: .photoLibrary
             )
         }
         .sheet(isPresented: $showingSignaturePad) {

@@ -9,7 +9,7 @@
 import SwiftUI
 import MapKit
 
-struct AdminPortfolioMapView: View {
+public struct AdminPortfolioMapView: View {
     let buildings: [CoreTypes.NamedCoordinate]
     let workers: [CoreTypes.WorkerProfile]
     

@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct AdminEmergencyManagementView: View {
+public struct AdminEmergencyManagementView: View {
     let alerts: [CoreTypes.AdminAlert]
     @Environment(\.dismiss) private var dismiss
     
