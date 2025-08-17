@@ -66,6 +66,7 @@ public final class ClientDashboardViewModel: ObservableObject {
     @Published public var hpdViolationsData: [String: [HPDViolation]] = [:]
     @Published public var dobPermitsData: [String: [DOBPermit]] = [:]
     @Published public var dsnyScheduleData: [String: [DSNYRoute]] = [:]
+    @Published public var dsnyViolationsData: [String: [DSNYViolation]] = [:]
     @Published public var ll97EmissionsData: [String: [LL97Emission]] = [:]
     
     // Photo Evidence (for client building documentation view)
@@ -1505,15 +1506,17 @@ public final class ClientDashboardViewModel: ObservableObject {
                 async let fdnyInspections = try? nycAPIService.fetchFDNYInspections(bin: building.id)
                 async let complaints311 = try? nycAPIService.fetch311Complaints(bin: building.id)
                 async let dsnySchedule = try? nycAPIService.fetchDSNYSchedule(district: getDistrictForBuilding(building))
+                async let dsnyViolations = try? nycAPIService.fetchDSNYViolations(bin: building.id)
                 
                 // Wait for all API responses
-                let (violations, permits, emissions, _, complaints, dsnyRoutes) = await (
+                let (violations, permits, emissions, _, complaints, dsnyRoutes, dsnyViolationsData) = await (
                     hpdViolations ?? [],
                     dobPermits ?? [],
                     ll97Compliance ?? [],
                     fdnyInspections ?? [],
                     complaints311 ?? [],
-                    dsnySchedule ?? []
+                    dsnySchedule ?? [],
+                    dsnyViolations ?? []
                 )
                 
                 // Calculate compliance metrics from real NYC data
@@ -1536,11 +1539,13 @@ public final class ClientDashboardViewModel: ObservableObject {
                     self.dobPermitsData[building.id] = permits
                     self.ll97EmissionsData[building.id] = emissions
                     self.dsnyScheduleData[building.id] = dsnyRoutes
+                    self.dsnyViolationsData[building.id] = dsnyViolationsData
                 }
                 
                 print("✅ NYC compliance data for \(building.name):")
                 print("   • HPD Violations: \(activeViolations.count) active")
                 print("   • DOB Permits: \(pendingPermits.count) pending")
+                print("   • DSNY Violations: \(dsnyViolationsData.filter { $0.isActive }.count) active")
                 print("   • LL97 Issues: \(activeLLComplaints.count) non-compliant")
                 print("   • 311 Complaints: \(recentComplaints.count) recent")
                 

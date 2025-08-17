@@ -32,6 +32,7 @@ public final class NYCAPIService: ObservableObject {
         static let hpdURL = "https://data.cityofnewyork.us/resource/wvxf-dwi5.json" // HPD Violations
         static let dobURL = "https://data.cityofnewyork.us/resource/ipu4-2q9a.json" // DOB Permits
         static let dsnyURL = "https://data.cityofnewyork.us/resource/ebb7-mvp5.json" // DSNY Routes
+        static let dsnyViolationsURL = "https://data.cityofnewyork.us/resource/weg2-hvnf.json" // DSNY Violations
         static let ll97URL = "https://data.cityofnewyork.us/resource/8vys-2eex.json" // LL97 Emissions
         static let depURL = "https://data.cityofnewyork.us/resource/66be-66yr.json"  // DEP Water
         static let fdnyURL = "https://data.cityofnewyork.us/resource/3h2n-5cm9.json" // FDNY Inspections
@@ -48,6 +49,7 @@ public final class NYCAPIService: ObservableObject {
         case hpdViolations(bin: String)
         case dobPermits(bin: String)
         case dsnySchedule(district: String)
+        case dsnyViolations(bin: String)
         case ll97Compliance(bbl: String)
         case depWaterUsage(account: String)
         case fdnyInspections(bin: String)
@@ -63,6 +65,8 @@ public final class NYCAPIService: ObservableObject {
                 return "\(APIConfig.dobURL)?bin=\(bin)"
             case .dsnySchedule(let district):
                 return "\(APIConfig.dsnyURL)?community_district=\(district)"
+            case .dsnyViolations(let bin):
+                return "\(APIConfig.dsnyViolationsURL)?bin=\(bin)"
             case .ll97Compliance(let bbl):
                 return "\(APIConfig.ll97URL)?bbl=\(bbl)"
             case .depWaterUsage(let account):
@@ -83,6 +87,7 @@ public final class NYCAPIService: ObservableObject {
             case .hpdViolations(let bin): return "hpd_violations_\(bin)"
             case .dobPermits(let bin): return "dob_permits_\(bin)"
             case .dsnySchedule(let district): return "dsny_schedule_\(district)"
+            case .dsnyViolations(let bin): return "dsny_violations_\(bin)"
             case .ll97Compliance(let bbl): return "ll97_compliance_\(bbl)"
             case .depWaterUsage(let account): return "dep_water_\(account)"
             case .fdnyInspections(let bin): return "fdny_inspections_\(bin)"
@@ -142,6 +147,12 @@ public final class NYCAPIService: ObservableObject {
     /// Fetch DEP water usage data
     public func fetchDEPWaterUsage(account: String) async throws -> [DEPWaterUsage] {
         let endpoint = APIEndpoint.depWaterUsage(account: account)
+        return try await fetch(endpoint)
+    }
+    
+    /// Fetch DSNY violations
+    public func fetchDSNYViolations(bin: String) async throws -> [DSNYViolation] {
+        let endpoint = APIEndpoint.dsnyViolations(bin: bin)
         return try await fetch(endpoint)
     }
     

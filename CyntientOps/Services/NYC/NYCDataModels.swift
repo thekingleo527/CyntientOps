@@ -264,6 +264,47 @@ public struct FDNYInspection: Codable, Identifiable {
     }
 }
 
+// MARK: - DSNY Violations
+
+public struct DSNYViolation: Codable, Identifiable {
+    public let id = UUID()
+    public let violationId: String
+    public let bin: String
+    public let issueDate: String
+    public let hearingDate: String?
+    public let violationType: String
+    public let fineAmount: Double?
+    public let status: String
+    public let borough: String
+    public let address: String?
+    public let violationDetails: String?
+    public let dispositionCode: String?
+    public let dispositionDate: String?
+    
+    private enum CodingKeys: String, CodingKey {
+        case violationId = "violation_id"
+        case bin
+        case issueDate = "issue_date"
+        case hearingDate = "hearing_date"
+        case violationType = "violation_type"
+        case fineAmount = "fine_amount"
+        case status
+        case borough
+        case address
+        case violationDetails = "violation_details"
+        case dispositionCode = "disposition_code"
+        case dispositionDate = "disposition_date"
+    }
+    
+    public var isActive: Bool {
+        return dispositionDate == nil && status.lowercased() != "closed"
+    }
+    
+    public var isPaid: Bool {
+        return dispositionCode?.lowercased().contains("paid") == true
+    }
+}
+
 // MARK: - 311 Complaints
 
 public struct Complaint311: Codable, Identifiable {

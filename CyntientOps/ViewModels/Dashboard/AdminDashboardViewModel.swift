@@ -493,6 +493,9 @@ class AdminDashboardViewModel: ObservableObject {
             // Load operational intelligence data
             await loadOperationalIntelligence()
             
+            // Load real NYC API compliance data for all buildings
+            await loadRealComplianceData()
+            
             // Initialize comprehensive NYC data if not already done
             if propertyData.isEmpty && !buildings.isEmpty {
                 print("🏢 Initializing comprehensive NYC property data...")
@@ -524,6 +527,81 @@ class AdminDashboardViewModel: ObservableObject {
         setInitialMapRegion()
         
         isLoading = false
+    }
+    
+    /// Load real NYC API compliance data for all buildings
+    @MainActor
+    private func loadRealComplianceData() async {
+        print("🗽 Loading real NYC API compliance data...")
+        let nycAPI = NYCAPIService.shared
+        
+        var hpdData: [String: [CoreTypes.HPDViolation]] = [:]
+        var dobData: [String: [CoreTypes.DOBPermit]] = [:]
+        var dsnyData: [String: [CoreTypes.DSNYSchedule]] = [:]
+        var ll97Data: [String: [CoreTypes.LL97Emission]] = [:]
+        
+        for building in buildings {
+            do {
+                // Fetch real HPD violations
+                let hpdViolations = try await nycAPI.fetchHPDViolations(bin: building.id)
+                hpdData[building.id] = hpdViolations.map { violation in
+                    CoreTypes.HPDViolation(
+                        violationId: violation.violationId,
+                        buildingId: building.id,
+                        apartmentNumber: violation.apartmentNumber,
+                        violationType: violation.novDescription,
+                        inspectionDate: violation.inspectionDate,
+                        currentStatus: violation.currentStatus,
+                        violationStatus: violation.violationStatus
+                    )
+                }
+                
+                // Fetch real DOB permits
+                let dobPermits = try await nycAPI.fetchDOBPermits(bin: building.id)
+                dobData[building.id] = dobPermits.map { permit in
+                    CoreTypes.DOBPermit(
+                        permitNumber: permit.jobNumber,
+                        buildingId: building.id,
+                        permitType: permit.jobType,
+                        issuedDate: permit.issuedDate,
+                        expirationDate: permit.expirationDate,
+                        jobStatus: permit.jobStatus,
+                        workType: permit.workType
+                    )
+                }
+                
+                // Fetch real DSNY violations (if available)
+                let dsnyViolations = try? await nycAPI.fetchDSNYViolations(bin: building.id)
+                
+                // Fetch real LL97 emissions
+                let ll97Emissions = try await nycAPI.fetchLL97Compliance(bbl: building.id)
+                ll97Data[building.id] = ll97Emissions.map { emission in
+                    CoreTypes.LL97Emission(
+                        buildingId: building.id,
+                        year: emission.reportingYear,
+                        emissions: emission.totalEmissions,
+                        limit: emission.emissionsLimit,
+                        isCompliant: emission.isCompliant
+                    )
+                }
+                
+                print("✅ Loaded compliance data for \(building.name): HPD(\(hpdViolations.count)), DOB(\(dobPermits.count)), LL97(\(ll97Emissions.count))")
+                
+                // Rate limiting
+                try await Task.sleep(nanoseconds: 1_000_000_000) // 1 second between calls
+                
+            } catch {
+                print("⚠️ Error loading compliance data for \(building.name): \(error)")
+            }
+        }
+        
+        // Update published properties
+        self.hpdViolationsData = hpdData
+        self.dobPermitsData = dobData
+        self.dsnyScheduleData = dsnyData
+        self.ll97EmissionsData = ll97Data
+        
+        print("🗽 Real NYC compliance data loaded for \(buildings.count) buildings")
     }
     
     /// Initialize the AdminDashboardViewModel

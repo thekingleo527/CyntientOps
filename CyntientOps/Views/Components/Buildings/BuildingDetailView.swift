@@ -2621,6 +2621,61 @@ struct MaintenanceTaskRow: View {
     }
 }
 
+struct DSNYViolationCard: View {
+    let violation: DSNYViolation
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text(violation.violationType)
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.error)
+                
+                Spacer()
+                
+                if let fine = violation.fineAmount {
+                    Text("$\(Int(fine))")
+                        .font(.caption)
+                        .fontWeight(.bold)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.error)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 2)
+                        .background(CyntientOpsDesign.DashboardColors.error.opacity(0.1))
+                        .cornerRadius(4)
+                }
+            }
+            
+            if let details = violation.violationDetails {
+                Text(details)
+                    .font(.caption)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                    .lineLimit(2)
+            }
+            
+            HStack {
+                Text("Issued: \(violation.issueDate)")
+                    .font(.caption)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+                
+                Spacer()
+                
+                Text(violation.status.uppercased())
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .foregroundColor(violation.isActive ? CyntientOpsDesign.DashboardColors.error : CyntientOpsDesign.DashboardColors.success)
+            }
+        }
+        .padding(12)
+        .background(CyntientOpsDesign.DashboardColors.error.opacity(0.05))
+        .cornerRadius(8)
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(CyntientOpsDesign.DashboardColors.error.opacity(0.2), lineWidth: 1)
+        )
+    }
+}
+
 struct ComplianceRow: View {
     let title: String
     let status: CoreTypes.ComplianceStatus
@@ -3440,27 +3495,45 @@ struct BuildingSanitationTab: View {
     
     private var sanitationComplianceCard: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Label("Compliance Status", systemImage: "checkmark.shield.fill")
+            Label("DSNY Compliance & Violations", systemImage: "exclamationmark.triangle.fill")
                 .font(.headline)
                 .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
             
             VStack(spacing: 12) {
                 ComplianceRow(
-                    title: "DSNY Requirements",
+                    title: "DSNY Compliance Status",
                     status: viewModel.dsnyCompliance,
                     nextAction: viewModel.nextDSNYAction
                 )
+                
+                // Real DSNY Violations Section
+                if !viewModel.rawDSNYViolations.isEmpty {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Active DSNY Violations (\(viewModel.rawDSNYViolations.filter { $0.isActive }.count))")
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                            .foregroundColor(CyntientOpsDesign.DashboardColors.error)
+                        
+                        ForEach(viewModel.rawDSNYViolations.filter { $0.isActive }.prefix(3)) { violation in
+                            DSNYViolationCard(violation: violation)
+                        }
+                        
+                        if viewModel.rawDSNYViolations.filter({ $0.isActive }).count > 3 {
+                            Text("+ \(viewModel.rawDSNYViolations.filter { $0.isActive }.count - 3) more violations")
+                                .font(.caption)
+                                .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+                        }
+                    }
+                } else {
+                    Text("✅ No active DSNY violations")
+                        .font(.subheadline)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.success)
+                }
                 
                 ComplianceRow(
                     title: "Set-Out Schedule",
                     status: .compliant,
                     nextAction: "Next set-out: Today 8:00 PM"
-                )
-                
-                ComplianceRow(
-                    title: "Bin Maintenance",
-                    status: .atRisk,
-                    nextAction: "Clean bins weekly"
                 )
             }
         }

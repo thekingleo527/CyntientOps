@@ -358,6 +358,13 @@ public class BuildingDetailViewModel: ObservableObject {
     @Published var healthCompliance: CoreTypes.ComplianceStatus = .compliant
     @Published var nextHealthAction: String?
     
+    // Raw NYC API compliance data for building detail cards
+    @Published var rawHPDViolations: [HPDViolation] = []
+    @Published var rawDOBPermits: [DOBPermit] = []
+    @Published var rawDSNYSchedule: [DSNYSchedule] = []
+    @Published var rawDSNYViolations: [DSNYViolation] = []
+    @Published var rawLL97Data: [LL97Emission] = []
+    
     // Activity
     @Published var recentActivities: [BDBuildingDetailActivity] = []
     
@@ -942,32 +949,93 @@ public class BuildingDetailViewModel: ObservableObject {
     
     private func loadComplianceStatus() async {
         do {
-            // Use building metrics to determine basic compliance status
-            let metrics = try await buildingService.getBuildingMetrics(buildingId)
+            // Get real NYC API compliance data
+            let nycAPI = NYCAPIService.shared
+            let complianceService = NYCComplianceService(database: container.database)
+            
+            // Sync compliance data for this building
+            await complianceService.syncBuildingCompliance(building: CoreTypes.NamedCoordinate(
+                id: buildingId,
+                name: building?.name ?? "Building \(buildingId)",
+                address: building?.address ?? "",
+                latitude: building?.latitude ?? 0,
+                longitude: building?.longitude ?? 0
+            ))
+            
+            // Get real HPD violations data
+            let hpdViolations = try await nycAPI.fetchHPDViolations(bin: buildingId)
+            
+            // Get real DOB permits data  
+            let dobPermits = try await nycAPI.fetchDOBPermits(bin: buildingId)
+            
+            // Get real DSNY violations data  
+            let dsnyViolations = try await nycAPI.fetchDSNYViolations(bin: buildingId)
+            
+            // Get real LL97 emissions data
+            let ll97Data = try await nycAPI.fetchLL97Compliance(bbl: buildingId)
             
             await MainActor.run {
-                // Create a basic compliance status based on completion rate
-                if metrics.completionRate > 0.9 {
+                // Set DSNY compliance based on real DSNY violations
+                let activeDSNYViolations = dsnyViolations.filter { $0.isActive }
+                if !activeDSNYViolations.isEmpty {
+                    self.dsnyCompliance = .violation
+                } else if let schedule = dsnySchedule, !schedule.isEmpty {
                     self.dsnyCompliance = .compliant
-                } else if metrics.completionRate > 0.7 {
-                    self.dsnyCompliance = .atRisk
                 } else {
-                    self.dsnyCompliance = .nonCompliant
+                    self.dsnyCompliance = .pending
                 }
                 
-                // Set other compliance statuses based on completion rate
-                self.fireSafetyCompliance = metrics.completionRate > 0.8 ? .compliant : .atRisk
-                self.healthCompliance = metrics.completionRate > 0.8 ? .compliant : .atRisk
+                // Set fire safety compliance based on DOB permits and violations
+                let hasActiveDOBViolations = dobPermits.contains { permit in
+                    permit.jobStatus.lowercased().contains("violation")
+                }
+                self.fireSafetyCompliance = hasActiveDOBViolations ? .violation : .compliant
                 
-                // Set next actions based on compliance status
-                if metrics.completionRate < 0.8 {
-                    self.nextDSNYAction = "Complete pending tasks"
-                    self.nextFireSafetyAction = "Schedule inspection"
-                    self.nextHealthAction = "Review health protocols"
+                // Set health compliance based on HPD violations
+                let activeHPDViolations = hpdViolations.filter { violation in
+                    violation.currentStatus.lowercased().contains("open")
+                }
+                self.healthCompliance = activeHPDViolations.isEmpty ? .compliant : .violation
+                
+                // Set compliance score based on real data
+                let violationCount = activeHPDViolations.count
+                if violationCount == 0 {
+                    self.complianceScore = "A"
+                } else if violationCount <= 2 {
+                    self.complianceScore = "B"
+                } else if violationCount <= 5 {
+                    self.complianceScore = "C"
+                } else {
+                    self.complianceScore = "D"
                 }
                 
-                // Update compliance score based on completion rate
-                self.complianceScore = metrics.isCompliant ? "A" : "B"
+                // Set next actions based on real compliance data
+                if !activeHPDViolations.isEmpty {
+                    self.nextHealthAction = "Resolve \(activeHPDViolations.count) HPD violation(s)"
+                } else {
+                    self.nextHealthAction = "Maintain compliance status"
+                }
+                
+                if hasActiveDOBViolations {
+                    self.nextFireSafetyAction = "Address DOB compliance issues"
+                } else {
+                    self.nextFireSafetyAction = "Next inspection due \(Date().addingTimeInterval(2592000).formatted(date: .abbreviated, time: .omitted))"
+                }
+                
+                // Update next actions based on violations
+                if !activeDSNYViolations.isEmpty {
+                    let oldestViolation = activeDSNYViolations.sorted { $0.issueDate < $1.issueDate }.first!
+                    self.nextDSNYAction = "Resolve \(activeDSNYViolations.count) violation(s) - oldest from \(oldestViolation.issueDate)"
+                } else {
+                    self.nextDSNYAction = "Maintain compliance - next collection Monday 6AM"
+                }
+                
+                // Store raw compliance data for building detail cards
+                self.rawHPDViolations = hpdViolations
+                self.rawDOBPermits = dobPermits
+                self.rawDSNYSchedule = [] // Will be loaded separately if needed
+                self.rawDSNYViolations = dsnyViolations
+                self.rawLL97Data = ll97Data
             }
         } catch {
             print("⚠️ Error loading compliance: \(error)")

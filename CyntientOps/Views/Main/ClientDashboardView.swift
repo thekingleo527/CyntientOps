@@ -401,6 +401,7 @@ struct ClientDashboardView: View {
         case .dsnyCompliance:
             ClientDSNYComplianceView(
                 schedules: viewModel.dsnyScheduleData,
+                violations: viewModel.dsnyViolationsData,
                 buildings: viewModel.buildingsList
             )
             .navigationTitle("DSNY Sanitation")
@@ -2629,36 +2630,83 @@ struct ClientDOBComplianceView: View {
 
 struct ClientDSNYComplianceView: View {
     let schedules: [String: [CoreTypes.DSNYSchedule]]
+    let violations: [String: [DSNYViolation]]
     let buildings: [CoreTypes.NamedCoordinate]
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                // Summary Card
+                // DSNY Violations Summary
                 ComplianceSummaryCard(
-                    title: "DSNY Sanitation Schedules",
-                    totalCount: getTotalSchedules(),
-                    activeCount: getTotalSchedules(),
-                    icon: "trash.fill",
-                    color: .green
+                    title: "DSNY Violations & Tickets",
+                    totalCount: getTotalViolations(),
+                    activeCount: getActiveViolations(),
+                    icon: "exclamationmark.triangle.fill",
+                    color: getTotalViolations() > 0 ? .red : .green
                 )
                 
-                // Schedules by Building
+                // Real DSNY Violations by Building
                 ForEach(buildings, id: \.id) { building in
-                    if let buildingSchedules = schedules[building.id], !buildingSchedules.isEmpty {
+                    if let buildingViolations = violations[building.id], !buildingViolations.isEmpty {
                         VStack(alignment: .leading, spacing: 8) {
-                            Text(building.name)
-                                .font(.headline)
-                                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                            HStack {
+                                Text(building.name)
+                                    .font(.headline)
+                                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                                
+                                Spacer()
+                                
+                                Text("\(buildingViolations.filter { $0.isActive }.count) Active")
+                                    .font(.caption)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(CyntientOpsDesign.DashboardColors.error)
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 2)
+                                    .background(CyntientOpsDesign.DashboardColors.error.opacity(0.1))
+                                    .cornerRadius(4)
+                            }
                             
-                            ForEach(buildingSchedules, id: \.scheduleId) { schedule in
-                                DSNYScheduleRow(schedule: schedule)
+                            ForEach(buildingViolations.prefix(5)) { violation in
+                                DSNYViolationRow(violation: violation)
+                            }
+                            
+                            if buildingViolations.count > 5 {
+                                Text("+ \(buildingViolations.count - 5) more violations")
+                                    .font(.caption)
+                                    .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+                                    .padding(.top, 4)
                             }
                         }
                         .padding()
                         .francoDarkCardBackground()
                     }
+                }
+                
+                // Schedule Information (Secondary)
+                if !schedules.isEmpty {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Collection Schedules")
+                            .font(.headline)
+                            .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                        
+                        ForEach(buildings, id: \.id) { building in
+                            if let buildingSchedules = schedules[building.id], !buildingSchedules.isEmpty {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(building.name)
+                                        .font(.subheadline)
+                                        .fontWeight(.medium)
+                                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                                    
+                                    ForEach(buildingSchedules.prefix(2), id: \.scheduleId) { schedule in
+                                        DSNYScheduleRow(schedule: schedule)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    .padding()
+                    .francoDarkCardBackground()
                 }
             }
             .padding()
@@ -2675,6 +2723,14 @@ struct ClientDSNYComplianceView: View {
     
     private func getTotalSchedules() -> Int {
         return schedules.values.flatMap { $0 }.count
+    }
+    
+    private func getTotalViolations() -> Int {
+        return violations.values.flatMap { $0 }.count
+    }
+    
+    private func getActiveViolations() -> Int {
+        return violations.values.flatMap { $0 }.filter { $0.isActive }.count
     }
 }
 
@@ -2886,6 +2942,53 @@ struct DSNYScheduleRow: View {
                 .padding(.vertical, 4)
                 .background(CyntientOpsDesign.DashboardColors.success.opacity(0.2))
                 .cornerRadius(6)
+        }
+        .padding(.vertical, 4)
+    }
+}
+
+struct DSNYViolationRow: View {
+    let violation: DSNYViolation
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            Circle()
+                .fill(violation.isActive ? CyntientOpsDesign.DashboardColors.error : CyntientOpsDesign.DashboardColors.success)
+                .frame(width: 8, height: 8)
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text(violation.violationType)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .foregroundColor(violation.isActive ? CyntientOpsDesign.DashboardColors.error : CyntientOpsDesign.DashboardColors.primaryText)
+                
+                Text("Issued: \(violation.issueDate)")
+                    .font(.caption)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+                
+                if let details = violation.violationDetails {
+                    Text(details)
+                        .font(.caption)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                        .lineLimit(1)
+                }
+            }
+            
+            Spacer()
+            
+            VStack(alignment: .trailing, spacing: 2) {
+                if let fine = violation.fineAmount {
+                    Text("$\(Int(fine))")
+                        .font(.caption)
+                        .fontWeight(.bold)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.error)
+                }
+                
+                Text(violation.status.uppercased())
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .foregroundColor(violation.isActive ? CyntientOpsDesign.DashboardColors.error : CyntientOpsDesign.DashboardColors.success)
+            }
         }
         .padding(.vertical, 4)
     }
