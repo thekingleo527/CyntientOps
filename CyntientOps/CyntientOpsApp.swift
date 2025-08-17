@@ -190,7 +190,7 @@ struct CyntientOpsApp: App {
     private func initializeSentry() {
         let dsn = ProductionConfiguration.Analytics.sentryDSN
         guard !dsn.isEmpty else {
-            print("⚠️ Sentry DSN not configured for \(ProductionConfiguration.environment.rawValue)")
+            print("⚠️ Sentry DSN not configured")
             return
         }
         
