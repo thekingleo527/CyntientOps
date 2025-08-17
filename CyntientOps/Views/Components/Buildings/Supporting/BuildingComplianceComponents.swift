@@ -1926,30 +1926,34 @@ struct DSNYViolationsCard: View {
             }
             
             VStack(spacing: 8) {
-                ForEach(violations.prefix(3)) { violation in
-                    HStack {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(violation.description)
-                                .font(.caption)
-                                .fontWeight(.medium)
-                                .foregroundColor(.white)
-                            
-                            Text(violation.date.formatted(date: .abbreviated, time: .omitted))
-                                .font(.caption2)
-                                .foregroundColor(.white.opacity(0.6))
-                        }
-                        
-                        Spacer()
-                    }
-                    .padding(8)
-                    .background(Color.red.opacity(0.1))
-                    .cornerRadius(6)
+                ForEach(Array(violations.prefix(3)), id: \.id) { violation in
+                    violationRow(violation)
                 }
             }
         }
         .padding()
         .background(Color.white.opacity(0.03))
         .cornerRadius(8)
+    }
+    
+    private func violationRow(_ violation: DSNYViolation) -> some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(violation.violationType)
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .foregroundColor(.white)
+                
+                Text("Issued: \(violation.issueDate)")
+                    .font(.caption2)
+                    .foregroundColor(.white.opacity(0.6))
+            }
+            
+            Spacer()
+        }
+        .padding(8)
+        .background(Color.red.opacity(0.1))
+        .cornerRadius(6)
     }
 }
 

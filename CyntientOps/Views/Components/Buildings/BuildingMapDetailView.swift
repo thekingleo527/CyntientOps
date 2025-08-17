@@ -372,6 +372,7 @@ struct BuildingTaskRow: View {
         case .inspection: return "magnifyingglass"
         case .landscaping: return "leaf"
         case .security: return "shield"
+        case .documentation: return "camera"
         case .emergency: return "exclamationmark.triangle"
         case .installation: return "plus.circle"
         case .utilities: return "bolt"

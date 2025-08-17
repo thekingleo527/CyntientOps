@@ -62,7 +62,7 @@ class AdminDashboardViewModel: ObservableObject {
     // MARK: - Convenience Data Properties
     @Published var hpdViolationsData: [String: [HPDViolation]] = [:]
     @Published var dobPermitsData: [String: [DOBPermit]] = [:]
-    @Published var dsnyScheduleData: [String: [DSNYRoute]] = [:]
+    @Published var dsnyScheduleData: [String: [DSNYSchedule]] = [:]
     @Published var ll97EmissionsData: [String: [LL97Emission]] = [:]
     @Published var buildingsList: [CoreTypes.NamedCoordinate] = []
     @Published var crossDashboardUpdates: [CoreTypes.DashboardUpdate] = []
@@ -552,17 +552,7 @@ class AdminDashboardViewModel: ObservableObject {
             do {
                 // Fetch real HPD violations
                 let hpdViolations = try await nycAPI.fetchHPDViolations(bin: building.id)
-                hpdData[building.id] = hpdViolations.map { violation in
-                    CoreTypes.HPDViolation(
-                        violationId: violation.violationId,
-                        buildingId: building.id,
-                        apartmentNumber: violation.apartmentNumber,
-                        violationType: violation.novDescription,
-                        inspectionDate: violation.inspectionDate,
-                        currentStatus: violation.currentStatus,
-                        violationStatus: violation.violationStatus
-                    )
-                }
+                hpdData[building.id] = hpdViolations
                 
                 // Fetch real DOB permits
                 let dobPermits = try await nycAPI.fetchDOBPermits(bin: building.id)

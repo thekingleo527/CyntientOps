@@ -982,7 +982,7 @@ public class BuildingDetailViewModel: ObservableObject {
                 let activeDSNYViolations = dsnyViolations.filter { $0.isActive }
                 if !activeDSNYViolations.isEmpty {
                     self.dsnyCompliance = .violation
-                } else if let schedule = dsnySchedule, !schedule.isEmpty {
+                } else if !dsnySchedule.isEmpty {
                     self.dsnyCompliance = .compliant
                 } else {
                     self.dsnyCompliance = .pending
