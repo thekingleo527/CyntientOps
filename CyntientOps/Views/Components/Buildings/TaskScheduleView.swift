@@ -707,6 +707,7 @@ struct TaskRow: View {
         case .renovation:      return "building.2"
         case .sanitation:      return "trash"
         case .administrative:  return "folder"
+        case .documentation:   return "camera"
         case .compliance:      return "checkmark.shield"
         }
     }
@@ -839,6 +840,7 @@ struct FilterView: View {
         case .renovation:      return "building.2"
         case .sanitation:      return "trash"
         case .administrative:  return "folder"
+        case .documentation:   return "camera"
         case .compliance:      return "checkmark.shield"
         }
     }

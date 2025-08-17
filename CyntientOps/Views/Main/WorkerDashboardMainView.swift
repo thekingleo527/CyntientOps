@@ -329,7 +329,7 @@ struct WorkerDashboardMainView: View {
             .preferredColorScheme(.dark)
         }
         .fullScreenCover(isPresented: $showingCamera) {
-            FrancoImagePicker(
+            CyntientOpsImagePicker(
                 image: .constant(nil),
                 onImagePicked: { image in
                     // Handle photo capture for task using PhotoEvidenceService

@@ -99,8 +99,8 @@ struct ProfileView: View {
         .preferredColorScheme(.dark)
         .sheet(isPresented: $showImagePicker) {
             CyntientOpsImagePicker(
-                isPresented: $showImagePicker,
-                selectedImage: $profileImage
+                image: $profileImage,
+                sourceType: .photoLibrary
             )
         }
         .alert("Sign Out", isPresented: $showLogoutConfirmation) {

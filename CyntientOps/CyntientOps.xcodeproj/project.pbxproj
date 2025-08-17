@@ -10,7 +10,6 @@
 		2319321D2E42E91200640977 /* InventoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231931F92E42E91200640977 /* InventoryView.swift */; };
 		2319321E2E42E91200640977 /* WorkerDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231932182E42E91200640977 /* WorkerDashboardView.swift */; };
 		2319321F2E42E91200640977 /* QuickActionMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231931FF2E42E91200640977 /* QuickActionMenu.swift */; };
-		231932202E42E91200640977 /* SiteDepartureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231932132E42E91200640977 /* SiteDepartureView.swift */; };
 		231932212E42E91200640977 /* BuildingPreviewPopover.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2319320A2E42E91200640977 /* BuildingPreviewPopover.swift */; };
 		231932222E42E91200640977 /* WorkerProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2319321A2E42E91200640977 /* WorkerProfileView.swift */; };
 		231932232E42E91200640977 /* AdminDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231932072E42E91200640977 /* AdminDashboardView.swift */; };
@@ -321,7 +320,6 @@
 		231932102E42E91200640977 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		231932112E42E91200640977 /* InitializationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InitializationView.swift; sourceTree = "<group>"; };
 		231932122E42E91200640977 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
-		231932132E42E91200640977 /* SiteDepartureView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SiteDepartureView.swift; sourceTree = "<group>"; };
 		231932142E42E91200640977 /* TaskRequestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskRequestView.swift; sourceTree = "<group>"; };
 		231932152E42E91200640977 /* TaskTimelineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskTimelineView.swift; sourceTree = "<group>"; };
 		231932162E42E91200640977 /* UnifiedTaskDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedTaskDetailView.swift; sourceTree = "<group>"; };
@@ -658,7 +656,6 @@
 				231932102E42E91200640977 /* ContentView.swift */,
 				231932112E42E91200640977 /* InitializationView.swift */,
 				231932122E42E91200640977 /* ProfileView.swift */,
-				231932132E42E91200640977 /* SiteDepartureView.swift */,
 				231932142E42E91200640977 /* TaskRequestView.swift */,
 				231932152E42E91200640977 /* TaskTimelineView.swift */,
 				231932162E42E91200640977 /* UnifiedTaskDetailView.swift */,
@@ -1559,7 +1556,6 @@
 				2319321D2E42E91200640977 /* InventoryView.swift in Sources */,
 				2319321E2E42E91200640977 /* WorkerDashboardView.swift in Sources */,
 				2319321F2E42E91200640977 /* QuickActionMenu.swift in Sources */,
-				231932202E42E91200640977 /* SiteDepartureView.swift in Sources */,
 				231932212E42E91200640977 /* BuildingPreviewPopover.swift in Sources */,
 				231933632E42EBDB00640977 /* AssetImageDebugger.swift in Sources */,
 				231933642E42EBDB00640977 /* SecurityManager.swift in Sources */,

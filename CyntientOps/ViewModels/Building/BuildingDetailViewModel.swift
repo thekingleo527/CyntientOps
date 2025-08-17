@@ -990,7 +990,7 @@ public class BuildingDetailViewModel: ObservableObject {
                 
                 // Set fire safety compliance based on DOB permits and violations
                 let hasActiveDOBViolations = dobPermits.contains { permit in
-                    permit.jobStatus.lowercased().contains("violation")
+                    permit.permitStatus.lowercased().contains("violation")
                 }
                 self.fireSafetyCompliance = hasActiveDOBViolations ? .violation : .compliant
                 

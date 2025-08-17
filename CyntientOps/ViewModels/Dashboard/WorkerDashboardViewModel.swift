@@ -3254,6 +3254,7 @@ public class WorkerDashboardViewModel: ObservableObject {
     private func convertToTaskItemUrgency(_ urgency: CoreTypes.TaskUrgency) -> TaskItem.TaskUrgency {
         switch urgency {
         case .low: return .low
+        case .medium: return .normal
         case .normal: return .normal
         case .high: return .high
         case .urgent: return .urgent
@@ -3265,16 +3266,28 @@ public class WorkerDashboardViewModel: ObservableObject {
     /// Toggle task completion status (for site departure checklist)
     public func toggleTaskCompletion(_ taskId: String) async {
         guard let index = todaysTasks.firstIndex(where: { $0.id == taskId }) else { return }
-        todaysTasks[index].isCompleted.toggle()
+        let currentTask = todaysTasks[index]
+        let updatedTask = TaskItem(
+            id: currentTask.id,
+            title: currentTask.title,
+            description: currentTask.description,
+            buildingId: currentTask.buildingId,
+            dueDate: currentTask.dueDate,
+            urgency: currentTask.urgency,
+            isCompleted: !currentTask.isCompleted,
+            category: currentTask.category,
+            requiresPhoto: currentTask.requiresPhoto
+        )
+        todaysTasks[index] = updatedTask
         
         // Update in TaskService
         let status: CoreTypes.TaskStatus = todaysTasks[index].isCompleted ? .completed : .pending
         let task = todaysTasks[index].asContextualTask
-        var updatedTask = task
-        updatedTask.status = status
+        var updatedContextualTask = task
+        updatedContextualTask.status = status
         
         do {
-            try await container.tasks.updateTask(updatedTask)
+            try await container.tasks.updateTask(updatedContextualTask)
         } catch {
             print("❌ Failed to update task: \(error)")
         }
