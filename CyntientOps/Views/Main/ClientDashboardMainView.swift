@@ -274,7 +274,7 @@ struct OverviewTabView: View {
         ScrollView {
             LazyVStack(spacing: 16) {
                 // Portfolio Performance Hero
-                ClientPortfolioHeroCard(
+                ClientDashboardPortfolioHeroCard(
                     intelligence: mockClientIntelligence,
                     isCollapsed: $isPortfolioHeroCollapsed
                 )

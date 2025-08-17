@@ -150,7 +150,7 @@ struct UndefinedRoleView: View {
         
         Task {
             // Attempt to refresh the user's role
-            if let workerId = authManager.workerId {
+            if authManager.workerId != nil {
                 // Try to re-authenticate or refresh session
                 do {
                     try await authManager.refreshSession()
@@ -173,7 +173,7 @@ struct AdminDashboardContainerView: View {
     @EnvironmentObject private var serviceContainer: ServiceContainer
     
     var body: some View {
-        AdminDashboardView(viewModel: AdminDashboardViewModel(container: serviceContainer))
+        AdminDashboardView(container: serviceContainer)
             .environmentObject(serviceContainer)
             .environmentObject(authManager)
     }
