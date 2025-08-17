@@ -29,7 +29,7 @@ public struct AdminBuildingsListView: View {
         }
     }
     
-    var body: some View {
+    public var body: some View {
         VStack(spacing: 0) {
             // Search and Sort Bar
             VStack(spacing: 12) {

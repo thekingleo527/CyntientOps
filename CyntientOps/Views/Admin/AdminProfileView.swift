@@ -15,7 +15,7 @@ public struct AdminProfileView: View {
     
     @State private var showLogoutConfirmation = false
     
-    var body: some View {
+    public var body: some View {
         ScrollView {
             VStack(spacing: 24) {
                 // Admin Profile Header

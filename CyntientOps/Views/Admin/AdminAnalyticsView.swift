@@ -11,7 +11,7 @@ public struct AdminAnalyticsView: View {
     @ObservedObject var viewModel: AdminDashboardViewModel
     @Environment(\.dismiss) private var dismiss
     
-    var body: some View {
+    public var body: some View {
         ScrollView {
             VStack(spacing: 20) {
                 // Portfolio Overview

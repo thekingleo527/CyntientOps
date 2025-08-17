@@ -40,7 +40,7 @@ public struct AdminPortfolioMapView: View {
         ))
     }
     
-    var body: some View {
+    public var body: some View {
         ZStack {
             // Map with intelligent markers
             Map(position: $position) {

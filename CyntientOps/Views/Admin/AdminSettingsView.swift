@@ -15,7 +15,7 @@ public struct AdminSettingsView: View {
     
     private let reportingIntervals = ["Hourly", "Daily", "Weekly"]
     
-    var body: some View {
+    public var body: some View {
         NavigationView {
             Form {
                 Section("Notifications") {

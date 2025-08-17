@@ -170,9 +170,9 @@ struct ClientDashboardView: View {
                             activeWorkers: viewModel.activeWorkerStatus,
                             complianceStatus: viewModel.complianceOverview,
                             monthlyMetrics: viewModel.monthlyMetrics,
-                            onBuildingsTap: { sheet = .buildings },
-                            onComplianceTap: { sheet = .compliance },
-                            onWorkerManagementTap: { sheet = .workerManagement }
+                            onBuildingsTap: { /* Navigation */ },
+                            onComplianceTap: { /* Navigation */ },
+                            onWorkerManagementTap: { /* Navigation */ }
                         )
                         
                         // Buildings Grid (when hero expanded and client has properties)
@@ -183,7 +183,7 @@ struct ClientDashboardView: View {
                                 onBuildingTap: { building in
                                     sheet = .buildingDetail(building.id)
                                 },
-                                onViewAllTap: { sheet = .buildings }
+                                onViewAllTap: { /* Navigation */ }
                             )
                         } else if heroExpanded && !viewModel.buildingsList.isEmpty {
                             ClientBuildingsGrid(
@@ -192,7 +192,7 @@ struct ClientDashboardView: View {
                                 onBuildingTap: { building in
                                     sheet = .buildingDetail(building.id)
                                 },
-                                onViewAllTap: { sheet = .buildings }
+                                onViewAllTap: { /* Navigation */ }
                             )
                         }
                         
@@ -203,7 +203,7 @@ struct ClientDashboardView: View {
                                 behindScheduleCount: viewModel.realtimeRoutineMetrics.behindScheduleCount,
                                 budgetOverruns: viewModel.monthlyMetrics.budgetUtilization > 1.0,
                                 weatherUrgentTasks: viewModel.getWeatherUrgentTaskCount(),
-                                onComplianceTap: { sheet = .compliance }
+                                onComplianceTap: { /* Navigation */ }
                             )
                         }
                         
@@ -219,12 +219,13 @@ struct ClientDashboardView: View {
                 // Intelligence Bar - Expands upward, compacts content
                 ClientNovaIntelligenceBar(
                     selectedTab: $selectedNovaTab,
+                    intelligencePanelExpanded: $intelligencePanelExpanded,
                     complianceOverview: viewModel.complianceOverview,
                     buildingsList: viewModel.buildingsList,
                     monthlyMetrics: viewModel.monthlyMetrics,
                     routineMetrics: viewModel.realtimeRoutineMetrics,
                     onTabTap: handleNovaTabTap,
-                    onMaintenanceRequest: { sheet = .maintenanceRequest },
+                    onMaintenanceRequest: { /* Navigation */ },
                     onMapToggle: handlePortfolioMapToggle,
                     viewModel: viewModel
                 )
@@ -1220,6 +1221,7 @@ struct ClientUrgentItem: View {
 
 struct ClientNovaIntelligenceBar: View {
     @Binding var selectedTab: ClientDashboardView.NovaTab
+    @Binding var intelligencePanelExpanded: Bool
     let complianceOverview: CoreTypes.ComplianceOverview
     let buildingsList: [CoreTypes.NamedCoordinate]
     let monthlyMetrics: CoreTypes.MonthlyMetrics
@@ -1306,7 +1308,7 @@ struct ClientNovaIntelligenceBar: View {
                         routineMetrics: routineMetrics,
                         portfolioValue: viewModel.portfolioAssessedValue,
                         onMapToggle: onMapToggle,
-                        onViewAllTap: { sheet = .buildings }
+                        onViewAllTap: { /* Navigate to buildings */ }
                     )
                     
                 case .compliance:
@@ -1314,10 +1316,10 @@ struct ClientNovaIntelligenceBar: View {
                         complianceOverview: complianceOverview,
                         buildingsList: buildingsList,
                         viewModel: viewModel,
-                        onHPDTap: { sheet = .hpdCompliance },
-                        onDOBTap: { sheet = .dobCompliance },
-                        onDSNYTap: { sheet = .dsnyCompliance },
-                        onLL97Tap: { sheet = .ll97Compliance }
+                        onHPDTap: { /* Navigation */ },
+                        onDOBTap: { /* Navigation */ },
+                        onDSNYTap: { /* Navigation */ },
+                        onLL97Tap: { /* Navigation */ }
                     )
                     
                 case .analytics:
@@ -2598,7 +2600,7 @@ struct ClientDOBComplianceView: View {
                                 .font(.headline)
                                 .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                             
-                            ForEach(buildingPermits, id: \.permitNumber) { permit in
+                            ForEach(buildingPermits, id: \.jobNumber) { permit in
                                 DOBPermitRow(permit: permit)
                             }
                         }
@@ -2637,51 +2639,8 @@ struct ClientDSNYComplianceView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                // DSNY Violations Summary
-                ComplianceSummaryCard(
-                    title: "DSNY Violations & Tickets",
-                    totalCount: getTotalViolations(),
-                    activeCount: getActiveViolations(),
-                    icon: "exclamationmark.triangle.fill",
-                    color: getTotalViolations() > 0 ? .red : .green
-                )
-                
-                // Real DSNY Violations by Building
-                ForEach(buildings, id: \.id) { building in
-                    if let buildingViolations = violations[building.id], !buildingViolations.isEmpty {
-                        VStack(alignment: .leading, spacing: 8) {
-                            HStack {
-                                Text(building.name)
-                                    .font(.headline)
-                                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-                                
-                                Spacer()
-                                
-                                Text("\(buildingViolations.filter { $0.isActive }.count) Active")
-                                    .font(.caption)
-                                    .fontWeight(.semibold)
-                                    .foregroundColor(CyntientOpsDesign.DashboardColors.error)
-                                    .padding(.horizontal, 8)
-                                    .padding(.vertical, 2)
-                                    .background(CyntientOpsDesign.DashboardColors.error.opacity(0.1))
-                                    .cornerRadius(4)
-                            }
-                            
-                            ForEach(buildingViolations.prefix(5)) { violation in
-                                DSNYViolationRow(violation: violation)
-                            }
-                            
-                            if buildingViolations.count > 5 {
-                                Text("+ \(buildingViolations.count - 5) more violations")
-                                    .font(.caption)
-                                    .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
-                                    .padding(.top, 4)
-                            }
-                        }
-                        .padding()
-                        .cyntientOpsDarkCardBackground()
-                    }
-                }
+                dsnyViolationsSummary
+                dsnyViolationsByBuilding
                 
                 // Schedule Information (Secondary)
                 if !schedules.isEmpty {
@@ -2719,6 +2678,68 @@ struct ClientDSNYComplianceView: View {
                     .foregroundColor(CyntientOpsDesign.DashboardColors.clientPrimary)
             }
         }
+    }
+    
+    private var dsnyViolationsSummary: some View {
+        let totalViolations = getTotalViolations()
+        return ComplianceSummaryCard(
+            title: "DSNY Violations & Tickets",
+            totalCount: totalViolations,
+            activeCount: getActiveViolations(),
+            icon: "exclamationmark.triangle.fill",
+            color: totalViolations > 0 ? .red : .green
+        )
+    }
+    
+    private var dsnyViolationsByBuilding: some View {
+        ForEach(buildings, id: \.id) { building in
+            if let buildingViolations = violations[building.id], !buildingViolations.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Text(building.name)
+                            .font(.headline)
+                            .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                        
+                        Spacer()
+                        
+                        Text(getActiveViolationsText(buildingViolations))
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .foregroundColor(CyntientOpsDesign.DashboardColors.critical)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 2)
+                            .background(CyntientOpsDesign.DashboardColors.critical.opacity(0.1))
+                            .cornerRadius(4)
+                    }
+                    
+                    ForEach(buildingViolations.prefix(5)) { violation in
+                        DSNYViolationRow(violation: violation)
+                    }
+                    
+                    if buildingViolations.count > 5 {
+                        Text("+ \(buildingViolations.count - 5) more violations")
+                            .font(.caption)
+                            .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+                            .padding(.top, 4)
+                    }
+                }
+                .padding()
+                .cyntientOpsDarkCardBackground()
+            }
+        }
+    }
+    
+    private func getActiveViolationsText(_ violations: [DSNYViolation]) -> String {
+        let activeCount = violations.filter { $0.isActive }.count
+        return "\(activeCount) Active"
+    }
+    
+    private func getTotalViolations() -> Int {
+        return violations.values.flatMap { $0 }.count
+    }
+    
+    private func getActiveViolations() -> Int {
+        return violations.values.flatMap { $0 }.filter { $0.isActive }.count
     }
     
     private func getTotalSchedules() -> Int {
@@ -2759,7 +2780,7 @@ struct ClientLL97ComplianceView: View {
                                 .font(.headline)
                                 .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                             
-                            ForEach(buildingEmissions, id: \.emissionId) { emission in
+                            ForEach(buildingEmissions, id: \.id) { emission in
                                 LL97EmissionRow(emission: emission)
                             }
                         }
@@ -2852,7 +2873,7 @@ struct HPDViolationRow: View {
                 .frame(width: 8, height: 8)
             
             VStack(alignment: .leading, spacing: 2) {
-                Text(violation.violationType)
+                Text(violation.novDescription)
                     .font(.subheadline)
                     .fontWeight(.medium)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
@@ -2887,12 +2908,12 @@ struct DOBPermitRow: View {
                 .frame(width: 8, height: 8)
             
             VStack(alignment: .leading, spacing: 2) {
-                Text(permit.permitType)
+                Text(permit.permitType ?? permit.workType)
                     .font(.subheadline)
                     .fontWeight(.medium)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                 
-                Text("Permit #\(permit.permitNumber)")
+                Text("Job #\(permit.jobNumber)")
                     .font(.caption)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
             }
@@ -2919,14 +2940,14 @@ struct DSNYViolationRow: View {
     var body: some View {
         HStack(spacing: 12) {
             Circle()
-                .fill(violation.isActive ? CyntientOpsDesign.DashboardColors.error : CyntientOpsDesign.DashboardColors.success)
+                .fill(violation.isActive ? CyntientOpsDesign.DashboardColors.critical : CyntientOpsDesign.DashboardColors.success)
                 .frame(width: 8, height: 8)
             
             VStack(alignment: .leading, spacing: 2) {
                 Text(violation.violationType)
                     .font(.subheadline)
                     .fontWeight(.medium)
-                    .foregroundColor(violation.isActive ? CyntientOpsDesign.DashboardColors.error : CyntientOpsDesign.DashboardColors.primaryText)
+                    .foregroundColor(violation.isActive ? CyntientOpsDesign.DashboardColors.critical : CyntientOpsDesign.DashboardColors.primaryText)
                 
                 Text("Issued: \(violation.issueDate)")
                     .font(.caption)
@@ -2947,13 +2968,13 @@ struct DSNYViolationRow: View {
                     Text("$\(Int(fine))")
                         .font(.caption)
                         .fontWeight(.bold)
-                        .foregroundColor(CyntientOpsDesign.DashboardColors.error)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.critical)
                 }
                 
                 Text(violation.status.uppercased())
                     .font(.caption)
                     .fontWeight(.medium)
-                    .foregroundColor(violation.isActive ? CyntientOpsDesign.DashboardColors.error : CyntientOpsDesign.DashboardColors.success)
+                    .foregroundColor(violation.isActive ? CyntientOpsDesign.DashboardColors.critical : CyntientOpsDesign.DashboardColors.success)
             }
         }
         .padding(.vertical, 4)
@@ -2975,7 +2996,7 @@ struct LL97EmissionRow: View {
                     .fontWeight(.medium)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                 
-                Text("Report #\(emission.emissionId)")
+                Text("Report \(emission.reportingYear)")
                     .font(.caption)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
             }

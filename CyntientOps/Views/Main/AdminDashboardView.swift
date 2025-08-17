@@ -12,7 +12,7 @@ import SwiftUI
 import MapKit
 import CoreLocation
 
-struct AdminDashboardView: View {
+public struct AdminDashboardView: View {
     @StateObject private var viewModel: AdminDashboardViewModel
     
     // MARK: - Responsive Layout
@@ -74,7 +74,7 @@ struct AdminDashboardView: View {
     @State private var intelligencePanelExpanded = false
     
     // MARK: - Body
-    var body: some View {
+    public var body: some View {
         MapRevealContainer(
             buildings: viewModel.buildings,
             currentBuildingId: nil,
@@ -1383,6 +1383,87 @@ struct AdminAnalyticTile: View {
         .padding(12)
         .background(Color(.systemGray6))
         .cornerRadius(8)
+    }
+}
+
+// MARK: - Missing Admin Components
+
+struct AdminProfileView: View {
+    @ObservedObject var viewModel: AdminDashboardViewModel
+    
+    var body: some View {
+        VStack {
+            Text("Admin Profile")
+                .font(.title2)
+                .fontWeight(.semibold)
+        }
+        .padding()
+    }
+}
+
+struct AdminBuildingsListView: View {
+    let buildings: [CoreTypes.NamedCoordinate]
+    let buildingMetrics: [String: CoreTypes.BuildingMetrics]
+    let onSelectBuilding: (CoreTypes.NamedCoordinate) -> Void
+    
+    var body: some View {
+        VStack {
+            Text("Buildings List")
+                .font(.title2)
+                .fontWeight(.semibold)
+        }
+        .padding()
+    }
+}
+
+struct AdminAnalyticsView: View {
+    @ObservedObject var viewModel: AdminDashboardViewModel
+    
+    var body: some View {
+        VStack {
+            Text("Analytics")
+                .font(.title2)
+                .fontWeight(.semibold)
+        }
+        .padding()
+    }
+}
+
+struct AdminEmergencyManagementView: View {
+    let alerts: [CoreTypes.AdminAlert]
+    
+    var body: some View {
+        VStack {
+            Text("Emergency Management")
+                .font(.title2)
+                .fontWeight(.semibold)
+        }
+        .padding()
+    }
+}
+
+struct AdminSettingsView: View {
+    var body: some View {
+        VStack {
+            Text("Settings")
+                .font(.title2)
+                .fontWeight(.semibold)
+        }
+        .padding()
+    }
+}
+
+struct AdminPortfolioMapView: View {
+    let buildings: [CoreTypes.NamedCoordinate]
+    let workers: [CoreTypes.WorkerProfile]
+    
+    var body: some View {
+        VStack {
+            Text("Portfolio Map")
+                .font(.title2)
+                .fontWeight(.semibold)
+        }
+        .padding()
     }
 }
 

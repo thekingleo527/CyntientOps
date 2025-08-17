@@ -30,7 +30,7 @@ public struct AdminEmergencyManagementView: View {
         }
     }
     
-    var body: some View {
+    public var body: some View {
         VStack(spacing: 0) {
             // Emergency Header
             emergencyHeader

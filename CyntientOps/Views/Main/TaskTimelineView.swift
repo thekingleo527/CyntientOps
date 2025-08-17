@@ -653,16 +653,8 @@ struct NovaTaskInsightsView: View {
         defer { isLoading = false }
         
         do {
-            // Use IntelligenceService to generate insights
-            let intelligenceService = IntelligenceService.shared
-            let allInsights = try await intelligenceService.generatePortfolioInsights()
-            
-            // Filter insights relevant to tasks and efficiency
-            insights = allInsights.filter { insight in
-                insight.type == .operations ||
-                insight.type == .efficiency ||
-                insight.type == .maintenance
-            }
+            // Generate local insights for now (replace with proper service later)
+            insights = generateLocalInsights()
             
             // If no insights, generate some based on the date
             if insights.isEmpty {
