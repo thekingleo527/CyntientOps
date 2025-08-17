@@ -4651,20 +4651,20 @@ struct WorkerActionSheet: View {
             }
         }
         .sheet(isPresented: $showingCamera) {
-            FrancoImagePicker(
+            CyntientOpsImagePicker(
                 image: $capturedImage,
                 sourceType: .camera,
                 onImagePicked: { image in
-                    savePhotoEvidence(image, category: .workInProgress, notes: "Work documentation")
+                    savePhotoEvidence(image, category: .documentation, notes: "Work documentation")
                 }
             )
         }
         .sheet(isPresented: $showingPhotoLibrary) {
-            FrancoImagePicker(
+            CyntientOpsImagePicker(
                 image: $capturedImage,
                 sourceType: .photoLibrary,
                 onImagePicked: { image in
-                    savePhotoEvidence(image, category: .workInProgress, notes: "Uploaded documentation")
+                    savePhotoEvidence(image, category: .documentation, notes: "Uploaded documentation")
                 }
             )
         }
@@ -4705,7 +4705,7 @@ struct WorkerActionSheet: View {
     
     // MARK: - Action Handlers
     
-    private func savePhotoEvidence(_ image: UIImage, category: CoreTypes.FrancoPhotoCategory, notes: String) {
+    private func savePhotoEvidence(_ image: UIImage, category: CoreTypes.CyntientOpsPhotoCategory, notes: String) {
         Task {
             guard let currentBuilding = viewModel.currentBuilding else { return }
             

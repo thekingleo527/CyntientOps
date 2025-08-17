@@ -18,14 +18,14 @@ import Combine
 public struct PhotoBatch {
     public let id = UUID()
     public let buildingId: String
-    public let category: CoreTypes.FrancoPhotoCategory
+    public let category: CoreTypes.CyntientOpsPhotoCategory
     public let taskId: String?
     public let workerId: String
     public let timestamp = Date()
     public var photos: [UIImage] = []
     public var notes: String = ""
     
-    public init(buildingId: String, category: CoreTypes.FrancoPhotoCategory, taskId: String? = nil, workerId: String) {
+    public init(buildingId: String, category: CoreTypes.CyntientOpsPhotoCategory, taskId: String? = nil, workerId: String) {
         self.buildingId = buildingId
         self.category = category
         self.taskId = taskId

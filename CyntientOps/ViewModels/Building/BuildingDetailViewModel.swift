@@ -1182,7 +1182,7 @@ public class BuildingDetailViewModel: ObservableObject {
         }
     }
     
-    public func savePhoto(_ photo: UIImage, category: CoreTypes.FrancoPhotoCategory, notes: String) async {
+    public func savePhoto(_ photo: UIImage, category: CoreTypes.CyntientOpsPhotoCategory, notes: String) async {
         do {
             let _ = locationManager.location
             

@@ -24,7 +24,7 @@ import Combine
 
 // MARK: - Basic Image Picker (Renamed to avoid conflict)
 
-struct FrancoImagePicker: UIViewControllerRepresentable {
+struct CyntientOpsImagePicker: UIViewControllerRepresentable {
     @Binding var image: UIImage?
     var onImagePicked: ((UIImage) -> Void)?
     var sourceType: UIImagePickerController.SourceType = .camera
@@ -50,9 +50,9 @@ struct FrancoImagePicker: UIViewControllerRepresentable {
     }
     
     class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
-        let parent: FrancoImagePicker
+        let parent: CyntientOpsImagePicker
         
-        init(_ parent: FrancoImagePicker) {
+        init(_ parent: CyntientOpsImagePicker) {
             self.parent = parent
         }
         

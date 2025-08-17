@@ -641,7 +641,7 @@ struct AdminRealTimeHeroCard: View {
                 VStack(spacing: 16) {
                     // Top Row - Portfolio Overview
                     HStack(spacing: 12) {
-                        AdminMetricTile(
+                        AdminMetricCard(
                             title: "Buildings",
                             value: "\(portfolioMetrics.totalBuildings)",
                             subtitle: "Portfolio Properties",
@@ -649,7 +649,7 @@ struct AdminRealTimeHeroCard: View {
                             onTap: onBuildingsTap
                         )
                         
-                        AdminMetricTile(
+                        AdminMetricCard(
                             title: "Workers",
                             value: "\(activeWorkers)/\(workersTotal)",
                             subtitle: "Active Today",
@@ -660,7 +660,7 @@ struct AdminRealTimeHeroCard: View {
                     
                     // Middle Row - Performance Metrics
                     HStack(spacing: 12) {
-                        AdminMetricTile(
+                        AdminMetricCard(
                             title: "Compliance",
                             value: "\(Int(portfolioMetrics.complianceScore * 100))%",
                             subtitle: complianceSubtitle,
@@ -668,7 +668,7 @@ struct AdminRealTimeHeroCard: View {
                             onTap: onComplianceTap
                         )
                         
-                        AdminMetricTile(
+                        AdminMetricCard(
                             title: "Completion",
                             value: "\(Int(portfolioMetrics.overallCompletionRate * 100))%",
                             subtitle: "Today's Progress",
@@ -1333,6 +1333,50 @@ struct AdminAnalyticsContent: View {
                 )
             }
         }
+    }
+}
+
+// MARK: - Missing Admin Components (Placeholder implementations)
+
+struct AdminWorkerDetailView: View {
+    let workerId: String
+    let container: ServiceContainer
+    
+    var body: some View {
+        VStack {
+            Text("Worker Detail View")
+            Text("Worker ID: \(workerId)")
+        }
+        .padding()
+    }
+}
+
+struct AdminAnalyticTile: View {
+    let title: String
+    let value: String
+    let trend: String
+    let color: Color
+    
+    var body: some View {
+        VStack(spacing: 8) {
+            Text(title)
+                .font(.caption)
+                .foregroundColor(.secondary)
+            
+            HStack {
+                Text(value)
+                    .font(.title2)
+                    .fontWeight(.bold)
+                    .foregroundColor(color)
+                
+                Text(trend)
+                    .font(.caption)
+                    .foregroundColor(color)
+            }
+        }
+        .padding(12)
+        .background(Color(.systemGray6))
+        .cornerRadius(8)
     }
 }
 

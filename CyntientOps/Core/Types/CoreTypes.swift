@@ -336,6 +336,7 @@ public struct CoreTypes {
         case compliance = "compliance"
         case landscaping = "landscaping"
         case sanitation = "sanitation"
+        case documentation = "documentation"
         
         public var icon: String {
             switch self {
@@ -352,6 +353,7 @@ public struct CoreTypes {
             case .landscaping: return "leaf"
             case .sanitation: return "sparkles"
             case .compliance: return "checkmark.shield"
+            case .documentation: return "camera.fill"
             }
         }
     }
@@ -871,6 +873,7 @@ public struct CoreTypes {
         case low
         case medium
         case high
+        case warning
         case critical
         
         public static func from(string: String) -> AlertSeverity {
@@ -878,7 +881,7 @@ public struct CoreTypes {
         }
         
         public static func < (lhs: AlertSeverity, rhs: AlertSeverity) -> Bool {
-            let order: [AlertSeverity] = [.low, .medium, .high, .critical]
+            let order: [AlertSeverity] = [.low, .medium, .high, .warning, .critical]
             guard let lhsIndex = order.firstIndex(of: lhs),
                   let rhsIndex = order.firstIndex(of: rhs) else {
                 return false
@@ -1927,7 +1930,7 @@ public struct CoreTypes {
         }
     }
     
-    public enum FrancoPhotoCategory: String, Codable, CaseIterable {
+    public enum CyntientOpsPhotoCategory: String, Codable, CaseIterable {
         case all = "all" // Special case for filtering
         case beforeWork = "before_work"
         case duringWork = "during_work"

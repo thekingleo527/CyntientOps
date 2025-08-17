@@ -3234,7 +3234,7 @@ public class WorkerDashboardViewModel: ObservableObject {
                 description: task.description,
                 buildingId: task.buildingId,
                 dueDate: task.dueDate,
-                urgency: task.urgency ?? .normal,
+                urgency: convertToTaskItemUrgency(task.urgency ?? .normal),
                 isCompleted: task.status == .completed,
                 category: task.category.rawValue,
                 requiresPhoto: task.category == .documentation
@@ -3247,6 +3247,18 @@ public class WorkerDashboardViewModel: ObservableObject {
             
         } catch {
             print("❌ Failed to add quick action task: \(error)")
+        }
+    }
+    
+    /// Convert CoreTypes.TaskUrgency to TaskItem.TaskUrgency
+    private func convertToTaskItemUrgency(_ urgency: CoreTypes.TaskUrgency) -> TaskItem.TaskUrgency {
+        switch urgency {
+        case .low: return .low
+        case .normal: return .normal
+        case .high: return .high
+        case .urgent: return .urgent
+        case .critical: return .critical
+        case .emergency: return .emergency
         }
     }
 }
