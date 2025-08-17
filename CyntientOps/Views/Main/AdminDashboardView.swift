@@ -422,7 +422,7 @@ struct AdminUrgentItem: View {
     private func adminSheetContent(for route: AdminRoute) -> some View {
         switch route {
         case .profile:
-            CoreTypes.AdminProfileView()
+            AdminProfileView(viewModel: viewModel)
                 .navigationTitle("Admin Profile")
                 
         case .buildings:
@@ -454,7 +454,7 @@ struct AdminUrgentItem: View {
                 .navigationTitle("Compliance Overview")
             
         case .analytics:
-            CoreTypes.AdminAnalyticsView()
+            AdminAnalyticsView(viewModel: viewModel)
                 .navigationTitle("Portfolio Analytics")
                 
         case .reports:
@@ -466,7 +466,7 @@ struct AdminUrgentItem: View {
                 .navigationTitle("Emergency Management")
                 
         case .settings:
-            CoreTypes.AdminSettingsView()
+            AdminSettingsView()
                 .navigationTitle("System Settings")
                 
         case .workerDetail(let workerId):
@@ -688,7 +688,7 @@ struct AdminRealTimeHeroCard: View {
                             ScrollView(.horizontal, showsIndicators: false) {
                                 HStack(spacing: 8) {
                                     if !criticalAlerts.isEmpty {
-                                        CoreTypes.AdminImmediateItem(
+                                        AdminImmediateItem(
                                             icon: "exclamationmark.triangle.fill",
                                             text: "\(criticalAlerts.count) Critical Alerts",
                                             color: CyntientOpsDesign.DashboardColors.critical
@@ -696,7 +696,7 @@ struct AdminRealTimeHeroCard: View {
                                     }
                                     
                                     if portfolioMetrics.criticalIssues > 0 {
-                                        CoreTypes.AdminImmediateItem(
+                                        AdminImmediateItem(
                                             icon: "exclamationmark.shield.fill",
                                             text: "\(portfolioMetrics.criticalIssues) Critical Issues",
                                             color: CyntientOpsDesign.DashboardColors.critical
@@ -752,19 +752,19 @@ struct AdminRealTimeHeroCard: View {
                         
                         // Quick metrics
                         HStack(spacing: 12) {
-                            CoreTypes.AdminMetricPill(
+                            AdminMetricPill(
                                 value: "\(portfolioMetrics.totalBuildings)",
                                 label: "Buildings",
                                 color: CyntientOpsDesign.DashboardColors.adminAccent
                             )
                             
-                            CoreTypes.AdminMetricPill(
+                            AdminMetricPill(
                                 value: "\(activeWorkers)",
                                 label: "Active",
                                 color: CyntientOpsDesign.DashboardColors.success
                             )
                             
-                            CoreTypes.AdminMetricPill(
+                            AdminMetricPill(
                                 value: "\(Int(portfolioMetrics.complianceScore * 100))%",
                                 label: "Compliant",
                                 color: complianceColor

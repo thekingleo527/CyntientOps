@@ -4668,13 +4668,15 @@ struct WorkerActionSheet: View {
             }
             .navigationTitle("Worker Actions")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Close") {
-                        dismiss()
-                    }
+            .navigationBarBackButtonHidden(true)
+            .overlay(
+                Button("Close") {
+                    dismiss()
                 }
-            }
+                .foregroundColor(.white)
+                .padding()
+                , alignment: .topLeading
+            )
         }
         .sheet(isPresented: $showingCamera) {
             CyntientOpsImagePicker(
