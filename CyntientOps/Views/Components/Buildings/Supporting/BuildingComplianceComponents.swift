@@ -2530,12 +2530,6 @@ struct DSNYChecklistItem: Identifiable {
     let isRequired: Bool
 }
 
-struct DSNYViolation: Identifiable {
-    let id: String
-    let description: String
-    let date: Date
-    let fineAmount: Int?
-}
 
 enum DSNYComplianceStatus: String {
     case compliant = "Compliant"

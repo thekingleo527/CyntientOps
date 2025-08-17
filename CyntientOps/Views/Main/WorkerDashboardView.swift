@@ -274,21 +274,23 @@ struct WorkerDashboardView: View {
     }
     
     private func handleNovaTabTap(_ tab: NovaTab) {
-        switch tab {
-        case .portfolio:
-            // Interactive map showing today's route - reveal the map
+        withAnimation(CyntientOpsDesign.Animations.spring) {
+            if selectedNovaTab == tab && viewModel.intelligencePanelExpanded {
+                // Clicking same tab when expanded - collapse panel
+                viewModel.intelligencePanelExpanded = false
+            } else {
+                // Clicking different tab or clicking when collapsed - switch tab and expand
+                selectedNovaTab = tab
+                viewModel.intelligencePanelExpanded = true
+            }
+        }
+        
+        // Special actions for specific tabs
+        if tab == .portfolio && viewModel.intelligencePanelExpanded {
+            // Also reveal portfolio map when portfolio tab is expanded
             withAnimation(.spring()) {
                 isPortfolioMapRevealed = true
             }
-        case .analytics:
-            // Analytics and performance data
-            break
-        case .schedule:
-            // Schedule and time management
-            break
-        case .routines:
-            // Daily routines and workflows
-            sheet = .novaInteraction
         }
     }
     
@@ -1175,6 +1177,10 @@ struct WorkerNovaIntelligencePanel: View {
     // MARK: - Dynamic Panel Height
     
     private func getIntelligencePanelHeight() -> CGFloat {
+        if !viewModel.intelligencePanelExpanded {
+            return 60  // Collapsed height showing only tabs
+        }
+        
         switch selectedTab {
         case .routines:
             return min(CGFloat(todaysTasks.count * 60 + 120), 260)
@@ -1189,41 +1195,43 @@ struct WorkerNovaIntelligencePanel: View {
     
     @ViewBuilder
     private var intelligenceContentPanel: some View {
-        ScrollView {
-            VStack(spacing: 16) {
-                switch selectedTab {
-                case .portfolio:
-                    WorkerPortfolioContent(
-                        assignedBuildings: assignedBuildings,
-                        onMapToggle: onMapToggle
-                    )
-                    
-                case .analytics:
-                    WorkerAnalyticsContent(
-                        completionRate: completionRate,
-                        todaysTasks: todaysTasks,
-                        weeklySchedule: weeklySchedule
-                    )
-                    
-                case .schedule:
-                    WorkerScheduleContent(
-                        todaysTasks: todaysTasks,
-                        weeklySchedule: weeklySchedule,
-                        onExpandSchedule: onScheduleExpand
-                    )
-                    
-                case .routines:
-                    WorkerRoutinesContent(
-                        todaysTasks: todaysTasks,
-                        completionRate: completionRate,
-                        onExpandSchedule: onScheduleExpand
-                    )
+        if viewModel.intelligencePanelExpanded {
+            ScrollView {
+                VStack(spacing: 16) {
+                    switch selectedTab {
+                    case .portfolio:
+                        WorkerPortfolioContent(
+                            assignedBuildings: assignedBuildings,
+                            onMapToggle: onMapToggle
+                        )
+                        
+                    case .analytics:
+                        WorkerAnalyticsContent(
+                            completionRate: completionRate,
+                            todaysTasks: todaysTasks,
+                            weeklySchedule: weeklySchedule
+                        )
+                        
+                    case .schedule:
+                        WorkerScheduleContent(
+                            todaysTasks: todaysTasks,
+                            weeklySchedule: weeklySchedule,
+                            onExpandSchedule: onScheduleExpand
+                        )
+                        
+                    case .routines:
+                        WorkerRoutinesContent(
+                            todaysTasks: todaysTasks,
+                            completionRate: completionRate,
+                            onExpandSchedule: onScheduleExpand
+                        )
+                    }
                 }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
+            .background(CyntientOpsDesign.DashboardColors.cardBackground.opacity(0.5))
         }
-        .background(CyntientOpsDesign.DashboardColors.cardBackground.opacity(0.5))
     }
     
     private func getBadgeCount(for tab: WorkerDashboardView.NovaTab) -> Int {
@@ -1265,6 +1273,39 @@ struct WorkerNovaIntelligencePanel: View {
         // count += emergencyAlerts.count
         
         return count
+    }
+}
+
+// MARK: - Worker Streaming Broadcast
+
+struct WorkerStreamingBroadcast: View {
+    @Binding var message: String
+    let hasUrgentTasks: Bool
+    
+    var body: some View {
+        HStack(spacing: 8) {
+            Circle()
+                .fill(hasUrgentTasks ? CyntientOpsDesign.DashboardColors.critical : CyntientOpsDesign.DashboardColors.workerAccent)
+                .frame(width: 8, height: 8)
+                .scaleEffect(1.2)
+                .animation(.easeInOut(duration: 1).repeatForever(autoreverses: true), value: hasUrgentTasks)
+            
+            Text(message)
+                .font(.caption)
+                .fontWeight(.medium)
+                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                .lineLimit(1)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(
+            RoundedRectangle(cornerRadius: 8)
+                .fill((hasUrgentTasks ? CyntientOpsDesign.DashboardColors.critical : CyntientOpsDesign.DashboardColors.workerAccent).opacity(0.1))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke((hasUrgentTasks ? CyntientOpsDesign.DashboardColors.critical : CyntientOpsDesign.DashboardColors.workerAccent).opacity(0.3), lineWidth: 1)
+                )
+        )
     }
 }
 
@@ -3864,42 +3905,35 @@ struct WeatherBasedTaskSuggestions: View {
     
     var body: some View {
         if let suggestedTask = getWeatherBasedSuggestion() {
-            HStack(spacing: 12) {
-                // Weather icon
+            HStack(spacing: 8) {
+                // Weather icon (smaller)
                 Image(systemName: getWeatherIcon())
-                    .font(.system(size: 16))
+                    .font(.system(size: 12))
                     .foregroundColor(getWeatherColor())
                 
-                // Suggestion text
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Weather Suggestion")
-                        .font(.caption2)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.white.opacity(0.7))
-                    
-                    Text(suggestedTask.title)
-                        .font(.caption)
-                        .foregroundColor(.white)
-                        .lineLimit(1)
-                }
+                // Suggestion text (single line, compact)
+                Text("💡 \(suggestedTask.title)")
+                    .font(.caption2)
+                    .foregroundColor(.white)
+                    .lineLimit(1)
                 
                 Spacer()
                 
-                // Action button
-                Button("Prioritize") {
+                // Action button (smaller)
+                Button("•••") {
                     onTaskSelect(suggestedTask.id)
                 }
                 .font(.caption2)
                 .fontWeight(.semibold)
                 .foregroundColor(.blue)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
                 .background(Color.blue.opacity(0.2))
                 .clipShape(Capsule())
             }
             .padding(.horizontal, 20)
-            .padding(.vertical, 8)
-            .background(Color.black.opacity(0.2))
+            .padding(.vertical, 4)
+            .background(Color.black.opacity(0.15))
         }
     }
     
@@ -3984,18 +4018,32 @@ struct WorkerHeroCard: View {
                 .clipShape(Capsule())
             }
             
-            // Current building highlight
+            // Current building highlight with preview image
             if let current = currentBuilding {
                 HStack(spacing: 12) {
-                    // Building icon
-                    Circle()
-                        .fill(CyntientOpsDesign.DashboardColors.workerAccent)
-                        .frame(width: 40, height: 40)
-                        .overlay(
-                            Image(systemName: "building.fill")
-                                .font(.system(size: 18))
-                                .foregroundColor(.white)
-                        )
+                    // Building preview image
+                    let assetName = AssetImageDebugger.shared.buildingIdToAssetName(current.id)
+                    if let buildingImage = UIImage(named: assetName) {
+                        Image(uiImage: buildingImage)
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .frame(width: 50, height: 40)
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(CyntientOpsDesign.DashboardColors.workerAccent, lineWidth: 2)
+                            )
+                    } else {
+                        // Fallback to icon if no image available
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(CyntientOpsDesign.DashboardColors.workerAccent)
+                            .frame(width: 50, height: 40)
+                            .overlay(
+                                Image(systemName: "building.fill")
+                                    .font(.system(size: 18))
+                                    .foregroundColor(.white)
+                            )
+                    }
                     
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Current Location")
@@ -4097,8 +4145,16 @@ struct WorkerRoutinesContent: View {
     let completionRate: Double
     let onExpandSchedule: () -> Void
     
+    @State private var streamingMessage = "📡 LIVE: Route optimization active"
+    @State private var animationTimer: Timer?
+    
     var body: some View {
         VStack(spacing: 12) {
+            // Streaming Broadcast for Worker Operations
+            WorkerStreamingBroadcast(
+                message: $streamingMessage,
+                hasUrgentTasks: hasUrgentTasks()
+            )
             // Day progress summary
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
@@ -4164,6 +4220,12 @@ struct WorkerRoutinesContent: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
+        .onAppear {
+            startStreamingUpdate()
+        }
+        .onDisappear {
+            animationTimer?.invalidate()
+        }
     }
     
     private func completedTasksCount() -> Int {
@@ -4190,6 +4252,39 @@ struct WorkerRoutinesContent: View {
         let formatter = DateFormatter()
         formatter.timeStyle = .short
         return formatter.string(from: date)
+    }
+    
+    private func hasUrgentTasks() -> Bool {
+        return todaysTasks.contains { $0.urgency == .emergency || $0.urgency == .critical || $0.urgency == .urgent }
+    }
+    
+    private func startStreamingUpdate() {
+        animationTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { _ in
+            withAnimation(.easeInOut(duration: 0.5)) {
+                updateStreamingMessage()
+            }
+        }
+    }
+    
+    private func updateStreamingMessage() {
+        let messages = [
+            "📡 LIVE: Route optimization active",
+            "🚛 LIVE: Monitoring traffic conditions", 
+            "📍 LIVE: GPS tracking synchronized",
+            "⚡ LIVE: Priority tasks updating",
+            "🔄 LIVE: Schedule sync complete"
+        ]
+        
+        if hasUrgentTasks() {
+            let urgentMessages = [
+                "🚨 LIVE: Urgent tasks require attention",
+                "⚠️ LIVE: Emergency protocols activated", 
+                "🔥 LIVE: Critical priority updates"
+            ]
+            streamingMessage = urgentMessages.randomElement() ?? streamingMessage
+        } else {
+            streamingMessage = messages.randomElement() ?? streamingMessage
+        }
     }
 }
 

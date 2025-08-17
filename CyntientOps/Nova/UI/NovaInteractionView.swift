@@ -44,7 +44,7 @@ struct NovaInteractionView: View {
     
     // MARK: - Services
     private let novaAPI = NovaAPIService.shared
-    private let intelligenceService = IntelligenceService.shared
+    private let operationalManager = OperationalDataManager.shared
     
     var body: some View {
         NavigationStack {

@@ -46,7 +46,8 @@ class AdminDashboardViewModel: ObservableObject {
     @Published var workersTotal: Int = 0
     @Published var completionToday: Double = 0.0
     @Published var complianceScore: Double = 0.0
-    @Published var intelTab: AdminIntelTab = .priorities\n    @Published var intelligencePanelExpanded: Bool = false
+    @Published var intelTab: AdminIntelTab = .priorities
+    @Published var intelligencePanelExpanded: Bool = false
     @Published var sheet: AdminRoute?
     @Published var mapRegion: MKCoordinateRegion = MKCoordinateRegion(
         center: CLLocationCoordinate2D(latitude: 40.7589, longitude: -73.9851), // Manhattan focus
@@ -56,7 +57,15 @@ class AdminDashboardViewModel: ObservableObject {
     @Published var lastSyncAt: Date = Date()
     
     // Computed property for sync status - using CoreTypes.DashboardSyncStatus
-    @Published var dashboardSyncStatus: CoreTypes.DashboardSyncStatus = .synced\n    \n    // MARK: - Convenience Data Properties\n    @Published var hpdViolationsData: [String: [CoreTypes.HPDViolation]] = [:]\n    @Published var dobPermitsData: [String: [CoreTypes.DOBPermit]] = [:]\n    @Published var dsnyScheduleData: [String: [CoreTypes.DSNYSchedule]] = [:]\n    @Published var ll97EmissionsData: [String: [CoreTypes.LL97Emission]] = [:]\n    @Published var buildingsList: [CoreTypes.NamedCoordinate] = []\n    @Published var crossDashboardUpdates: [CoreTypes.DashboardUpdate] = []
+    @Published var dashboardSyncStatus: CoreTypes.DashboardSyncStatus = .synced
+    
+    // MARK: - Convenience Data Properties
+    @Published var hpdViolationsData: [String: [HPDViolation]] = [:]
+    @Published var dobPermitsData: [String: [DOBPermit]] = [:]
+    @Published var dsnyScheduleData: [String: [DSNYRoute]] = [:]
+    @Published var ll97EmissionsData: [String: [LL97Emission]] = [:]
+    @Published var buildingsList: [CoreTypes.NamedCoordinate] = []
+    @Published var crossDashboardUpdates: [CoreTypes.DashboardUpdate] = []
     
     // Conversion computed property for UI components  
     var syncStatus: SyncStatus {
@@ -250,7 +259,6 @@ class AdminDashboardViewModel: ObservableObject {
     @Published var lastUpdateTime: Date?
     
     // MARK: - Cross-Dashboard Integration  
-    @Published var crossDashboardUpdates: [CoreTypes.DashboardUpdate] = []
     
     // MARK: - Admin Dashboard Specific Properties
     @Published var recentActivity: [AdminActivity] = []

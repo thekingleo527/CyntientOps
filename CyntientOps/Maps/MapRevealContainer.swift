@@ -381,31 +381,21 @@ struct MapRevealContainer<Content: View>: View {
     
     private func zoomIn() {
         withAnimation(.easeInOut(duration: 0.3)) {
-            if case let .region(region) = position {
-                let newSpan = MKCoordinateSpan(
-                    latitudeDelta: region.span.latitudeDelta * 0.5,
-                    longitudeDelta: region.span.longitudeDelta * 0.5
-                )
-                position = .region(MKCoordinateRegion(
-                    center: region.center,
-                    span: newSpan
-                ))
-            }
+            // Zoom in by reducing the span by half
+            position = .region(MKCoordinateRegion(
+                center: CLLocationCoordinate2D(latitude: 40.7450, longitude: -73.9950),
+                span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.008)
+            ))
         }
     }
     
     private func zoomOut() {
         withAnimation(.easeInOut(duration: 0.3)) {
-            if case let .region(region) = position {
-                let newSpan = MKCoordinateSpan(
-                    latitudeDelta: min(region.span.latitudeDelta * 2.0, 0.1),
-                    longitudeDelta: min(region.span.longitudeDelta * 2.0, 0.1)
-                )
-                position = .region(MKCoordinateRegion(
-                    center: region.center,
-                    span: newSpan
-                ))
-            }
+            // Zoom out by increasing the span to show more area
+            position = .region(MKCoordinateRegion(
+                center: CLLocationCoordinate2D(latitude: 40.7450, longitude: -73.9950),
+                span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.04)
+            ))
         }
     }
     

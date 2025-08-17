@@ -528,6 +528,7 @@ public class WorkerDashboardViewModel: ObservableObject {
     @Published public var heroExpanded: Bool = true
     @Published public var novaTab: NovaTab = .priorities
     @Published public var ui: WorkerDashboardUIState = WorkerDashboardUIState()
+    @Published public var intelligencePanelExpanded: Bool = false
     
     // Legacy properties for compatibility
     @Published public private(set) var isLoading = false

@@ -17,7 +17,7 @@ public actor NovaAPIService {
     public static let shared = NovaAPIService()
     
     // MARK: - Dependencies
-    private let intelligenceService = IntelligenceService.shared
+    private let operationalManager = OperationalDataManager.shared
     private let buildingService = BuildingService.shared
     private let taskService = TaskService.shared
     private let workerService = WorkerService.shared

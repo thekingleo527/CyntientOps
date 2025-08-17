@@ -2519,7 +2519,7 @@ struct ClientSettingsRow: View {
 // MARK: - Compliance Category Detail Views
 
 struct ClientHPDComplianceView: View {
-    let violations: [String: [CoreTypes.HPDViolation]]
+    let violations: [String: [HPDViolation]]
     let buildings: [CoreTypes.NamedCoordinate]
     @Environment(\.dismiss) private var dismiss
     
@@ -2574,7 +2574,7 @@ struct ClientHPDComplianceView: View {
 }
 
 struct ClientDOBComplianceView: View {
-    let permits: [String: [CoreTypes.DOBPermit]]
+    let permits: [String: [DOBPermit]]
     let buildings: [CoreTypes.NamedCoordinate]
     @Environment(\.dismiss) private var dismiss
     
@@ -2629,7 +2629,7 @@ struct ClientDOBComplianceView: View {
 }
 
 struct ClientDSNYComplianceView: View {
-    let schedules: [String: [CoreTypes.DSNYSchedule]]
+    let schedules: [String: [DSNYRoute]]
     let violations: [String: [DSNYViolation]]
     let buildings: [CoreTypes.NamedCoordinate]
     @Environment(\.dismiss) private var dismiss
@@ -2698,7 +2698,7 @@ struct ClientDSNYComplianceView: View {
                                         .fontWeight(.medium)
                                         .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                                     
-                                    ForEach(buildingSchedules.prefix(2), id: \.scheduleId) { schedule in
+                                    ForEach(buildingSchedules.prefix(2), id: \.id) { schedule in
                                         DSNYScheduleRow(schedule: schedule)
                                     }
                                 }
@@ -2735,7 +2735,7 @@ struct ClientDSNYComplianceView: View {
 }
 
 struct ClientLL97ComplianceView: View {
-    let emissions: [String: [CoreTypes.LL97Emission]]
+    let emissions: [String: [LL97Emission]]
     let buildings: [CoreTypes.NamedCoordinate]
     @Environment(\.dismiss) private var dismiss
     
@@ -2843,7 +2843,7 @@ struct ComplianceSummaryCard: View {
 }
 
 struct HPDViolationRow: View {
-    let violation: CoreTypes.HPDViolation
+    let violation: HPDViolation
     
     var body: some View {
         HStack(spacing: 12) {
@@ -2878,7 +2878,7 @@ struct HPDViolationRow: View {
 }
 
 struct DOBPermitRow: View {
-    let permit: CoreTypes.DOBPermit
+    let permit: DOBPermit
     
     var body: some View {
         HStack(spacing: 12) {
@@ -2912,40 +2912,6 @@ struct DOBPermitRow: View {
     }
 }
 
-struct DSNYScheduleRow: View {
-    let schedule: CoreTypes.DSNYSchedule
-    
-    var body: some View {
-        HStack(spacing: 12) {
-            Circle()
-                .fill(CyntientOpsDesign.DashboardColors.success)
-                .frame(width: 8, height: 8)
-            
-            VStack(alignment: .leading, spacing: 2) {
-                Text(schedule.wasteType)
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-                
-                Text("\(schedule.pickupDay) - \(schedule.scheduleId)")
-                    .font(.caption)
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
-            }
-            
-            Spacer()
-            
-            Text("Active")
-                .font(.caption)
-                .fontWeight(.medium)
-                .foregroundColor(CyntientOpsDesign.DashboardColors.success)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(CyntientOpsDesign.DashboardColors.success.opacity(0.2))
-                .cornerRadius(6)
-        }
-        .padding(.vertical, 4)
-    }
-}
 
 struct DSNYViolationRow: View {
     let violation: DSNYViolation
@@ -2995,7 +2961,7 @@ struct DSNYViolationRow: View {
 }
 
 struct LL97EmissionRow: View {
-    let emission: CoreTypes.LL97Emission
+    let emission: LL97Emission
     
     var body: some View {
         HStack(spacing: 12) {

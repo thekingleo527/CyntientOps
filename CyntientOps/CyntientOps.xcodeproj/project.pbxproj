@@ -46,7 +46,6 @@
 		231932422E42E91200640977 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231932122E42E91200640977 /* ProfileView.swift */; };
 		231932432E42E91200640977 /* TaskScheduleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231931FD2E42E91200640977 /* TaskScheduleView.swift */; };
 		231932442E42E91200640977 /* WorkerPreferencesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231932192E42E91200640977 /* WorkerPreferencesView.swift */; };
-		231932452E42E91200640977 /* ClientPortfolioOverviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2319320E2E42E91200640977 /* ClientPortfolioOverviewView.swift */; };
 		231932462E42E91200640977 /* ClientMainMenuView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2319320D2E42E91200640977 /* ClientMainMenuView.swift */; };
 		231932472E42E91200640977 /* BuildingInventoryComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231931EE2E42E91200640977 /* BuildingInventoryComponents.swift */; };
 		231932482E42E91200640977 /* BuildingHistoryComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231931ED2E42E91200640977 /* BuildingHistoryComponents.swift */; };
@@ -98,7 +97,6 @@
 		231932E32E42E9CD00640977 /* WorkerFeedbackManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231932C02E42E9CD00640977 /* WorkerFeedbackManager.swift */; };
 		231932E42E42E9CD00640977 /* WorkerContextEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231932A62E42E9CD00640977 /* WorkerContextEngine.swift */; };
 		231932E52E42E9CD00640977 /* TimeBasedTaskFilter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231932BA2E42E9CD00640977 /* TimeBasedTaskFilter.swift */; };
-		231932E62E42E9CD00640977 /* ProductionConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2319327C2E42E9CD00640977 /* ProductionConfiguration.swift */; };
 		231932E72E42E9CD00640977 /* TaskService+OperationalFallback.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231932B82E42E9CD00640977 /* TaskService+OperationalFallback.swift */; };
 		231932E92E42E9CD00640977 /* UnifiedDataService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2319328C2E42E9CD00640977 /* UnifiedDataService.swift */; };
 		231932EA2E42E9CD00640977 /* ViolationPredictor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231932A52E42E9CD00640977 /* ViolationPredictor.swift */; };
@@ -319,7 +317,6 @@
 		2319320B2E42E91200640977 /* ClientDashboardMainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClientDashboardMainView.swift; sourceTree = "<group>"; };
 		2319320C2E42E91200640977 /* ClientDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClientDashboardView.swift; sourceTree = "<group>"; };
 		2319320D2E42E91200640977 /* ClientMainMenuView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClientMainMenuView.swift; sourceTree = "<group>"; };
-		2319320E2E42E91200640977 /* ClientPortfolioOverviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClientPortfolioOverviewView.swift; sourceTree = "<group>"; };
 		2319320F2E42E91200640977 /* ComplianceOverviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComplianceOverviewView.swift; sourceTree = "<group>"; };
 		231932102E42E91200640977 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		231932112E42E91200640977 /* InitializationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InitializationView.swift; sourceTree = "<group>"; };
@@ -352,7 +349,6 @@
 		231932782E42E9CD00640977 /* CommandSteps.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandSteps.swift; sourceTree = "<group>"; };
 		2319327A2E42E9CD00640977 /* BuildingFeatureConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuildingFeatureConfiguration.swift; sourceTree = "<group>"; };
 		2319327B2E42E9CD00640977 /* KeychainManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainManager.swift; sourceTree = "<group>"; };
-		2319327C2E42E9CD00640977 /* ProductionConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProductionConfiguration.swift; sourceTree = "<group>"; };
 		2319327E2E42E9CD00640977 /* AuthenticationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthenticationService.swift; sourceTree = "<group>"; };
 		2319327F2E42E9CD00640977 /* BuildingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuildingService.swift; sourceTree = "<group>"; };
 		231932802E42E9CD00640977 /* ClockInService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClockInService.swift; sourceTree = "<group>"; };
@@ -658,7 +654,6 @@
 				2319320B2E42E91200640977 /* ClientDashboardMainView.swift */,
 				2319320C2E42E91200640977 /* ClientDashboardView.swift */,
 				2319320D2E42E91200640977 /* ClientMainMenuView.swift */,
-				2319320E2E42E91200640977 /* ClientPortfolioOverviewView.swift */,
 				2319320F2E42E91200640977 /* ComplianceOverviewView.swift */,
 				231932102E42E91200640977 /* ContentView.swift */,
 				231932112E42E91200640977 /* InitializationView.swift */,
@@ -800,7 +795,6 @@
 			children = (
 				2319327A2E42E9CD00640977 /* BuildingFeatureConfiguration.swift */,
 				2319327B2E42E9CD00640977 /* KeychainManager.swift */,
-				2319327C2E42E9CD00640977 /* ProductionConfiguration.swift */,
 			);
 			path = Configuration;
 			sourceTree = "<group>";
@@ -1705,7 +1699,6 @@
 				231932422E42E91200640977 /* ProfileView.swift in Sources */,
 				231932432E42E91200640977 /* TaskScheduleView.swift in Sources */,
 				231932442E42E91200640977 /* WorkerPreferencesView.swift in Sources */,
-				231932452E42E91200640977 /* ClientPortfolioOverviewView.swift in Sources */,
 				231932592E42E92900640977 /* SiteDepartureViewModel.swift in Sources */,
 				2319325A2E42E92900640977 /* WorkerDashboardViewModel.swift in Sources */,
 				2319325B2E42E92900640977 /* InitializationViewModel.swift in Sources */,
@@ -1760,7 +1753,6 @@
 				231932E32E42E9CD00640977 /* WorkerFeedbackManager.swift in Sources */,
 				231932E42E42E9CD00640977 /* WorkerContextEngine.swift in Sources */,
 				231932E52E42E9CD00640977 /* TimeBasedTaskFilter.swift in Sources */,
-				231932E62E42E9CD00640977 /* ProductionConfiguration.swift in Sources */,
 				231932E72E42E9CD00640977 /* TaskService+OperationalFallback.swift in Sources */,
 				231932E92E42E9CD00640977 /* UnifiedDataService.swift in Sources */,
 				231932EA2E42E9CD00640977 /* ViolationPredictor.swift in Sources */,
