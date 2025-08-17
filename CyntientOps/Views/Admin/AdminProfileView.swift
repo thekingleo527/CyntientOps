@@ -8,7 +8,7 @@
 
 import SwiftUI
 
-struct AdminProfileView: View {
+public struct AdminProfileView: View {
     @ObservedObject var viewModel: AdminDashboardViewModel
     @EnvironmentObject private var authManager: NewAuthManager
     @Environment(\.dismiss) private var dismiss

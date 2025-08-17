@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct AdminAnalyticsView: View {
+public struct AdminAnalyticsView: View {
     @ObservedObject var viewModel: AdminDashboardViewModel
     @Environment(\.dismiss) private var dismiss
     

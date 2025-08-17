@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct AdminSettingsView: View {
+public struct AdminSettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var notificationsEnabled = true
     @State private var emergencyAlertsEnabled = true
