@@ -155,6 +155,7 @@ public struct InventoryView: View {
             StatCard(
                 title: "Total Items",
                 value: "\(inventoryItems.count)",
+                trend: nil,
                 icon: "cube.box.fill",
                 color: CyntientOpsDesign.DashboardColors.info
             )
@@ -162,6 +163,7 @@ public struct InventoryView: View {
             StatCard(
                 title: "Low Stock",
                 value: "\(lowStockItems.count)",
+                trend: nil,
                 icon: "exclamationmark.triangle.fill",
                 color: CyntientOpsDesign.DashboardColors.warning
             )
@@ -169,6 +171,7 @@ public struct InventoryView: View {
             StatCard(
                 title: "Total Value",
                 value: totalInventoryValue.formatted(.currency(code: "USD")),
+                trend: nil,
                 icon: "dollarsign.circle.fill",
                 color: CyntientOpsDesign.DashboardColors.success
             )
