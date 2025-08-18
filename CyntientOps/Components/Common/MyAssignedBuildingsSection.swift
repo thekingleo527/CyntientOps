@@ -196,15 +196,40 @@ struct GlassBuildingMetricCard: View {
     // MARK: - Building Icon
     
     private var buildingIcon: some View {
-        Rectangle()
-            .fill(Color.gray.opacity(0.3))
-            .overlay(
-                Image(systemName: getBuildingIcon())
-                    .font(.title)
-                    .foregroundColor(.gray.opacity(0.5))
-            )
-            .frame(height: 80)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
+        ZStack {
+            if let assetName = buildingImageAssetName,
+               UIImage(named: assetName) != nil {
+                Image(assetName)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(height: 80)
+                    .clipped()
+            } else {
+                Rectangle()
+                    .fill(LinearGradient(
+                        colors: [.blue.opacity(0.6), .purple.opacity(0.4)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ))
+                    .overlay(
+                        Image(systemName: getBuildingIcon())
+                            .font(.title)
+                            .foregroundColor(.white.opacity(0.8))
+                    )
+                    .frame(height: 80)
+            }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+    
+    private var buildingImageAssetName: String? {
+        let address = building.address
+        return address
+            .replacingOccurrences(of: " ", with: "_")
+            .replacingOccurrences(of: "/", with: "_")
+            .replacingOccurrences(of: "-", with: "_")
+            .replacingOccurrences(of: ",", with: "")
+            .replacingOccurrences(of: ".", with: "")
     }
     
     private func getBuildingIcon() -> String {

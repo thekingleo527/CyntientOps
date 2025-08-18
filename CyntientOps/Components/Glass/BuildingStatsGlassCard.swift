@@ -15,6 +15,8 @@ struct BuildingStatsGlassCard: View {
     let completedTasksCount: Int
     let assignedWorkersCount: Int
     let weatherRisk: WeatherRiskLevel
+    let buildingName: String?
+    let buildingImage: String?
     
     @State private var isAnimating = false
     
@@ -53,6 +55,12 @@ struct BuildingStatsGlassCard: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
+            // Building Image Header (if available)
+            if let imageName = buildingImage,
+               UIImage(named: imageName) != nil {
+                buildingImageHeader
+            }
+            
             // Header
             headerSection
             
@@ -85,6 +93,42 @@ struct BuildingStatsGlassCard: View {
     }
     
     // MARK: - Components
+    
+    private var buildingImageHeader: some View {
+        ZStack {
+            if let imageName = buildingImage {
+                Image(imageName)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(height: 60)
+                    .clipped()
+                    .overlay(
+                        LinearGradient(
+                            colors: [.clear, .black.opacity(0.3)],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+            }
+            
+            VStack {
+                Spacer()
+                HStack {
+                    if let name = buildingName {
+                        Text(name)
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.white)
+                            .shadow(color: .black.opacity(0.5), radius: 1)
+                    }
+                    Spacer()
+                }
+                .padding(.horizontal, 12)
+                .padding(.bottom, 4)
+            }
+        }
+        .cornerRadius(12)
+    }
     
     private var headerSection: some View {
         HStack {
