@@ -335,9 +335,9 @@ struct BuildingDetailView: View {
         VStack(spacing: 16) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 8) {
-                    InfoRow(icon: "square", label: "Size", value: "\(viewModel.totalSquareFootage.formatted()) sq ft")
-                    InfoRow(icon: "building.columns", label: "Floors", value: "\(viewModel.totalFloors)")
-                    InfoRow(icon: "door.left.hand.open", label: "Units", value: "\(viewModel.totalUnits)")
+                    InfoRow(icon: "square", label: "Size", value: "\(viewModel.buildingSize.formatted()) sq ft")
+                    InfoRow(icon: "building.columns", label: "Type", value: viewModel.buildingType)
+                    InfoRow(icon: "door.left.hand.open", label: "Tasks", value: "\(viewModel.buildingTasks.count)")
                 }
                 
                 Spacer()
@@ -1107,7 +1107,7 @@ struct BuildingTasksTab: View {
     }
     
     private var filteredRoutines: [BDDailyRoutine] {
-        let calendar = Calendar.current
+        let _ = Calendar.current
         let now = Date()
         
         switch selectedTaskFilter {
@@ -1437,7 +1437,7 @@ struct BuildingMaintenanceTab: View {
             // Filter by date range
             let calendar = Calendar.current
             if let daysAgo = calendar.date(byAdding: .day, value: -dateRange.days, to: Date()) {
-                return record.completedAt >= daysAgo
+                return record.date >= daysAgo
             }
             
             return true
@@ -1709,7 +1709,7 @@ struct BuildingSpacesTab: View {
         .cyntientOpsDarkCardBackground()
     }
     
-    private var filteredSpaces: [SpaceAccess] {
+    private var filteredSpaces: [BDSpaceAccess] {
         if searchText.isEmpty {
             return viewModel.spaces
         } else {
@@ -1761,7 +1761,7 @@ struct BuildingEmergencyTab: View {
                 if let buildingEmergency = viewModel.emergencyContact {
                     BuildingEmergencyContactRow(
                         name: buildingEmergency.name,
-                        role: buildingEmergency.role ?? "Building Emergency",
+                        role: buildingEmergency.role,
                         phone: buildingEmergency.phone ?? "N/A",
                         isPrimary: false,
                         onCall: onCall
@@ -2211,61 +2211,46 @@ class BuildingDetailVM: ObservableObject {
                 todaysSpecialNote = completionPercentage >= 95 ? "Excellent performance today!" : "Some tasks still pending completion"
                 currentStatus = "Data loaded successfully"
             }
-            
-        } catch {
-            await MainActor.run {
-                currentStatus = "Error loading data: \(error.localizedDescription)"
-                print("❌ BuildingDetailVM: Failed to load building data: \(error)")
-            }
-        }
     }
     
     private func loadDailyRoutines() async {
-        do {
-            var allRoutines: [DailyRoutineTask] = []
+        var allRoutines: [DailyRoutineTask] = []
+        
+        // Get all workers and their routines for this building
+        let buildingCoverage = operationalDataManager.getBuildingCoverage()
+        if let workersForBuilding = buildingCoverage[buildingName] ?? buildingCoverage[buildingAddress] {
             
-            // Get all workers and their routines for this building
-            let buildingCoverage = operationalDataManager.getBuildingCoverage()
-            if let workersForBuilding = buildingCoverage[buildingName] ?? buildingCoverage[buildingAddress] {
+            for workerName in workersForBuilding {
+                // Convert worker name to ID
+                let workerId = getWorkerIdFromName(workerName)
                 
-                for workerName in workersForBuilding {
-                    // Convert worker name to ID
-                    let workerId = getWorkerIdFromName(workerName)
-                    
-                    if let workerRoutines = try? await operationalDataManager.getWorkerRoutineSchedules(for: workerId) {
-                        for routine in workerRoutines {
-                            // Filter routines for this building
-                            if routine.buildingName == buildingName || routine.buildingAddress.contains(buildingAddress) {
-                                let routineTask = DailyRoutineTask(from: [
-                                    "id": routine.id,
-                                    "title": routine.name,
-                                    "category": routine.category,
-                                    "priority": mapCategoryToPriority(routine.category),
-                                    "scheduled_hour": Calendar.current.component(.hour, from: Date()),
-                                    "scheduled_time": DateFormatter.localizedString(from: Date(), dateStyle: .none, timeStyle: .short),
-                                    "building_name": buildingName,
-                                    "worker_name": workerName,
-                                    "is_completed": Bool.random(),
-                                    "requires_photo": false,
-                                    "estimated_duration": 3600
-                                ])
-                                allRoutines.append(routineTask)
-                            }
+                if let workerRoutines = try? await operationalDataManager.getWorkerRoutineSchedules(for: workerId) {
+                    for routine in workerRoutines {
+                        // Filter routines for this building
+                        if routine.buildingName == buildingName || routine.buildingAddress.contains(buildingAddress) {
+                            let routineTask = DailyRoutineTask(from: [
+                                "id": routine.id,
+                                "title": routine.name,
+                                "category": routine.category,
+                                "priority": mapCategoryToPriority(routine.category),
+                                "scheduled_hour": Calendar.current.component(.hour, from: Date()),
+                                "scheduled_time": DateFormatter.localizedString(from: Date(), dateStyle: .none, timeStyle: .short),
+                                "building_name": buildingName,
+                                "worker_name": workerName,
+                                "is_completed": Bool.random(),
+                                "requires_photo": false,
+                                "estimated_duration": 3600
+                            ])
+                            allRoutines.append(routineTask)
                         }
                     }
                 }
             }
-            
-            await MainActor.run {
-                dailyRoutines = allRoutines
-                currentStatus = "Routines loaded: \(allRoutines.count) tasks"
-            }
-            
-        } catch {
-            await MainActor.run {
-                currentStatus = "Failed to load routines: \(error.localizedDescription)"
-                print("❌ BuildingDetailVM: Failed to load routines: \(error)")
-            }
+        }
+        
+        await MainActor.run {
+            dailyRoutines = allRoutines
+            currentStatus = "Routines loaded: \(allRoutines.count) tasks"
         }
     }
     
@@ -2379,7 +2364,7 @@ class BuildingDetailVM: ObservableObject {
 // Additional Supporting Components
 
 struct BuildingActivityRow: View {
-    let activity: BuildingDetailActivity
+    let activity: BDBuildingDetailActivity
     
     var body: some View {
         HStack(spacing: 12) {
@@ -2414,7 +2399,7 @@ struct BuildingActivityRow: View {
         }
     }
     
-    private func iconForActivity(_ type: BuildingDetailActivity.ActivityType) -> String {
+    private func iconForActivity(_ type: BDBuildingDetailActivity.ActivityType) -> String {
         switch type {
         case .taskCompleted: return "checkmark.circle"
         case .photoAdded: return "camera"
@@ -2426,7 +2411,7 @@ struct BuildingActivityRow: View {
         }
     }
     
-    private func colorForActivity(_ type: BuildingDetailActivity.ActivityType) -> Color {
+    private func colorForActivity(_ type: BDBuildingDetailActivity.ActivityType) -> Color {
         switch type {
         case .taskCompleted, .routineCompleted, .workerArrived:
             return CyntientOpsDesign.DashboardColors.success
@@ -2729,7 +2714,7 @@ struct SummaryStatCard: View {
 }
 
 struct OnSiteWorkerRow: View {
-    let worker: AssignedWorker
+    let worker: BDAssignedWorker
     
     var body: some View {
         HStack {
@@ -2765,7 +2750,7 @@ struct OnSiteWorkerRow: View {
 }
 
 struct AssignedWorkerRow: View {
-    let worker: AssignedWorker
+    let worker: BDAssignedWorker
     
     var body: some View {
         HStack {
@@ -2901,7 +2886,7 @@ struct BuildingInventoryCategoryButton: View {
 // BuildingInventoryItemRow removed - using the one from BuildingInventoryComponents.swift
 
 struct AccessCodeChip: View {
-    let code: AccessCode
+    let code: BDAccessCode
     @State private var isRevealed = false
     
     var body: some View {
@@ -3706,3 +3691,4 @@ struct BDDailyRoutineRow: View {
     }
 }
 
+}
