@@ -257,6 +257,7 @@
 		23A150832E4D302700CBE1C9 /* OpenMeteoSdk in Frameworks */ = {isa = PBXBuildFile; productRef = 23A150822E4D302700CBE1C9 /* OpenMeteoSdk */; };
 		23B211692E52D8A500481C3C /* ClientBuildingCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23B211672E52D8A500481C3C /* ClientBuildingCard.swift */; };
 		23B2116A2E52D8A500481C3C /* ClientBuildingGridSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23B211682E52D8A500481C3C /* ClientBuildingGridSection.swift */; };
+		23B2116C2E52FCEB00481C3C /* ClientDashboardPortfolioHeroCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23B2116B2E52FCEB00481C3C /* ClientDashboardPortfolioHeroCard.swift */; };
 		23E8FB0F2E43436300F8771C /* AdminContextEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23E8FB0E2E43436300F8771C /* AdminContextEngine.swift */; };
 		23FAE4A92E51376E008AD66F /* ClientBulkAssignmentSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23FAE4A22E51376E008AD66F /* ClientBulkAssignmentSheet.swift */; };
 		23FAE4AA2E51376E008AD66F /* ClientCriticalAlertsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23FAE4A32E51376E008AD66F /* ClientCriticalAlertsSheet.swift */; };
@@ -533,6 +534,7 @@
 		231934492E42ED3900640977 /* CyntientOpsApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CyntientOpsApp.swift; sourceTree = "<group>"; };
 		23B211672E52D8A500481C3C /* ClientBuildingCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClientBuildingCard.swift; sourceTree = "<group>"; };
 		23B211682E52D8A500481C3C /* ClientBuildingGridSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClientBuildingGridSection.swift; sourceTree = "<group>"; };
+		23B2116B2E52FCEB00481C3C /* ClientDashboardPortfolioHeroCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClientDashboardPortfolioHeroCard.swift; sourceTree = "<group>"; };
 		23E8FB0B2E42F96400F8771C /* CyntientOps.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CyntientOps.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		23E8FB0C2E42F96400F8771C /* CyntientOpsTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CyntientOpsTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		23E8FB0D2E42F96400F8771C /* CyntientOpsUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CyntientOpsUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -1378,6 +1380,7 @@
 		23FAE4A82E51376E008AD66F /* Client */ = {
 			isa = PBXGroup;
 			children = (
+				23B2116B2E52FCEB00481C3C /* ClientDashboardPortfolioHeroCard.swift */,
 				23B211672E52D8A500481C3C /* ClientBuildingCard.swift */,
 				23B211682E52D8A500481C3C /* ClientBuildingGridSection.swift */,
 				23FAE4A12E51376E008AD66F /* ClientAISuggestionsSheet.swift */,
@@ -1715,6 +1718,7 @@
 				231932462E42E91200640977 /* ClientMainMenuView.swift in Sources */,
 				231932472E42E91200640977 /* BuildingInventoryComponents.swift in Sources */,
 				231932482E42E91200640977 /* BuildingHistoryComponents.swift in Sources */,
+				23B2116C2E52FCEB00481C3C /* ClientDashboardPortfolioHeroCard.swift in Sources */,
 				231932492E42E91200640977 /* MaintenanceHistoryView.swift in Sources */,
 				2319324A2E42E91200640977 /* BuildingPhotoComponents.swift in Sources */,
 				2319324B2E42E91200640977 /* ForgotPasswordView.swift in Sources */,
