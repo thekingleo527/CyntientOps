@@ -216,7 +216,7 @@ struct CompactStatCard: View {
 
 // MARK: - Type Alias for Backward Compatibility
 // If you have existing code using StatCard, you can uncomment this:
-// typealias StatCard = EnhancedStatCard
+typealias StatCard = EnhancedStatCard
 
 // MARK: - Preview
 
