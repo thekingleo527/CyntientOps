@@ -8,12 +8,12 @@
 
 import SwiftUI
 
-struct ClientPortfolioMetric: View {
+public struct ClientPortfolioMetric: View {
     let title: String
     let value: String
     let color: Color
     
-    var body: some View {
+    public var body: some View {
         HStack(spacing: 8) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(value)
