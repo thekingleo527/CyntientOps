@@ -35,7 +35,7 @@ struct BuildingDetailView: View {
     let buildingId: String
     let buildingName: String
     let buildingAddress: String
-    @StateObject private var viewModel: BuildingDetailVM
+    @StateObject private var viewModel: BuildingDetailViewModel
     @EnvironmentObject private var authManager: NewAuthManager
     @EnvironmentObject private var dashboardSync: DashboardSyncService
     
@@ -57,7 +57,7 @@ struct BuildingDetailView: View {
         self.buildingId = buildingId
         self.buildingName = buildingName
         self.buildingAddress = buildingAddress
-        self._viewModel = StateObject(wrappedValue: BuildingDetailVM(
+        self._viewModel = StateObject(wrappedValue: BuildingDetailViewModel(
             buildingId: buildingId,
             buildingName: buildingName,
             buildingAddress: buildingAddress
@@ -806,7 +806,7 @@ struct BuildingQuickStatCard: View {
 
 // Overview Tab
 struct BuildingOverviewTab: View {
-    @ObservedObject var viewModel: BuildingDetailVM
+    @ObservedObject var viewModel: BuildingDetailViewModel
     let onTabChange: (BuildingDetailTab) -> Void
     
     var body: some View {
@@ -1017,7 +1017,7 @@ struct BuildingOverviewTab: View {
 struct BuildingTasksTab: View {
     let buildingId: String
     let buildingName: String
-    @ObservedObject var viewModel: BuildingDetailVM
+    @ObservedObject var viewModel: BuildingDetailViewModel
     @State private var selectedTaskFilter: TaskFilter = .today
     @State private var selectedTask: CoreTypes.MaintenanceTask?
     
@@ -1192,7 +1192,7 @@ struct BuildingTasksTab: View {
 
 // Workers Tab
 struct BuildingWorkersTab: View {
-    @ObservedObject var viewModel: BuildingDetailVM
+    @ObservedObject var viewModel: BuildingDetailViewModel
     
     var body: some View {
         VStack(spacing: 20) {
@@ -1273,7 +1273,7 @@ struct BuildingWorkersTab: View {
 // Maintenance Tab (Consolidated from MaintenanceHistoryView)
 struct BuildingMaintenanceTab: View {
     let buildingId: String
-    @ObservedObject var viewModel: BuildingDetailVM
+    @ObservedObject var viewModel: BuildingDetailViewModel
     @State private var filterOption: MaintenanceFilter = .all
     @State private var dateRange: DateRange = .lastMonth
     
@@ -1449,7 +1449,7 @@ struct BuildingMaintenanceTab: View {
 struct BuildingInventoryTab: View {
     let buildingId: String
     let buildingName: String
-    @ObservedObject var viewModel: BuildingDetailVM
+    @ObservedObject var viewModel: BuildingDetailViewModel
     @State private var selectedCategory: CoreTypes.InventoryCategory = .supplies
     @State private var showingAddItem = false
     
@@ -1600,7 +1600,7 @@ struct BuildingInventoryTab: View {
 struct BuildingSpacesTab: View {
     let buildingId: String
     let buildingName: String
-    @ObservedObject var viewModel: BuildingDetailVM
+    @ObservedObject var viewModel: BuildingDetailViewModel
     let onPhotoCapture: () -> Void
     @State private var searchText = ""
     @State private var selectedSpace: SpaceAccess?
@@ -1723,7 +1723,7 @@ struct BuildingSpacesTab: View {
 
 // Emergency Tab
 struct BuildingEmergencyTab: View {
-    @ObservedObject var viewModel: BuildingDetailVM
+    @ObservedObject var viewModel: BuildingDetailViewModel
     let onCall: () -> Void
     let onMessage: () -> Void
     
@@ -3331,7 +3331,7 @@ typealias ViewModelDailyRoutine = BDDailyRoutine
 struct BuildingSanitationTab: View {
     let buildingId: String
     let buildingName: String
-    @ObservedObject var viewModel: BuildingDetailVM
+    @ObservedObject var viewModel: BuildingDetailViewModel
     @State private var selectedFilter: SanitationFilter = .today
     
     enum SanitationFilter: String, CaseIterable {
@@ -3374,10 +3374,10 @@ struct BuildingSanitationTab: View {
             
             VStack(spacing: 12) {
                 if selectedFilter == .schedule {
-                    // Show full month schedule
+                    // Show full month schedule using real DSNY data
                     ScrollView {
                         VStack(spacing: 8) {
-                            ForEach(generateMonthlyDSNYSchedule(), id: \.day) { scheduleItem in
+                            ForEach(generateRealDSNYSchedule(), id: \.day) { scheduleItem in
                                 DSNYScheduleRow(
                                     day: scheduleItem.day,
                                     time: scheduleItem.time,
@@ -3389,39 +3389,61 @@ struct BuildingSanitationTab: View {
                     }
                     .frame(maxHeight: 300)
                 } else {
-                    // Show current week schedule
-                    DSNYScheduleRow(
-                        day: "Today",
-                        time: "8:00 PM - Set Out",
-                        items: "Trash, Recycling",
-                        isToday: true
-                    )
+                    // Show current week schedule using real DSNY data from dailyRoutines
+                    let dsnyRoutines = viewModel.dailyRoutines.filter { $0.title.contains("DSNY") }
                     
-                    DSNYScheduleRow(
-                        day: "Monday",
-                        time: "6:00 AM - Collection",
-                        items: "Regular Pickup",
-                        isToday: false
-                    )
-                    
-                    DSNYScheduleRow(
-                        day: "Wednesday",
-                        time: "6:00 AM - Collection", 
-                        items: "Regular Pickup",
-                        isToday: false
-                    )
-                    
-                    DSNYScheduleRow(
-                        day: "Friday",
-                        time: "6:00 AM - Collection",
-                        items: "Regular Pickup",
-                        isToday: false
-                    )
+                    if dsnyRoutines.isEmpty {
+                        // Fallback to default schedule if no real data
+                        DSNYScheduleRow(
+                            day: "Today",
+                            time: "8:00 PM - Set Out",
+                            items: "Trash, Recycling",
+                            isToday: true
+                        )
+                        
+                        DSNYScheduleRow(
+                            day: "Monday",
+                            time: "6:00 AM - Collection",
+                            items: "Regular Pickup",
+                            isToday: false
+                        )
+                    } else {
+                        // Use real DSNY routines from OperationalDataManager
+                        ForEach(dsnyRoutines.prefix(4), id: \.id) { routine in
+                            DSNYScheduleRow(
+                                day: routine.isCompleted ? "Completed" : "Today",
+                                time: routine.scheduledTime ?? "8:00 PM",
+                                items: routine.title.replacingOccurrences(of: "DSNY: ", with: ""),
+                                isToday: !routine.isCompleted
+                            )
+                        }
+                    }
                 }
             }
         }
         .padding()
         .cyntientOpsDarkCardBackground()
+    }
+    
+    private func generateRealDSNYSchedule() -> [(day: String, time: String, items: String, isToday: Bool)] {
+        // Use real DSNY data from OperationalDataManager if available
+        let dsnyRoutines = viewModel.dailyRoutines.filter { $0.title.contains("DSNY") }
+        
+        if !dsnyRoutines.isEmpty {
+            // Use real DSNY routine data
+            return dsnyRoutines.map { routine in
+                let dayName = routine.isCompleted ? "✅ Completed" : Calendar.current.isDateInToday(Date()) ? "Today" : "Scheduled"
+                return (
+                    day: dayName,
+                    time: routine.scheduledTime ?? "8:00 PM",
+                    items: routine.title.replacingOccurrences(of: "DSNY: ", with: ""),
+                    isToday: Calendar.current.isDateInToday(Date()) && !routine.isCompleted
+                )
+            }
+        }
+        
+        // Fallback to generated schedule if no real data
+        return generateMonthlyDSNYSchedule()
     }
     
     private func generateMonthlyDSNYSchedule() -> [(day: String, time: String, items: String, isToday: Bool)] {
@@ -3504,11 +3526,43 @@ struct BuildingSanitationTab: View {
                     nextAction: viewModel.nextDSNYAction
                 )
                 
-                // Real DSNY Violations Section - Temporarily disabled for compilation
-                // TODO: Fix BuildingDetailVM property access for rawDSNYViolations
-                Text("✅ DSNY compliance monitoring active")
-                    .font(.subheadline)
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.success)
+                // Real DSNY Violations Section - Now using real NYC API data
+                if !viewModel.rawDSNYViolations.isEmpty {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Active DSNY Violations (\(viewModel.rawDSNYViolations.count))")
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                            .foregroundColor(CyntientOpsDesign.DashboardColors.warning)
+                        
+                        ForEach(viewModel.rawDSNYViolations.prefix(3)) { violation in
+                            HStack {
+                                Circle()
+                                    .fill(violation.isActive ? CyntientOpsDesign.DashboardColors.critical : CyntientOpsDesign.DashboardColors.success)
+                                    .frame(width: 8, height: 8)
+                                
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(violation.violationType)
+                                        .font(.caption)
+                                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                                    
+                                    Text("Issued: \(violation.issueDate.formatted(date: .abbreviated, time: .omitted))")
+                                        .font(.caption2)
+                                        .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+                                }
+                                
+                                Spacer()
+                                
+                                Text(violation.fineAmount > 0 ? "$\(Int(violation.fineAmount))" : "Pending")
+                                    .font(.caption)
+                                    .foregroundColor(violation.fineAmount > 0 ? CyntientOpsDesign.DashboardColors.critical : CyntientOpsDesign.DashboardColors.warning)
+                            }
+                        }
+                    }
+                } else {
+                    Text("✅ No active DSNY violations")
+                        .font(.subheadline)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.success)
+                }
                 
                 ComplianceRow(
                     title: "Set-Out Schedule",
