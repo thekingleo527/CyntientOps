@@ -885,9 +885,12 @@ public final class ClientContextEngine: ObservableObject {
         
         for building in clientBuildings {
             let allTasks = container.operationalData.getTasksForBuilding(building.name)
-            let todaysTasks = Array(allTasks).filter { task in
-                guard let taskDate = task.scheduledDate else { return false }
-                return Calendar.current.isDate(taskDate, equalTo: Date(), toGranularity: .day)
+            var todaysTasks: [OperationalDataTaskAssignment] = []
+            for task in allTasks {
+                if let taskDate = task.scheduledDate,
+                   Calendar.current.isDate(taskDate, equalTo: Date(), toGranularity: .day) {
+                    todaysTasks.append(task)
+                }
             }
             
             totalToday += todaysTasks.count
