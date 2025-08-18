@@ -53,11 +53,12 @@ struct BuildingDetailView: View {
     @Environment(\.dismiss) private var dismiss
     
     // MARK: - Initialization
-    init(buildingId: String, buildingName: String, buildingAddress: String) {
+    init(container: ServiceContainer, buildingId: String, buildingName: String, buildingAddress: String) {
         self.buildingId = buildingId
         self.buildingName = buildingName
         self.buildingAddress = buildingAddress
         self._viewModel = StateObject(wrappedValue: BuildingDetailViewModel(
+            container: container,
             buildingId: buildingId,
             buildingName: buildingName,
             buildingAddress: buildingAddress
