@@ -786,10 +786,10 @@ public final class ClientContextEngine: ObservableObject {
         
         // For each client building, get real tasks for this week
         for building in clientBuildings {
-            let buildingTasks = container.operationalData.getTasksForBuilding(building.name)
+            let allBuildingTasks = container.operationalData.getTasksForBuilding(building.name)
             
-            // Filter for current week (starting today 8/18/25)
-            let thisWeekTasks = buildingTasks.filter { task in
+            // Filter for current week (starting today 8/18/25) - simplified for compilation
+            let thisWeekTasks = allBuildingTasks.compactMap { $0 }.filter { task in
                 guard let taskDate = task.scheduledDate else { return false }
                 return Calendar.current.isDate(taskDate, equalTo: Date(), toGranularity: .weekOfYear)
             }
@@ -832,18 +832,18 @@ public final class ClientContextEngine: ObservableObject {
                 for violation in violations {
                     let issue = CoreTypes.ComplianceIssue(
                         id: violation.id,
-                        title: violation.title,
+                        title: violation.violationNumber,
                         description: violation.description,
-                        severity: mapSeverity(violation.severity),
+                        severity: mapSeverity(violation.severity.rawValue),
                         buildingId: building.id,
                         buildingName: building.name,
-                        status: mapStatus(violation.status),
-                        dueDate: violation.dueDate,
+                        status: mapStatus(violation.status.rawValue),
+                        dueDate: nil,
                         assignedTo: nil,
-                        createdAt: violation.createdAt ?? Date(),
-                        reportedDate: violation.reportedDate ?? Date(),
-                        type: mapComplianceType(violation.category),
-                        department: violation.department ?? "General"
+                        createdAt: violation.issueDate,
+                        reportedDate: violation.issueDate,
+                        type: mapComplianceType(violation.department.rawValue),
+                        department: violation.department.rawValue
                     )
                     realComplianceIssues.append(issue)
                 }
@@ -884,7 +884,8 @@ public final class ClientContextEngine: ObservableObject {
         var behindSchedule = 0
         
         for building in clientBuildings {
-            let todaysTasks = container.operationalData.getTasksForBuilding(building.name).filter { task in
+            let allTasks = container.operationalData.getTasksForBuilding(building.name)
+            let todaysTasks = allTasks.compactMap { $0 }.filter { task in
                 guard let taskDate = task.scheduledDate else { return false }
                 return Calendar.current.isDate(taskDate, equalTo: Date(), toGranularity: .day)
             }
@@ -899,10 +900,9 @@ public final class ClientContextEngine: ObservableObject {
         }
         
         realtimeRoutineMetrics = CoreTypes.RealtimeRoutineMetrics(
-            totalToday: totalToday,
-            completedToday: completedToday,
-            behindScheduleCount: behindSchedule,
             overallCompletion: totalToday > 0 ? Double(completedToday) / Double(totalToday) : 0.0,
+            activeWorkerCount: totalActiveWorkers,
+            behindScheduleCount: behindSchedule,
             buildingStatuses: [:]
         )
     }
