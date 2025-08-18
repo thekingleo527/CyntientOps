@@ -170,10 +170,10 @@ public final class ClientDashboardViewModel: ObservableObject {
                         let worker = CoreTypes.WorkerSummary(
                             id: UUID().uuidString,
                             name: workerName,
-                            role: .worker,
-                            status: .active,
-                            currentBuilding: building.name,
-                            capabilities: []
+                            role: "worker",
+                            capabilities: [],
+                            isActive: true,
+                            currentBuildingId: building.id
                         )
                         workers.append(worker)
                     }
@@ -197,12 +197,12 @@ public final class ClientDashboardViewModel: ObservableObject {
             let buildingTasks = container.operationalData.getTasksForBuilding(building.name)
             for task in buildingTasks {
                 let routine = CoreTypes.ClientRoutine(
-                    id: task.id,
-                    title: task.title,
+                    id: UUID().uuidString,
+                    buildingId: building.id,
                     buildingName: building.name,
-                    workerName: task.workerName,
-                    scheduledTime: task.scheduledDate,
-                    status: task.isCompleted ? .completed : .pending,
+                    routineType: task.taskName,
+                    frequency: task.recurrence,
+                    estimatedDuration: 60,
                     requiredCapabilities: []
                 )
                 routines.append(routine)
