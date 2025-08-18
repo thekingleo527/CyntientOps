@@ -439,21 +439,27 @@ struct BuildingStatsGlassCard_Previews: PreviewProvider {
                     pendingTasksCount: 8,
                     completedTasksCount: 12,
                     assignedWorkersCount: 3,
-                    weatherRisk: .medium
+                    weatherRisk: .medium,
+                    buildingName: "104 Franklin Street",
+                    buildingImage: "104_Franklin_Street"
                 )
                 
                 BuildingStatsGlassCard(
                     pendingTasksCount: 2,
                     completedTasksCount: 15,
                     assignedWorkersCount: 1,
-                    weatherRisk: .low
+                    weatherRisk: .low,
+                    buildingName: "68 Perry Street",
+                    buildingImage: "68_Perry_Street"
                 )
                 
                 BuildingStatsGlassCard(
                     pendingTasksCount: 15,
                     completedTasksCount: 5,
                     assignedWorkersCount: 4,
-                    weatherRisk: .extreme
+                    weatherRisk: .extreme,
+                    buildingName: "Rubin Museum",
+                    buildingImage: "Rubin_Museum_142_148_West_17th_Street"
                 )
             }
             .padding()

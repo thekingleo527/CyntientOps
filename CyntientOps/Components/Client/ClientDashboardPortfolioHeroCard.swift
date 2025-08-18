@@ -10,13 +10,13 @@
 
 import SwiftUI
 
-struct ClientDashboardPortfolioHeroCard: View {
+public struct ClientDashboardPortfolioHeroCard: View {
     let portfolioHealth: CoreTypes.PortfolioHealth
     let realtimeMetrics: CoreTypes.RealtimeMetrics
     let monthlyMetrics: CoreTypes.MonthlyMetrics
     let onDrillDown: () -> Void
     
-    var body: some View {
+    public var body: some View {
         GlassCard(
             intensity: .regular,
             cornerRadius: CyntientOpsDesign.CornerRadius.glassCard,
