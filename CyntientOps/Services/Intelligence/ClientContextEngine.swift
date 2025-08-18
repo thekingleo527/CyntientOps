@@ -750,7 +750,7 @@ public final class ClientContextEngine: ObservableObject {
         }
         
         // Calculate real performance trends from OperationalDataManager
-        let performanceTrends = Array(85...95) // Start fresh week at good baseline
+        let performanceTrends = Array(85...95).map(Double.init) // Start fresh week at good baseline
         
         portfolioIntelligence = CoreTypes.ClientPortfolioIntelligence(
             id: UUID().uuidString,
@@ -885,7 +885,7 @@ public final class ClientContextEngine: ObservableObject {
         
         for building in clientBuildings {
             let allTasks = container.operationalData.getTasksForBuilding(building.name)
-            let todaysTasks = allTasks.compactMap { $0 }.filter { task in
+            let todaysTasks = Array(allTasks).filter { task in
                 guard let taskDate = task.scheduledDate else { return false }
                 return Calendar.current.isDate(taskDate, equalTo: Date(), toGranularity: .day)
             }
