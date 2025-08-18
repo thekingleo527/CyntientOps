@@ -593,15 +593,37 @@ public class BuildingDetailViewModel: ObservableObject {
                     )
                 }
                 
-                // Emergency contact from database or default
-                let emergencyContact = building["emergencyContact"] as? String ?? "24/7 Emergency Line"
-                self.emergencyContact = BDBuildingContact(
-                    name: emergencyContact,
-                    role: "Emergency Response Team",
-                    email: "emergency@cyntientops.com",
-                    phone: "(212) 555-0911",
-                    isEmergencyContact: true
-                )
+                // --- START EMERGENCY CONTACT LOGIC ---
+                let jmRealtyBuildingIds = Set(["3", "5", "6", "7", "9", "10", "11", "14", "21"])
+                let weberFarhatBuildingIds = Set(["13"])
+                
+                if jmRealtyBuildingIds.contains(buildingId) {
+                    self.emergencyContact = BDBuildingContact(
+                        name: "David Edelman",
+                        role: "J&M Realty Portfolio Manager",
+                        email: "David@jmrealty.org",
+                        phone: "+1 (212) 555-0200",
+                        isEmergencyContact: true
+                    )
+                } else if weberFarhatBuildingIds.contains(buildingId) {
+                    self.emergencyContact = BDBuildingContact(
+                        name: "Moises Farhat",
+                        role: "Weber Farhat Realty Manager",
+                        email: "mfarhat@farhatrealtymanagement.com",
+                        phone: "+1 (212) 555-0201",
+                        isEmergencyContact: true
+                    )
+                } else {
+                    // Default emergency contact
+                    self.emergencyContact = BDBuildingContact(
+                        name: "24/7 Emergency Line",
+                        role: "Emergency Response Team",
+                        email: "emergency@cyntientops.com",
+                        phone: "(212) 555-0911",
+                        isEmergencyContact: true
+                    )
+                }
+                // --- END EMERGENCY CONTACT LOGIC ---
                 
                 // Property manager info could be added if needed
                 // let propertyManager = building["propertyManager"] as? String

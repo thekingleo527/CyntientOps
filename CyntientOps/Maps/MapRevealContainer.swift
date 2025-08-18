@@ -37,6 +37,12 @@ struct MapRevealContainer<Content: View>: View {
     @State private var buildingMetrics: [String: BuildingMetrics] = [:]
     @State private var isLoadingMetrics = false
     
+    // Layout calculations
+    private var mapLegendHeight: CGFloat {
+        // Account for map legend (130) + safe area padding (20)
+        return 150
+    }
+    
     // MARK: - Initialization
     
     init(
@@ -100,10 +106,15 @@ struct MapRevealContainer<Content: View>: View {
                     ))
             }
             
-            // Main content overlay
+            // Main content overlay with proper safe area coordination
             content()
                 .offset(y: dragOffset)
-                .offset(y: isRevealed ? UIScreen.main.bounds.height * 0.75 : 0)
+                .safeAreaInset(edge: .bottom) {
+                    if isRevealed {
+                        Color.clear
+                            .frame(height: mapLegendHeight)
+                    }
+                }
                 .gesture(swipeGesture)
                 .animation(.spring(response: 0.6, dampingFraction: 0.8), value: isRevealed)
             

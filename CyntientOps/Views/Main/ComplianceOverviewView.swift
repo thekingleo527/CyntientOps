@@ -507,6 +507,53 @@ struct ComplianceOverviewView: View {
             // Load compliance data from ServiceContainer using existing methods
             let buildings = try await container.buildings.getAllBuildings()
             
+            // Load real NYC violations data for all buildings
+            let nycAPIService = NYCAPIService.shared
+            var allViolationIssues: [ComplianceIssueData] = []
+            
+            for building in buildings {
+                // Generate BBL for building
+                let bbl = await BBLGenerationService.shared.generateBBL(from: building.coordinate) ?? building.id
+                
+                // Fetch real violations from NYC APIs  
+                async let dsnyViolations = try? nycAPIService.fetchDSNYViolations(bin: building.id)
+                async let hpdViolations = try? nycAPIService.fetchHPDViolations(bin: building.id)
+                async let dobPermits = try? nycAPIService.fetchDOBPermits(bin: building.id)
+                async let ll97Data = try? nycAPIService.fetchLL97Compliance(bbl: bbl)
+                
+                let (dsny, hpd, dob, ll97) = await (dsnyViolations, hpdViolations, dobPermits, ll97Data)
+                
+                // Convert DSNY violations to ComplianceIssueData
+                if let dsnyViolations = dsny {
+                    let dsnyIssues = dsnyViolations.filter { $0.isActive }.map { violation in
+                        ComplianceIssueData(
+                            type: .sanitation,
+                            severity: violation.fineAmount > 200 ? .critical : .high,
+                            description: "DSNY: \(violation.violationType)",
+                            buildingId: building.id,
+                            buildingName: building.name,
+                            dueDate: Calendar.current.date(byAdding: .day, value: 30, to: violation.issueDate)
+                        )
+                    }
+                    allViolationIssues.append(contentsOf: dsnyIssues)
+                }
+                
+                // Convert HPD violations to ComplianceIssueData
+                if let hpdViolations = hpd {
+                    let hpdIssues = hpdViolations.filter { $0.violationStatus != "RESOLVED" }.map { violation in
+                        ComplianceIssueData(
+                            type: .housing,
+                            severity: violation.violationClass == "A" ? .critical : .high,
+                            description: "HPD: \(violation.description)",
+                            buildingId: building.id,
+                            buildingName: building.name,
+                            dueDate: Calendar.current.date(byAdding: .day, value: 30, to: violation.inspectionDate)
+                        )
+                    }
+                    allViolationIssues.append(contentsOf: hpdIssues)
+                }
+            }
+            
             // Create sample audits based on building data (real service would have actual audit data)
             let sampleAudits = buildings.prefix(3).enumerated().map { index, building in
                 ComplianceAudit(
@@ -522,7 +569,7 @@ struct ComplianceOverviewView: View {
             await MainActor.run {
                 self.upcomingAudits = Array(sampleAudits)
                 self.auditHistory = [] // Would load from real audit history
-                self.allIssues = [] // Would load from real compliance issues
+                self.allIssues = allViolationIssues // Now using real NYC violations data
                 self.historicalData = [] // Would load from real historical data
                 self.lastAudit = nil // Would load from most recent audit
                 self.nextAudit = sampleAudits.first
@@ -554,13 +601,11 @@ struct ComplianceOverviewView: View {
     
     
     private func getRealtimeCriticalIssues() -> [ComplianceIssueData] {
-        // Combine static issues with real-time detected issues
+        // Return real loaded issues filtered by critical severity
         var issues: [ComplianceIssueData] = []
         
-        // Add existing critical issues
-        if let intel = intelligence, intel.criticalIssues > 0 {
-            issues.append(contentsOf: createMockIssues(count: intel.criticalIssues))
-        }
+        // Use real loaded violations data
+        issues.append(contentsOf: allIssues.filter { $0.severity == .critical })
         
         // Add real-time detected issues from admin alerts
         let realtimeIssues = dashboardSync.liveAdminAlerts
@@ -597,10 +642,17 @@ struct ComplianceOverviewView: View {
     }
     
     private func getAllComplianceIssues() -> [ComplianceIssueData] {
-        // Combine all sources of compliance issues
-        var allIssues = getRealtimeCriticalIssues()
-        // Real-time critical issues are now loaded from ServiceContainer
-        return allIssues
+        // Return all loaded real compliance issues from NYC APIs
+        return allIssues + dashboardSync.liveAdminAlerts.map { alert in
+            ComplianceIssueData(
+                type: .regulatory,
+                severity: alert.severity == .critical ? .critical : .high,
+                description: alert.title,
+                buildingId: alert.buildingId,
+                buildingName: "Building",
+                dueDate: Date().addingTimeInterval(3600 * 24)
+            )
+        }
     }
     
     private func getPrioritizedInsights() -> [CoreTypes.IntelligenceInsight] {

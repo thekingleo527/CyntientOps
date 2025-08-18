@@ -2641,32 +2641,7 @@ struct ClientDSNYComplianceView: View {
             VStack(alignment: .leading, spacing: 16) {
                 dsnyViolationsSummary
                 dsnyViolationsByBuilding
-                
-                // Schedule Information (Secondary)
-                if !schedules.isEmpty {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Collection Schedules")
-                            .font(.headline)
-                            .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-                        
-                        ForEach(buildings, id: \.id) { building in
-                            if let buildingSchedules = schedules[building.id], !buildingSchedules.isEmpty {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(building.name)
-                                        .font(.subheadline)
-                                        .fontWeight(.medium)
-                                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-                                    
-                                    ForEach(buildingSchedules.prefix(2), id: \.id) { schedule in
-                                        DSNYScheduleRow(schedule: schedule)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    .padding()
-                    .cyntientOpsDarkCardBackground()
-                }
+                dsnySchedulesSection
             }
             .padding()
         }
@@ -2691,6 +2666,7 @@ struct ClientDSNYComplianceView: View {
         )
     }
     
+    @ViewBuilder
     private var dsnyViolationsByBuilding: some View {
         ForEach(buildings, id: \.id) { building in
             if let buildingViolations = violations[building.id], !buildingViolations.isEmpty {
@@ -2725,6 +2701,45 @@ struct ClientDSNYComplianceView: View {
                 }
                 .padding()
                 .cyntientOpsDarkCardBackground()
+            }
+        }
+    }
+    
+    private var dsnySchedulesSection: some View {
+        Group {
+            if !schedules.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Collection Schedules")
+                        .font(.headline)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                    
+                    dsnySchedulesByBuilding
+                }
+                .padding()
+                .cyntientOpsDarkCardBackground()
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private var dsnySchedulesByBuilding: some View {
+        ForEach(buildings, id: \CoreTypes.NamedCoordinate.id) { building in
+            if let buildingSchedules = schedules[building.id], !buildingSchedules.isEmpty {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(building.name)
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                    
+                    ForEach(Array(buildingSchedules.prefix(2)), id: \.id) { schedule in
+                        DSNYScheduleRow(
+                            day: schedule.dayOfWeek,
+                            time: schedule.time,
+                            items: schedule.serviceType,
+                            isToday: schedule.isToday
+                        )
+                    }
+                }
             }
         }
     }

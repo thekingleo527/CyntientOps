@@ -924,6 +924,7 @@ public struct CoreTypes {
         public let createdAt: Date
         public let reportedDate: Date
         public let type: ComplianceIssueType
+        public let department: String
         
         public init(
             id: String = UUID().uuidString,
@@ -937,7 +938,8 @@ public struct CoreTypes {
             assignedTo: String? = nil,
             createdAt: Date = Date(),
             reportedDate: Date = Date(),
-            type: ComplianceIssueType
+            type: ComplianceIssueType,
+            department: String = "General"
         ) {
             self.id = id
             self.title = title
@@ -951,6 +953,7 @@ public struct CoreTypes {
             self.createdAt = createdAt
             self.reportedDate = reportedDate
             self.type = type
+            self.department = department
         }
     }
     

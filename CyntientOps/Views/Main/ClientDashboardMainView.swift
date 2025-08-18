@@ -30,30 +30,6 @@ struct ClientDashboardMainView: View {
     @State private var showingProfile = false
     @State private var refreshID = UUID()
     
-    private var mockClientIntelligence: CoreTypes.ClientPortfolioIntelligence {
-        CoreTypes.ClientPortfolioIntelligence(
-            id: UUID().uuidString,
-            portfolioHealth: contextEngine.portfolioHealth,
-            executiveSummary: CoreTypes.ExecutiveSummary(
-                totalBuildings: 6,
-                totalWorkers: 15,
-                portfolioHealth: contextEngine.portfolioHealth.overallScore,
-                monthlyPerformance: "Excellent",
-                generatedAt: Date()
-            ),
-            benchmarks: [],
-            strategicRecommendations: [],
-            performanceTrends: [85, 87, 89, 91, 93],
-            generatedAt: Date(),
-            totalProperties: contextEngine.clientBuildings.count,
-            serviceLevel: 0.92,
-            complianceScore: 87,
-            complianceIssues: 3,
-            monthlyTrend: .up,
-            coveragePercentage: 0.94
-        )
-    }
-    
     // MARK: - Tab Structure
     enum DashboardTab: String, CaseIterable {
         case overview = "Overview"
@@ -179,12 +155,11 @@ struct ClientDashboardMainView: View {
             OverviewTabView(contextEngine: contextEngine, showCostData: showCostData)
             
         case .compliance:
-            VStack {
-                Text("Compliance Suite")
-                    .font(.title)
-                Text("Loading compliance data...")
-                    .foregroundColor(.secondary)
-            }
+            ClientComplianceTabView(
+                contextEngine: contextEngine,
+                complianceOverview: contextEngine.complianceOverview,
+                allComplianceIssues: contextEngine.allComplianceIssues
+            )
             
         case .buildings:
             ClientBuildingsTabView(
@@ -245,30 +220,6 @@ struct OverviewTabView: View {
     let contextEngine: ClientContextEngine
     let showCostData: Bool
     @State private var isPortfolioHeroCollapsed = false
-    
-    private var mockClientIntelligence: CoreTypes.ClientPortfolioIntelligence {
-        CoreTypes.ClientPortfolioIntelligence(
-            id: UUID().uuidString,
-            portfolioHealth: contextEngine.portfolioHealth,
-            executiveSummary: CoreTypes.ExecutiveSummary(
-                totalBuildings: 6,
-                totalWorkers: 15,
-                portfolioHealth: contextEngine.portfolioHealth.overallScore,
-                monthlyPerformance: "Excellent",
-                generatedAt: Date()
-            ),
-            benchmarks: [],
-            strategicRecommendations: [],
-            performanceTrends: [85, 87, 89, 91, 93],
-            generatedAt: Date(),
-            totalProperties: 6,
-            serviceLevel: 95.0,
-            complianceScore: 92,
-            complianceIssues: 2,
-            monthlyTrend: .up,
-            coveragePercentage: 98.5
-        )
-    }
     
     var body: some View {
         ScrollView {
@@ -485,6 +436,67 @@ struct AnalyticsMetricCard: View {
         }
         .padding()
         .cyntientOpsDarkCardBackground()
+    }
+}
+
+struct ClientComplianceTabView: View {
+    let contextEngine: ClientContextEngine
+    let complianceOverview: CoreTypes.ComplianceOverview
+    let allComplianceIssues: [CoreTypes.ComplianceIssue]
+    
+    @State private var selectedComplianceFilter: ComplianceFilter = .all
+    
+    enum ComplianceFilter: String, CaseIterable {
+        case all = "All Issues"
+        case dsny = "DSNY Violations"
+        case hpd = "HPD Violations"
+        case dob = "DOB Permits"
+        case ll97 = "LL97 Emissions"
+    }
+    
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 16) {
+                // Compliance Score Header
+                ComplianceScoreHeader(complianceOverview: complianceOverview)
+                
+                // Filter Picker
+                Picker("Filter", selection: $selectedComplianceFilter) {
+                    ForEach(ComplianceFilter.allCases, id: \.self) { filter in
+                        Text(filter.rawValue).tag(filter)
+                    }
+                }
+                .pickerStyle(SegmentedPickerStyle())
+                .padding(.horizontal)
+                
+                // Filtered Compliance Issues
+                FilteredComplianceIssuesView(
+                    issues: filteredIssues,
+                    filter: selectedComplianceFilter
+                )
+                
+                // Real NYC Violations Summary
+                if selectedComplianceFilter == .dsny || selectedComplianceFilter == .all {
+                    RealNYCViolationsSummaryCard(contextEngine: contextEngine)
+                }
+            }
+            .padding()
+        }
+    }
+    
+    private var filteredIssues: [CoreTypes.ComplianceIssue] {
+        switch selectedComplianceFilter {
+        case .all:
+            return allComplianceIssues
+        case .dsny:
+            return allComplianceIssues.filter { $0.department == "DSNY" }
+        case .hpd:
+            return allComplianceIssues.filter { $0.department == "HPD" }
+        case .dob:
+            return allComplianceIssues.filter { $0.department == "DOB" }
+        case .ll97:
+            return allComplianceIssues.filter { $0.title.contains("LL97") || $0.title.contains("emissions") }
+        }
     }
 }
 
@@ -925,6 +937,198 @@ struct ClientProfileSheet: View {
             }
         }
         .preferredColorScheme(.dark)
+    }
+}
+
+// MARK: - Compliance Supporting Views
+
+struct ComplianceScoreHeader: View {
+    let complianceOverview: CoreTypes.ComplianceOverview
+    
+    var body: some View {
+        VStack(spacing: 12) {
+            HStack {
+                VStack(alignment: .leading) {
+                    Text("Portfolio Compliance")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .foregroundColor(.white)
+                    
+                    Text("Overall Score")
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                }
+                
+                Spacer()
+                
+                VStack {
+                    Text("\(Int(complianceOverview.overallScore * 100))")
+                        .font(.largeTitle)
+                        .fontWeight(.bold)
+                        .foregroundColor(complianceOverview.overallScore > 0.8 ? .green : .orange)
+                    
+                    Text("out of 100")
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                }
+            }
+            
+            if complianceOverview.criticalViolations > 0 {
+                HStack {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundColor(.red)
+                    Text("\(complianceOverview.criticalViolations) critical violations require immediate attention")
+                        .font(.caption)
+                        .foregroundColor(.red)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(Color.red.opacity(0.1))
+                .cornerRadius(8)
+            }
+        }
+        .padding()
+        .cyntientOpsDarkCardBackground()
+    }
+}
+
+struct FilteredComplianceIssuesView: View {
+    let issues: [CoreTypes.ComplianceIssue]
+    let filter: ClientComplianceTabView.ComplianceFilter
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("\(filter.rawValue) (\(issues.count))")
+                    .font(.headline)
+                    .foregroundColor(.white)
+                
+                Spacer()
+            }
+            
+            if issues.isEmpty {
+                VStack(spacing: 16) {
+                    Image(systemName: "checkmark.shield.fill")
+                        .font(.system(size: 40))
+                        .foregroundColor(.green)
+                    
+                    Text("No \(filter.rawValue.lowercased()) found")
+                        .font(.subheadline)
+                        .foregroundColor(.gray)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 32)
+            } else {
+                VStack(spacing: 8) {
+                    ForEach(issues.prefix(10)) { issue in
+                        ComplianceIssueRow(issue: issue, onTap: {
+                            // Handle issue tap
+                        })
+                    }
+                }
+            }
+        }
+        .padding()
+        .cyntientOpsDarkCardBackground()
+    }
+}
+
+struct RealNYCViolationsSummaryCard: View {
+    let contextEngine: ClientContextEngine
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Image(systemName: "doc.text.magnifyingglass")
+                    .foregroundColor(.orange)
+                Text("NYC Violations Summary")
+                    .font(.headline)
+                    .foregroundColor(.white)
+                
+                Spacer()
+                
+                Text("Real-time data")
+                    .font(.caption2)
+                    .foregroundColor(.green)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 2)
+                    .background(Color.green.opacity(0.2))
+                    .cornerRadius(4)
+            }
+            
+            LazyVGrid(columns: [
+                GridItem(.flexible()),
+                GridItem(.flexible())
+            ], spacing: 12) {
+                ViolationSummaryCard(
+                    title: "DSNY Violations",
+                    count: contextEngine.allComplianceIssues.filter { $0.department == "DSNY" }.count,
+                    color: .orange,
+                    icon: "trash.circle.fill"
+                )
+                
+                ViolationSummaryCard(
+                    title: "HPD Violations", 
+                    count: contextEngine.allComplianceIssues.filter { $0.department == "HPD" }.count,
+                    color: .red,
+                    icon: "house.circle.fill"
+                )
+                
+                ViolationSummaryCard(
+                    title: "DOB Issues",
+                    count: contextEngine.allComplianceIssues.filter { $0.department == "DOB" }.count,
+                    color: .blue,
+                    icon: "hammer.circle.fill"
+                )
+                
+                ViolationSummaryCard(
+                    title: "LL97 Issues",
+                    count: contextEngine.allComplianceIssues.filter { $0.title.contains("LL97") }.count,
+                    color: .green,
+                    icon: "leaf.circle.fill"
+                )
+            }
+            
+            Text("Data sourced from NYC Open Data APIs in real-time")
+                .font(.caption2)
+                .foregroundColor(.gray)
+                .padding(.top, 8)
+        }
+        .padding()
+        .cyntientOpsDarkCardBackground()
+    }
+}
+
+struct ViolationSummaryCard: View {
+    let title: String
+    let count: Int
+    let color: Color
+    let icon: String
+    
+    var body: some View {
+        VStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.title2)
+                .foregroundColor(color)
+            
+            Text("\(count)")
+                .font(.title)
+                .fontWeight(.bold)
+                .foregroundColor(.white)
+            
+            Text(title)
+                .font(.caption)
+                .foregroundColor(.gray)
+                .multilineTextAlignment(.center)
+        }
+        .padding()
+        .frame(height: 100)
+        .background(color.opacity(0.1))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(color.opacity(0.3), lineWidth: 1)
+        )
+        .cornerRadius(12)
     }
 }
 

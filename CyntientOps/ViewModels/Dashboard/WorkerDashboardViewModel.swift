@@ -1185,7 +1185,7 @@ public class WorkerDashboardViewModel: ObservableObject {
         }
         
         // Convert to ContextualTask and complete
-        let contextualTask = taskItem.asContextualTask
+        let contextualTask = convertToContextualTask(taskItem)
         await completeTask(contextualTask)
         
         // Update the local task list
@@ -1216,7 +1216,7 @@ public class WorkerDashboardViewModel: ObservableObject {
         }
         
         // Convert to ContextualTask and start
-        let contextualTask = taskItem.asContextualTask
+        let contextualTask = convertToContextualTask(taskItem)
         await startTask(contextualTask)
     }
     
@@ -2719,7 +2719,7 @@ public class WorkerDashboardViewModel: ObservableObject {
             """, [workerId])
             
             vendorAccessEntries = rows.compactMap { row -> VendorAccessEntry? in
-                guard let id = row["id"] as? String,
+                guard let _ = row["id"] as? String,
                       let buildingId = row["building_id"] as? String,
                       let vendorName = row["vendor_name"] as? String,
                       let vendorTypeRaw = row["vendor_type"] as? String,
@@ -3282,7 +3282,7 @@ public class WorkerDashboardViewModel: ObservableObject {
         
         // Update in TaskService
         let status: CoreTypes.TaskStatus = todaysTasks[index].isCompleted ? .completed : .pending
-        let task = todaysTasks[index].asContextualTask
+        let task = convertToContextualTask(todaysTasks[index])
         var updatedContextualTask = task
         updatedContextualTask.status = status
         
@@ -3290,6 +3290,36 @@ public class WorkerDashboardViewModel: ObservableObject {
             try await container.tasks.updateTask(updatedContextualTask)
         } catch {
             print("❌ Failed to update task: \(error)")
+        }
+    }
+    
+    // MARK: - Helper Methods
+    
+    private func convertToContextualTask(_ task: TaskItem) -> ContextualTask {
+        return ContextualTask(
+            id: task.id,
+            title: task.title,
+            description: task.description,
+            status: task.isCompleted ? .completed : .pending,
+            scheduledDate: task.dueDate,
+            dueDate: task.dueDate,
+            category: CoreTypes.TaskCategory(rawValue: task.category.lowercased()),
+            urgency: convertUrgency(task.urgency),
+            buildingId: task.buildingId,
+            buildingName: nil,
+            requiresPhoto: task.requiresPhoto,
+            estimatedDuration: 30
+        )
+    }
+    
+    private func convertUrgency(_ urgency: TaskItem.TaskUrgency) -> CoreTypes.TaskUrgency? {
+        switch urgency {
+        case .low: return .low
+        case .normal: return .normal
+        case .high: return .high
+        case .urgent: return .urgent
+        case .critical: return .critical
+        case .emergency: return .emergency
         }
     }
 }

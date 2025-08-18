@@ -14,6 +14,7 @@ import CoreLocation
 
 public struct AdminDashboardView: View {
     @StateObject private var viewModel: AdminDashboardViewModel
+    @EnvironmentObject private var authManager: NewAuthManager
     
     // MARK: - Responsive Layout
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
@@ -146,7 +147,7 @@ public struct AdminDashboardView: View {
                         viewModel: viewModel
                     )
                     .padding(.horizontal, 16)
-                    .padding(.bottom, 8)
+                    .padding(.bottom, isPortfolioMapRevealed ? 0 : 8)
                 }
             }
         }
@@ -168,6 +169,15 @@ public struct AdminDashboardView: View {
         case .profile: sheet = .profile
         case .chat: sheet = .chat
         case .settings: sheet = .settings
+        case .logout: handleLogout()
+        }
+    }
+    
+    private func handleLogout() {
+        // Clear session and navigate back to login
+        Task {
+            await authManager.logout()
+            // Navigation will be handled by ContentView based on auth state
         }
     }
     
@@ -490,13 +500,14 @@ struct AdminImmediateItem: View {
 
 struct AdminHeaderV3B: View {
     enum HeaderRoute: Identifiable {
-        case profile, chat, settings
+        case profile, chat, settings, logout
         
         var id: String {
             switch self {
             case .profile: return "profile"
             case .chat: return "chat" 
             case .settings: return "settings"
+            case .logout: return "logout"
             }
         }
     }
@@ -566,35 +577,46 @@ struct AdminHeaderV3B: View {
                 
                 Spacer()
                 
-                // Right: Admin Profile
-                Button(action: { onRoute(.profile) }) {
-                    HStack(spacing: 12) {
-                        VStack(alignment: .trailing, spacing: 2) {
-                            Text("System Administrator")
-                                .font(.system(size: 13, weight: .semibold, design: .rounded))
-                                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-                                .lineLimit(1)
-                            
-                            HStack(spacing: 4) {
-                                Text("\(portfolioCount) Buildings")
-                                    .font(.system(size: 10, weight: .medium))
-                                    .foregroundColor(CyntientOpsDesign.DashboardColors.adminAccent)
-                                
-                                Text("\(Int(complianceScore * 100))% Compliant")
-                                    .font(.system(size: 10, weight: .medium))
-                                    .foregroundColor(complianceColor)
-                            }
-                        }
-                        
-                        ProfileChip(
-                            name: adminName,
-                            initials: getInitials(adminName),
-                            photoURL: nil,
-                            tap: { onRoute(.profile) }
-                        )
+                // Right: Admin Profile with Logout
+                HStack(spacing: 8) {
+                    // Logout button
+                    Button(action: { onRoute(.logout) }) {
+                        Image(systemName: "power")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(CyntientOpsDesign.DashboardColors.critical)
                     }
+                    .buttonStyle(PlainButtonStyle())
+                    
+                    // Admin Profile
+                    Button(action: { onRoute(.profile) }) {
+                        HStack(spacing: 12) {
+                            VStack(alignment: .trailing, spacing: 2) {
+                                Text("System Administrator")
+                                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+                                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                                    .lineLimit(1)
+                                
+                                HStack(spacing: 4) {
+                                    Text("\(portfolioCount) Buildings")
+                                        .font(.system(size: 10, weight: .medium))
+                                        .foregroundColor(CyntientOpsDesign.DashboardColors.adminAccent)
+                                    
+                                    Text("\(Int(complianceScore * 100))% Compliant")
+                                        .font(.system(size: 10, weight: .medium))
+                                        .foregroundColor(complianceColor)
+                                }
+                            }
+                            
+                            ProfileChip(
+                                name: adminName,
+                                initials: getInitials(adminName),
+                                photoURL: nil,
+                                tap: { onRoute(.profile) }
+                            )
+                        }
+                    }
+                    .buttonStyle(PlainButtonStyle())
                 }
-                .buttonStyle(PlainButtonStyle())
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
