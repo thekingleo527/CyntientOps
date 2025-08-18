@@ -504,14 +504,40 @@ struct BuildingRowCard: View {
     }
     
     private var buildingImage: some View {
-        RoundedRectangle(cornerRadius: 8)
-            .fill(.ultraThinMaterial)
-            .frame(width: 80, height: 60)
-            .overlay(
-                Image(systemName: "building.2.fill")
-                    .font(.title2)
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-            )
+        ZStack {
+            if let assetName = buildingImageAssetName,
+               UIImage(named: assetName) != nil {
+                Image(assetName)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: 80, height: 60)
+                    .clipped()
+            } else {
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(LinearGradient(
+                        colors: [.blue.opacity(0.6), .purple.opacity(0.4)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ))
+                    .frame(width: 80, height: 60)
+                    .overlay(
+                        Image(systemName: "building.2.fill")
+                            .font(.title2)
+                            .foregroundColor(.white.opacity(0.8))
+                    )
+            }
+        }
+        .cornerRadius(8)
+    }
+    
+    private var buildingImageAssetName: String? {
+        let address = building.address
+        return address
+            .replacingOccurrences(of: " ", with: "_")
+            .replacingOccurrences(of: "/", with: "_")
+            .replacingOccurrences(of: "-", with: "_")
+            .replacingOccurrences(of: ",", with: "")
+            .replacingOccurrences(of: ".", with: "")
     }
 }
 

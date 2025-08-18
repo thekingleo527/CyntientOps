@@ -119,23 +119,70 @@ struct AdminBuildingListItem: View {
     let metrics: CoreTypes.BuildingMetrics?
     let onTap: () -> Void
     
+    var buildingImageAssetName: String? {
+        let address = building.address
+        return address
+            .replacingOccurrences(of: " ", with: "_")
+            .replacingOccurrences(of: "/", with: "_")
+            .replacingOccurrences(of: "-", with: "_")
+            .replacingOccurrences(of: ",", with: "")
+            .replacingOccurrences(of: ".", with: "")
+    }
+    
     var body: some View {
         Button(action: onTap) {
             HStack(spacing: 16) {
-                // Building Status Indicator
-                VStack(spacing: 4) {
-                    Circle()
-                        .fill(statusColor)
-                        .frame(width: 12, height: 12)
-                    
-                    if let metrics = metrics, metrics.urgentTasksCount > 0 {
-                        Text("\\(metrics.urgentTasksCount)")
-                            .font(.caption2)
-                            .fontWeight(.bold)
-                            .foregroundColor(statusColor)
+                // Building Image
+                ZStack {
+                    if let assetName = buildingImageAssetName,
+                       UIImage(named: assetName) != nil {
+                        Image(assetName)
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .frame(width: 60, height: 60)
+                            .clipped()
+                    } else {
+                        Rectangle()
+                            .fill(LinearGradient(
+                                colors: [.blue.opacity(0.6), .purple.opacity(0.4)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ))
+                            .frame(width: 60, height: 60)
+                            .overlay(
+                                Image(systemName: "building.2")
+                                    .font(.title2)
+                                    .foregroundColor(.white.opacity(0.8))
+                            )
                     }
+                    
+                    // Status indicator overlay
+                    VStack {
+                        HStack {
+                            Spacer()
+                            Circle()
+                                .fill(statusColor)
+                                .frame(width: 12, height: 12)
+                                .shadow(color: .black.opacity(0.3), radius: 1)
+                        }
+                        Spacer()
+                        if let metrics = metrics, metrics.urgentTasksCount > 0 {
+                            HStack {
+                                Spacer()
+                                Text("\\(metrics.urgentTasksCount)")
+                                    .font(.caption2)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 4)
+                                    .padding(.vertical, 2)
+                                    .background(statusColor)
+                                    .cornerRadius(4)
+                            }
+                        }
+                    }
+                    .padding(4)
                 }
-                .frame(width: 20)
+                .cornerRadius(12)
                 
                 // Building Info
                 VStack(alignment: .leading, spacing: 4) {
