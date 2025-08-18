@@ -12,7 +12,7 @@ import SwiftUI
 
 public struct ClientDashboardPortfolioHeroCard: View {
     let portfolioHealth: CoreTypes.PortfolioHealth
-    let realtimeMetrics: CoreTypes.RealtimeMetrics
+    let realtimeMetrics: CoreTypes.RealtimePortfolioMetrics
     let monthlyMetrics: CoreTypes.MonthlyMetrics
     let onDrillDown: () -> Void
     
@@ -31,7 +31,7 @@ public struct ClientDashboardPortfolioHeroCard: View {
                             .fontWeight(.semibold)
                             .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                         
-                        Text("\(portfolioHealth.totalBuildings) Buildings • \(portfolioHealth.activeBuildings) Active")
+                        Text("\(realtimeMetrics.totalBuildings) Buildings • \(realtimeMetrics.activeWorkers) Active")
                             .font(.caption)
                             .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
                     }
