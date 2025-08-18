@@ -1330,6 +1330,7 @@ struct BuildingMaintenanceTab: View {
                 StatCard(
                     title: "Total Tasks",
                     value: "\(viewModel.maintenanceHistory.count)",
+                    trend: nil,
                     icon: "checkmark.circle.fill",
                     color: CyntientOpsDesign.DashboardColors.success
                 )
@@ -1604,7 +1605,7 @@ struct BuildingSpacesTab: View {
     @ObservedObject var viewModel: BuildingDetailViewModel
     let onPhotoCapture: () -> Void
     @State private var searchText = ""
-    @State private var selectedSpace: SpaceAccess?
+    @State private var selectedSpace: BDSpaceAccess?
     
     var body: some View {
         VStack(spacing: 20) {
@@ -2153,7 +2154,7 @@ class BuildingDetailVM: ObservableObject {
         
         do {
             // Load building information
-            if let cachedBuilding = operationalDataManager.getBuilding(byId: buildingId) {
+            if let _ = operationalDataManager.getBuilding(byId: buildingId) {
                 await MainActor.run {
                     // Use cached building data where available, defaults for missing properties
                     buildingType = "Commercial" // Default since CachedBuilding doesn't have this
@@ -2360,9 +2361,8 @@ class BuildingDetailVM: ObservableObject {
             userRole = role
         }
     }
-}
-
-// Additional Supporting Components
+    
+    // MARK: - Private Helper Functions (Moved from outside class scope)
 
 struct BuildingActivityRow: View {
     let activity: BDBuildingDetailActivity
@@ -3488,7 +3488,7 @@ struct BuildingSanitationTab: View {
             } else {
                 VStack(spacing: 12) {
                     ForEach(viewModel.dailyRoutines.filter { $0.title.contains("DSNY") || $0.title.contains("Trash") }) { routine in
-                        SanitationTaskRow(routine: routine) {
+                        BDSanitationTaskRow(routine: routine) {
                             viewModel.toggleRoutineCompletion(routine)
                         }
                     }
@@ -3520,7 +3520,7 @@ struct BuildingSanitationTab: View {
                             .fontWeight(.semibold)
                             .foregroundColor(CyntientOpsDesign.DashboardColors.warning)
                         
-                        ForEach(viewModel.rawDSNYViolations.prefix(3)) { violation in
+                        ForEach(Array(viewModel.rawDSNYViolations.prefix(3))) { violation in
                             HStack {
                                 Circle()
                                     .fill(violation.isActive ? CyntientOpsDesign.DashboardColors.critical : CyntientOpsDesign.DashboardColors.success)
@@ -3638,6 +3638,50 @@ struct SanitationTaskRow: View {
                             .font(.caption)
                             .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
                     }
+                }
+            }
+            
+            Spacer()
+            
+            if routine.isCompleted {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundColor(.green)
+            }
+        }
+        .padding(.vertical, 8)
+        .background(routine.isCompleted ? Color.green.opacity(0.1) : Color.clear)
+        .cornerRadius(8)
+    }
+}
+
+struct BDSanitationTaskRow: View {
+    let routine: BDDailyRoutine
+    let onToggle: () -> Void
+    
+    var body: some View {
+        HStack {
+            Button(action: onToggle) {
+                Image(systemName: routine.isCompleted ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 20))
+                    .foregroundColor(routine.isCompleted ? .green : .gray)
+            }
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text(routine.title)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                
+                if let worker = routine.assignedWorker {
+                    Text("Assigned to: \(worker)")
+                        .font(.caption)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                }
+                
+                if let time = routine.scheduledTime {
+                    Text("Scheduled: \(time)")
+                        .font(.caption)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
                 }
             }
             
