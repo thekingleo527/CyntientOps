@@ -10,6 +10,10 @@
 
 import SwiftUI
 
+// MARK: - Type Aliases for DSNY Data
+typealias DSNYRoute = DSNY.DSNYRoute
+typealias DSNYViolation = DSNY.DSNYViolation
+
 struct ClientDashboardView: View {
     @StateObject private var viewModel: ClientDashboardViewModel
     
@@ -301,6 +305,7 @@ struct ClientDashboardView: View {
         case .buildingDetail(let buildingId):
             if let building = viewModel.buildingsList.first(where: { $0.id == buildingId }) {
                 BuildingDetailView(
+                    container: container,
                     buildingId: building.id,
                     buildingName: building.name,
                     buildingAddress: building.address
@@ -3046,6 +3051,44 @@ struct ClientSettingsView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(CyntientOpsDesign.DashboardColors.baseBackground)
+    }
+}
+
+// MARK: - DSNY Schedule Components
+
+struct DSNYScheduleRow: View {
+    let day: String
+    let time: String
+    let items: String
+    let isToday: Bool
+    
+    var body: some View {
+        HStack {
+            Text(day)
+                .font(.caption)
+                .fontWeight(isToday ? .semibold : .regular)
+                .foregroundColor(isToday ? .blue : .gray)
+                .frame(width: 40, alignment: .leading)
+            
+            Text(time)
+                .font(.caption)
+                .foregroundColor(.white.opacity(0.8))
+                .frame(width: 60, alignment: .leading)
+            
+            Text(items)
+                .font(.caption)
+                .foregroundColor(.white.opacity(0.7))
+                .lineLimit(1)
+            
+            Spacer()
+            
+            if isToday {
+                Circle()
+                    .fill(.blue)
+                    .frame(width: 6, height: 6)
+            }
+        }
+        .padding(.vertical, 2)
     }
 }
 

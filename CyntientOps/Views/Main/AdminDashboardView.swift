@@ -406,6 +406,7 @@ struct AdminUrgentItem: View {
         case .buildingDetail(let buildingId):
             if let building = viewModel.buildings.first(where: { $0.id == buildingId }) {
                 BuildingDetailView(
+                    container: container,
                     buildingId: building.id,
                     buildingName: building.name,
                     buildingAddress: building.address

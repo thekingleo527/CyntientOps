@@ -347,6 +347,100 @@ public struct DSNY {
             return nil
         }
     }
+    
+    // MARK: - Missing Models for Client Dashboard
+    
+    /// Route/Schedule data for dashboard display
+    public struct DSNYRoute: Identifiable, Hashable {
+        public let id: String
+        public let dayOfWeek: String
+        public let time: String
+        public let serviceType: String
+        public let isToday: Bool
+        
+        public init(id: String, dayOfWeek: String, time: String, serviceType: String, isToday: Bool) {
+            self.id = id
+            self.dayOfWeek = dayOfWeek
+            self.time = time
+            self.serviceType = serviceType
+            self.isToday = isToday
+        }
+        
+        /// Create from BuildingSchedule
+        public static func fromBuildingSchedule(_ schedule: BuildingSchedule) -> [DSNYRoute] {
+            var routes: [DSNYRoute] = []
+            let today = Calendar.current.component(.weekday, from: Date())
+            
+            // Refuse collection
+            for day in schedule.refuseDays {
+                let isToday = day.calendarWeekday == today
+                routes.append(DSNYRoute(
+                    id: UUID().uuidString,
+                    dayOfWeek: day.rawValue,
+                    time: "6:00 AM",
+                    serviceType: "Trash Collection",
+                    isToday: isToday
+                ))
+            }
+            
+            // Recycling collection
+            for day in schedule.recyclingDays {
+                let isToday = day.calendarWeekday == today
+                routes.append(DSNYRoute(
+                    id: UUID().uuidString,
+                    dayOfWeek: day.rawValue,
+                    time: "6:00 AM",
+                    serviceType: "Recycling",
+                    isToday: isToday
+                ))
+            }
+            
+            // Organics collection
+            for day in schedule.organicsDays {
+                let isToday = day.calendarWeekday == today
+                routes.append(DSNYRoute(
+                    id: UUID().uuidString,
+                    dayOfWeek: day.rawValue,
+                    time: "6:00 AM",
+                    serviceType: "Organics",
+                    isToday: isToday
+                ))
+            }
+            
+            return routes.sorted { $0.dayOfWeek < $1.dayOfWeek }
+        }
+    }
+    
+    /// DSNY Violation for dashboard display
+    public struct DSNYViolation: Identifiable, Hashable {
+        public let id: String
+        public let violationType: String
+        public let issueDate: Date
+        public let fineAmount: Double
+        public let description: String
+        public let isActive: Bool
+        
+        public init(id: String, violationType: String, issueDate: Date, fineAmount: Double, description: String, isActive: Bool) {
+            self.id = id
+            self.violationType = violationType
+            self.issueDate = issueDate
+            self.fineAmount = fineAmount
+            self.description = description
+            self.isActive = isActive
+        }
+        
+        /// Create from DSNY.Violation
+        public static func fromViolation(_ violation: DSNY.Violation) -> DSNYViolation {
+            return DSNYViolation(
+                id: violation.violationId,
+                violationType: violation.violationType.rawValue.capitalized,
+                issueDate: violation.issueDate,
+                fineAmount: Double(truncating: violation.fineAmount as NSDecimalNumber),
+                description: violation.description,
+                isActive: violation.status == .active
+            )
+        }
+    }
 }
 
 // MARK: - Extensions

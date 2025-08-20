@@ -13,6 +13,8 @@ import SwiftUI
 import MapKit
 
 struct BuildingsView: View {
+    let container: ServiceContainer
+    
     // MARK: - State
     @State private var buildings: [NamedCoordinate] = []
     @State private var buildingMetrics: [String: BuildingMetrics] = [:]
@@ -285,6 +287,7 @@ struct BuildingsView: View {
             ForEach(filteredBuildings, id: \.id) { building in
                 NavigationLink {
                     BuildingDetailView(
+                        container: container,
                         buildingId: building.id,
                         buildingName: building.name,
                         buildingAddress: building.address
@@ -702,9 +705,31 @@ struct BuildingMapPin: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            Image(systemName: "mappin.circle.fill")
-                .font(.title)
-                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryAction)
+            // Building preview image bubble
+            ZStack {
+                Circle()
+                    .fill(CyntientOpsDesign.DashboardColors.primaryAction)
+                    .frame(width: 50, height: 50)
+                    .francoShadow(CyntientOpsDesign.Shadow.md)
+                
+                // Try to load building image, fallback to building icon
+                AsyncImage(url: URL(string: "building_\(building.id).jpg")) { image in
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: 44, height: 44)
+                        .clipShape(Circle())
+                } placeholder: {
+                    Image(systemName: "building.2.fill")
+                        .font(.title2)
+                        .foregroundColor(.white)
+                }
+            }
+            
+            // Pin connector
+            Rectangle()
+                .fill(CyntientOpsDesign.DashboardColors.primaryAction)
+                .frame(width: 2, height: 8)
             
             if showingDetail {
                 Text(building.name)
@@ -732,7 +757,10 @@ struct BuildingMapPin: View {
 
 struct BuildingsView_Previews: PreviewProvider {
     static var previews: some View {
-        BuildingsView()
+        // Use a simple view for preview since ServiceContainer requires async init
+        Text("BuildingsView Preview")
+            .foregroundColor(.white)
+            .background(Color.black)
             .preferredColorScheme(.dark)
     }
 }

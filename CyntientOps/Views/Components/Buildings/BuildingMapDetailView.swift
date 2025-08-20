@@ -14,6 +14,7 @@ import Foundation
 
 struct BuildingMapDetailView: View {
     let building: CoreTypes.NamedCoordinate
+    let container: ServiceContainer
     @Environment(\.dismiss) private var dismiss
     @StateObject private var contextAdapter = WorkerContextEngineAdapter.shared
     
@@ -84,6 +85,7 @@ struct BuildingMapDetailView: View {
             }
             .navigationDestination(isPresented: $showDetails) {
                 BuildingDetailView(
+                    container: container,
                     buildingId: building.id,
                     buildingName: building.name,
                     buildingAddress: building.address
@@ -430,15 +432,10 @@ struct BuildingTaskRow: View {
 struct BuildingMapDetailView_Previews: PreviewProvider {
     static var previews: some View {
         NavigationStack {
-            BuildingMapDetailView(
-                building: CoreTypes.NamedCoordinate(
-                    id: "14",
-                    name: "Rubin Museum",
-                    address: "150 W 17th St, New York, NY 10011",
-                    latitude: 40.7402,
-                    longitude: -73.9980
-                )
-            )
+            // Use a simple view for preview since ServiceContainer requires async init
+            Text("BuildingMapDetailView Preview")
+                .foregroundColor(.white)
+                .background(Color.black)
         }
         .preferredColorScheme(.dark)
     }

@@ -163,6 +163,7 @@ struct ClientDashboardMainView: View {
             
         case .buildings:
             ClientBuildingsTabView(
+                container: container,
                 buildings: contextEngine.clientBuildings,
                 buildingMetrics: contextEngine.buildingMetrics
             )
@@ -272,6 +273,7 @@ struct OverviewTabView: View {
 }
 
 struct ClientBuildingsTabView: View {
+    let container: ServiceContainer
     let buildings: [CoreTypes.NamedCoordinate]
     let buildingMetrics: [String: CoreTypes.BuildingMetrics]
     
@@ -298,6 +300,7 @@ struct ClientBuildingsTabView: View {
             if let building = selectedBuilding {
                 NavigationView {
                     BuildingDetailView(
+                        container: container,
                         buildingId: building.id,
                         buildingName: building.name,
                         buildingAddress: building.address
