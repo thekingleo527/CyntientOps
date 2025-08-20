@@ -379,6 +379,26 @@ public struct CoreTypes {
         }
         
         public var sortOrder: Int { urgencyLevel }
+        
+        /// Convert skill level from OperationalDataManager to TaskUrgency
+        public static func fromSkillLevel(_ skillLevel: String) -> TaskUrgency {
+            switch skillLevel.lowercased() {
+            case let level where level.contains("critical"):
+                return .critical
+            case let level where level.contains("emergency"):
+                return .emergency
+            case let level where level.contains("high") || level.contains("urgent"):
+                return .high
+            case let level where level.contains("expert"):
+                return .high
+            case let level where level.contains("medium") || level.contains("intermediate"):
+                return .medium
+            case let level where level.contains("low") || level.contains("basic"):
+                return .low
+            default:
+                return .normal
+            }
+        }
     }
     
     public enum TaskStatus: String, Codable, CaseIterable {
