@@ -58,6 +58,7 @@ struct BuildingDetailView: View {
         self.buildingName = buildingName
         self.buildingAddress = buildingAddress
         self._viewModel = StateObject(wrappedValue: BuildingDetailViewModel(
+            container: container,
             buildingId: buildingId,
             buildingName: buildingName,
             buildingAddress: buildingAddress
@@ -3444,7 +3445,7 @@ struct BuildingSanitationTab: View {
                             .foregroundColor(CyntientOpsDesign.DashboardColors.warning)
                         
                         let recentViolations = Array(viewModel.rawDSNYViolations.prefix(3))
-                        ForEach(recentViolations, id: \.id) { violation in
+                        ForEach(recentViolations, id: \DSNYViolation.id) { violation in
                             HStack {
                                 Circle()
                                     .fill(violation.isActive ? CyntientOpsDesign.DashboardColors.critical : CyntientOpsDesign.DashboardColors.success)
