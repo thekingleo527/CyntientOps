@@ -671,7 +671,7 @@ enum BuildingDetailTab: String, CaseIterable {
 // All components used by BuildingDetailView must be defined here before usage
 
 struct BuildingActivityRow: View {
-    let activity: BuildingDetailActivity
+    let activity: BDBuildingDetailActivity
     
     var body: some View {
         HStack(spacing: 12) {
@@ -809,17 +809,17 @@ struct BDDailyRoutineRow: View {
 }
 
 struct MaintenanceTaskRow: View {
-    let task: CoreTypes.Task
+    let maintenanceTask: CoreTypes.Task
     
     var body: some View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
-                Text(task.title)
+                Text(maintenanceTask.title)
                     .font(.subheadline)
                     .fontWeight(.medium)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                 
-                Text(task.description)
+                Text(maintenanceTask.description)
                     .font(.caption)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
                     .lineLimit(2)
@@ -827,7 +827,7 @@ struct MaintenanceTaskRow: View {
             
             Spacer()
             
-            Text(task.status.rawValue)
+            Text(maintenanceTask.status.rawValue)
                 .font(.caption)
                 .fontWeight(.medium)
                 .foregroundColor(.white)
@@ -835,7 +835,7 @@ struct MaintenanceTaskRow: View {
                 .padding(.vertical, 4)
                 .background(
                     RoundedRectangle(cornerRadius: 8)
-                        .fill(colorForTaskStatus(task.status))
+                        .fill(colorForTaskStatus(maintenanceTask.status))
                 )
         }
     }
@@ -890,15 +890,20 @@ struct ComplianceRow: View {
         switch status {
         case .compliant: return "checkmark.shield"
         case .nonCompliant: return "exclamationmark.shield"
-        case .underReview: return "clock.badge.questionmark"
+        case .needsReview: return "clock.badge.questionmark"
+        case .open, .inProgress, .pending: return "clock"
+        case .resolved: return "checkmark.circle"
+        case .warning, .atRisk: return "exclamationmark.triangle"
+        case .violation: return "xmark.shield"
         }
     }
     
     private func colorForStatus(_ status: CoreTypes.ComplianceStatus) -> Color {
         switch status {
-        case .compliant: return CyntientOpsDesign.DashboardColors.success
-        case .nonCompliant: return CyntientOpsDesign.DashboardColors.critical
-        case .underReview: return CyntientOpsDesign.DashboardColors.warning
+        case .compliant, .resolved: return CyntientOpsDesign.DashboardColors.success
+        case .nonCompliant, .violation: return CyntientOpsDesign.DashboardColors.critical
+        case .needsReview, .warning, .atRisk: return CyntientOpsDesign.DashboardColors.warning
+        case .open, .inProgress, .pending: return CyntientOpsDesign.DashboardColors.info
         }
     }
 }
@@ -1199,6 +1204,89 @@ struct BuildingProcedureRow: View {
                 .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+struct BuildingSanitationTab: View {
+    let buildingId: String
+    let buildingName: String
+    @ObservedObject var viewModel: BuildingDetailViewModel
+    @State private var selectedFilter: SanitationFilter = .today
+    
+    enum SanitationFilter: String, CaseIterable {
+        case today = "Today"
+        case week = "This Week"
+        case schedule = "Full Schedule"
+    }
+    
+    var body: some View {
+        VStack(spacing: 20) {
+            Text("DSNY Sanitation Schedule")
+                .font(.headline)
+                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+            
+            Text("Sanitation schedule will be displayed here")
+                .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+        }
+        .padding()
+        .cyntientOpsDarkCardBackground()
+    }
+}
+
+struct MaintenanceHistoryRow: View {
+    let record: BDMaintenanceRecord
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(record.title)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                
+                Text(record.description)
+                    .font(.caption)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                    .lineLimit(2)
+                
+                Text(record.date, style: .date)
+                    .font(.caption)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+            }
+            
+            Spacer()
+            
+            if let cost = record.cost {
+                Text(cost, format: .currency(code: "USD"))
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.success)
+            }
+        }
+    }
+}
+
+struct AccessCodeChip: View {
+    let code: BDAccessCode
+    
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "key.fill")
+                .font(.caption)
+                .foregroundColor(CyntientOpsDesign.DashboardColors.info)
+            
+            Text(code.code)
+                .font(.caption)
+                .fontWeight(.medium)
+                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(
+            RoundedRectangle(cornerRadius: 8)
+                .fill(CyntientOpsDesign.DashboardColors.cardBackground)
+                .stroke(CyntientOpsDesign.DashboardColors.info, lineWidth: 1)
+        )
     }
 }
 
@@ -2814,7 +2902,7 @@ class BuildingDetailVM: ObservableObject {
 // MARK: - Supporting View Components
 
 struct BuildingActivityRow: View {
-    let activity: BuildingDetailActivity
+    let activity: BDBuildingDetailActivity
     
     var body: some View {
         HStack(spacing: 12) {
