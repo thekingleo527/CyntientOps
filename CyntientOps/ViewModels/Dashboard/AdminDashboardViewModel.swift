@@ -589,7 +589,7 @@ class AdminDashboardViewModel: ObservableObject {
                 dobData[building.id] = dobPermits
                 
                 // Fetch real DSNY schedule (if available)
-                let dsnySchedule = try? await nycAPI.fetchDSNYSchedule(address: building.address)
+                let dsnySchedule = try? await nycAPI.fetchDSNYSchedule(district: building.address)
                 dsnyData[building.id] = dsnySchedule ?? []
                 
                 // Fetch real LL97 emissions
@@ -2225,7 +2225,7 @@ class AdminDashboardViewModel: ObservableObject {
             
             // Calculate active workers for this building (simplified)
             let workersForBuilding = self.workers.filter { worker in
-                worker.assignedBuildingIds?.contains(building.id) ?? false
+                worker.assignedBuildingIds.contains(building.id)
             }.count
             
             // Create metrics with real data
