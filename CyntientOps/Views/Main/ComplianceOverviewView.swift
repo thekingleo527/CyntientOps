@@ -540,14 +540,24 @@ struct ComplianceOverviewView: View {
                 
                 // Convert HPD violations to ComplianceIssueData
                 if let hpdViolations = hpd {
-                    let hpdIssues = hpdViolations.filter { $0.violationStatus != "RESOLVED" }.map { violation in
-                        ComplianceIssueData(
-                            type: .housing,
-                            severity: violation.violationClass == "A" ? .critical : .high,
-                            description: "HPD: \(violation.description)",
+                    // Filter active violations first
+                    let activeViolations = hpdViolations.filter { $0.violationStatus != "RESOLVED" }
+                    
+                    // Create compliance issues from active violations
+                    let hpdIssues: [ComplianceIssueData] = activeViolations.map { violation in
+                        // Parse inspection date string to Date for due date calculation
+                        let dateFormatter = DateFormatter()
+                        dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSS"
+                        let inspectionDate = dateFormatter.date(from: violation.inspectionDate) ?? Date()
+                        let dueDate = Calendar.current.date(byAdding: .day, value: 30, to: inspectionDate)
+                        
+                        return ComplianceIssueData(
+                            type: .regulatory,
+                            severity: violation.severity == .critical ? .critical : .high,
+                            description: "HPD: \(violation.novDescription)",
                             buildingId: building.id,
                             buildingName: building.name,
-                            dueDate: Calendar.current.date(byAdding: .day, value: 30, to: violation.inspectionDate)
+                            dueDate: dueDate
                         )
                     }
                     allViolationIssues.append(contentsOf: hpdIssues)
