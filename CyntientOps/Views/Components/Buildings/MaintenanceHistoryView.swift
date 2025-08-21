@@ -492,8 +492,29 @@ struct MaintenanceHistoryView: View {
         
         Task {
             do {
-                // Fetch all tasks - using TaskService directly
-                let tasks = try await // TaskService injection needed.getAllTasks()
+                // Fetch all tasks directly from database
+                let taskRows = try await GRDBManager.shared.query("""
+                    SELECT id, title, buildingId, status, completedDate, category, workerId 
+                    FROM tasks 
+                    WHERE status = 'completed' AND buildingId = ?
+                """, [buildingID])
+                
+                let tasks = taskRows.compactMap { row -> ContextualTask? in
+                    guard let id = row["id"] as? String,
+                          let title = row["title"] as? String else { return nil }
+                    
+                    return ContextualTask(
+                        id: id,
+                        title: title,
+                        description: "",
+                        buildingId: row["buildingId"] as? String,
+                        workerId: row["workerId"] as? String,
+                        category: CoreTypes.TaskCategory(rawValue: row["category"] as? String ?? "") ?? .maintenance,
+                        urgency: .medium,
+                        isCompleted: true,
+                        completedDate: row["completedDate"] as? Date
+                    )
+                }
                 
                 // Filter tasks for this building and completed status
                 let buildingTasks = tasks.filter { task in

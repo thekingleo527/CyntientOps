@@ -368,8 +368,8 @@ struct CyntientOpsApp: App {
             
             options.tracesSampleRate = 0.2
             
-            // ✅ FIXED: Use SentryProfileOptions.sessionSampleRate instead of deprecated profilesSampleRate
-            options.profileOptions.sessionSampleRate = 0.2 // Profile 20% of sessions
+            // Configure profiling rate - using direct property based on current Sentry SDK
+            options.profilesSampleRate = 0.2 // Profile 20% of sessions
             
             if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String,
                let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String {

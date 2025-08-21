@@ -564,12 +564,15 @@ public class TaskDetailViewModel: ObservableObject {
     }
     
     private func setupSubscriptions() {
-        photoEvidenceService.$uploadProgress
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] progress in
-                self?.photoUploadProgress = progress
-            }
-            .store(in: &cancellables)
+        // Subscribe to photo upload progress if photo service is available
+        if let photoService = container?.photos {
+            photoService.$uploadProgress
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self] progress in
+                    self?.photoUploadProgress = progress
+                }
+                .store(in: &cancellables)
+        }
     }
     
     // MARK: - Error Types

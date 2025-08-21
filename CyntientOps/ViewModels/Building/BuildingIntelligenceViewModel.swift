@@ -134,6 +134,11 @@ public class BuildingIntelligenceViewModel: ObservableObject {
     private func loadBuildingHistory(_ building: NamedCoordinate) async {
         do {
             // Get all tasks and filter for completed ones in this building
+            // Access TaskService through the container
+            guard let taskService = container?.tasks else {
+                print("⚠️ TaskService not available")
+                return
+            }
             let allTasks = try await taskService.getAllTasks()
             let completedTasks = allTasks.filter { task in
                 task.isCompleted && (task.buildingId == building.id || task.building?.id == building.id)
