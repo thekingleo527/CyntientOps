@@ -579,7 +579,7 @@ class AdminDashboardViewModel: ObservableObject {
                 print("🔢 Generating BBL for: \(building.name)")
                 
                 // Generate BBL from building coordinates (Manhattan pattern)
-                let bbl = generateBBLFromCoordinates(building.coordinate.coordinate)
+                let bbl = generateBBLFromCoordinates(building.coordinate)
                 print("✅ Generated BBL \(bbl) for \(building.name)")
                 
                 // Fetch real DOF assessed value data
