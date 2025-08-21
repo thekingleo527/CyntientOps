@@ -667,8 +667,544 @@ enum BuildingDetailTab: String, CaseIterable {
     }
 }
 
-// MARK: - Supporting Components
-// Component implementations are organized below by functional groups
+// MARK: - Component Definitions
+// All components used by BuildingDetailView must be defined here before usage
+
+struct BuildingActivityRow: View {
+    let activity: BuildingDetailActivity
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: iconForActivity(activity.type))
+                .font(.caption)
+                .foregroundColor(colorForActivity(activity.type))
+                .frame(width: 24, height: 24)
+                .background(
+                    Circle()
+                        .fill(colorForActivity(activity.type).opacity(0.15))
+                )
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text(activity.description)
+                    .font(.subheadline)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                
+                HStack(spacing: 8) {
+                    if let worker = activity.workerName {
+                        Text(worker)
+                            .font(.caption)
+                            .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                    }
+                    
+                    Text(activity.timestamp, style: .relative)
+                        .font(.caption)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+                }
+            }
+            
+            Spacer()
+        }
+    }
+    
+    private func iconForActivity(_ type: BuildingDetailActivity.ActivityType) -> String {
+        switch type {
+        case .taskCompleted: return "checkmark.circle"
+        case .photoAdded: return "camera"
+        case .issueReported: return "exclamationmark.triangle"
+        case .workerArrived: return "person.crop.circle.badge.checkmark"
+        case .workerDeparted: return "person.crop.circle.badge.minus"
+        case .routineCompleted: return "calendar.badge.checkmark"
+        case .inventoryUsed: return "shippingbox"
+        }
+    }
+    
+    private func colorForActivity(_ type: BuildingDetailActivity.ActivityType) -> Color {
+        switch type {
+        case .taskCompleted, .routineCompleted, .workerArrived:
+            return CyntientOpsDesign.DashboardColors.success
+        case .photoAdded:
+            return CyntientOpsDesign.DashboardColors.info
+        case .issueReported:
+            return CyntientOpsDesign.DashboardColors.warning
+        case .workerDeparted, .inventoryUsed:
+            return CyntientOpsDesign.DashboardColors.inactive
+        }
+    }
+}
+
+struct BuildingContactRow: View {
+    let name: String
+    let role: String
+    let phone: String?
+    let email: String?
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(name)
+                .font(.subheadline)
+                .fontWeight(.medium)
+                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+            
+            Text(role)
+                .font(.caption)
+                .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+            
+            if let phone = phone {
+                Text(phone)
+                    .font(.caption)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.info)
+            }
+        }
+    }
+}
+
+struct BuildingFilterPill: View {
+    let title: String
+    let isSelected: Bool
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            Text(title)
+                .font(.caption)
+                .fontWeight(.medium)
+                .foregroundColor(isSelected ? .white : CyntientOpsDesign.DashboardColors.secondaryText)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(isSelected ? CyntientOpsDesign.DashboardColors.info : Color.clear)
+                        .stroke(CyntientOpsDesign.DashboardColors.info, lineWidth: 1)
+                )
+        }
+    }
+}
+
+struct BDDailyRoutineRow: View {
+    let routine: BDDailyRoutine
+    let onToggle: () -> Void
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            Button(action: onToggle) {
+                Image(systemName: routine.isCompleted ? "checkmark.circle.fill" : "circle")
+                    .foregroundColor(routine.isCompleted ? CyntientOpsDesign.DashboardColors.success : CyntientOpsDesign.DashboardColors.inactive)
+            }
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text(routine.title)
+                    .font(.subheadline)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                
+                if let time = routine.scheduledTime {
+                    Text("Scheduled: \(time)")
+                        .font(.caption)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+                }
+            }
+            
+            Spacer()
+        }
+    }
+}
+
+struct MaintenanceTaskRow: View {
+    let task: CoreTypes.Task
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(task.title)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                
+                Text(task.description)
+                    .font(.caption)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                    .lineLimit(2)
+            }
+            
+            Spacer()
+            
+            Text(task.status.rawValue)
+                .font(.caption)
+                .fontWeight(.medium)
+                .foregroundColor(.white)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(colorForTaskStatus(task.status))
+                )
+        }
+    }
+    
+    private func colorForTaskStatus(_ status: CoreTypes.TaskStatus) -> Color {
+        switch status {
+        case .pending: return CyntientOpsDesign.DashboardColors.warning
+        case .inProgress: return CyntientOpsDesign.DashboardColors.info
+        case .completed: return CyntientOpsDesign.DashboardColors.success
+        case .cancelled: return CyntientOpsDesign.DashboardColors.critical
+        }
+    }
+}
+
+struct ComplianceRow: View {
+    let title: String
+    let status: CoreTypes.ComplianceStatus
+    let action: String
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: iconForStatus(status))
+                .foregroundColor(colorForStatus(status))
+                .frame(width: 24, height: 24)
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.subheadline)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                
+                Text(action)
+                    .font(.caption)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+            }
+            
+            Spacer()
+            
+            Text(status.rawValue)
+                .font(.caption)
+                .fontWeight(.medium)
+                .foregroundColor(.white)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(colorForStatus(status))
+                )
+        }
+    }
+    
+    private func iconForStatus(_ status: CoreTypes.ComplianceStatus) -> String {
+        switch status {
+        case .compliant: return "checkmark.shield"
+        case .nonCompliant: return "exclamationmark.shield"
+        case .underReview: return "clock.badge.questionmark"
+        }
+    }
+    
+    private func colorForStatus(_ status: CoreTypes.ComplianceStatus) -> Color {
+        switch status {
+        case .compliant: return CyntientOpsDesign.DashboardColors.success
+        case .nonCompliant: return CyntientOpsDesign.DashboardColors.critical
+        case .underReview: return CyntientOpsDesign.DashboardColors.warning
+        }
+    }
+}
+
+struct SummaryStatCard: View {
+    let title: String
+    let value: String
+    let systemImage: String
+    let color: Color
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: systemImage)
+                .font(.title2)
+                .foregroundColor(color)
+                .frame(width: 32, height: 32)
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text(value)
+                    .font(.title3)
+                    .fontWeight(.bold)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                
+                Text(title)
+                    .font(.caption)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+            }
+            
+            Spacer()
+        }
+        .padding()
+        .cyntientOpsDarkCardBackground()
+    }
+}
+
+struct EmptyStateMessage: View {
+    let message: String
+    
+    var body: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "tray")
+                .font(.system(size: 32))
+                .foregroundColor(CyntientOpsDesign.DashboardColors.inactive)
+            
+            Text(message)
+                .font(.subheadline)
+                .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 24)
+    }
+}
+
+struct AssignedWorkerRow: View {
+    let worker: CoreTypes.Worker
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            AsyncImage(url: URL(string: worker.profileImageURL ?? "")) { image in
+                image
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+            } placeholder: {
+                Image(systemName: "person.circle.fill")
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.inactive)
+            }
+            .frame(width: 40, height: 40)
+            .clipShape(Circle())
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text(worker.name)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                
+                Text(worker.role.rawValue)
+                    .font(.caption)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+            }
+            
+            Spacer()
+            
+            if worker.isOnSite {
+                Text("On-site")
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(CyntientOpsDesign.DashboardColors.success)
+                    )
+            }
+        }
+    }
+}
+
+struct BuildingAddInventoryItemSheet: View {
+    let buildingId: String
+    let onComplete: (Bool) -> Void
+    
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 20) {
+                Text("Add Inventory Item")
+                    .font(.title2)
+                    .fontWeight(.bold)
+                
+                Text("Building: \(buildingId)")
+                    .foregroundColor(.secondary)
+                
+                Button("Save") {
+                    onComplete(true)
+                }
+                .buttonStyle(.borderedProminent)
+            }
+            .padding()
+            .navigationTitle("Add Item")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { onComplete(false) }
+                }
+            }
+        }
+    }
+}
+
+struct InventoryStatCard: View {
+    let title: String
+    let value: String
+    let change: String
+    let color: Color
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.caption)
+                .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+            
+            Text(value)
+                .font(.title2)
+                .fontWeight(.bold)
+                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+            
+            Text(change)
+                .font(.caption)
+                .foregroundColor(color)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding()
+        .cyntientOpsDarkCardBackground()
+    }
+}
+
+struct BuildingInventoryCategoryButton: View {
+    let category: String
+    let count: Int
+    let isSelected: Bool
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 4) {
+                Text("\(count)")
+                    .font(.title2)
+                    .fontWeight(.bold)
+                    .foregroundColor(isSelected ? .white : CyntientOpsDesign.DashboardColors.primaryText)
+                
+                Text(category)
+                    .font(.caption)
+                    .foregroundColor(isSelected ? .white : CyntientOpsDesign.DashboardColors.secondaryText)
+            }
+            .frame(maxWidth: .infinity)
+            .padding()
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(isSelected ? CyntientOpsDesign.DashboardColors.info : CyntientOpsDesign.DashboardColors.cardBackground)
+            )
+        }
+    }
+}
+
+struct SpaceDetailSheet: View {
+    let space: BDSpaceAccess
+    let onUpdate: (BDSpaceAccess) -> Void
+    
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 20) {
+                Text("Space Details")
+                    .font(.title2)
+                    .fontWeight(.bold)
+                
+                Text(space.name)
+                    .foregroundColor(.secondary)
+                
+                Button("Update") {
+                    onUpdate(space)
+                }
+                .buttonStyle(.borderedProminent)
+            }
+            .padding()
+            .navigationTitle("Space")
+            .navigationBarTitleDisplayMode(.inline)
+        }
+    }
+}
+
+struct SpaceCard: View {
+    let space: BDSpaceAccess
+    let onTap: () -> Void
+    
+    var body: some View {
+        Button(action: onTap) {
+            VStack(alignment: .leading, spacing: 8) {
+                if let thumbnail = space.thumbnail {
+                    Image(uiImage: thumbnail)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(height: 120)
+                        .clipped()
+                        .cornerRadius(8)
+                }
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(space.name)
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                    
+                    Text(space.category.rawValue)
+                        .font(.caption)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                    
+                    if let notes = space.notes {
+                        Text(notes)
+                            .font(.caption)
+                            .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+                            .lineLimit(2)
+                    }
+                }
+                
+                Spacer()
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding()
+        .cyntientOpsDarkCardBackground()
+    }
+}
+
+struct BuildingEmergencyContactRow: View {
+    let contact: BuildingContact
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "person.crop.circle")
+                .font(.title2)
+                .foregroundColor(CyntientOpsDesign.DashboardColors.critical)
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text(contact.name)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                
+                if let role = contact.role {
+                    Text(role)
+                        .font(.caption)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                }
+                
+                if let phone = contact.phone {
+                    Text(phone)
+                        .font(.caption)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.info)
+                }
+            }
+            
+            Spacer()
+        }
+    }
+}
+
+struct BuildingProcedureRow: View {
+    let title: String
+    let description: String
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(.subheadline)
+                .fontWeight(.medium)
+                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+            
+            Text(description)
+                .font(.caption)
+                .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
 
 // MARK: - Tab Button Component
 struct TabButton: View {
@@ -3444,8 +3980,8 @@ struct BuildingSanitationTab: View {
                             .fontWeight(.semibold)
                             .foregroundColor(CyntientOpsDesign.DashboardColors.warning)
                         
-                        let recentViolations = Array(viewModel.rawDSNYViolations.prefix(3))
-                        ForEach(recentViolations, id: \DSNYViolation.id) { violation in
+                        let recentViolations: [DSNYViolation] = Array(viewModel.rawDSNYViolations.prefix(3))
+                        ForEach(recentViolations, id: \.id) { violation in
                             HStack {
                                 Circle()
                                     .fill(violation.isActive ? CyntientOpsDesign.DashboardColors.critical : CyntientOpsDesign.DashboardColors.success)
