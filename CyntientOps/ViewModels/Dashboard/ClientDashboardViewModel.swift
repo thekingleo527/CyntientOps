@@ -1877,12 +1877,16 @@ public final class ClientDashboardViewModel: ObservableObject {
             
             for violation in pendingViolations {
                 // Use the issueDate from the violation and add 30 days for due date
-                let dueDate = violation.issueDate.addingTimeInterval(2592000) // 30 days
+                // Convert issue date string to Date and add 30 days
+                let dateFormatter = DateFormatter()
+                dateFormatter.dateFormat = "yyyy-MM-dd"
+                let issueDate = dateFormatter.date(from: violation.issueDate) ?? Date()
+                let dueDate = issueDate.addingTimeInterval(2592000) // 30 days
                 
                 let issue = CoreTypes.ComplianceIssue(
                     id: "DSNY_\(violation.id)",
                     title: "DSNY Violation: \(violation.violationType)",
-                    description: violation.description,
+                    description: violation.violationDetails ?? violation.violationType,
                     severity: .medium,
                     buildingId: buildingId,
                     status: .open,
