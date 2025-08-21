@@ -46,6 +46,7 @@ struct QuickActionMenu: View {
     @Binding var isPresented: Bool
     @State private var showNovaChat = false  // Nova integration
     let onActionSelected: (QuickActionType) -> Void
+    let container: ServiceContainer
     
     @State private var animateIn = false
     @State private var selectedAction: QuickActionType?
@@ -128,7 +129,7 @@ struct QuickActionMenu: View {
             UIImpactFeedbackGenerator(style: .medium).impactOccurred()
         }
         .sheet(isPresented: $showNovaChat) {
-            NovaInteractionView()
+            NovaInteractionView(container: container)
         }
     }
     
@@ -312,24 +313,13 @@ struct QuickActionMenu: View {
     }
 }
 
-// MARK: - Preview Provider
-struct QuickActionMenu_Previews: PreviewProvider {
-    static var previews: some View {
-        ZStack {
-            // Background
-            LinearGradient(
-                colors: [.blue.opacity(0.3), .purple.opacity(0.3)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
-            
-            // Menu
-            // ✅ FIXED: Now properly passes Binding to @Binding parameter
-            QuickActionMenu(isPresented: .constant(true)) { action in
-                print("Selected: \(action.rawValue)")
-            }
-        }
-        .preferredColorScheme(.dark)
-    }
+// Preview disabled - requires ServiceContainer async initialization
+/*
+#Preview {
+    QuickActionMenu(
+        isPresented: .constant(true), 
+        onActionSelected: { action in print("Selected: \(action.rawValue)") },
+        container: container
+    )
 }
+*/

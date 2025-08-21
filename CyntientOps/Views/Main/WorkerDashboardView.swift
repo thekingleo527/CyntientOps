@@ -579,7 +579,7 @@ struct WorkerDashboardView: View {
             }
             
         case .novaChat:
-            NovaInteractionView()
+            NovaInteractionView(container: container)
                 .environmentObject(novaManager)
                 .navigationTitle("Nova Assistant")
                 .navigationBarTitleDisplayMode(.inline)
