@@ -25,6 +25,7 @@ public class ClockInManager: ObservableObject {
     
     private var activeSessions: [CoreTypes.WorkerID: ClockInSession] = [:]
     private let grdbManager = GRDBManager.shared
+    private var dashboardSync: DashboardSyncService?
     
     // MARK: - Types
     
@@ -81,6 +82,11 @@ public class ClockInManager: ObservableObject {
         await loadActiveSessions()
     }
     
+    /// Set the dashboard sync service for real-time updates
+    public func setDashboardSync(_ service: DashboardSyncService) {
+        self.dashboardSync = service
+    }
+    
     // MARK: - Clock In/Out Methods (WITH FULL INTEGRATION)
     
     /// Clock in at ANY building - now with QuickBooks-ready tracking
@@ -118,12 +124,15 @@ public class ClockInManager: ObservableObject {
             print("✅ Worker \(workerId) clocked IN at \(building.name)")
             
             // Notify DashboardSyncService
-            await notifyDashboardSync(
-                workerId: workerId,
-                buildingId: building.id,
-                buildingName: building.name,
-                isClockedIn: true
-            )
+            if let dashboardSync = dashboardSync {
+                await notifyDashboardSync(
+                    workerId: workerId,
+                    buildingId: building.id,
+                    buildingName: building.name,
+                    isClockedIn: true,
+                    dashboardSync: dashboardSync
+                )
+            }
             
             // Post UI notification
             await postClockInNotification(
@@ -175,12 +184,15 @@ public class ClockInManager: ObservableObject {
             print("   Hours worked: \(String(format: "%.2f", hoursWorked))")
             
             // Notify DashboardSyncService
-            await notifyDashboardSync(
-                workerId: workerId,
-                buildingId: session.buildingId,
-                buildingName: session.buildingName,
-                isClockedIn: false
-            )
+            if let dashboardSync = dashboardSync {
+                await notifyDashboardSync(
+                    workerId: workerId,
+                    buildingId: session.buildingId,
+                    buildingName: session.buildingName,
+                    isClockedIn: false,
+                    dashboardSync: dashboardSync
+                )
+            }
             
             // Post UI notification with hours worked
             await postClockOutNotification(
@@ -354,15 +366,15 @@ public class ClockInManager: ObservableObject {
     // MARK: - Integration Helpers
     
     @MainActor
-    private func notifyDashboardSync(workerId: String, buildingId: String, buildingName: String, isClockedIn: Bool) async {
+    private func notifyDashboardSync(workerId: String, buildingId: String, buildingName: String, isClockedIn: Bool, dashboardSync: DashboardSyncService) async {
         if isClockedIn {
-            DashboardSyncService.shared.onWorkerClockedIn(
+            dashboardSync.onWorkerClockedIn(
                 workerId: workerId,
                 buildingId: buildingId,
                 buildingName: buildingName
             )
         } else {
-            DashboardSyncService.shared.onWorkerClockedOut(
+            dashboardSync.onWorkerClockedOut(
                 workerId: workerId,
                 buildingId: buildingId
             )
@@ -382,7 +394,7 @@ public class ClockInManager: ObservableObject {
         )
         
         // Use the correct broadcast method for worker updates
-        DashboardSyncService.shared.broadcastWorkerUpdate(update)
+        dashboardSync.broadcastWorkerUpdate(update)
     }
     
     @MainActor

@@ -313,7 +313,7 @@ struct TaskCompletionChart: View {
         .cornerRadius(16)
         .padding(.horizontal)
         .task { loadChartData() }
-        .onChange(of: timeRange) { _ in loadChartData() }
+        .onChange(of: timeRange) { _, _ in loadChartData() }
     }
     
     private func loadChartData() {
@@ -602,22 +602,31 @@ class BuildingMetricsViewModel: ObservableObject {
     @Published var error: Error?
     
     private var cancellables = Set<AnyCancellable>()
+    private let container: ServiceContainer?
+    
+    init(container: ServiceContainer? = nil) {
+        self.container = container
+    }
     
     func loadMetrics(for buildingId: String) async {
         isLoading = true
         
         do {
-            // ✅ FIXED: Added 'await' before the async call
-            metrics = try await BuildingMetricsService.shared.calculateMetrics(for: buildingId)
+            // Access BuildingMetricsService through ServiceContainer
+            guard let metricsService = container?.metrics else {
+                print("⚠️ BuildingMetricsService not available")
+                isLoading = false
+                return
+            }
             
-            let publisher = await BuildingMetricsService.shared.subscribeToMetrics(for: buildingId)
+            metrics = try await metricsService.calculateMetrics(for: buildingId)
+            
+            let publisher = await metricsService.subscribeToMetrics(for: buildingId)
             publisher
                 .receive(on: DispatchQueue.main)
                 .sink(receiveCompletion: { [weak self] completion in
-                    if case .failure(let error) = completion {
-                        self?.error = error
-                    }
-                }, receiveValue: { [weak self] updatedMetrics in
+                    // Publisher with Never failure type doesn't produce errors
+                }, receiveValue: { [weak self] (updatedMetrics: CoreTypes.BuildingMetrics) in
                     self?.metrics = updatedMetrics
                 })
                 .store(in: &cancellables)
@@ -639,8 +648,10 @@ class BuildingMetricsViewModel: ObservableObject {
     }
     
     func refreshMetrics(for buildingId: String) async {
-        // ✅ FIXED: Ensure 'await' is present for both async calls
-        await BuildingMetricsService.shared.invalidateCache(for: buildingId)
+        // Access BuildingMetricsService through ServiceContainer for cache invalidation
+        if let metricsService = container?.metrics {
+            await metricsService.invalidateCache(for: buildingId)
+        }
         await loadMetrics(for: buildingId)
     }
 }

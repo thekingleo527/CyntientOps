@@ -25,7 +25,8 @@ public actor SiteLogService {
         notes: String?,
         nextDestination: String? = nil,
         departureMethod: DepartureMethod = .normal,
-        location: CLLocation? = nil
+        location: CLLocation? = nil,
+        dashboardSync: DashboardSyncService
     ) async throws -> String {
         let logId = UUID().uuidString
         
@@ -61,7 +62,8 @@ public actor SiteLogService {
             workerId: workerId,
             buildingId: buildingId,
             checklist: checklist,
-            departureMethod: departureMethod
+            departureMethod: departureMethod,
+            dashboardSync: dashboardSync
         )
         
         // Update clock session if this is end of day
@@ -226,7 +228,8 @@ public actor SiteLogService {
         workerId: String,
         buildingId: String,
         checklist: DepartureChecklist,
-        departureMethod: DepartureMethod
+        departureMethod: DepartureMethod,
+        dashboardSync: DashboardSyncService
     ) async {
         let update = CoreTypes.DashboardUpdate(
             source: .worker,
@@ -246,7 +249,7 @@ public actor SiteLogService {
         )
         
         await MainActor.run {
-            DashboardSyncService.shared.broadcastWorkerUpdate(update)
+            dashboardSync.broadcastWorkerUpdate(update)
         }
     }
     

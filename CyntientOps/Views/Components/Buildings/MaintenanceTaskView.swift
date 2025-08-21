@@ -3,15 +3,16 @@ import Foundation
 
 struct MaintenanceTaskView: View {
     let task: MaintenanceTask
+    let container: ServiceContainer
     @Environment(\.presentationMode) private var presentationMode
     @State private var showCompleteConfirmation = false
     @State private var buildingName: String = "Loading..."
     @State private var isMarkingComplete = false
 
     // ✅ Use consolidated services from v6.0
-    // private let buildingService = // BuildingService injection needed
-    // private let taskService = // TaskService injection needed
-    // private let workerService = // WorkerService injection needed
+    private var buildingService: BuildingService { container.buildings }
+    private var taskService: TaskService { container.tasks }
+    private var workerService: WorkerService { container.workers }
 
     // ✅ FIXED: Complete switch with all CyntientOps.TaskUrgency cases
     private func getUrgencyColor(_ urgency: CyntientOps.TaskUrgency) -> Color {
@@ -309,21 +310,3 @@ struct StatusBadge: View {
     }
 }
 
-// MARK: - Preview
-struct MaintenanceTaskView_Previews: PreviewProvider {
-    static var previews: some View {
-        NavigationView {
-            // ✅ FIXED: Use correct MaintenanceTask initializer without recurrence
-            MaintenanceTaskView(task: CoreTypes.MaintenanceTask(
-                title: "Replace Air Filter",
-                description: "Replace HVAC air filter in main unit",
-                category: .maintenance,
-                urgency: .medium,
-                buildingId: "1",
-                assignedWorkerId: "4",
-                dueDate: Date()
-            ))
-        }
-        .preferredColorScheme(.dark)
-    }
-}

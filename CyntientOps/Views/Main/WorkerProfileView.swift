@@ -13,6 +13,7 @@ import SwiftUI
 struct WorkerProfileView: View {
     @StateObject private var viewModel = WorkerProfileViewModel()
     let workerId: String
+    let container: ServiceContainer
     
     var body: some View {
         ZStack {
@@ -60,6 +61,7 @@ struct WorkerProfileView: View {
         .navigationTitle("Worker Profile")
         .navigationBarTitleDisplayMode(.large)
         .task {
+            viewModel.configure(with: container)
             await viewModel.loadWorkerData(workerId: workerId)
         }
         .overlay {
@@ -618,9 +620,14 @@ class WorkerProfileViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String?
     
-    // private let workerService = // WorkerService injection needed
-    // private let taskService = // TaskService injection needed
+    private var workerService: WorkerService?
+    private var taskService: TaskService?
     private let workerMetricsService = WorkerMetricsService.shared
+    
+    func configure(with container: ServiceContainer) {
+        self.workerService = container.workers
+        self.taskService = container.tasks
+    }
     
     func loadWorkerData(workerId: String) async {
         isLoading = true
@@ -628,6 +635,11 @@ class WorkerProfileViewModel: ObservableObject {
         
         do {
             // Load worker profile
+            guard let workerService = workerService else {
+                errorMessage = "Worker service not configured"
+                isLoading = false
+                return
+            }
             worker = try await workerService.getWorkerProfile(for: workerId)
             
             // Load performance metrics
@@ -666,22 +678,32 @@ class WorkerProfileViewModel: ObservableObject {
             }
             
             // Load recent tasks
+            guard let taskService = taskService else {
+                // Skip tasks loading if service not available
+                recentTasks = []
+                isLoading = false
+                return
+            }
             recentTasks = try await taskService.getTasks(for: workerId, date: Date())
             
             // If no tasks for today, get all tasks for this worker
             if recentTasks.isEmpty {
                 let allTasks = try await taskService.getAllTasks()
-                recentTasks = allTasks
-                    .filter { task in
-                        task.assignedWorkerId == workerId || task.worker?.id == workerId
-                    }
-                    .sorted { task1, task2 in
-                        let date1 = task1.completedDate ?? task1.dueDate ?? Date.distantPast
-                        let date2 = task2.completedDate ?? task2.dueDate ?? Date.distantPast
-                        return date1 > date2
-                    }
-                    .prefix(10)
-                    .map { $0 }
+                
+                // Filter tasks for this worker
+                let workerTasks = allTasks.filter { task in
+                    task.assignedWorkerId == workerId || task.worker?.id == workerId
+                }
+                
+                // Sort by completion/due date (most recent first)
+                let sortedTasks = workerTasks.sorted { task1, task2 in
+                    let date1 = task1.completedDate ?? task1.dueDate ?? Date.distantPast
+                    let date2 = task2.completedDate ?? task2.dueDate ?? Date.distantPast
+                    return date1 > date2
+                }
+                
+                // Take first 10 tasks
+                recentTasks = Array(sortedTasks.prefix(10))
             }
             
         } catch {
@@ -1127,13 +1149,3 @@ struct BuildingSummary {
     let todayTaskCount: Int
 }
 
-// MARK: - Preview
-
-struct WorkerProfileView_Previews: PreviewProvider {
-    static var previews: some View {
-        NavigationView {
-            WorkerProfileView(workerId: "4")
-        }
-        .preferredColorScheme(.dark)
-    }
-}

@@ -22,6 +22,9 @@ public struct ProfileBadge: View {
     let context: DashboardContext
     let onTap: () -> Void
 
+    // MARK: - Dependencies
+    @EnvironmentObject private var container: ServiceContainer
+    
     // MARK: - State
     @State private var isPressed = false
     @State private var pulseAnimation = false
@@ -105,6 +108,9 @@ public struct ProfileBadge: View {
             .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isPressed)
         }
         .buttonStyle(PlainButtonStyle())
+        .onAppear {
+            statusMonitor.configure(with: container)
+        }
         .onLongPressGesture(
             minimumDuration: 0.5,
             pressing: { pressing in
@@ -221,9 +227,14 @@ class WorkerStatusMonitor: ObservableObject {
     
     private var cancellables = Set<AnyCancellable>()
     private let workerId: String
+    private weak var container: ServiceContainer?
     
     init(workerId: String) {
         self.workerId = workerId
+    }
+    
+    func configure(with container: ServiceContainer) {
+        self.container = container
         setupMonitoring()
     }
     
@@ -239,7 +250,7 @@ class WorkerStatusMonitor: ObservableObject {
             .store(in: &cancellables)
             
         // ✅ FIXED: Correct Combine publisher assignment
-        DashboardSyncService.shared.workerDashboardUpdates
+        container?.dashboardSync.workerDashboardUpdates
             .filter { $0.workerId == self.workerId }
             .receive(on: DispatchQueue.main)
             .sink { [weak self] update in
@@ -320,6 +331,5 @@ struct ProfileBadge_Previews: PreviewProvider {
         .padding()
         .background(Color.gray.opacity(0.2))
         .preferredColorScheme(.dark)
-        .environmentObject(DashboardSyncService.shared)
     }
 }

@@ -891,43 +891,24 @@ struct WorkerPerformanceCard: View {
     }
     
     private func loadPerformanceMetrics() async {
-        // Load performance data from database
-        do {
-            let metrics = await WorkerMetricsService.shared.calculateWorkerMetrics(
-                workerId: worker.id,
-                buildingId: buildingId
-            )
-            
-            self.metrics = WorkerPerformanceData(
-                overallScore: Double(metrics.overallScore),
-                tasksCompleted: metrics.specializedTasksCompleted,
-                tasksTrend: .stable, // Use actual trend calculation
-                onTimeRate: metrics.taskCompletionRate,
-                onTimeTrend: .stable,
-                attendanceRate: metrics.routineAdherence,
-                attendanceTrend: .stable,
-                qualityScore: metrics.maintenanceEfficiency,
-                qualityTrend: .stable,
-                achievements: [] // Could be populated from separate source
-            )
-        } catch {
-            // Use mock data as fallback
-            metrics = WorkerPerformanceData(
-                overallScore: 87,
-                tasksCompleted: 142,
-                tasksTrend: .up,
-                onTimeRate: 92,
-                onTimeTrend: .stable,
-                attendanceRate: 98,
-                attendanceTrend: .up,
-                qualityScore: 85,
-                qualityTrend: .up,
-                achievements: [
-                    "100 tasks completed this month",
-                    "Perfect attendance - 30 days"
-                ]
-            )
-        }
+        // Load performance data from database - no try needed for non-throwing async
+        let metrics = await WorkerMetricsService.shared.calculateWorkerMetrics(
+            workerId: worker.id,
+            buildingId: buildingId
+        )
+        
+        self.metrics = WorkerPerformanceData(
+            overallScore: Double(metrics.overallScore),
+            tasksCompleted: metrics.specializedTasksCompleted,
+            tasksTrend: .stable, // Use actual trend calculation
+            onTimeRate: metrics.taskCompletionRate,
+            onTimeTrend: .stable,
+            attendanceRate: metrics.routineAdherence,
+            attendanceTrend: .stable,
+            qualityScore: metrics.maintenanceEfficiency,
+            qualityTrend: .stable,
+            achievements: [] // Could be populated from separate source
+        )
         isLoading = false
     }
     
@@ -1708,11 +1689,34 @@ struct ShiftAssignmentSheet: View {
     }
     
     private func loadAvailableWorkers() async {
+        // Load workers directly from database since this is a View component
         do {
-            let workers = try await // WorkerService injection needed.getActiveWorkers()
+            let workerRows = try await GRDBManager.shared.query("""
+                SELECT id, name, role, isActive 
+                FROM workers 
+                WHERE isActive = 1
+            """, [])
+            
+            let workers = workerRows.compactMap { row -> CoreTypes.WorkerProfile? in
+                guard let id = row["id"] as? String,
+                      let name = row["name"] as? String,
+                      let roleString = row["role"] as? String else { return nil }
+                
+                let role = CoreTypes.UserRole(rawValue: roleString) ?? .worker
+                
+                return CoreTypes.WorkerProfile(
+                    id: id,
+                    name: name,
+                    email: "", // Not needed for this component
+                    role: role,
+                    isActive: true
+                )
+            }
+            
             availableWorkers = workers
         } catch {
             print("❌ Error loading workers: \(error)")
+            availableWorkers = [] // Fallback to empty array
         }
     }
 }

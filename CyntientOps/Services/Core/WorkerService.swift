@@ -14,9 +14,11 @@ import GRDB
 
 public actor WorkerService {
     private let grdbManager: GRDBManager
+    private let dashboardSync: DashboardSyncService
     
-    public init(database: GRDBManager) {
+    public init(database: GRDBManager, dashboardSync: DashboardSyncService) {
         self.grdbManager = database
+        self.dashboardSync = dashboardSync
     }
     
     // MARK: - Public API Methods
@@ -201,7 +203,7 @@ public actor WorkerService {
             ]
         )
         
-        await DashboardSyncService.shared.broadcastAdminUpdate(update)
+        await dashboardSync.broadcastAdminUpdate(update)
     }
     
     /// Update worker profile
@@ -241,7 +243,7 @@ public actor WorkerService {
             ]
         )
         
-        await DashboardSyncService.shared.broadcastAdminUpdate(update)
+        await dashboardSync.broadcastAdminUpdate(update)
     }
     
     /// Deactivate worker (soft delete)
@@ -284,7 +286,7 @@ public actor WorkerService {
             ]
         )
         
-        await DashboardSyncService.shared.broadcastAdminUpdate(update)
+        await dashboardSync.broadcastAdminUpdate(update)
     }
     
     // MARK: - Analytics Methods

@@ -14,7 +14,7 @@ import GRDB
 import CoreLocation // Added for CLLocationCoordinate2D
 
 public actor TaskService {
-    private let grdbManager: GRDBManager
+    internal let grdbManager: GRDBManager
     private let dashboardSync: DashboardSyncService?
     
     public init(database: GRDBManager, dashboardSync: DashboardSyncService? = nil) {

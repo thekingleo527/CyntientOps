@@ -43,8 +43,10 @@ struct NovaInteractionView: View {
     @State private var showNovaAssistant = false
     
     // MARK: - Services
-    private let novaAPI = NovaAPIService.shared
-    private let operationalManager = OperationalDataManager.shared
+    let container: ServiceContainer
+    
+    private var novaAPI: NovaAPIService { container.novaAPI }
+    private var operationalManager: OperationalDataManager { container.operationalData }
     
     var body: some View {
         NavigationStack {
@@ -214,7 +216,7 @@ struct NovaInteractionView: View {
                     Text("Tasks")
                         .font(.caption2)
                         .foregroundColor(.white.opacity(0.6))
-                    Text("\(contextAdapter.todaysTasks.filter { $0.buildingId == building.id }.count)")
+                    Text("\(contextAdapter.getTodaysTasks().filter { $0.buildingId == building.id }.count)")
                         .font(.caption.weight(.semibold))
                         .foregroundColor(.cyan)
                 }
@@ -280,7 +282,7 @@ struct NovaInteractionView: View {
                     portfolioMetricCard(
                         icon: "building.2",
                         title: "Buildings", 
-                        value: "\(contextAdapter.assignedBuildings.count)",
+                        value: "\(contextAdapter.getAssignedBuildings().count)",
                         subtitle: "assigned",
                         color: .cyan
                     )
@@ -288,7 +290,7 @@ struct NovaInteractionView: View {
                     portfolioMetricCard(
                         icon: "checklist",
                         title: "Total Tasks",
-                        value: "\(contextAdapter.todaysTasks.count)",
+                        value: "\(contextAdapter.getTodaysTasks().count)",
                         subtitle: "today",
                         color: .blue
                     )
@@ -296,7 +298,7 @@ struct NovaInteractionView: View {
                     portfolioMetricCard(
                         icon: "checkmark.circle.fill",
                         title: "Completed",
-                        value: "\(contextAdapter.todaysTasks.filter { $0.isCompleted }.count)",
+                        value: "\(contextAdapter.getTodaysTasks().filter { $0.isCompleted }.count)",
                         subtitle: "tasks done",
                         color: .green
                     )
@@ -312,7 +314,7 @@ struct NovaInteractionView: View {
                 .padding(.horizontal)
                 
                 // Recent activity
-                if !contextAdapter.todaysTasks.isEmpty {
+                if !contextAdapter.getTodaysTasks().isEmpty {
                     VStack(alignment: .leading, spacing: 12) {
                         HStack {
                             Text("Recent Activity")
@@ -322,7 +324,7 @@ struct NovaInteractionView: View {
                             Spacer()
                         }
                         
-                        ForEach(contextAdapter.todaysTasks.prefix(3)) { task in
+                        ForEach(contextAdapter.getTodaysTasks().prefix(3)) { task in
                             recentActivityItem(task)
                         }
                     }
@@ -383,7 +385,7 @@ struct NovaInteractionView: View {
                     .foregroundColor(.white)
                     .lineLimit(1)
                 
-                if let building = contextAdapter.assignedBuildings.first(where: { $0.id == task.buildingId }) {
+                if let building = contextAdapter.getAssignedBuildings().first(where: { $0.id == task.buildingId }) {
                     Text(building.name)
                         .font(.caption)
                         .foregroundColor(.white.opacity(0.7))
@@ -662,7 +664,7 @@ struct NovaInteractionView: View {
                         .font(.headline)
                         .foregroundColor(.white)
                     
-                    if let worker = contextAdapter.currentWorker {
+                    if let worker = contextAdapter.getCurrentWorker() {
                         Text("Welcome back, \(worker.name)")
                             .font(.subheadline)
                             .foregroundColor(.white.opacity(0.7))
@@ -674,8 +676,8 @@ struct NovaInteractionView: View {
             
             // Quick stats
             HStack(spacing: 20) {
-                quickStat(icon: "building.2", value: "\(contextAdapter.assignedBuildings.count)", label: "Buildings")
-                quickStat(icon: "checklist", value: "\(contextAdapter.todaysTasks.count)", label: "Tasks")
+                quickStat(icon: "building.2", value: "\(contextAdapter.getAssignedBuildings().count)", label: "Buildings")
+                quickStat(icon: "checklist", value: "\(contextAdapter.getTodaysTasks().count)", label: "Tasks")
                 if let urgentCount = urgentTaskCount, urgentCount > 0 {
                     quickStat(icon: "exclamationmark.circle", value: "\(urgentCount)", label: "Urgent")
                         .foregroundColor(.orange)
@@ -743,34 +745,34 @@ struct NovaInteractionView: View {
                 contextDataItem(
                     icon: "building.2",
                     title: "Buildings",
-                    value: "\(contextAdapter.assignedBuildings.count)",
+                    value: "\(contextAdapter.getAssignedBuildings().count)",
                     subtitle: "assigned"
                 )
                 
                 contextDataItem(
                     icon: "list.bullet.clipboard",
                     title: "Tasks",
-                    value: "\(contextAdapter.todaysTasks.count)",
+                    value: "\(contextAdapter.getTodaysTasks().count)",
                     subtitle: "today"
                 )
                 
                 contextDataItem(
                     icon: "clock",
                     title: "Status",
-                    value: contextAdapter.currentWorker != nil ? "Active" : "Standby",
-                    subtitle: contextAdapter.currentWorker != nil ? "since \(getCurrentShiftStart())" : "ready"
+                    value: contextAdapter.getCurrentWorker() != nil ? "Active" : "Standby",
+                    subtitle: contextAdapter.getCurrentWorker() != nil ? "since \(getCurrentShiftStart())" : "ready"
                 )
                 
                 contextDataItem(
                     icon: "person.circle",
                     title: "Worker",
-                    value: contextAdapter.currentWorker?.name ?? "Unknown",
-                    subtitle: "ID: \(contextAdapter.currentWorker?.id ?? "N/A")"
+                    value: contextAdapter.getCurrentWorker()?.name ?? "Unknown",
+                    subtitle: "ID: \(contextAdapter.getCurrentWorker()?.id ?? "N/A")"
                 )
             }
             
             // Building list if expanded
-            if showContextualData && !contextAdapter.assignedBuildings.isEmpty {
+            if showContextualData && !contextAdapter.getAssignedBuildings().isEmpty {
                 Divider()
                     .background(Color.white.opacity(0.2))
                 
@@ -779,7 +781,7 @@ struct NovaInteractionView: View {
                         .font(.caption.weight(.medium))
                         .foregroundColor(.white.opacity(0.7))
                     
-                    ForEach(contextAdapter.assignedBuildings.prefix(3)) { building in
+                    ForEach(contextAdapter.getAssignedBuildings().prefix(3)) { building in
                         HStack(spacing: 8) {
                             Circle()
                                 .fill(Color.green)
@@ -791,8 +793,8 @@ struct NovaInteractionView: View {
                         }
                     }
                     
-                    if contextAdapter.assignedBuildings.count > 3 {
-                        Text("and \(contextAdapter.assignedBuildings.count - 3) more...")
+                    if contextAdapter.getAssignedBuildings().count > 3 {
+                        Text("and \(contextAdapter.getAssignedBuildings().count - 3) more...")
                             .font(.caption2)
                             .foregroundColor(.white.opacity(0.4))
                     }
@@ -905,7 +907,7 @@ struct NovaInteractionView: View {
         // Always show maintenance request as first option for clients
         actions.append("🔧 Maintenance Request")
         
-        if contextAdapter.todaysTasks.count > 0 {
+        if contextAdapter.getTodaysTasks().count > 0 {
             actions.append("📋 Today's Tasks")
         }
         
@@ -934,13 +936,13 @@ struct NovaInteractionView: View {
     @MainActor
     private var contextIndicator: some View {
         Menu {
-            if let building = contextAdapter.currentBuilding {
+            if let building = contextAdapter.getCurrentBuilding() {
                 Label(building.name, systemImage: "building.2")
             }
             
-            Label("\(contextAdapter.todaysTasks.count) tasks", systemImage: "checklist")
+            Label("\(contextAdapter.getTodaysTasks().count) tasks", systemImage: "checklist")
             
-            if let worker = contextAdapter.currentWorker {
+            if let worker = contextAdapter.getCurrentWorker() {
                 Label(worker.name, systemImage: "person.fill")
             }
             
@@ -1017,8 +1019,8 @@ struct NovaInteractionView: View {
     }
     
     private var shouldShowEmergencyRepair: Bool {
-        let workerId = contextAdapter.currentWorker?.id ?? ""
-        let buildings = contextAdapter.assignedBuildings
+        let workerId = contextAdapter.getCurrentWorker()?.id ?? ""
+        let buildings = contextAdapter.getAssignedBuildings()
         return workerId == "worker_001" && buildings.isEmpty
     }
     
@@ -1030,7 +1032,7 @@ struct NovaInteractionView: View {
     }
     
     private var urgentTaskCount: Int? {
-        let urgent = contextAdapter.todaysTasks.filter {
+        let urgent = contextAdapter.getTodaysTasks().filter {
             $0.urgency == .critical || $0.urgency == .urgent
         }.count
         return urgent > 0 ? urgent : nil
@@ -1119,13 +1121,18 @@ struct NovaInteractionView: View {
         
         let contextData = await buildContextData()
         
+        let initialInsights = await gatherInitialInsights()
+        let workerId = contextAdapter.getCurrentWorker()?.id ?? ""
+        let buildingCount = String(contextAdapter.getAssignedBuildings().count)
+        let taskCount = String(contextAdapter.getTodaysTasks().count)
+        
         currentContext = NovaContext(
             data: contextData,
-            insights: await gatherInitialInsights(),
+            insights: initialInsights,
             metadata: [
-                "workerId": contextAdapter.currentWorker?.id ?? "",
-                "buildingCount": String(contextAdapter.assignedBuildings.count),
-                "taskCount": String(contextAdapter.todaysTasks.count),
+                "workerId": workerId,
+                "buildingCount": buildingCount,
+                "taskCount": taskCount,
                 "summary": await generateContextSummary()
             ]
         )
@@ -1173,7 +1180,7 @@ struct NovaInteractionView: View {
                 
                 // Trigger actual data refresh
                 Task {
-                    if let workerId = contextAdapter.currentWorker?.id {
+                    if let workerId = contextAdapter.getCurrentWorker()?.id {
                         do {
                             try await contextAdapter.loadContext(for: workerId)
                         } catch {
@@ -1199,7 +1206,7 @@ struct NovaInteractionView: View {
         
         // Check time-based scenarios
         let hour = Calendar.current.component(.hour, from: Date())
-        if hour >= 17 && contextAdapter.currentWorker != nil {
+        if hour >= 17 && contextAdapter.getCurrentWorker() != nil {
             addScenario(.taskOptimization)
         }
     }
@@ -1292,26 +1299,26 @@ struct NovaInteractionView: View {
     private func buildContextData() async -> [String: String] {
         var contextData: [String: String] = [:]
         
-        if let worker = contextAdapter.currentWorker {
+        if let worker = contextAdapter.getCurrentWorker() {
             contextData["workerName"] = worker.name
             contextData["workerId"] = worker.id
             contextData["workerRole"] = worker.role.rawValue
         }
         
-        if let building = contextAdapter.currentBuilding {
+        if let building = contextAdapter.getCurrentBuilding() {
             contextData["currentBuilding"] = building.name
             contextData["currentBuildingId"] = building.id
         }
         
-        contextData["assignedBuildings"] = String(contextAdapter.assignedBuildings.count)
-        contextData["todaysTasks"] = String(contextAdapter.todaysTasks.count)
+        contextData["assignedBuildings"] = String(contextAdapter.getAssignedBuildings().count)
+        contextData["todaysTasks"] = String(contextAdapter.getTodaysTasks().count)
         
         if let urgentCount = urgentTaskCount {
             contextData["urgentTasks"] = String(urgentCount)
         }
         
         contextData["timeOfDay"] = getTimeBasedGreeting()
-        contextData["completedTasks"] = String(contextAdapter.todaysTasks.filter { $0.isCompleted }.count)
+        contextData["completedTasks"] = String(contextAdapter.getTodaysTasks().filter { $0.isCompleted }.count)
         
         return contextData
     }
@@ -1320,14 +1327,14 @@ struct NovaInteractionView: View {
     private func gatherInitialInsights() async -> [String] {
         var insights: [String] = []
         
-        let completedTasks = contextAdapter.todaysTasks.filter { $0.isCompleted }.count
-        let totalTasks = contextAdapter.todaysTasks.count
+        let completedTasks = contextAdapter.getTodaysTasks().filter { $0.isCompleted }.count
+        let totalTasks = contextAdapter.getTodaysTasks().count
         if totalTasks > 0 {
             let completionRate = (completedTasks * 100) / totalTasks
             insights.append("Task completion rate: \(completionRate)%")
         }
         
-        if let building = contextAdapter.currentBuilding {
+        if let building = contextAdapter.getCurrentBuilding() {
             insights.append("Primary focus: \(building.name)")
         }
         
@@ -1336,8 +1343,8 @@ struct NovaInteractionView: View {
     
     @MainActor
     private func generateContextSummary() async -> String {
-        let buildings = contextAdapter.assignedBuildings.count
-        let tasks = contextAdapter.todaysTasks.count
+        let buildings = contextAdapter.getAssignedBuildings().count
+        let tasks = contextAdapter.getTodaysTasks().count
         
         if shouldShowEmergencyRepair {
             return "⚠️ Assignment repair needed"
@@ -1350,14 +1357,14 @@ struct NovaInteractionView: View {
     
     @MainActor
     private func generateWelcomeMessage() async -> String {
-        guard let worker = contextAdapter.currentWorker else {
+        guard let worker = contextAdapter.getCurrentWorker() else {
             return "Hello! I'm Nova, your AI assistant. Please log in to get started."
         }
         
         let greeting = getTimeBasedGreeting()
-        let taskSummary = contextAdapter.todaysTasks.isEmpty ?
+        let taskSummary = contextAdapter.getTodaysTasks().isEmpty ?
             "You have no tasks scheduled." :
-            "You have \(contextAdapter.todaysTasks.count) tasks today."
+            "You have \(contextAdapter.getTodaysTasks().count) tasks today."
         
         if shouldShowEmergencyRepair {
             return "\(greeting), \(worker.name)! I've detected an issue with your building assignments. Would you like me to run an emergency repair?"
@@ -1416,7 +1423,7 @@ struct NovaInteractionView: View {
     }
     
     private func generateInsights() async {
-        if let building = contextAdapter.currentBuilding {
+        if let building = contextAdapter.getCurrentBuilding() {
             do {
                 // Generate building insights - simplified for compilation
                 let insights: [CoreTypes.IntelligenceInsight] = []
@@ -1831,7 +1838,11 @@ extension View {
 // MARK: - Preview
 
 #Preview {
-    NovaInteractionView()
+    // Note: Preview requires a ServiceContainer instance
+    // This would need to be provided by the parent view in actual usage
+    Text("NovaInteractionView Preview")
+        .foregroundColor(.white)
+        .background(Color.black)
         .preferredColorScheme(.dark)
 }
 

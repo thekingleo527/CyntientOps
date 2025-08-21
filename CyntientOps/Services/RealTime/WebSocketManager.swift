@@ -18,8 +18,9 @@ import Combine
 import UIKit
 #endif
 
-actor WebSocketManager {
-    static let shared = WebSocketManager()
+public actor WebSocketManager {
+    
+    private var updateHandler: ((CoreTypes.DashboardUpdate) async -> Void)?
     
     private var webSocketTask: URLSessionWebSocketTask?
     private var isConnected = false
@@ -32,7 +33,7 @@ actor WebSocketManager {
     // A separate NSObject delegate is used to bridge the actor context with the @objc delegate protocol.
     private let delegate: WebSocketDelegate
     
-    private init() {
+    public init() {
         self.delegate = WebSocketDelegate()
         self.urlSession = URLSession(configuration: .default, delegate: delegate, delegateQueue: nil)
         
@@ -58,7 +59,7 @@ actor WebSocketManager {
     
     // MARK: - Connection Management
     
-    func connect(token: String) {
+    public func connect(token: String) {
         guard !isConnected else {
             print("🔌 WebSocket is already connected or connecting.")
             return
@@ -78,16 +79,20 @@ actor WebSocketManager {
         webSocketTask?.resume()
     }
     
-    func disconnect() {
+    public func disconnect() {
         guard isConnected else { return }
         print("🔌 WebSocket disconnecting...")
         webSocketTask?.cancel(with: .goingAway, reason: "User initiated disconnect".data(using: .utf8))
         resetConnectionState()
     }
     
+    public func setUpdateHandler(_ handler: @escaping (CoreTypes.DashboardUpdate) async -> Void) {
+        updateHandler = handler
+    }
+    
     // MARK: - Message Handling
     
-    func send(_ update: CoreTypes.DashboardUpdate) async throws {
+    public func send(_ update: CoreTypes.DashboardUpdate) async throws {
         guard isConnected, let task = webSocketTask else {
             throw WebSocketError.notConnected
         }
@@ -248,10 +253,8 @@ actor WebSocketManager {
     }
     
     private func notifyDashboardSync(_ update: CoreTypes.DashboardUpdate) async {
-        await MainActor.run {
-            // This now calls the single, public method in DashboardSyncService.
-            DashboardSyncService.shared.handleRemoteUpdate(update)
-        }
+        // Call the update handler if set
+        await updateHandler?(update)
     }
 }
 

@@ -1077,7 +1077,7 @@ struct PortfolioOverviewView_Previews: PreviewProvider {
             if let container = try? await ServiceContainer() {
                 PortfolioOverviewView(clientViewModel: ClientDashboardViewModel(container: container))
                     .environmentObject(container)
-                    .environmentObject(DashboardSyncService.shared)
+                    .environmentObject(container.dashboardSync)
                     .preferredColorScheme(.dark)
             } else {
                 Text("Loading...")

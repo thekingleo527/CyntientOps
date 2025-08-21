@@ -26,7 +26,7 @@ public class SiteDepartureViewModel: ObservableObject {
     let availableBuildings: [CoreTypes.NamedCoordinate]
     
     private let locationManager = LocationManager.shared
-    private var container: ServiceContainer?
+    private let container: ServiceContainer
     
     // MARK: - Initialization
     
@@ -35,7 +35,7 @@ public class SiteDepartureViewModel: ObservableObject {
         currentBuilding: CoreTypes.NamedCoordinate,
         workerCapabilities: WorkerCapability? = nil,
         availableBuildings: [CoreTypes.NamedCoordinate] = [],
-        container: ServiceContainer? = nil
+        container: ServiceContainer
     ) {
         self.workerId = workerId
         self.currentBuilding = currentBuilding
@@ -82,22 +82,12 @@ public class SiteDepartureViewModel: ObservableObject {
                (!requiresPhoto || capturedPhoto != nil)
     }
     
-    init(workerId: String,
-         currentBuilding: CoreTypes.NamedCoordinate,
-         capabilities: WorkerCapability?,
-         availableBuildings: [CoreTypes.NamedCoordinate]) {
-        self.workerId = workerId
-        self.currentBuilding = currentBuilding
-        self.workerCapabilities = capabilities
-        self.availableBuildings = availableBuildings.filter { $0.id != currentBuilding.id }
-    }
     
     func loadChecklist() async {
         isLoading = true
         error = nil
         
         do {
-            guard let container = container else { return }
             let checklist = try await container.tasks.getDepartureChecklistItems(
                 for: workerId,
                 buildingId: currentBuilding.id
@@ -119,7 +109,7 @@ public class SiteDepartureViewModel: ObservableObject {
     }
     
     func finalizeDeparture(method: DepartureMethod = .normal) async -> Bool {
-        guard let checklist = checklist, let container = container else { return false }
+        guard let checklist = checklist else { return false }
         
         isSaving = true
         error = nil
@@ -168,7 +158,8 @@ public class SiteDepartureViewModel: ObservableObject {
                 notes: departureNotes.isEmpty ? nil : departureNotes,
                 nextDestination: selectedNextDestination?.id,
                 departureMethod: method,
-                location: locationManager.location
+                location: locationManager.location,
+                dashboardSync: container.dashboardSync
             )
             
             print("✅ Departure log created: \(logId)")

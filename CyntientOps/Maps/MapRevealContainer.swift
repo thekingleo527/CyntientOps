@@ -30,6 +30,9 @@ struct MapRevealContainer<Content: View>: View {
     // Callbacks
     let onBuildingTap: (NamedCoordinate) -> Void
     
+    // Dependencies
+    let container: ServiceContainer
+    
     // Map camera
     @State private var position: MapCameraPosition
     
@@ -50,6 +53,7 @@ struct MapRevealContainer<Content: View>: View {
         currentBuildingId: String? = nil,
         focusBuildingId: String? = nil,
         isRevealed: Binding<Bool>,
+        container: ServiceContainer,
         onBuildingTap: @escaping (NamedCoordinate) -> Void,
         @ViewBuilder content: @escaping () -> Content
     ) {
@@ -57,6 +61,7 @@ struct MapRevealContainer<Content: View>: View {
         self.currentBuildingId = currentBuildingId
         self.focusBuildingId = focusBuildingId
         self._isRevealed = isRevealed
+        self.container = container
         self.onBuildingTap = onBuildingTap
         self.content = content
         
@@ -435,7 +440,7 @@ struct MapRevealContainer<Content: View>: View {
         
         for building in buildings {
             do {
-                let metrics = try await BuildingMetricsService.shared.calculateMetrics(for: building.id)
+                let metrics = try await container.metrics.calculateMetrics(for: building.id)
                 await MainActor.run {
                     buildingMetrics[building.id] = metrics
                 }
@@ -689,57 +694,21 @@ struct MapBuildingBubble: View {
 
 // MARK: - Preview Provider
 
-struct MapRevealContainer_Previews: PreviewProvider {
-    static var previews: some View {
-        let buildings = [
-            NamedCoordinate(
-                id: "14",
-                name: "Rubin Museum",
-                address: "150 W 17th St",
-                latitude: 40.7402,
-                longitude: -73.9980
-            ),
-            NamedCoordinate(
-                id: "1",
-                name: "12 West 18th Street",
-                address: "12 W 18th St",
-                latitude: 40.7397,
-                longitude: -73.9944
-            ),
-            NamedCoordinate(
-                id: "park",
-                name: "Stuyvesant Cove Park",
-                address: "East River Greenway",
-                latitude: 40.7356,
-                longitude: -73.9772
-            )
-        ]
-        
-        MapRevealContainer(
-            buildings: buildings,
-            currentBuildingId: "14",
-            isRevealed: .constant(false),
-            onBuildingTap: { building in
-                print("Navigate to: \(building.name)")
-            }
-        ) {
-            // Preview content
-            ZStack {
-                Color.black.ignoresSafeArea()
-                
-                VStack(spacing: 20) {
-                    Text("Worker Dashboard")
-                        .font(.largeTitle)
-                        .fontWeight(.bold)
-                        .foregroundColor(.white)
-                    
-                    Text("Swipe up to reveal the map")
-                        .font(.caption)
-                        .foregroundColor(.white.opacity(0.7))
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
+// Preview disabled - requires ServiceContainer async initialization
+/*
+#Preview {
+    MapRevealContainer(
+        buildings: sampleBuildings,
+        currentBuildingId: "14",
+        isRevealed: .constant(false),
+        container: container,
+        onBuildingTap: { building in
+            print("Navigate: \(building.name)")
         }
-        .preferredColorScheme(.dark)
+    ) {
+        Text("MapRevealContainer Preview")
+            .foregroundColor(.white)
     }
+    .preferredColorScheme(.dark)
 }
+*/

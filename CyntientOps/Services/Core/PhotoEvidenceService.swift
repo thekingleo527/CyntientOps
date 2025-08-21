@@ -49,6 +49,8 @@ public class PhotoEvidenceService: ObservableObject {
     public init(database: GRDBManager, dashboardSync: DashboardSyncService? = nil) {
         self.database = database
         self.dashboardSync = dashboardSync
+        setupDirectories()
+        startCleanupTimer()
     }
     
     // MARK: - Optimized Configuration
@@ -65,11 +67,6 @@ public class PhotoEvidenceService: ObservableObject {
     private var photosDirectory: URL {
         FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("Photos")
-    }
-    
-    private init() {
-        setupDirectories()
-        startCleanupTimer()
     }
     
     // MARK: - Batch Photo Processing

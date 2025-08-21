@@ -13,11 +13,11 @@ import GRDB
 
 public actor ComplianceService {
     private let grdbManager: GRDBManager
-    // Note: We'll access DashboardSyncService through MainActor when needed
-    // instead of storing a reference
+    private let dashboardSync: DashboardSyncService
     
-    public init(database: GRDBManager) {
+    public init(database: GRDBManager, dashboardSync: DashboardSyncService) {
         self.grdbManager = database
+        self.dashboardSync = dashboardSync
     }
     
     // MARK: - Public Methods
@@ -280,10 +280,8 @@ public actor ComplianceService {
             description: "Compliance \(action): \(issue.title)"
         )
         
-        // Access DashboardSyncService through MainActor - use appropriate broadcast method
-        await MainActor.run {
-            DashboardSyncService.shared.broadcastAdminUpdate(update)
-        }
+        // Broadcast update through injected DashboardSyncService
+        await dashboardSync.broadcastAdminUpdate(update)
         
         // Post notification
         await MainActor.run {

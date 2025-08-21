@@ -129,24 +129,38 @@ public struct BuildingIntelligenceDTO: Codable, Hashable, Identifiable {
 extension BuildingIntelligenceDTO {
     
     /// Create intelligence DTO from real service data
-    public static func createFromRealData(for buildingId: CoreTypes.BuildingID, workerIds: [CoreTypes.WorkerID]) async -> BuildingIntelligenceDTO {
+    public static func createFromRealData(
+        for buildingId: CoreTypes.BuildingID, 
+        workerIds: [CoreTypes.WorkerID],
+        taskService: TaskService? = nil,
+        buildingService: BuildingService? = nil
+    ) async -> BuildingIntelligenceDTO {
         
         return BuildingIntelligenceDTO(
             buildingId: buildingId,
-            operationalMetrics: await createRealOperationalMetrics(for: buildingId),
+            operationalMetrics: await createRealOperationalMetrics(for: buildingId, taskService: taskService),
             complianceData: await createRealComplianceData(for: buildingId),
-            workerMetrics: await createRealWorkerMetrics(for: buildingId, workerIds: workerIds),
-            buildingSpecificData: await createRealBuildingData(for: buildingId),
+            workerMetrics: await createRealWorkerMetrics(for: buildingId, workerIds: workerIds, taskService: taskService),
+            buildingSpecificData: await createRealBuildingData(for: buildingId, buildingService: buildingService),
             dataQuality: await createRealDataQuality(for: buildingId)
         )
     }
     
     // MARK: - Real Data Creation Methods
     
-    private static func createRealOperationalMetrics(for buildingId: CoreTypes.BuildingID) async -> OperationalMetricsDTO {
+    private static func createRealOperationalMetrics(for buildingId: CoreTypes.BuildingID, taskService: TaskService?) async -> OperationalMetricsDTO {
         do {
             // ✅ FIXED: Use getAllTasks() then filter instead of non-existent getTasksForBuilding()
-            let allTasks = try await // TaskService injection needed.getAllTasks()
+            guard let taskService = taskService else {
+                // Fallback to default metrics if no service available
+                return OperationalMetricsDTO(
+                    score: 75,
+                    routineAdherence: 0.8,
+                    maintenanceEfficiency: 0.85,
+                    averageTaskDuration: 3600
+                )
+            }
+            let allTasks = try await taskService.getAllTasks()
             let buildingTasks = allTasks.filter { task in
                 task.buildingId == buildingId || task.building?.id == buildingId
             }
@@ -213,14 +227,15 @@ extension BuildingIntelligenceDTO {
         }
     }
     
-    private static func createRealWorkerMetrics(for buildingId: CoreTypes.BuildingID, workerIds: [CoreTypes.WorkerID]) async -> [WorkerMetricsDTO] {
+    private static func createRealWorkerMetrics(for buildingId: CoreTypes.BuildingID, workerIds: [CoreTypes.WorkerID], taskService: TaskService?) async -> [WorkerMetricsDTO] {
         // ✅ FIXED: Create worker metrics using real data patterns with public initializer
         var metrics: [WorkerMetricsDTO] = []
         
         for workerId in workerIds {
             do {
                 // Get real task data for this worker
-                let allTasks = try await // TaskService injection needed.getAllTasks()
+                guard let taskService = taskService else { continue }
+                let allTasks = try await taskService.getAllTasks()
                 let workerTasks = allTasks.filter { task in
                     (task.buildingId == buildingId || task.building?.id == buildingId) &&
                     (task.assignedWorkerId == workerId || task.worker?.id == workerId)
@@ -264,10 +279,21 @@ extension BuildingIntelligenceDTO {
         return metrics
     }
     
-    private static func createRealBuildingData(for buildingId: CoreTypes.BuildingID) async -> BuildingSpecificDataDTO {
+    private static func createRealBuildingData(for buildingId: CoreTypes.BuildingID, buildingService: BuildingService?) async -> BuildingSpecificDataDTO {
         // ✅ FIXED: Use real building data lookup
         do {
-            let buildings = try await BuildingService.shared.getAllBuildings()
+            guard let buildingService = buildingService else {
+                // Fallback to default building data
+                return BuildingSpecificDataDTO(
+                    buildingType: "Commercial",
+                    yearBuilt: 2000,
+                    squareFootage: 50000,
+                    address: "Unknown Address",
+                    totalFloors: 10,
+                    hasElevator: true
+                )
+            }
+            let buildings = try await buildingService.getAllBuildings()
             let building = buildings.first { $0.id == buildingId }
             
             // Determine building type from known buildings

@@ -226,10 +226,14 @@ class TaskStateManager: ObservableObject {
     @Published var isLoading = false
     
     private var refreshTimer: Timer?
-    // TaskService will be injected when needed - singleton removed
+    private var taskService: TaskService?
     
     init() {
         startAutoRefresh()
+    }
+    
+    func configure(with taskService: TaskService) {
+        self.taskService = taskService
     }
     
     func loadTasks(forWorker workerId: String) async {
@@ -237,6 +241,10 @@ class TaskStateManager: ObservableObject {
         defer { isLoading = false }
         
         do {
+            guard let taskService = taskService else {
+                print("TaskService not configured")
+                return
+            }
             let (current, upcoming, completed) = try await taskService.fetchTodaysTasks(forWorker: workerId)
             
             self.currentTasks = current
@@ -249,6 +257,10 @@ class TaskStateManager: ObservableObject {
     
     func markTaskComplete(_ taskId: String, evidence: CoreTypes.ActionEvidence) async {
         do {
+            guard let taskService = taskService else {
+                print("TaskService not configured")
+                return
+            }
             try await taskService.completeTask(taskId, evidence: evidence)
             
             // Reload tasks

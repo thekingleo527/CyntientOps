@@ -14,9 +14,13 @@ import GRDB
 
 public actor BuildingService {
     private let grdbManager: GRDBManager
+    private let dashboardSync: DashboardSyncService
+    private let metrics: BuildingMetricsService
     
-    public init(database: GRDBManager) {
+    public init(database: GRDBManager, dashboardSync: DashboardSyncService, metrics: BuildingMetricsService) {
         self.grdbManager = database
+        self.dashboardSync = dashboardSync
+        self.metrics = metrics
     }
     
     // MARK: - Public API Methods
@@ -191,7 +195,7 @@ public actor BuildingService {
         // Verify building exists
         _ = try await getBuilding(buildingId: buildingId)
         
-        return try await BuildingMetricsService.shared.calculateMetrics(for: buildingId)
+        return try await metrics.calculateMetrics(for: buildingId)
     }
     
     /// Get building health score - throws if building doesn't exist
@@ -497,7 +501,7 @@ public actor BuildingService {
             ]
         )
         
-        await DashboardSyncService.shared.broadcastAdminUpdate(update)
+        await dashboardSync.broadcastAdminUpdate(update)
     }
     
     /// Create new building
@@ -535,7 +539,7 @@ public actor BuildingService {
             ]
         )
         
-        await DashboardSyncService.shared.broadcastAdminUpdate(update)
+        await dashboardSync.broadcastAdminUpdate(update)
     }
     
     // MARK: - Analytics
@@ -594,7 +598,7 @@ public actor BuildingService {
             ]
         )
         
-        await DashboardSyncService.shared.broadcastAdminUpdate(update)
+        await dashboardSync.broadcastAdminUpdate(update)
     }
     
     private func broadcastLowStockAlert(buildingId: String, itemName: String, currentStock: Int, minimumStock: Int) async {
@@ -614,7 +618,7 @@ public actor BuildingService {
         )
         
         // ✅ FIXED: Use broadcastAdminUpdate instead of non-existent broadcastSystemUpdate
-        await DashboardSyncService.shared.broadcastAdminUpdate(update)
+        await dashboardSync.broadcastAdminUpdate(update)
     }
 }
 

@@ -22,7 +22,7 @@ struct WorkerDashboardMainView: View {
     
     // MARK: - Environment Objects
     @EnvironmentObject private var authManager: NewAuthManager
-    @EnvironmentObject private var session: Session
+    @EnvironmentObject private var session: CoreTypes.Session
     @EnvironmentObject private var dashboardSync: DashboardSyncService
     
     // MARK: - State Management
@@ -338,9 +338,9 @@ struct WorkerDashboardMainView: View {
                         Task {
                             do {
                                 if let profile = viewModel.workerProfile {
-                                    let photoEvidence = try await PhotoEvidenceService.shared.captureQuick(
+                                    let photoEvidence = try await container.photos.captureQuick(
                                         image: image,
-                                        category: .duringWork,
+                                        category: CoreTypes.CyntientOpsPhotoCategory.duringWork,
                                         buildingId: task.buildingId ?? "",
                                         workerId: profile.id,
                                         notes: "Task completion photo for \(task.title)"

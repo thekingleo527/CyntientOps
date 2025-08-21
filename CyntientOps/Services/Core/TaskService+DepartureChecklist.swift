@@ -166,10 +166,11 @@ extension TaskService {
         let timeSpentMinutes = clockInTime.map { Int(Date().timeIntervalSince($0) / 60) }
         
         // Count tasks requiring photos
-        let photosRequired = allTasks.filter { task in
-            return (task.requiresPhoto ?? false) || 
-                   task.category == .sanitation || 
-                   task.category == .cleaning
+        let photosRequired = allTasks.filter { task -> Bool in
+            let requiresPhotoFlag = task.requiresPhoto ?? false
+            let isSanitationTask = task.category == .sanitation
+            let isCleaningTask = task.category == .cleaning
+            return requiresPhotoFlag || isSanitationTask || isCleaningTask
         }
         let requiredPhotoCount = photosRequired.count
         

@@ -328,9 +328,9 @@ struct IntelligencePreviewPanel: View {
         }
         
         // Current building action
-        if let currentBuilding = contextEngine?.getCurrentBuilding(),
-           let buildingId = currentBuilding.id,
-           let buildingName = currentBuilding.name {
+        if let currentBuilding = contextEngine?.getCurrentBuilding() {
+            let buildingId = currentBuilding.id
+            let buildingName = currentBuilding.name
             let shortName = String(buildingName.prefix(8))
             actions.append(QuickAction(
                 id: "current_building",
@@ -375,7 +375,7 @@ struct IntelligencePreviewPanel: View {
             id: "buildings",
             icon: "building.2",
             label: "Buildings",
-            badge: contextEngine?.assignedBuildings.count,
+            badge: contextEngine?.workerContext?.assignedBuildings.count,
             target: .allBuildings
         ))
         

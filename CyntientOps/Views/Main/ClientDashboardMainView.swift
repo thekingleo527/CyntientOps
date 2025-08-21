@@ -77,6 +77,7 @@ struct ClientDashboardMainView: View {
                 MapRevealContainer(
                     buildings: contextEngine.clientBuildings,
                     isRevealed: .constant(false),
+                    container: container,
                     onBuildingTap: { building in
                         selectedBuildingId = building.id
                         // You would need a state variable to show a detail sheet, e.g., showingBuildingDetail = true

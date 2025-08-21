@@ -522,7 +522,7 @@ struct ComplianceOverviewView: View {
                 async let dobPermits = try? nycAPIService.fetchDOBPermits(bin: building.id)
                 async let ll97Data = try? nycAPIService.fetchLL97Compliance(bbl: bbl)
                 
-                let (dsny, hpd, dob, ll97) = await (dsnyViolations, hpdViolations, dobPermits, ll97Data)
+                let (dsny, hpd, dob, _) = await (dsnyViolations, hpdViolations, dobPermits, ll97Data)
                 
                 // Convert DSNY violations to ComplianceIssueData
                 if let dsnyViolations = dsny {
@@ -2951,28 +2951,3 @@ struct ComplianceActionButtonStyle: ButtonStyle {
     }
 }
 
-// MARK: - Preview
-
-struct ComplianceOverviewView_Previews: PreviewProvider {
-    static var previews: some View {
-        let sampleIntelligence = CoreTypes.PortfolioIntelligence(
-            totalBuildings: 12,
-            activeWorkers: 24,
-            completionRate: 0.87,
-            criticalIssues: 3,
-            monthlyTrend: .up,
-            complianceScore: 85
-        )
-        
-        // Initialize DashboardSyncService for preview
-        let dashboardSync = DashboardSyncService.shared
-        dashboardSync.initialize()
-        
-        return ComplianceOverviewView(intelligence: sampleIntelligence)
-            .environmentObject(dashboardSync)
-            .preferredColorScheme(.dark)
-            .onAppear {
-                // Sample data would be generated here if needed
-            }
-    }
-}

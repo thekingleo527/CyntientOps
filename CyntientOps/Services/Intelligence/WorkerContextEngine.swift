@@ -74,10 +74,19 @@ public final class WorkerContextEngine: ObservableObject {
     
     // MARK: - Dependencies
     private let operationalData = OperationalDataManager.shared
-    // private let workerService = // WorkerService injection needed
-    // private let buildingService = // BuildingService injection needed
+    private var workerService: WorkerService?
+    private var buildingService: BuildingService?
     private let clockInManager = ClockInManager.shared
-    // private let taskService = // TaskService injection needed
+    private var taskService: TaskService?
+    private var dashboardSync: DashboardSyncService?
+    
+    // MARK: - Service Configuration
+    public func configure(with container: ServiceContainer) {
+        self.workerService = container.workers
+        self.buildingService = container.buildings
+        self.taskService = container.tasks
+        self.dashboardSync = container.dashboardSync
+    }
     
     // MARK: - Initialization
     private init() {
@@ -87,20 +96,21 @@ public final class WorkerContextEngine: ObservableObject {
     
     // MARK: - Main Context Loading
     public func loadContext(for workerId: CoreTypes.WorkerID) async throws {
-        guard !isLoading else { return }
-        isLoading = true
-        lastError = nil
-        errorMessage = nil
+        guard !uiState.isLoading else { return }
+        uiState.isLoading = true
+        uiState.lastError = nil
+        uiState.errorMessage = nil
         
         do {
             // 1. Load worker profile directly from service
-            if let workers = try? await workerService.getAllActiveWorkers(),
+            var currentWorker: CoreTypes.WorkerProfile
+            if let workers = try? await workerService?.getAllActiveWorkers(),
                let worker = workers.first(where: { $0.id == workerId }) {
-                self.currentWorker = worker
+                currentWorker = worker
             } else {
                 // Fallback to operational data
                 let workerName = WorkerConstants.getWorkerName(id: workerId)
-                self.currentWorker = CoreTypes.WorkerProfile(
+                currentWorker = CoreTypes.WorkerProfile(
                     id: workerId,
                     name: workerName,
                     email: "\(workerId)@cyntientops.com",
@@ -115,11 +125,11 @@ public final class WorkerContextEngine: ObservableObject {
             }
             
             // 2. Load portfolio buildings first
-            self.portfolioBuildings = try await buildingService.getAllBuildings()
+            let portfolioBuildings = try await buildingService?.getAllBuildings() ?? []
             
             // 3. Load assigned buildings from operational data
             var assignedBuildingsList: [CoreTypes.NamedCoordinate] = []
-            let workerName = currentWorker?.name ?? WorkerConstants.getWorkerName(id: workerId)
+            let workerName = currentWorker.name
             let operationalTasks = operationalData.getRealWorldTasks(for: workerName)
             let uniqueBuildingNames = Set(operationalTasks.map { $0.building })
             
@@ -129,7 +139,13 @@ public final class WorkerContextEngine: ObservableObject {
                 }
             }
             
-            self.assignedBuildings = assignedBuildingsList
+            // Create worker context
+            self.workerContext = WorkerContext(
+                profile: currentWorker,
+                currentBuilding: operationalStatus.clockInStatus.building,
+                assignedBuildings: assignedBuildingsList,
+                portfolioBuildings: portfolioBuildings
+            )
             
             // 4. Load today's tasks
             await loadTodaysTasks(for: workerId)
@@ -142,34 +158,34 @@ public final class WorkerContextEngine: ObservableObject {
             
             // 7. Update UI state
             updatePendingScenarioStatus()
-            lastRefreshTime = Date()
+            operationalStatus.lastRefreshTime = Date()
             
-            print("✅ Context loaded successfully for worker: \(currentWorker?.name ?? workerId)")
+            print("✅ Context loaded successfully for worker: \(currentWorker.name)")
             
         } catch {
-            lastError = error
-            errorMessage = error.localizedDescription
+            uiState.lastError = error
+            uiState.errorMessage = error.localizedDescription
             print("❌ loadContext failed: \(error)")
             throw error
         }
         
-        isLoading = false
+        uiState.isLoading = false
     }
     
     // MARK: - Task Loading
     private func loadTodaysTasks(for workerId: String) async {
         do {
             // Try to load from TaskService first
-            let tasks = try await taskService.getTasksForWorker(workerId)
-            self.todaysTasks = tasks
+            let tasks = try await taskService?.getTasksForWorker(workerId) ?? []
+            self.taskContext.todaysTasks = tasks
         } catch {
             // Fallback to operational data
-            let workerName = currentWorker?.name ?? WorkerConstants.getWorkerName(id: workerId)
+            let workerName = workerContext?.profile.name ?? WorkerConstants.getWorkerName(id: workerId)
             let operationalTasks = operationalData.getRealWorldTasks(for: workerName)
-            self.todaysTasks = generateContextualTasks(
+            self.taskContext.todaysTasks = generateContextualTasks(
                 for: workerId,
                 workerName: workerName,
-                assignedBuildings: assignedBuildings,
+                assignedBuildings: workerContext?.assignedBuildings ?? [],
                 realWorldAssignments: operationalTasks
             )
         }
@@ -198,7 +214,7 @@ public final class WorkerContextEngine: ObservableObject {
                             category: mapOperationalCategory(operational.category),
                             urgency: mapOperationalUrgency(operational.skillLevel),
                             building: building,
-                            worker: currentWorker,
+                            worker: workerContext?.profile,
                             buildingId: building?.id,
                             buildingName: building?.name,
                             assignedWorkerId: workerId,
@@ -223,7 +239,7 @@ public final class WorkerContextEngine: ObservableObject {
     // MARK: - Clock In Status (FIXED)
     private func updateClockInStatus(for workerId: String) async {
         // ✅ FIXED: Properly destructure the tuple returned by getClockInStatus
-        let (isClockedIn, building) = await clockInManager.getClockInStatus(for: workerId)
+        let (isClockedIn, building) = clockInManager.getClockInStatus(for: workerId)
         
         if isClockedIn, let building = building {
             // Update operational status
@@ -271,33 +287,33 @@ public final class WorkerContextEngine: ObservableObject {
     
     private func findBuildingById(_ id: String?) -> CoreTypes.NamedCoordinate? {
         guard let id = id else { return nil }
-        return portfolioBuildings.first { $0.id == id } ??
-               assignedBuildings.first { $0.id == id }
+        return workerContext?.portfolioBuildings.first { $0.id == id } ??
+               workerContext?.assignedBuildings.first { $0.id == id }
     }
     
     private func findBuildingForTask(_ buildingName: String, in buildings: [CoreTypes.NamedCoordinate]) -> CoreTypes.NamedCoordinate? {
         return findBuildingByName(buildingName, in: buildings) ??
-               findBuildingByName(buildingName, in: portfolioBuildings)
+               findBuildingByName(buildingName, in: workerContext?.portfolioBuildings ?? [])
     }
     
     // MARK: - Public Methods
     
     /// Refresh the current context
     public func refreshContext() async {
-        guard let workerId = currentWorker?.id else { return }
+        guard let workerId = workerContext?.profile.id else { return }
         try? await loadContext(for: workerId)
     }
     
     /// Check if a building is assigned to the current worker
     public func isBuildingAssigned(_ buildingId: String) -> Bool {
-        return assignedBuildings.contains { $0.id == buildingId }
+        return workerContext?.assignedBuildings.contains { $0.id == buildingId } ?? false
     }
     
     /// Get the assignment type for a building
     public func getBuildingAssignmentType(_ buildingId: String) -> BuildingAssignmentType {
-        if assignedBuildings.contains(where: { $0.id == buildingId }) {
+        if workerContext?.assignedBuildings.contains(where: { $0.id == buildingId }) == true {
             return .assigned
-        } else if portfolioBuildings.contains(where: { $0.id == buildingId }) {
+        } else if workerContext?.portfolioBuildings.contains(where: { $0.id == buildingId }) == true {
             return .coverage
         }
         return .unknown
@@ -305,9 +321,9 @@ public final class WorkerContextEngine: ObservableObject {
     
     /// Update task completion status
     public func updateTaskCompletion(_ taskId: String, isCompleted: Bool) {
-        if let index = todaysTasks.firstIndex(where: { $0.id == taskId }) {
-            todaysTasks[index].isCompleted = isCompleted
-            todaysTasks[index].completedAt = isCompleted ? Date() : nil
+        if let index = taskContext.todaysTasks.firstIndex(where: { $0.id == taskId }) {
+            taskContext.todaysTasks[index].isCompleted = isCompleted
+            taskContext.todaysTasks[index].completedAt = isCompleted ? Date() : nil
             updateTaskProgress()
             
             // Notify other services
@@ -319,12 +335,12 @@ public final class WorkerContextEngine: ObservableObject {
     
     /// Get tasks for a specific building
     public func getTasksForBuilding(_ buildingId: String) -> [CoreTypes.ContextualTask] {
-        return todaysTasks.filter { $0.buildingId == buildingId }
+        return taskContext.todaysTasks.filter { $0.buildingId == buildingId }
     }
     
     /// Check if worker has any pending high-priority tasks
     public func hasPendingHighPriorityTasks() -> Bool {
-        return todaysTasks.contains { task in
+        return taskContext.todaysTasks.contains { task in
             !task.isCompleted &&
             (task.urgency == .high || task.urgency == .critical || task.urgency == .urgent)
         }
@@ -332,65 +348,65 @@ public final class WorkerContextEngine: ObservableObject {
     
     /// Get completion percentage for today's tasks
     public func getCompletionPercentage() -> Double {
-        guard !todaysTasks.isEmpty else { return 0.0 }
-        let completedCount = todaysTasks.filter { $0.isCompleted }.count
-        return Double(completedCount) / Double(todaysTasks.count) * 100.0
+        guard !taskContext.todaysTasks.isEmpty else { return 0.0 }
+        let completedCount = taskContext.todaysTasks.filter { $0.isCompleted }.count
+        return Double(completedCount) / Double(taskContext.todaysTasks.count) * 100.0
     }
     
     /// Get today's summary
     public func getTodaysSummary() -> (total: Int, completed: Int, percentage: Double) {
-        let total = todaysTasks.count
-        let completed = todaysTasks.filter { $0.isCompleted }.count
+        let total = taskContext.todaysTasks.count
+        let completed = taskContext.todaysTasks.filter { $0.isCompleted }.count
         let percentage = total > 0 ? Double(completed) / Double(total) * 100.0 : 0.0
         return (total, completed, percentage)
     }
     
     /// Get buildings that need attention
     public func getBuildingsNeedingAttention() -> [CoreTypes.NamedCoordinate] {
-        let buildingIds = todaysTasks
+        let buildingIds = taskContext.todaysTasks
             .filter { !$0.isCompleted && ($0.urgency == .high || $0.urgency == .critical) }
             .compactMap { $0.buildingId }
             .unique()
         
-        return assignedBuildings.filter { building in
+        return workerContext?.assignedBuildings.filter { building in
             buildingIds.contains(building.id)
-        }
+        } ?? []
     }
     
     /// Check if worker should clock out
     public func shouldSuggestClockOut() -> Bool {
         guard let currentBuildingId = workerContext?.currentBuilding?.id else { return false }
-        let buildingTasks = todaysTasks.filter { $0.buildingId == currentBuildingId }
+        let buildingTasks = taskContext.todaysTasks.filter { $0.buildingId == currentBuildingId }
         return !buildingTasks.isEmpty && buildingTasks.allSatisfy { $0.isCompleted }
     }
     
     // MARK: - Access Methods (Legacy Support)
-    public func getCurrentWorker() -> CoreTypes.WorkerProfile? { return currentWorker }
+    public func getCurrentWorker() -> CoreTypes.WorkerProfile? { return workerContext?.profile }
     public func getCurrentBuilding() -> CoreTypes.NamedCoordinate? { return workerContext?.currentBuilding }
-    public func getAssignedBuildings() -> [CoreTypes.NamedCoordinate] { return assignedBuildings }
-    public func getPortfolioBuildings() -> [CoreTypes.NamedCoordinate] { return portfolioBuildings }
-    public func getTodaysTasks() -> [CoreTypes.ContextualTask] { return todaysTasks }
-    public func getTaskProgress() -> CoreTypes.TaskProgress? { return taskProgress }
+    public func getAssignedBuildings() -> [CoreTypes.NamedCoordinate] { return workerContext?.assignedBuildings ?? [] }
+    public func getPortfolioBuildings() -> [CoreTypes.NamedCoordinate] { return workerContext?.portfolioBuildings ?? [] }
+    public func getTodaysTasks() -> [CoreTypes.ContextualTask] { return taskContext.todaysTasks }
+    public func getTaskProgress() -> CoreTypes.TaskProgress? { return taskContext.taskProgress }
     
     // MARK: - Private Update Methods
     
     private func updateTaskProgress() {
-        let completed = todaysTasks.filter { $0.isCompleted }.count
-        taskProgress = CoreTypes.TaskProgress(
-            totalTasks: todaysTasks.count,
+        let completed = taskContext.todaysTasks.filter { $0.isCompleted }.count
+        taskContext.taskProgress = CoreTypes.TaskProgress(
+            totalTasks: taskContext.todaysTasks.count,
             completedTasks: completed
         )
     }
     
     private func updatePendingScenarioStatus() {
-        hasPendingScenario = hasPendingHighPriorityTasks() ||
-                           todaysTasks.contains { $0.urgency == .emergency }
+        operationalStatus.hasPendingScenario = hasPendingHighPriorityTasks() ||
+                           taskContext.todaysTasks.contains { $0.urgency == CoreTypes.TaskUrgency.emergency }
     }
     
     private func notifyTaskStatusChange(taskId: String, isCompleted: Bool) async {
         // Notify DashboardSyncService
-        if let workerId = currentWorker?.id,
-           let task = todaysTasks.first(where: { $0.id == taskId }) {
+        if let workerId = workerContext?.profile.id,
+           let task = taskContext.todaysTasks.first(where: { $0.id == taskId }) {
             // Fixed: Properly namespaced DashboardUpdate
             let update = CoreTypes.DashboardUpdate(
                 source: CoreTypes.DashboardUpdate.Source.worker,
@@ -399,7 +415,7 @@ public final class WorkerContextEngine: ObservableObject {
                 workerId: workerId,
                 data: ["taskId": taskId]
             )
-            DashboardSyncService.shared.broadcastWorkerUpdate(update)
+            dashboardSync?.broadcastWorkerUpdate(update)
         }
     }
     
@@ -435,7 +451,7 @@ public final class WorkerContextEngine: ObservableObject {
         // Listen for clock-in changes
         NotificationCenter.default.publisher(for: .workerContextClockInStatusChanged)
             .sink { [weak self] _ in
-                guard let workerId = self?.currentWorker?.id else { return }
+                guard let workerId = self?.workerContext?.profile.id else { return }
                 Task { await self?.updateClockInStatus(for: workerId) }
             }
             .store(in: &cancellables)

@@ -20,6 +20,16 @@ import AVFoundation
 public final class NovaAIManager: ObservableObject {
     // REMOVED: Singleton pattern - now managed by ServiceContainer
     
+    private let novaAPIService: NovaAPIService
+    
+    public init(novaAPIService: NovaAPIService) {
+        self.novaAPIService = novaAPIService
+        setupImageCache()
+        loadPersistentNovaImage()
+        startPersistentAnimations()
+        setupSpeechRecognition()
+    }
+    
     // MARK: - Persistent Image Architecture
     
     /// Original Nova AI image (loaded once, persistent)
@@ -29,7 +39,7 @@ public final class NovaAIManager: ObservableObject {
     @Published public var novaHolographicImage: UIImage? = nil
     
     /// Legacy property (preserved for compatibility)
-    @Published public var novaImage: UIImage? 
+    @Published public var novaImage: UIImage? = nil 
     
     // MARK: - Enhanced State Management
     
@@ -113,14 +123,6 @@ public final class NovaAIManager: ObservableObject {
         return "Ready"
     }
     
-    // MARK: - Initialization
-    
-    public init() {
-        setupImageCache()
-        loadPersistentNovaImage()
-        startPersistentAnimations()
-        setupSpeechRecognition()
-    }
     
     // MARK: - Image Management (Enhanced Persistent Architecture)
     
@@ -415,7 +417,7 @@ public final class NovaAIManager: ObservableObject {
                     metadata: ["source": "voice"]
                 )
                 
-                let response = try await NovaAPIService.shared.processPrompt(prompt)
+                let response = try await novaAPIService.processPrompt(prompt)
                 
                 await MainActor.run {
                     // Handle voice response

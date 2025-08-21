@@ -157,7 +157,7 @@ struct WorkerHeaderV3B: View {
                         .font(.system(size: 11, weight: .medium))
                         .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                     
-                    if isClocked, let building = contextAdapter.currentBuilding {
+                    if isClocked, let building = contextAdapter.workerContext?.currentBuilding {
                         Text("\(building.name) • \(clockedDuration)")
                             .font(.system(size: 9))
                             .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
@@ -197,13 +197,13 @@ struct WorkerHeaderV3B: View {
         let workerName = name
         let name = !workerName.isEmpty && workerName != "Worker"
             ? workerName
-            : contextAdapter.currentWorker?.name ?? "Worker"
+            : contextAdapter.workerContext?.profile.name ?? "Worker"
         
         return name.components(separatedBy: " ").first ?? name
     }
     
     private var isClocked: Bool {
-        contextAdapter.currentBuilding != nil
+        contextAdapter.workerContext?.currentBuilding != nil
     }
     
     private var clockStatusColor: Color {
@@ -237,7 +237,7 @@ struct WorkerHeaderV3B: View {
     }
     
     private var hasUrgentContext: Bool {
-        contextAdapter.todaysTasks.contains { task in
+        contextAdapter.taskContext.todaysTasks.contains { task in
             task.urgency == .urgent || task.urgency == .critical
         }
     }
@@ -252,7 +252,7 @@ struct WorkerHeaderV3B: View {
     }
     
     private func getRoleColor() -> Color {
-        guard let role = contextAdapter.currentWorker?.role else { 
+        guard let role = contextAdapter.workerContext?.profile.role else { 
             return CyntientOpsDesign.DashboardColors.workerPrimary 
         }
         switch role {

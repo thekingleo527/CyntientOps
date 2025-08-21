@@ -17,6 +17,7 @@ struct WorkersInlineList: View {
     let showDSNYWorkers: Bool
     let onWorkerTap: ((String) -> Void)?
     
+    @EnvironmentObject private var container: ServiceContainer
     @State private var workers: [WorkerInfo] = []
     @State private var isLoading = true
     @State private var showAllWorkers = false
@@ -252,7 +253,7 @@ struct WorkersInlineList: View {
         
         do {
             // ✅ FIXED: Get workers assigned to this building directly
-            let buildingWorkers = try await // WorkerService injection needed.getActiveWorkersForBuilding(buildingId)
+            let buildingWorkers = try await container.workers.getActiveWorkersForBuilding(buildingId)
             
             var loadedWorkers: [WorkerInfo] = []
             
@@ -326,14 +327,14 @@ struct WorkersInlineList: View {
     private func isWorkerClockedIn(_ workerId: String) async -> Bool {
         // Check if worker is currently clocked in through ClockInManager
         // ✅ FIXED: Removed unnecessary do-catch as this doesn't throw
-        let status = await ClockInManager.shared.getClockInStatus(for: workerId)
+        let status = ClockInManager.shared.getClockInStatus(for: workerId)
         return status.isClockedIn
     }
     
     private func getWorkerTaskCount(_ workerId: String) async -> Int {
         do {
             // Get tasks for this worker for today
-            let tasks = try await // TaskService injection needed.getTasks(for: workerId, date: Date())
+            let tasks = try await container.tasks.getTasks(for: workerId, date: Date())
             
             // Filter tasks for this specific building
             return tasks.filter { task in
@@ -351,7 +352,7 @@ struct WorkersInlineList: View {
         let workerId = getWorkerIdFromName(workerName)
         
         do {
-            let tasks = try await // TaskService injection needed.getTasks(for: workerId, date: Date())
+            let tasks = try await container.tasks.getTasks(for: workerId, date: Date())
             
             for task in tasks {
                 let isDSNYTask = task.category?.rawValue.lowercased().contains("sanitation") == true ||

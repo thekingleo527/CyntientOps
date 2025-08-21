@@ -199,7 +199,11 @@ public class ProductionReadinessChecker: ObservableObject {
             category: .aiSystem
         ) {
             // Check that Nova AI can be created through ServiceContainer
-            let nova = NovaAIManager()
+            guard let container = serviceContainer else {
+                throw CheckError.systemError("ServiceContainer not available")
+            }
+            
+            let nova = container.novaManager
             
             // Check basic initialization
             // Check that Nova AI can be properly initialized

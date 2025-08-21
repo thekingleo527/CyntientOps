@@ -140,6 +140,7 @@ struct ClientDashboardView: View {
             currentBuildingId: nil,
             focusBuildingId: nil,
             isRevealed: $isPortfolioMapRevealed,
+            container: container,
             onBuildingTap: { building in
                 sheet = .buildingDetail(building.id)
             }
@@ -314,7 +315,7 @@ struct ClientDashboardView: View {
                 .navigationTitle("Compliance Report")
             
         case .chat:
-            NovaInteractionView()
+            NovaInteractionView(container: container)
                 .navigationTitle("Nova Assistant")
                 
         case .settings:

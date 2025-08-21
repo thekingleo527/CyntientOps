@@ -652,17 +652,11 @@ struct NovaTaskInsightsView: View {
         isLoading = true
         defer { isLoading = false }
         
-        do {
-            // Generate local insights for now (replace with proper service later)
-            insights = generateLocalInsights()
-            
-            // If no insights, generate some based on the date
-            if insights.isEmpty {
-                insights = generateLocalInsights()
-            }
-            
-        } catch {
-            print("Failed to load Nova insights: \(error)")
+        // Generate local insights for now (replace with proper service later)
+        insights = generateLocalInsights()
+        
+        // If no insights, generate some based on the date
+        if insights.isEmpty {
             insights = generateLocalInsights()
         }
     }
@@ -749,6 +743,7 @@ struct NovaInsightRow: View {
         case .maintenance: return "wrench.and.screwdriver"
         case .routing: return "arrow.triangle.branch"
         case .weather: return "cloud.fill"
+        case .performance: return "chart.line.uptrend.xyaxis"
         @unknown default: return "lightbulb" // Handle any future cases
         }
     }
@@ -827,9 +822,14 @@ class TaskTimelineViewModel: ObservableObject {
     
     private var workerId: String = ""
     private var workerName: String?
-    // private let taskService = // TaskService injection needed
-    // private let dashboardSyncService = // DashboardSyncService injection needed
+    private var taskService: TaskService?
+    private var dashboardSyncService: DashboardSyncService?
     private var cancellables = Set<AnyCancellable>()
+    
+    func configure(with container: ServiceContainer) {
+        self.taskService = container.tasks
+        self.dashboardSyncService = container.dashboardSync
+    }
     
     // Computed properties
     var filteredTasks: [CoreTypes.ContextualTask] {
@@ -878,7 +878,10 @@ class TaskTimelineViewModel: ObservableObject {
     }
     
     var dashboardUpdatePublisher: AnyPublisher<CoreTypes.DashboardUpdate, Never> {
-        dashboardSyncService.crossDashboardUpdates
+        guard let dashboardSyncService = dashboardSyncService else {
+            return Empty().eraseToAnyPublisher()
+        }
+        return dashboardSyncService.crossDashboardUpdates
             .filter { [weak self] update in
                 guard let self = self else { return false }
                 // Listen for task-related updates for this worker
@@ -910,6 +913,11 @@ class TaskTimelineViewModel: ObservableObject {
         
         do {
             // Load tasks for specific worker
+            guard let taskService = taskService else {
+                print("TaskService not configured")
+                tasks = []
+                return
+            }
             let allTasks = try await taskService.getTasksForWorker(workerId)
             
             // Filter for selected date
@@ -938,7 +946,7 @@ class TaskTimelineViewModel: ObservableObject {
             workerId: workerId,
             data: ["action": "refresh", "date": ISO8601DateFormatter().string(from: date)]
         )
-        dashboardSyncService.broadcastWorkerUpdate(update)
+        dashboardSyncService?.broadcastWorkerUpdate(update)
         
         // Reload tasks
         await loadTasks(for: date)

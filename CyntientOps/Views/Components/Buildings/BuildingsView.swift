@@ -24,8 +24,7 @@ struct BuildingsView: View {
     @State private var selectedFilter: BuildingFilter = .all
     @State private var showingMapView = false
     
-    // Services
-    // private let buildingService = // BuildingService injection needed
+    // Services - accessed through container.buildings
     
     // MARK: - Enums
     enum BuildingFilter: String, CaseIterable {
@@ -392,14 +391,14 @@ struct BuildingsView: View {
         errorMessage = nil
         
         do {
-            let loadedBuildings = try await buildingService.getAllBuildings()
+            let loadedBuildings = try await container.buildings.getAllBuildings()
             
             // Load metrics for each building
             await withTaskGroup(of: (String, BuildingMetrics?).self) { group in
                 for building in loadedBuildings {
                     group.addTask {
                         do {
-                            let metrics = try await self.buildingService.getBuildingMetrics(building.id)
+                            let metrics = try await self.container.buildings.getBuildingMetrics(building.id)
                             return (building.id, metrics)
                         } catch {
                             return (building.id, nil)
@@ -673,12 +672,14 @@ struct BuildingsMapView: View {
     
     var body: some View {
         NavigationView {
-            Map(coordinateRegion: $region, annotationItems: buildings) { building in
-                MapAnnotation(coordinate: CLLocationCoordinate2D(
-                    latitude: building.latitude,
-                    longitude: building.longitude
-                )) {
-                    BuildingMapPin(building: building)
+            Map(bounds: MapCameraBounds(centerCoordinateBounds: MKCoordinateRegion(center: region.center, span: region.span))) {
+                ForEach(buildings) { building in
+                    Annotation(building.name, coordinate: CLLocationCoordinate2D(
+                        latitude: building.latitude,
+                        longitude: building.longitude
+                    )) {
+                        BuildingMapPin(building: building)
+                    }
                 }
             }
             .ignoresSafeArea()

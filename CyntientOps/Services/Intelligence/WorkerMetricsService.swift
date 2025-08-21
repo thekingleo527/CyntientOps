@@ -14,10 +14,19 @@ import Foundation
 class WorkerMetricsService: ObservableObject {
     static let shared = WorkerMetricsService()
     
-    // private let taskService = // TaskService injection needed
+    private let taskService: TaskService?
     private let grdbManager = GRDBManager.shared
     
-    private init() {}
+    private init() {
+        // For singleton compatibility, taskService will be nil
+        // This allows existing code to work while we transition to dependency injection
+        self.taskService = nil
+    }
+    
+    // New initializer for dependency injection
+    init(taskService: TaskService) {
+        self.taskService = taskService
+    }
     
     // MARK: - Real Worker Metrics Calculation
     
@@ -68,6 +77,10 @@ class WorkerMetricsService: ObservableObject {
     
     private func getWorkerTasks(workerId: String, buildingId: String) async throws -> [ContextualTask] {
         // Use TaskService to get all tasks, then filter
+        guard let taskService = taskService else {
+            print("⚠️ TaskService not available, using empty task list")
+            return []
+        }
         let allTasks = try await taskService.getAllTasks()
         
         // Filter tasks for this worker and building
@@ -222,6 +235,10 @@ extension WorkerMetricsService {
     func getOverallWorkerPerformance(workerId: String) async -> CoreTypes.PerformanceMetrics {
         do {
             // Get all tasks for this worker
+            guard let taskService = taskService else {
+                print("⚠️ TaskService not available, returning default performance metrics")
+                return CoreTypes.PerformanceMetrics(completionRate: 0.0, avgTaskTime: 0.0, efficiency: 0.0, qualityScore: 0.0, punctualityScore: 0.0)
+            }
             let allTasks = try await taskService.getAllTasks()
             let workerTasks = allTasks.filter { task in
                 task.assignedWorkerId == workerId || task.worker?.id == workerId

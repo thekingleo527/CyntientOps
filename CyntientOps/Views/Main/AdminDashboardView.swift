@@ -81,6 +81,7 @@ public struct AdminDashboardView: View {
             currentBuildingId: nil,
             focusBuildingId: nil,
             isRevealed: $isPortfolioMapRevealed,
+            container: container,
             onBuildingTap: { building in
                 sheet = .buildingDetail(building.id)
             }
@@ -443,7 +444,7 @@ struct AdminUrgentItem: View {
                 .navigationTitle("Worker Details")
                 
         case .chat:
-            NovaInteractionView()
+            NovaInteractionView(container: container)
                 .navigationTitle("Nova Assistant")
                 
         case .map:

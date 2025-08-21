@@ -25,8 +25,9 @@ import Combine
 public class DashboardSyncService: ObservableObject {
     private let database: GRDBManager
     
-    public init(database: GRDBManager) {
+    public init(database: GRDBManager, webSocketManager: WebSocketManager) {
         self.database = database
+        self.webSocketManager = webSocketManager
     }
     
     // MARK: - Cross-Dashboard Publishers
@@ -85,7 +86,7 @@ public class DashboardSyncService: ObservableObject {
     private let operationalManager = OperationalDataManager.shared
     private let operationalDataManager = OperationalDataManager.shared
     private let grdbManager = GRDBManager.shared
-    private let webSocketManager = WebSocketManager.shared
+    private let webSocketManager: WebSocketManager
     
     private var cancellables = Set<AnyCancellable>()
     private var syncTimer: Timer?
@@ -104,10 +105,6 @@ public class DashboardSyncService: ObservableObject {
     private let debugMode = false
     #endif
     
-    private init() {
-        self.database = GRDBManager.shared // Initialize required property
-        // Simple synchronous init - setup happens in initialize()
-    }
     
     deinit {
         syncTimer?.invalidate()

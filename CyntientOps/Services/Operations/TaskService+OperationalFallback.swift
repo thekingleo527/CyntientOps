@@ -115,17 +115,19 @@ extension TaskService {
     
     private func convertOperationalTask(_ opTask: OperationalDataTaskAssignment, index: Int, workerId: String? = nil) async -> ContextualTask? {
         // Get building ID from building service
-        let buildingService = BuildingService.shared
+        // TODO: Inject BuildingService dependency
+        // let buildingService = BuildingService.shared
         var buildingId: String?
         var building: NamedCoordinate?
         
         do {
-            let allBuildings = try await buildingService.getAllBuildings()
-            building = allBuildings.first { bldg in
-                bldg.name.lowercased().contains(opTask.building.lowercased()) ||
-                opTask.building.lowercased().contains(bldg.name.lowercased())
-            }
-            buildingId = building?.id
+            // TODO: Fix BuildingService injection
+            // let allBuildings = try await buildingService.getAllBuildings()
+            // building = allBuildings.first { bldg in
+            //     bldg.name.lowercased().contains(opTask.building.lowercased()) ||
+            //     opTask.building.lowercased().contains(bldg.name.lowercased())
+            // }
+            // buildingId = building?.id
         } catch {
             print("⚠️ Could not get building for \(opTask.building): \(error)")
         }

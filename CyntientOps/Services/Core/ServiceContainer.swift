@@ -128,9 +128,11 @@ public final class ServiceContainer: ObservableObject {
     public let metrics: BuildingMetricsService
     public let compliance: ComplianceService
     public let dailyOps: DailyOpsReset
+    public let webSocket: WebSocketManager
     
     // MARK: - Layer 3: Unified Intelligence  
     public let intelligence: UnifiedIntelligenceService
+    public let novaAPI: NovaAPIService
     
     // MARK: - Layer 4: Context Engines
     public let workerContext: WorkerContextEngine
@@ -186,11 +188,14 @@ public final class ServiceContainer: ObservableObject {
         print("🔧 Layer 1: Initializing core services...")
         
         self.auth = NewAuthManager.shared // Keep for now due to complex initialization
-        self.workers = WorkerService(database: database) // FIXED: No singleton
-        self.buildings = BuildingService(database: database) // FIXED: No singleton
         
-        // Initialize DashboardSyncService first for Layer 1 dependencies
-        let tempDashboardSync = DashboardSyncService(database: database) // FIXED: No singleton
+        // Initialize WebSocketManager first (no dependencies)
+        let tempWebSocket = WebSocketManager() // FIXED: No singleton
+        
+        // Initialize DashboardSyncService with WebSocketManager
+        let tempDashboardSync = DashboardSyncService(database: database, webSocketManager: tempWebSocket) // FIXED: No singleton
+        
+        self.workers = WorkerService(database: database, dashboardSync: tempDashboardSync) // FIXED: No singleton
         self.tasks = TaskService(database: database, dashboardSync: tempDashboardSync) // FIXED: No singleton
         
         // Create ClockInService wrapper for the actor-based ClockInManager
@@ -210,9 +215,21 @@ public final class ServiceContainer: ObservableObject {
         
         self.metrics = BuildingMetricsService(database: database, dashboardSync: tempDashboardSync) // FIXED: No singleton
         
-        self.compliance = ComplianceService(database: database) // FIXED: No singleton
+        // Initialize BuildingService with proper dependencies
+        self.buildings = BuildingService(database: database, dashboardSync: tempDashboardSync, metrics: self.metrics) // FIXED: With dependencies
+        
+        self.compliance = ComplianceService(database: database, dashboardSync: tempDashboardSync) // FIXED: No singleton
         
         self.dailyOps = DailyOpsReset(database: database) // FIXED: No singleton
+        
+        self.webSocket = tempWebSocket // FIXED: No singleton - use existing instance
+        
+        // Set up WebSocket -> DashboardSync communication
+        Task {
+            await tempWebSocket.setUpdateHandler { update in
+                await tempDashboardSync.handleRemoteUpdate(update)
+            }
+        }
         
         print("✅ Layer 2: Business logic initialized")
         
@@ -226,6 +243,16 @@ public final class ServiceContainer: ObservableObject {
             tasks: tasks,
             metrics: metrics,
             compliance: compliance
+        )
+        
+        // Initialize NovaAPIService with all dependencies
+        self.novaAPI = NovaAPIService(
+            operationalManager: operationalData,
+            buildingService: buildings,
+            taskService: tasks,
+            workerService: workers,
+            metricsService: metrics,
+            complianceService: compliance
         )
         
         print("✅ Layer 3: Intelligence initialized")
@@ -243,7 +270,7 @@ public final class ServiceContainer: ObservableObject {
         
         // Initialize NovaAIManager (owned by ServiceContainer)
         print("🧠 Initializing Nova AI Manager...")
-        self.novaManager = NovaAIManager()
+        self.novaManager = NovaAIManager(novaAPIService: novaAPI)
         print("✅ Nova AI Manager initialized")
         
         print("⚡ Layer 5: Command chains and client context - lazy initialization on first access")
@@ -276,6 +303,9 @@ public final class ServiceContainer: ObservableObject {
         
         // Connect Nova to services after everything is initialized
         connectNovaToServices()
+        
+        // Configure singleton managers with services
+        await configureSystemManagers()
         
         print("✅ ServiceContainer initialization complete!")
     }
@@ -436,6 +466,21 @@ public final class ServiceContainer: ObservableObject {
             cacheSize: 0, // Cache size placeholder
             backgroundTasksActive: backgroundTasks.count
         )
+    }
+    
+    // MARK: - Manager Configuration
+    
+    /// Configure singleton managers with service dependencies
+    private func configureSystemManagers() async {
+        print("🔧 Configuring system managers...")
+        
+        // Configure ClockInManager with DashboardSyncService
+        ClockInManager.shared.setDashboardSync(dashboardSync)
+        
+        // Configure TaskManager with TaskService
+        TaskManager.shared.setTaskService(tasks)
+        
+        print("✅ System managers configured")
     }
     
     deinit {

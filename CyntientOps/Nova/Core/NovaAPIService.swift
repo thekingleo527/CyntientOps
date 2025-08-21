@@ -14,13 +14,30 @@ import SwiftUI
 
 /// Nova API Service for processing prompts and generating responses
 public actor NovaAPIService {
-    public static let shared = NovaAPIService()
     
     // MARK: - Dependencies
-    private let operationalManager = OperationalDataManager.shared
-    // private let buildingService = // BuildingService injection needed
-    // private let taskService = // TaskService injection needed
-    // private let workerService = // WorkerService injection needed
+    private let operationalManager: OperationalDataManager
+    private let buildingService: BuildingService
+    private let taskService: TaskService
+    private let workerService: WorkerService
+    private let metricsService: BuildingMetricsService
+    private let complianceService: ComplianceService
+    
+    public init(
+        operationalManager: OperationalDataManager,
+        buildingService: BuildingService,
+        taskService: TaskService,
+        workerService: WorkerService,
+        metricsService: BuildingMetricsService,
+        complianceService: ComplianceService
+    ) {
+        self.operationalManager = operationalManager
+        self.buildingService = buildingService
+        self.taskService = taskService
+        self.workerService = workerService
+        self.metricsService = metricsService
+        self.complianceService = complianceService
+    }
     
     // MARK: - Configuration
     private let processingTimeout: TimeInterval = 30.0
@@ -35,7 +52,6 @@ public actor NovaAPIService {
     private var isProcessing = false
     private var processingQueue: [NovaPrompt] = []
     
-    private init() {}
     
     // MARK: - Public API
     
@@ -111,7 +127,7 @@ public actor NovaAPIService {
             // 1. TASK QUERIES
             if query.contains("task") || query.contains("what's next") || query.contains("to do") {
                 let allTasks = try await taskService.getAllTasks()
-                let pendingTasks = allTasks.filter { $0.status != .completed }
+                let pendingTasks = allTasks.filter { $0.status != CoreTypes.TaskStatus.completed }
                 
                 if !pendingTasks.isEmpty {
                     let taskList = pendingTasks.prefix(5).map { "• \($0.title)" }.joined(separator: "\n")
@@ -188,8 +204,8 @@ public actor NovaAPIService {
                 let buildings = try await buildingService.getAllBuildings()
                 let workers = try await workerService.getAllActiveWorkers()
                 
-                let pendingTasks = allTasks.filter { $0.status != .completed }
-                let completedTasks = allTasks.filter { $0.status == .completed }
+                let pendingTasks = allTasks.filter { $0.status != CoreTypes.TaskStatus.completed }
+                let completedTasks = allTasks.filter { $0.status == CoreTypes.TaskStatus.completed }
                 
                 responseMessage = """
                 📊 PORTFOLIO STATUS (Offline Mode)
@@ -249,8 +265,8 @@ public actor NovaAPIService {
             workers: workerService,
             buildings: buildingService,
             tasks: taskService,
-            metrics: BuildingMetricsService.shared,
-            compliance: ComplianceService.shared
+            metrics: metricsService,
+            compliance: complianceService
         ) {
             return await intelligenceService.getCachedInsights()
         }
@@ -279,7 +295,7 @@ public actor NovaAPIService {
         
         do {
             // Get current worker context if available
-            if let currentWorker = await WorkerContextEngineAdapter.shared.currentWorker {
+            if let currentWorker = await WorkerContextEngineAdapter.shared.getCurrentWorker() {
                 contextData["workerId"] = currentWorker.id
                 contextData["workerName"] = currentWorker.name
                 contextData["workerRole"] = currentWorker.role.rawValue
@@ -325,7 +341,7 @@ public actor NovaAPIService {
                 "contextType": contextType.rawValue,
                 "timestamp": ISO8601DateFormatter().string(from: Date())
             ],
-            userRole: await WorkerContextEngineAdapter.shared.currentWorker?.role,
+            userRole: await WorkerContextEngineAdapter.shared.getCurrentWorker()?.role,
             buildingContext: contextData["rubinBuildingId"],
             taskContext: contextType == .task ? text : nil
         )
@@ -476,19 +492,20 @@ public actor NovaAPIService {
         var insights: [NovaInsight] = []
         
         // Generate insights based on context and prompt
-        do {
-            // Try to get real insights from IntelligenceService
-            if let buildingId = context.buildingContext {
-                // Generate building insights - simplified for compilation
-                let buildingInsights: [CoreTypes.IntelligenceInsight] = []
-                insights.append(contentsOf: buildingInsights)
-            } else {
-                // Get portfolio insights
-                // Generate portfolio insights - simplified for compilation
-                let portfolioInsights: [CoreTypes.IntelligenceInsight] = []
-                insights.append(contentsOf: portfolioInsights.prefix(3)) // Top 3 insights
-            }
-        } catch {
+        // Try to get real insights from IntelligenceService
+        if context.buildingContext != nil {
+            // Generate building insights - simplified for compilation
+            let buildingInsights: [CoreTypes.IntelligenceInsight] = []
+            insights.append(contentsOf: buildingInsights)
+        } else {
+            // Get portfolio insights
+            // Generate portfolio insights - simplified for compilation
+            let portfolioInsights: [CoreTypes.IntelligenceInsight] = []
+            insights.append(contentsOf: portfolioInsights.prefix(3)) // Top 3 insights
+        }
+        
+        // Add fallback insight if no building-specific insights
+        if insights.isEmpty {
             // FIX 2 & 3: Use correct IntelligenceInsight initializer
             insights.append(CoreTypes.IntelligenceInsight(
                 title: "Portfolio Analysis",

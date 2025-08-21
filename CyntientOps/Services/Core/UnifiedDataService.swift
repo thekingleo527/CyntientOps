@@ -13,19 +13,22 @@ import Combine
 /// Service that bridges OperationalDataManager to database services with fallback support
 @MainActor
 public class UnifiedDataService: ObservableObject {
-    public static let shared = UnifiedDataService()
     
     // MARK: - Dependencies
     private let operationalData = OperationalDataManager.shared
-    // private let taskService = // TaskService injection needed
-    // private let workerService = // WorkerService injection needed
-    // private let buildingService = // BuildingService injection needed
+    private let taskService: TaskService
+    private let workerService: WorkerService
+    private let buildingService: BuildingService
     
     // MARK: - Published State
     @Published public var isReady = false
     @Published public var lastFallbackUse: Date?
     
-    private init() {}
+    public init(taskService: TaskService, workerService: WorkerService, buildingService: BuildingService) {
+        self.taskService = taskService
+        self.workerService = workerService
+        self.buildingService = buildingService
+    }
     
     // MARK: - Fallback Data Access
     
@@ -95,24 +98,17 @@ public class UnifiedDataService: ObservableObject {
     
     /// Get building-specific insights with fallback
     public func getBuildingInsightsWithFallback(for buildingId: String) async -> [CoreTypes.IntelligenceInsight] {
-        do {
-            // Try normal intelligence service first
-            // Generate building insights using available data
-            let insights: [CoreTypes.IntelligenceInsight] = []
-            if !insights.isEmpty {
-                return insights
-            }
-            
-            // Fallback: Generate basic insights
-            print("⚡ Using fallback for building insights")
-            lastFallbackUse = Date()
-            return await generateBuildingInsightsFromOperationalData(buildingId: buildingId)
-            
-        } catch {
-            print("❌ Building insights failed, using fallback: \(error)")
-            lastFallbackUse = Date()
-            return await generateBuildingInsightsFromOperationalData(buildingId: buildingId)
+        // Try normal intelligence service first
+        // Generate building insights using available data
+        let insights: [CoreTypes.IntelligenceInsight] = []
+        if !insights.isEmpty {
+            return insights
         }
+        
+        // Fallback: Generate basic insights
+        print("⚡ Using fallback for building insights")
+        lastFallbackUse = Date()
+        return await generateBuildingInsightsFromOperationalData(buildingId: buildingId)
     }
     
     // MARK: - Helper Methods

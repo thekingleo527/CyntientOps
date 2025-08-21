@@ -1692,7 +1692,7 @@ struct UnifiedTaskDetailView_Previews: PreviewProvider {
             .previewDisplayName("Admin Mode")
         }
         .preferredColorScheme(.dark)
-        .environmentObject(DashboardSyncService.shared)
+        // Preview removed - uses dependency injection in production
     }
 }
 

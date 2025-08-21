@@ -77,6 +77,7 @@ struct WorkerDashboardView: View {
             },
             currentBuildingId: viewModel.currentBuilding?.id,
             isRevealed: $isPortfolioMapRevealed,
+            container: container,
             onBuildingTap: { building in
                 sheet = .buildingDetail(building.id)
             }
@@ -554,7 +555,7 @@ struct WorkerDashboardView: View {
     private func workerSheetContent(for route: WorkerRoute) -> some View {
         switch route {
         case .profile:
-            WorkerProfileView(workerId: viewModel.worker?.id ?? "")
+            WorkerProfileView(workerId: viewModel.worker?.id ?? "", container: container)
                 .navigationTitle("Profile")
                 .navigationBarTitleDisplayMode(.large)
                 

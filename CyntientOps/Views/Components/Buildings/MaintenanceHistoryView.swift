@@ -507,12 +507,12 @@ struct MaintenanceHistoryView: View {
                         id: id,
                         title: title,
                         description: "",
-                        buildingId: row["buildingId"] as? String,
-                        workerId: row["workerId"] as? String,
+                        status: .completed,
+                        completedAt: row["completedDate"] as? Date,
                         category: CoreTypes.TaskCategory(rawValue: row["category"] as? String ?? "") ?? .maintenance,
                         urgency: .medium,
-                        isCompleted: true,
-                        completedDate: row["completedDate"] as? Date
+                        buildingId: row["buildingId"] as? String,
+                        assignedWorkerId: row["workerId"] as? String
                     )
                 }
                 
