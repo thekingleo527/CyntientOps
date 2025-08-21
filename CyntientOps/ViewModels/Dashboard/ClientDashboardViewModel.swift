@@ -65,8 +65,8 @@ public final class ClientDashboardViewModel: ObservableObject {
     // NYC API Compliance Data
     @Published public var hpdViolationsData: [String: [HPDViolation]] = [:]
     @Published public var dobPermitsData: [String: [DOBPermit]] = [:]
-    @Published public var dsnyScheduleData: [String: [DSNY.DSNYRoute]] = [:]
-    @Published public var dsnyViolationsData: [String: [DSNY.DSNYViolation]] = [:]
+    @Published public var dsnyScheduleData: [String: [DSNYRoute]] = [:]
+    @Published public var dsnyViolationsData: [String: [DSNYViolation]] = [:]
     @Published public var ll97EmissionsData: [String: [LL97Emission]] = [:]
     
     // Photo Evidence (for client building documentation view)
@@ -1332,32 +1332,9 @@ public final class ClientDashboardViewModel: ObservableObject {
                     dsnyViolations ?? []
                 )
                 
-                // Convert DSNYRoute to DSNY.DSNYRoute
-                let dsnyRoutes = dsnyScheduleRaw.map { route in
-                    DSNY.DSNYRoute(
-                        id: route.id.uuidString,
-                        dayOfWeek: route.dayOfWeek,
-                        time: route.time,
-                        serviceType: route.serviceType,
-                        isToday: route.isToday
-                    )
-                }
-                
-                // Convert DSNYViolation to DSNY.DSNYViolation
-                let dsnyViolationsConverted = dsnyViolationsData.map { violation in
-                    let dateFormatter = DateFormatter()
-                    dateFormatter.dateFormat = "yyyy-MM-dd"
-                    let issueDate = dateFormatter.date(from: violation.issueDate) ?? Date()
-                    
-                    return DSNY.DSNYViolation(
-                        id: violation.violationId,
-                        violationType: violation.violationType,
-                        issueDate: issueDate,
-                        fineAmount: violation.fineAmount ?? 0.0,
-                        description: violation.violationType,
-                        isActive: violation.status.lowercased() == "pending" || violation.status.lowercased() == "active"
-                    )
-                }
+                // Use DSNYRoute and DSNYViolation directly (no conversion needed)
+                let dsnyRoutes = dsnyScheduleRaw
+                let dsnyViolationsConverted = dsnyViolationsData
                 
                 // Calculate compliance metrics from real NYC data
                 let activeViolations = violations.filter { $0.isActive }
@@ -1591,21 +1568,8 @@ public final class ClientDashboardViewModel: ObservableObject {
                 // Load DSNY Violations
                 let dsnyViolationsRaw = try await loadDSNYViolations(bin: bin, buildingName: building.name)
                 
-                // Convert DSNYViolation to DSNY.DSNYViolation
-                let dsnyViolations = dsnyViolationsRaw.map { violation in
-                    let dateFormatter = DateFormatter()
-                    dateFormatter.dateFormat = "yyyy-MM-dd"
-                    let issueDate = dateFormatter.date(from: violation.issueDate) ?? Date()
-                    
-                    return DSNY.DSNYViolation(
-                        id: violation.violationId,
-                        violationType: violation.violationType,
-                        issueDate: issueDate,
-                        fineAmount: violation.fineAmount ?? 0.0,
-                        description: violation.violationType,
-                        isActive: violation.status.lowercased() == "pending" || violation.status.lowercased() == "active"
-                    )
-                }
+                // Use DSNYViolation directly (no conversion needed)
+                let dsnyViolations = dsnyViolationsRaw
                 
                 await MainActor.run {
                     dsnyViolationsData[building.id] = dsnyViolations
@@ -1734,38 +1698,44 @@ public final class ClientDashboardViewModel: ObservableObject {
         return permits
     }
     
-    private func loadDSNYScheduleData(building: CoreTypes.BuildingWithImage) async throws -> [DSNY.DSNYRoute] {
+    private func loadDSNYScheduleData(building: CoreTypes.BuildingWithImage) async throws -> [DSNYRoute] {
         // This is the key DSNY integration - load actual schedule data
         print("   🗑️ Loading DSNY schedule data for: \(building.name)")
         
         // Determine community district from coordinate (simplified mapping)
         let communityDistrict = determineCommunityDistrict(coordinate: building.coordinate.coordinate)
         
-        // Generate realistic DSNY routes for Manhattan buildings
-        var routes: [DSNY.DSNYRoute] = []
+        // Generate realistic DSNY routes for Manhattan buildings using NYC data model
+        var routes: [DSNYRoute] = []
         
         // Typical Manhattan collection schedule
         let collections = [
-            DSNY.DSNYRoute(
-                id: "MN\(communityDistrict)A",
-                dayOfWeek: "MONDAY",
+            DSNYRoute(
+                communityDistrict: "MN\(communityDistrict)",
+                section: "A",
+                route: "MN\(communityDistrict)A",
+                dayOfWeek: "MONDAY", 
                 time: "6:00 AM",
                 serviceType: "REFUSE",
-                isToday: Calendar.current.component(.weekday, from: Date()) == 2
+                borough: "MANHATTAN"
             ),
-            DSNY.DSNYRoute(
-                id: "MN\(communityDistrict)B", 
+            DSNYRoute(
+                communityDistrict: "MN\(communityDistrict)",
+                section: "B",
+                route: "MN\(communityDistrict)B",
                 dayOfWeek: "THURSDAY",
-                time: "7:00 AM",
+                time: "7:00 AM", 
                 serviceType: "RECYCLING",
-                isToday: Calendar.current.component(.weekday, from: Date()) == 5
+                borough: "MANHATTAN"
             ),
-            DSNY.DSNYRoute(
-                id: "MN\(communityDistrict)C",
+            DSNYRoute(
+                communityDistrict: "MN\(communityDistrict)",
+                section: "C",
+                route: "MN\(communityDistrict)C", 
                 dayOfWeek: "TUESDAY",
                 time: "8:00 AM",
                 serviceType: "ORGANICS",
-                isToday: Calendar.current.component(.weekday, from: Date()) == 3
+                borough: "MANHATTAN"
             )
         ]
         

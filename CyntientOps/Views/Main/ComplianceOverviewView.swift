@@ -527,7 +527,7 @@ struct ComplianceOverviewView: View {
                 if let dsnyViolations = dsny {
                     let dsnyIssues = dsnyViolations.filter { $0.isActive }.map { violation in
                         ComplianceIssueData(
-                            type: .sanitation,
+                            type: .environmental,
                             severity: violation.fineAmount > 200 ? .critical : .high,
                             description: "DSNY: \(violation.violationType)",
                             buildingId: building.id,
