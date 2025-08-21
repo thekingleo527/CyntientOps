@@ -706,7 +706,7 @@ struct BuildingActivityRow: View {
         }
     }
     
-    private func iconForActivity(_ type: BuildingDetailActivity.ActivityType) -> String {
+    private func iconForActivity(_ type: BDBuildingDetailActivity.ActivityType) -> String {
         switch type {
         case .taskCompleted: return "checkmark.circle"
         case .photoAdded: return "camera"
@@ -718,7 +718,7 @@ struct BuildingActivityRow: View {
         }
     }
     
-    private func colorForActivity(_ type: BuildingDetailActivity.ActivityType) -> Color {
+    private func colorForActivity(_ type: BDBuildingDetailActivity.ActivityType) -> Color {
         switch type {
         case .taskCompleted, .routineCompleted, .workerArrived:
             return CyntientOpsDesign.DashboardColors.success
@@ -809,7 +809,7 @@ struct BDDailyRoutineRow: View {
 }
 
 struct MaintenanceTaskRow: View {
-    let maintenanceTask: CoreTypes.Task
+    let maintenanceTask: CoreTypes.MaintenanceTask
     
     var body: some View {
         HStack(spacing: 12) {
@@ -1058,7 +1058,7 @@ struct InventoryStatCard: View {
 }
 
 struct BuildingInventoryCategoryButton: View {
-    let category: String
+    let category: CoreTypes.InventoryCategory
     let count: Int
     let isSelected: Bool
     let action: () -> Void
@@ -1071,7 +1071,7 @@ struct BuildingInventoryCategoryButton: View {
                     .fontWeight(.bold)
                     .foregroundColor(isSelected ? .white : CyntientOpsDesign.DashboardColors.primaryText)
                 
-                Text(category)
+                Text(category.rawValue)
                     .font(.caption)
                     .foregroundColor(isSelected ? .white : CyntientOpsDesign.DashboardColors.secondaryText)
             }
@@ -1257,7 +1257,7 @@ struct MaintenanceHistoryRow: View {
             Spacer()
             
             if let cost = record.cost {
-                Text(cost, format: .currency(code: "USD"))
+                Text(cost.decimalValue, format: .currency(code: "USD"))
                     .font(.caption)
                     .fontWeight(.medium)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.success)
@@ -1287,6 +1287,32 @@ struct AccessCodeChip: View {
                 .fill(CyntientOpsDesign.DashboardColors.cardBackground)
                 .stroke(CyntientOpsDesign.DashboardColors.info, lineWidth: 1)
         )
+    }
+}
+
+struct OnSiteWorkerRow: View {
+    let worker: BDAssignedWorker
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "person.circle.fill")
+                .foregroundColor(CyntientOpsDesign.DashboardColors.success)
+                .frame(width: 40, height: 40)
+                .clipShape(Circle())
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text(worker.name)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                
+                Text("On-site")
+                    .font(.caption)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.success)
+            }
+            
+            Spacer()
+        }
     }
 }
 
@@ -2937,7 +2963,7 @@ struct BuildingActivityRow: View {
         }
     }
     
-    private func iconForActivity(_ type: BuildingDetailActivity.ActivityType) -> String {
+    private func iconForActivity(_ type: BDBuildingDetailActivity.ActivityType) -> String {
         switch type {
         case .taskCompleted: return "checkmark.circle"
         case .photoAdded: return "camera"
@@ -2949,7 +2975,7 @@ struct BuildingActivityRow: View {
         }
     }
     
-    private func colorForActivity(_ type: BuildingDetailActivity.ActivityType) -> Color {
+    private func colorForActivity(_ type: BDBuildingDetailActivity.ActivityType) -> Color {
         switch type {
         case .taskCompleted, .routineCompleted, .workerArrived:
             return CyntientOpsDesign.DashboardColors.success
