@@ -15,9 +15,6 @@ import Combine
 import CoreLocation
 import MapKit
 
-// Import BBLGenerationService
-// BBLGenerationService accessed directly as singleton
-
 @MainActor
 class AdminDashboardViewModel: ObservableObject {
     
@@ -62,7 +59,7 @@ class AdminDashboardViewModel: ObservableObject {
     // MARK: - Convenience Data Properties
     @Published var hpdViolationsData: [String: [HPDViolation]] = [:]
     @Published var dobPermitsData: [String: [DOBPermit]] = [:]
-    @Published var dsnyScheduleData: [String: [DSNYSchedule]] = [:]
+    @Published var dsnyScheduleData: [String: [DSNYRoute]] = [:]
     @Published var ll97EmissionsData: [String: [LL97Emission]] = [:]
     @Published var buildingsList: [CoreTypes.NamedCoordinate] = []
     @Published var crossDashboardUpdates: [CoreTypes.DashboardUpdate] = []
@@ -531,6 +528,9 @@ class AdminDashboardViewModel: ObservableObject {
             // Load operational intelligence data
             await loadOperationalIntelligence()
             
+            // Load real building data using BBL generation and NYC APIs
+            await loadRealBuildingData()
+            
             // Load real NYC API compliance data for all buildings
             await loadRealComplianceData()
             
@@ -567,6 +567,46 @@ class AdminDashboardViewModel: ObservableObject {
         isLoading = false
     }
     
+    /// Load real building data using BBL generation and NYC APIs
+    @MainActor
+    private func loadRealBuildingData() async {
+        print("🏗️ Loading real building data with BBL generation and NYC APIs...")
+        let bblService = BBLGenerationService.shared
+        let nycAPI = NYCAPIService.shared
+        
+        // Generate BBLs and fetch comprehensive property data
+        for building in buildings {
+            do {
+                print("🔢 Generating BBL for: \(building.name)")
+                
+                // Generate BBL using the service
+                if let propertyData = await bblService.getPropertyData(
+                    for: building.id,
+                    address: building.address,
+                    coordinate: building.coordinate.coordinate
+                ) {
+                    print("✅ Got property data for \(building.name):")
+                    print("   BBL: \(propertyData.bbl)")
+                    print("   Market Value: $\(Int(propertyData.financialData.marketValue).formatted(.number))")
+                    print("   Violations: \(propertyData.violations.count)")
+                    print("   LL97 Status: \(propertyData.complianceData.ll97Status)")
+                    
+                    // Update building with real data (example of how to use this data)
+                    // This could be stored and used for dashboard metrics
+                    
+                } else {
+                    print("⚠️ Could not fetch property data for \(building.name)")
+                }
+                
+                // Rate limiting between requests
+                try await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds
+                
+            } catch {
+                print("❌ Error loading data for \(building.name): \(error)")
+            }
+        }
+    }
+    
     /// Load real NYC API compliance data for all buildings
     @MainActor
     private func loadRealComplianceData() async {
@@ -575,7 +615,7 @@ class AdminDashboardViewModel: ObservableObject {
         
         var hpdData: [String: [HPDViolation]] = [:]
         var dobData: [String: [DOBPermit]] = [:]
-        var dsnyData: [String: [DSNYSchedule]] = [:]
+        var dsnyData: [String: [DSNYRoute]] = [:]
         var ll97Data: [String: [LL97Emission]] = [:]
         
         for building in buildings {
@@ -588,9 +628,9 @@ class AdminDashboardViewModel: ObservableObject {
                 let dobPermits = try await nycAPI.fetchDOBPermits(bin: building.id)
                 dobData[building.id] = dobPermits
                 
-                // Fetch real DSNY schedule (if available)
-                let dsnySchedule = try? await nycAPI.fetchDSNYSchedule(district: building.address)
-                dsnyData[building.id] = dsnySchedule ?? []
+                // Fetch real DSNY routes (if available)
+                let dsnyRoutes = try? await nycAPI.fetchDSNYSchedule(district: building.address)
+                dsnyData[building.id] = dsnyRoutes ?? []
                 
                 // Fetch real LL97 emissions
                 let ll97Emissions = try await nycAPI.fetchLL97Compliance(bbl: building.id)
