@@ -562,3 +562,241 @@ public struct RequiredAction {
 // Date extension is in OperationalDataManager.swift
 
 // ComplianceSeverity extensions moved to ComplianceIssue.swift to avoid duplicates
+
+// MARK: - Enhanced NYC Data Models for Comprehensive Coverage
+
+// DOF Tax Bills
+public struct DOFTaxBill: Codable, Identifiable {
+    public let id = UUID()
+    public let bbl: String
+    public let year: String
+    public let propertyTax: Double?
+    public let annualAmount: Double?
+    public let propertyTaxPaid: Double?
+    public let paidDate: String?
+    public let outstandingAmount: Double?
+    public let billId: String?
+    
+    private enum CodingKeys: String, CodingKey {
+        case bbl
+        case year = "fiscal_year"
+        case propertyTax = "property_tax"
+        case annualAmount = "annual_amount"
+        case propertyTaxPaid = "property_tax_paid"
+        case paidDate = "paid_date"
+        case outstandingAmount = "outstanding_amount"
+        case billId = "bill_id"
+    }
+}
+
+// DOF Tax Liens
+public struct DOFTaxLien: Codable, Identifiable {
+    public let id = UUID()
+    public let bbl: String
+    public let year: String
+    public let lienAmount: Double?
+    public let saleDate: String?
+    public let purchaser: String?
+    public let address: String?
+    public let borough: String?
+    
+    private enum CodingKeys: String, CodingKey {
+        case bbl
+        case year = "tax_year"
+        case lienAmount = "lien_amount"
+        case saleDate = "sale_date"
+        case purchaser
+        case address
+        case borough
+    }
+}
+
+// Energy Efficiency Ratings
+public struct EnergyEfficiencyRating: Codable, Identifiable {
+    public let id = UUID()
+    public let bbl: String
+    public let buildingName: String?
+    public let energyStarScore: Int?
+    public let siteEnergyUse: Double?
+    public let sourceEnergyUse: Double?
+    public let weatherNormalizedSiteEnergyUse: Double?
+    public let weatherNormalizedSourceEnergyUse: Double?
+    public let totalGHGEmissions: Double?
+    public let reportingYear: Int?
+    
+    private enum CodingKeys: String, CodingKey {
+        case bbl = "bbl"
+        case buildingName = "property_name"
+        case energyStarScore = "energy_star_score"
+        case siteEnergyUse = "site_energy_use_kbtu"
+        case sourceEnergyUse = "source_energy_use_kbtu"
+        case weatherNormalizedSiteEnergyUse = "weather_normalized_site_energy_use_kbtu"
+        case weatherNormalizedSourceEnergyUse = "weather_normalized_source_energy_use_kbtu"
+        case totalGHGEmissions = "total_ghg_emissions_metric_tons_co2e"
+        case reportingYear = "reporting_year"
+    }
+}
+
+// Landmarks Buildings
+public struct LandmarksBuilding: Codable, Identifiable {
+    public let id = UUID()
+    public let bbl: String?
+    public let buildingName: String?
+    public let borough: String?
+    public let address: String?
+    public let designationType: String?
+    public let landmarkType: String?
+    public let dateDesignated: String?
+    public let lpNumber: String?
+    
+    private enum CodingKeys: String, CodingKey {
+        case bbl
+        case buildingName = "building_name"
+        case borough
+        case address
+        case designationType = "designation_type"
+        case landmarkType = "landmark_type"
+        case dateDesignated = "date_designated"
+        case lpNumber = "lp_number"
+    }
+}
+
+// Building Footprints
+public struct BuildingFootprint: Codable, Identifiable {
+    public let id = UUID()
+    public let bin: String?
+    public let bbl: String?
+    public let constructionYear: String?
+    public let alterationYear: String?
+    public let numberOfFloors: String?
+    public let heightRoof: String?
+    public let groundElevation: String?
+    public let shapeArea: Double?
+    public let shapeLength: Double?
+    
+    private enum CodingKeys: String, CodingKey {
+        case bin
+        case bbl
+        case constructionYear = "cnstrct_yr"
+        case alterationYear = "alt_yr"
+        case numberOfFloors = "num_floors"
+        case heightRoof = "heightroof"
+        case groundElevation = "groundelev"
+        case shapeArea = "shape_area"
+        case shapeLength = "shape_leng"
+    }
+}
+
+// Active Construction Projects
+public struct ActiveConstruction: Codable, Identifiable {
+    public let id = UUID()
+    public let borough: String?
+    public let communityBoard: String?
+    public let councilDistrict: String?
+    public let bin: String?
+    public let bbl: String?
+    public let nta: String?
+    public let address: String?
+    public let workType: String?
+    public let permitType: String?
+    public let permitSubtype: String?
+    public let workDescription: String?
+    public let applicantName: String?
+    public let applicantTitle: String?
+    public let applicantLicenseNumber: String?
+    public let professionalCertNumber: String?
+    public let filingDate: String?
+    public let issuanceDate: String?
+    public let expirationDate: String?
+    
+    private enum CodingKeys: String, CodingKey {
+        case borough
+        case communityBoard = "community_board"
+        case councilDistrict = "council_district"
+        case bin
+        case bbl
+        case nta
+        case address = "house_no_street_name"
+        case workType = "work_type"
+        case permitType = "permit_type"
+        case permitSubtype = "permit_subtype"
+        case workDescription = "work_description"
+        case applicantName = "applicant_s_first_name"
+        case applicantTitle = "applicant_title"
+        case applicantLicenseNumber = "applicant_license"
+        case professionalCertNumber = "professional_cert"
+        case filingDate = "filing_date"
+        case issuanceDate = "issuance_date"
+        case expirationDate = "expiration_date"
+    }
+}
+
+// Business Licenses  
+public struct BusinessLicense: Codable, Identifiable {
+    public let id = UUID()
+    public let licenseNumber: String?
+    public let businessName: String?
+    public let businessName2: String?
+    public let address: String?
+    public let borough: String?
+    public let zip: String?
+    public let phone: String?
+    public let licenseType: String?
+    public let industry: String?
+    public let licenseStatus: String?
+    public let applicationDate: String?
+    public let licenseCreationDate: String?
+    public let licenseExpirationDate: String?
+    
+    private enum CodingKeys: String, CodingKey {
+        case licenseNumber = "license_nbr"
+        case businessName = "business_name"
+        case businessName2 = "business_name_2"
+        case address
+        case borough
+        case zip
+        case phone = "telephone_number"
+        case licenseType = "license_type"
+        case industry
+        case licenseStatus = "license_status"
+        case applicationDate = "application_date"
+        case licenseCreationDate = "license_creation_date"
+        case licenseExpirationDate = "license_expiration_date"
+    }
+}
+
+// Air Quality Complaints
+public struct AirQualityComplaint: Codable, Identifiable {
+    public let id = UUID()
+    public let uniqueKey: String?
+    public let createdDate: String?
+    public let closedDate: String?
+    public let agency: String?
+    public let complaintType: String?
+    public let descriptor: String?
+    public let locationDescription: String?
+    public let incidentAddress: String?
+    public let borough: String?
+    public let zip: String?
+    public let latitude: Double?
+    public let longitude: Double?
+    public let status: String?
+    public let resolutionDescription: String?
+    
+    private enum CodingKeys: String, CodingKey {
+        case uniqueKey = "unique_key"
+        case createdDate = "created_date"
+        case closedDate = "closed_date"
+        case agency
+        case complaintType = "complaint_type"
+        case descriptor
+        case locationDescription = "location_description"
+        case incidentAddress = "incident_address"
+        case borough
+        case zip
+        case latitude
+        case longitude
+        case status
+        case resolutionDescription = "resolution_description"
+    }
+}

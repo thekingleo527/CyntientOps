@@ -17,7 +17,7 @@ struct BuildingConstants {
     // MARK: - Building Metadata (From DatabaseStartupCoordinator)
     static let buildingData: [String: (name: String, address: String, imageAsset: String)] = [
         "1": ("12 West 18th Street", "12 W 18th St, New York, NY 10011", "12_West_18th_Street"),
-        "2": ("29-31 East 20th Street", "29-31 E 20th St, New York, NY 10003", "29_31_East_20th_Street"),
+        // "2": Building removed from portfolio
         "3": ("133 East 15th Street", "133 E 15th St, New York, NY 10003", "133_East_15th_Street"),
         "4": ("104 Franklin Street", "104 Franklin St, New York, NY 10013", "104_Franklin_Street"),
         "5": ("36 Walker Street", "36 Walker St, New York, NY 10013", "36_Walker_Street"),

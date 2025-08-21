@@ -101,8 +101,7 @@ public final class ClientBuildingSeeder {
     
     // MARK: - Building Updates
     private let buildingUpdates: [(id: String, name: String, address: String, isActive: Bool)] = [
-        // Deactivate building 2
-        ("2", "29-31 East 20th Street", "29-31 East 20th Street, New York, NY 10003", false),
+        // Removed building 2 (29-31 East 20th Street) - no longer in portfolio
         
         // Add new building 21
         ("21", "148 Chambers Street", "148 Chambers Street, New York, NY 10007", true)
@@ -210,7 +209,7 @@ public final class ClientBuildingSeeder {
         // Comprehensive building coordinate update for all Franco Management buildings
         let buildingData: [(id: String, name: String, address: String, lat: Double, lng: Double)] = [
             ("1", "12 West 18th Street", "12 West 18th Street, New York, NY 10011", 40.7387, -73.9941),
-            // ("2", "29-31 East 20th Street", "29-31 East 20th Street, New York, NY 10003", 40.7383, -73.9872), // REMOVED - No longer active
+            // Building ID 2 (29-31 East 20th Street) removed - no longer in portfolio
             ("3", "135-139 West 17th Street", "135-139 West 17th Street, New York, NY 10011", 40.7406, -73.9974),
             ("4", "104 Franklin Street", "104 Franklin Street, New York, NY 10013", 40.7197, -74.0079),
             ("5", "138 West 17th Street", "138 West 17th Street, New York, NY 10011", 40.7407, -73.9976),

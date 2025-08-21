@@ -570,32 +570,53 @@ class AdminDashboardViewModel: ObservableObject {
     /// Load real building data using BBL generation and NYC APIs
     @MainActor
     private func loadRealBuildingData() async {
-        print("🏗️ Loading real building data with BBL generation and NYC APIs...")
-        let bblService = BBLGenerationService.shared
+        print("🏗️ Loading real building data with NYC APIs...")
         let nycAPI = NYCAPIService.shared
         
-        // Generate BBLs and fetch comprehensive property data
+        // Generate BBLs and fetch comprehensive property data using direct NYC API calls
         for building in buildings {
             do {
                 print("🔢 Generating BBL for: \(building.name)")
                 
-                // Generate BBL using the service
-                if let propertyData = await bblService.getPropertyData(
-                    for: building.id,
-                    address: building.address,
-                    coordinate: building.coordinate.coordinate
-                ) {
-                    print("✅ Got property data for \(building.name):")
-                    print("   BBL: \(propertyData.bbl)")
-                    print("   Market Value: $\(Int(propertyData.financialData.marketValue).formatted(.number))")
-                    print("   Violations: \(propertyData.violations.count)")
-                    print("   LL97 Status: \(propertyData.complianceData.ll97Status)")
+                // Use NYC API directly to get real assessed values and property data
+                if let bbl = await nycAPI.generateBBL(from: building.coordinate.coordinate) {
+                    print("✅ Generated BBL \(bbl) for \(building.name)")
                     
-                    // Update building with real data (example of how to use this data)
-                    // This could be stored and used for dashboard metrics
-                    
+                    // Fetch real DOF assessed value data
+                    if let assessmentData = await nycAPI.fetchDOFTaxBills(bbl: bbl), !assessmentData.isEmpty {
+                        let assessment = assessmentData[0]
+                        print("   💰 Real Assessed Value: $\(Int(assessment.assessedValue).formatted(.number))")
+                        print("   🏛️ Real Market Value: $\(Int(assessment.marketValue).formatted(.number))")
+                        
+                        // Store real property data for portfolio calculations
+                        let financialData = CoreTypes.PropertyFinancialData(
+                            assessedValue: assessment.assessedValue,
+                            marketValue: assessment.marketValue,
+                            recentTaxPayments: [],
+                            activeLiens: [],
+                            exemptions: []
+                        )
+                        
+                        let propertyData = CoreTypes.NYCPropertyData(
+                            bbl: bbl,
+                            buildingId: building.id,
+                            financialData: financialData,
+                            complianceData: CoreTypes.LocalLawComplianceData(
+                                ll97Status: .notRequired,
+                                ll11Status: .notRequired,
+                                ll87Status: .notRequired,
+                                ll97NextDue: nil,
+                                ll11NextDue: nil
+                            ),
+                            violations: []
+                        )
+                        
+                        await MainActor.run {
+                            self.propertyData[building.id] = propertyData
+                        }
+                    }
                 } else {
-                    print("⚠️ Could not fetch property data for \(building.name)")
+                    print("⚠️ Could not generate BBL for \(building.name)")
                 }
                 
                 // Rate limiting between requests
@@ -2094,11 +2115,7 @@ class AdminDashboardViewModel: ObservableObject {
             completedTasksToday: completionsToday,
             pendingRemindersCount: pendingReminders.count,
             criticalRemindersCount: criticalReminders,
-            recentVendorAccessCount: recentVendorAccessCount,
-            criticalAlertsCount: criticalRoutineAlerts.count,
-            buildingsWithFullCompletion: routineCompletions.values.filter { statusData in
-                (statusData["isFullyComplete"] as? Bool) == true
-            }.count
+            recentVendorAccessCount: recentVendorAccessCount
         )
     }
     

@@ -104,8 +104,8 @@ public class DailyOpsReset: ObservableObject {
                 try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM buildings") ?? 0
             }
             
-            if buildingCount < 19 {
-                print("🔧 Force migration needed - only \(buildingCount) buildings found, expected 19+")
+            if buildingCount < 18 {
+                print("🔧 Force migration needed - only \(buildingCount) buildings found, expected 18+")
                 // Reset flags to force complete re-migration
                 UserDefaults.standard.set(false, forKey: migrationKeys.hasImportedBuildings)
                 UserDefaults.standard.set(false, forKey: migrationKeys.hasImportedTemplates)
@@ -218,19 +218,19 @@ public class DailyOpsReset: ObservableObject {
         let buildingCount = try await GRDBManager.shared.query("SELECT COUNT(*) as count FROM buildings")
         let actualBuildingCount = (buildingCount.first?["count"] as? Int64) ?? 0
         
-        if !UserDefaults.standard.bool(forKey: migrationKeys.hasImportedBuildings) || actualBuildingCount < 19 {
+        if !UserDefaults.standard.bool(forKey: migrationKeys.hasImportedBuildings) || actualBuildingCount < 18 {
             currentStep = 4
             migrationStatus = "Importing buildings..."
             migrationProgress = 0.4
             
-            print("🏢 Building import needed - current count: \(actualBuildingCount), expected: 19+")
+            print("🏢 Building import needed - current count: \(actualBuildingCount), expected: 18+")
             try await importBuildingsAsync()
             
             // Verify import succeeded before setting flag
             let newBuildingCount = try await GRDBManager.shared.query("SELECT COUNT(*) as count FROM buildings")
             let finalCount = (newBuildingCount.first?["count"] as? Int64) ?? 0
             
-            if finalCount >= 19 {
+            if finalCount >= 18 {
                 UserDefaults.standard.set(true, forKey: migrationKeys.hasImportedBuildings)
                 UserDefaults.standard.synchronize()
                 print("✅ Building import verified: \(finalCount) buildings imported")
@@ -379,8 +379,8 @@ public class DailyOpsReset: ObservableObject {
             }
             print("✅ Building import completed - verified count: \(verifyCount)")
             
-            if verifyCount < 19 {
-                throw DailyOpsError.importFailed("Building import failed: only \(verifyCount) buildings imported, expected 19")
+            if verifyCount < 18 {
+                throw DailyOpsError.importFailed("Building import failed: only \(verifyCount) buildings imported, expected 18")
             }
             
         } catch {
@@ -493,8 +493,7 @@ public class DailyOpsReset: ObservableObject {
             ("11", "135 West 17th Street", "135 West 17th Street, New York, NY 10011", "residential", 4, false, false, 40.7384, -73.9975),
             ("12", "136 West 17th Street", "136 West 17th Street, New York, NY 10011", "residential", 4, false, false, 40.7383, -73.9976),
             ("13", "138 West 17th Street", "138 West 17th Street, New York, NY 10011", "residential", 4, false, false, 40.7382, -73.9977),
-            ("14", "Rubin Museum", "150 West 17th Street, New York, NY 10011", "cultural", 7, true, true, 40.7390, -73.9975),
-            ("15", "29-31 East 20th Street", "29-31 East 20th Street, New York, NY 10003", "commercial", 5, true, false, 40.7388, -73.9889),
+            ("14", "Rubin Museum", "142-148 West 17th Street, New York, NY 10011", "cultural", 7, true, true, 40.7390, -73.9975),
             ("16", "Stuyvesant Cove Park", "Stuyvesant Cove Park, New York, NY 10009", "park", 1, false, false, 40.7338, -73.9738),
             ("17", "178 Spring Street", "178 Spring Street, New York, NY 10012", "mixed", 5, true, false, 40.7247, -74.0023),
             ("18", "104 Franklin Street Annex", "104 Franklin Street Annex, New York, NY 10013", "commercial", 6, true, false, 40.7171, -74.0095),
@@ -566,8 +565,7 @@ public class DailyOpsReset: ObservableObject {
             ("11", "135 West 17th Street", "135 West 17th Street, New York, NY 10011", "residential", 4, false, false, 40.7384, -73.9975),
             ("12", "136 West 17th Street", "136 West 17th Street, New York, NY 10011", "residential", 4, false, false, 40.7383, -73.9976),
             ("13", "138 West 17th Street", "138 West 17th Street, New York, NY 10011", "residential", 4, false, false, 40.7382, -73.9977),
-            ("14", "Rubin Museum", "150 West 17th Street, New York, NY 10011", "cultural", 7, true, true, 40.7390, -73.9975),
-            ("15", "29-31 East 20th Street", "29-31 East 20th Street, New York, NY 10003", "commercial", 5, true, false, 40.7388, -73.9889),
+            ("14", "Rubin Museum", "142-148 West 17th Street, New York, NY 10011", "cultural", 7, true, true, 40.7390, -73.9975),
             ("16", "Stuyvesant Cove Park", "Stuyvesant Cove Park, New York, NY 10009", "park", 1, false, false, 40.7338, -73.9738),
             ("17", "178 Spring Street", "178 Spring Street, New York, NY 10012", "mixed", 5, true, false, 40.7247, -74.0023),
             ("18", "104 Franklin Street Annex", "104 Franklin Street Annex, New York, NY 10013", "commercial", 6, true, false, 40.7171, -74.0095),
@@ -1146,7 +1144,7 @@ public class DailyOpsReset: ObservableObject {
         print("📊 Updating daily metrics...")
         
         // Trigger metrics recalculation for all buildings
-        let buildingIds = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17"]
+        let buildingIds = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "16", "17"]
         
         for buildingId in buildingIds {
             _ = try await BuildingMetricsService.shared.calculateMetrics(for: buildingId)

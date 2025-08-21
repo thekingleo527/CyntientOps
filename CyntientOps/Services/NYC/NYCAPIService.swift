@@ -38,6 +38,14 @@ public final class NYCAPIService: ObservableObject {
         static let fdnyURL = "https://data.cityofnewyork.us/resource/3h2n-5cm9.json" // FDNY Inspections
         static let complaints311URL = "https://data.cityofnewyork.us/resource/erm2-nwe9.json" // 311 Complaints
         static let dofURL = "https://data.cityofnewyork.us/resource/yjxr-fw9i.json" // DOF Property Assessment
+        static let dofTaxBillsURL = "https://data.cityofnewyork.us/resource/wdu4-qxpx.json" // DOF Tax Bills
+        static let dofTaxLiensURL = "https://data.cityofnewyork.us/resource/9rz4-mjek.json" // DOF Tax Liens
+        static let energyEfficiencyURL = "https://data.cityofnewyork.us/resource/usc3-8zwd.json" // Energy Efficiency Ratings
+        static let landmarksBuildingsURL = "https://data.cityofnewyork.us/resource/ju8n-zjd8.json" // LPC Landmarks
+        static let buildingFootprintsURL = "https://data.cityofnewyork.us/resource/nqwf-w8eh.json" // Building Footprints
+        static let activeConstructionURL = "https://data.cityofnewyork.us/resource/ic3t-wcy2.json" // Active Construction Projects
+        static let businessLicensesURL = "https://data.cityofnewyork.us/resource/w7w3-xahh.json" // Business Licenses
+        static let airQualityURL = "https://data.cityofnewyork.us/resource/c3uy-2p5r.json" // Air Quality Complaints
         
         // Rate limiting: NYC OpenData allows 1000 calls/hour per endpoint
         static let rateLimitDelay: TimeInterval = 3.6 // seconds between calls
@@ -56,6 +64,14 @@ public final class NYCAPIService: ObservableObject {
         case conEdisonOutages(zip: String)
         case complaints311(bin: String)
         case dofPropertyAssessment(bbl: String)
+        case dofTaxBills(bbl: String)
+        case dofTaxLiens(bbl: String)
+        case energyEfficiencyRating(bbl: String)
+        case landmarksBuildings(bbl: String)
+        case buildingFootprints(bin: String)
+        case activeConstruction(address: String)
+        case businessLicenses(address: String)
+        case airQualityComplaints(address: String)
         
         var url: String {
             switch self {
@@ -79,6 +95,25 @@ public final class NYCAPIService: ObservableObject {
                 return "\(APIConfig.complaints311URL)?bin=\(bin)"
             case .dofPropertyAssessment(let bbl):
                 return "\(APIConfig.dofURL)?bbl=\(bbl)"
+            case .dofTaxBills(let bbl):
+                return "\(APIConfig.dofTaxBillsURL)?bbl=\(bbl)"
+            case .dofTaxLiens(let bbl):
+                return "\(APIConfig.dofTaxLiensURL)?bbl=\(bbl)"
+            case .energyEfficiencyRating(let bbl):
+                return "\(APIConfig.energyEfficiencyURL)?bbl=\(bbl)"
+            case .landmarksBuildings(let bbl):
+                return "\(APIConfig.landmarksBuildingsURL)?bbl=\(bbl)"
+            case .buildingFootprints(let bin):
+                return "\(APIConfig.buildingFootprintsURL)?bin=\(bin)"
+            case .activeConstruction(let address):
+                let encodedAddress = address.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+                return "\(APIConfig.activeConstructionURL)?address=\(encodedAddress)"
+            case .businessLicenses(let address):
+                let encodedAddress = address.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+                return "\(APIConfig.businessLicensesURL)?address=\(encodedAddress)"
+            case .airQualityComplaints(let address):
+                let encodedAddress = address.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+                return "\(APIConfig.airQualityURL)?incident_address=\(encodedAddress)"
             }
         }
         
@@ -94,6 +129,14 @@ public final class NYCAPIService: ObservableObject {
             case .conEdisonOutages(let zip): return "coned_outages_\(zip)"
             case .complaints311(let bin): return "311_complaints_\(bin)"
             case .dofPropertyAssessment(let bbl): return "dof_property_\(bbl)"
+            case .dofTaxBills(let bbl): return "dof_tax_bills_\(bbl)"
+            case .dofTaxLiens(let bbl): return "dof_tax_liens_\(bbl)"
+            case .energyEfficiencyRating(let bbl): return "energy_efficiency_\(bbl)"
+            case .landmarksBuildings(let bbl): return "landmarks_\(bbl)"
+            case .buildingFootprints(let bin): return "footprints_\(bin)"
+            case .activeConstruction(let address): return "construction_\(address.hashValue)"
+            case .businessLicenses(let address): return "business_licenses_\(address.hashValue)"
+            case .airQualityComplaints(let address): return "air_quality_\(address.hashValue)"
             }
         }
     }
@@ -174,6 +217,54 @@ public final class NYCAPIService: ObservableObject {
         return try await fetch(endpoint)
     }
     
+    /// Fetch DOF Tax Bills for a property
+    public func fetchDOFTaxBills(bbl: String) async throws -> [DOFTaxBill] {
+        let endpoint = APIEndpoint.dofTaxBills(bbl: bbl)
+        return try await fetch(endpoint)
+    }
+    
+    /// Fetch DOF Tax Liens for a property
+    public func fetchDOFTaxLiens(bbl: String) async throws -> [DOFTaxLien] {
+        let endpoint = APIEndpoint.dofTaxLiens(bbl: bbl)
+        return try await fetch(endpoint)
+    }
+    
+    /// Fetch Energy Efficiency Rating for a building
+    public func fetchEnergyEfficiencyRating(bbl: String) async throws -> [EnergyEfficiencyRating] {
+        let endpoint = APIEndpoint.energyEfficiencyRating(bbl: bbl)
+        return try await fetch(endpoint)
+    }
+    
+    /// Fetch Landmarks Buildings data
+    public func fetchLandmarksBuildings(bbl: String) async throws -> [LandmarksBuilding] {
+        let endpoint = APIEndpoint.landmarksBuildings(bbl: bbl)
+        return try await fetch(endpoint)
+    }
+    
+    /// Fetch Building Footprints data
+    public func fetchBuildingFootprints(bin: String) async throws -> [BuildingFootprint] {
+        let endpoint = APIEndpoint.buildingFootprints(bin: bin)
+        return try await fetch(endpoint)
+    }
+    
+    /// Fetch Active Construction Projects
+    public func fetchActiveConstruction(address: String) async throws -> [ActiveConstruction] {
+        let endpoint = APIEndpoint.activeConstruction(address: address)
+        return try await fetch(endpoint)
+    }
+    
+    /// Fetch Business Licenses for an address
+    public func fetchBusinessLicenses(address: String) async throws -> [BusinessLicense] {
+        let endpoint = APIEndpoint.businessLicenses(address: address)
+        return try await fetch(endpoint)
+    }
+    
+    /// Fetch Air Quality Complaints for an address
+    public func fetchAirQualityComplaints(address: String) async throws -> [AirQualityComplaint] {
+        let endpoint = APIEndpoint.airQualityComplaints(address: address)
+        return try await fetch(endpoint)
+    }
+    
     // MARK: - Generic Fetch Method
     
     public func fetch<T: Decodable & Encodable>(_ endpoint: APIEndpoint) async throws -> [T] {
@@ -198,7 +289,12 @@ public final class NYCAPIService: ObservableObject {
         }
         
         do {
-            let (data, response) = try await session.data(from: url)
+            // Create request with authentication headers
+            var request = URLRequest(url: url)
+            request.setValue("dbO8NmN2pMcmSQO7w56rTaFax", forHTTPHeaderField: "X-App-Token")
+            request.setValue("application/json", forHTTPHeaderField: "Accept")
+            
+            let (data, response) = try await session.data(for: request)
             
             guard let httpResponse = response as? HTTPURLResponse else {
                 throw NYCAPIError.invalidResponse
