@@ -575,7 +575,7 @@ class AdminDashboardViewModel: ObservableObject {
         
         var hpdData: [String: [HPDViolation]] = [:]
         var dobData: [String: [DOBPermit]] = [:]
-        let _ = [String: [DSNYSchedule]]()
+        var dsnyData: [String: [DSNYSchedule]] = [:]
         var ll97Data: [String: [LL97Emission]] = [:]
         
         for building in buildings {
@@ -588,8 +588,9 @@ class AdminDashboardViewModel: ObservableObject {
                 let dobPermits = try await nycAPI.fetchDOBPermits(bin: building.id)
                 dobData[building.id] = dobPermits
                 
-                // Fetch real DSNY violations (if available)
-                let _ = try? await nycAPI.fetchDSNYViolations(bin: building.id)
+                // Fetch real DSNY schedule (if available)
+                let dsnySchedule = try? await nycAPI.fetchDSNYSchedule(address: building.address)
+                dsnyData[building.id] = dsnySchedule ?? []
                 
                 // Fetch real LL97 emissions
                 let ll97Emissions = try await nycAPI.fetchLL97Compliance(bbl: building.id)
@@ -2276,25 +2277,6 @@ struct AdminOperationalMetrics {
     let pendingRemindersCount: Int
     let criticalRemindersCount: Int
     let recentVendorAccessCount: Int
-    let criticalAlertsCount: Int
-    let buildingsWithFullCompletion: Int
-    
-    var completionPercentage: String {
-        "\(Int(routineCompletionRate * 100))%"
-    }
-    
-    var operationalEfficiency: OperationalEfficiency {
-        switch routineCompletionRate {
-        case 0.95...1.0:
-            return .excellent
-        case 0.85..<0.95:
-            return .good
-        case 0.70..<0.85:
-            return .needsAttention
-        default:
-            return .critical
-        }
-    }
     
     enum OperationalEfficiency: String, CaseIterable {
         case excellent = "Excellent"
@@ -2374,127 +2356,7 @@ struct AdminPortfolioSummary {
             description: NSLocalizedString("Critical attention needed", comment: "Critical efficiency status")
         )
     }
-    
-    // MARK: - Enhanced Real Data Integration Methods
-    
-    /// Load real worker assignments from OperationalDataManager
-    @MainActor
-    private func loadRealWorkerAssignments(operationalManager: OperationalDataManager) async {
-        print("🔄 Loading real worker assignments from OperationalDataManager...")
-        
-        // Group assignments by worker
-        let allAssignments = operationalManager.getAllRealWorldTasks()
-        let workerAssignments = Dictionary(grouping: allAssignments) { $0.workerId }
-        
-        // Update worker profiles with real assignment data
-        for (index, worker) in self.workers.enumerated() {
-            if let assignments = workerAssignments[worker.id] {
-                let buildingIds = Set(assignments.map { $0.buildingId })
-                
-                // Update worker with real assigned building IDs
-                self.workers[index] = CoreTypes.WorkerProfile(
-                    id: worker.id,
-                    name: worker.name,
-                    email: worker.email,
-                    phone: worker.phone,
-                    phoneNumber: worker.phoneNumber,
-                    role: worker.role,
-                    skills: worker.skills,
-                    certifications: worker.certifications,
-                    hireDate: worker.hireDate,
-                    isActive: worker.isActive,
-                    profileImageUrl: worker.profileImageUrl,
-                    assignedBuildingIds: Array(buildingIds), // Real assignments from OperationalDataManager
-                    capabilities: worker.capabilities,
-                    createdAt: worker.createdAt,
-                    updatedAt: worker.updatedAt,
-                    status: worker.status,
-                    isClockedIn: worker.isClockedIn,
-                    currentBuildingId: worker.currentBuildingId,
-                    clockStatus: worker.clockStatus
-                )
-                
-                print("   ✅ Updated \(worker.name) with \(buildingIds.count) real building assignments")
-            }
-        }
-        
-        // Update workers array as well
-        for (index, worker) in self.workers.enumerated() {
-            if let assignments = workerAssignments[worker.id] {
-                let buildingIds = Set(assignments.map { $0.buildingId })
-                
-                self.workers[index] = CoreTypes.WorkerProfile(
-                    id: worker.id,
-                    name: worker.name,
-                    email: worker.email,
-                    phone: worker.phone,
-                    phoneNumber: worker.phoneNumber,
-                    role: worker.role,
-                    skills: worker.skills,
-                    certifications: worker.certifications,
-                    hireDate: worker.hireDate,
-                    isActive: worker.isActive,
-                    profileImageUrl: worker.profileImageUrl,
-                    assignedBuildingIds: Array(buildingIds),
-                    capabilities: worker.capabilities,
-                    createdAt: worker.createdAt,
-                    updatedAt: worker.updatedAt,
-                    status: worker.status,
-                    isClockedIn: worker.isClockedIn,
-                    currentBuildingId: worker.currentBuildingId,
-                    clockStatus: worker.clockStatus
-                )
-            }
-        }
-        
-        print("✅ Completed real worker assignment integration")
-    }
-    
-    /// Load building metrics with real task data from OperationalDataManager
-    @MainActor
-    private func loadBuildingMetricsWithRealData() async {
-        print("📊 Loading building metrics with real task data...")
-        
-        let operationalManager = OperationalDataManager.shared
-        
-        for building in self.buildingsList {
-            // Get real tasks for this building
-            let buildingTasks = operationalManager.getTasksForBuilding(building.name)
-            
-            // Calculate real metrics
-            let totalTasks = buildingTasks.count
-            let estimatedDuration = buildingTasks.reduce(0) { $0 + $1.estimatedDuration }
-            let skillLevels = buildingTasks.map { $0.skillLevel }
-            let categories = Set(buildingTasks.map { $0.category })
-            
-            // Calculate active workers for this building (simplified)
-            let workersForBuilding = self.workers.filter { worker in
-                worker.assignedBuildingIds?.contains(building.id) ?? false
-            }.count
-            
-            // Create metrics with real data
-            let metrics = CoreTypes.BuildingMetrics(
-                buildingId: building.id,
-                completionRate: 0.0, // Would need completion tracking
-                averageTaskTime: totalTasks > 0 ? TimeInterval(estimatedDuration * 60) / TimeInterval(totalTasks) : 0,
-                overdueTasks: 0,
-                totalTasks: totalTasks,
-                activeWorkers: workersForBuilding,
-                overallScore: 0.85, // Would calculate from actual performance data
-                pendingTasks: totalTasks,
-                urgentTasksCount: skillLevels.filter { $0.lowercased().contains("high") || $0.lowercased().contains("expert") }.count
-            )
-            
-            buildingMetrics[building.id] = metrics
-            
-            print("   ✅ \(building.name): \(totalTasks) tasks, \(workersForBuilding) workers, \(categories.count) categories")
-        }
-        
-        print("✅ Completed building metrics integration with real data")
-    }
 }
-
-// MARK: - Worker Action Enum
 
 enum WorkerAction {
     case uploadPhoto
