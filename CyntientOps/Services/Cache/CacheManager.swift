@@ -57,7 +57,7 @@ public final class CacheManager: ObservableObject {
                 }
                 
             } catch {
-                logInfo("Failed to cache item for key \(key): \(error)")
+                print("Failed to cache item for key \(key): \(error)")
             }
         }
     }
@@ -83,7 +83,7 @@ public final class CacheManager: ObservableObject {
                 let value = try JSONDecoder().decode(type, from: item.data)
                 return value
             } catch {
-                logInfo("Failed to decode cached item for key \(key): \(error)")
+                print("Failed to decode cached item for key \(key): \(error)")
                 cache.removeValue(forKey: key)
                 Task { @MainActor in
                     updateMetrics()
@@ -207,7 +207,7 @@ public final class CacheManager: ObservableObject {
             }
             
             if removedCount > 0 {
-                logInfo("🧹 Cache cleanup: removed \(removedCount) items, freed \(removedMemory) bytes")
+                print("🧹 Cache cleanup: removed \(removedCount) items, freed \(removedMemory) bytes")
             }
             
             Task { @MainActor in

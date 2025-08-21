@@ -99,9 +99,8 @@ class DirectDataInitializer: ObservableObject {
     }
     
     private func createDatabaseSchema() async throws {
-        try await database.write { db in
-            // Essential tables only - simplified for production
-            try db.execute(sql: """
+        // Essential tables only - simplified for production
+        try await database.execute("""
                 CREATE TABLE IF NOT EXISTS buildings (
                     id TEXT PRIMARY KEY,
                     name TEXT NOT NULL,
@@ -112,7 +111,7 @@ class DirectDataInitializer: ObservableObject {
                 )
             """)
             
-            try db.execute(sql: """
+        try await database.execute("""
                 CREATE TABLE IF NOT EXISTS workers (
                     id TEXT PRIMARY KEY,
                     name TEXT NOT NULL,
@@ -121,7 +120,6 @@ class DirectDataInitializer: ObservableObject {
                     created_at TEXT DEFAULT CURRENT_TIMESTAMP
                 )
             """)
-        }
     }
     
     private func loadBuildingsFromOperationalData() async throws {
@@ -131,13 +129,11 @@ class DirectDataInitializer: ObservableObject {
             ("6", "68 Perry Street", "68 Perry Street, New York, NY", 40.7355, -74.0045)
         ]
         
-        try await database.write { db in
-            for (id, name, address, lat, lng) in canonicalBuildings {
-                try db.execute(sql: """
-                    INSERT OR REPLACE INTO buildings (id, name, address, latitude, longitude)
-                    VALUES (?, ?, ?, ?, ?)
-                """, arguments: [id, name, address, lat, lng])
-            }
+        for (id, name, address, lat, lng) in canonicalBuildings {
+            try await database.execute("""
+                INSERT OR REPLACE INTO buildings (id, name, address, latitude, longitude)
+                VALUES (?, ?, ?, ?, ?)
+            """, [id, name, address, lat, lng])
         }
     }
     
@@ -148,13 +144,11 @@ class DirectDataInitializer: ObservableObject {
             ("client.user", "Client User", "client@example.com", "client")
         ]
         
-        try await database.write { db in
-            for (id, name, email, role) in workers {
-                try db.execute(sql: """
-                    INSERT OR REPLACE INTO workers (id, name, email, role)
-                    VALUES (?, ?, ?, ?)
-                """, arguments: [id, name, email, role])
-            }
+        for (id, name, email, role) in workers {
+            try await database.execute("""
+                INSERT OR REPLACE INTO workers (id, name, email, role)
+                VALUES (?, ?, ?, ?)
+            """, [id, name, email, role])
         }
     }
     
@@ -214,7 +208,7 @@ struct CyntientOpsApp: App {
         initializeSentry()
         
         // Log production configuration
-        logInfo("🚀 CyntientOps Production Ready")
+        print("🚀 CyntientOps Production Ready")
     }
     
     // MARK: - App Body
@@ -338,7 +332,7 @@ struct CyntientOpsApp: App {
                 self.serviceContainer = container
             }
             
-            logInfo("✅ Service container created successfully")
+            print("✅ Service container created successfully")
             
         } catch {
             await MainActor.run {
@@ -348,7 +342,7 @@ struct CyntientOpsApp: App {
                 scope.setLevel(.error)
                 scope.setTag(value: "service_container", key: "initialization")
             }
-            logInfo("❌ Failed to create service container: \(error)")
+            print("❌ Failed to create service container: \(error)")
         }
     }
     
@@ -357,7 +351,7 @@ struct CyntientOpsApp: App {
     private func initializeSentry() {
         let dsn = ProcessInfo.processInfo.environment["SENTRY_DSN"] ?? ""
         guard !dsn.isEmpty else {
-            logInfo("⚠️ Sentry DSN not configured")
+            print("⚠️ Sentry DSN not configured")
             return
         }
         
@@ -374,10 +368,8 @@ struct CyntientOpsApp: App {
             
             options.tracesSampleRate = 0.2
             
-            // ✅ FIXED: Replaced deprecated `profilesSampleRate` with `profilesSampler`.
-            options.profilesSampler = { samplingContext in
-                return 0.2 // Profile 20% of transactions.
-            }
+            // ✅ FIXED: Use SentryProfileOptions.sessionSampleRate instead of deprecated profilesSampleRate
+            options.profileOptions.sessionSampleRate = 0.2 // Profile 20% of sessions
             
             if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String,
                let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String {
@@ -417,7 +409,7 @@ struct CyntientOpsApp: App {
             ], key: "app_state")
         }
         
-        logInfo("✅ Sentry initialized successfully")
+        print("✅ Sentry initialized successfully")
     }
     
     // MARK: - Sentry Helper Methods (PRESERVED)
@@ -497,12 +489,12 @@ struct CyntientOpsApp: App {
             let breadcrumb = Breadcrumb(level: .info, category: "app.data")
             breadcrumb.message = "App data refreshed"
             SentrySDK.addBreadcrumb(breadcrumb)
-            logInfo("✅ App data refreshed.")
+            print("✅ App data refreshed.")
         } catch {
             SentrySDK.capture(error: error) { scope in
                 scope.setLevel(.warning)
             }
-            logInfo("⚠️ Failed to refresh app data: \(error)")
+            print("⚠️ Failed to refresh app data: \(error)")
         }
     }
     

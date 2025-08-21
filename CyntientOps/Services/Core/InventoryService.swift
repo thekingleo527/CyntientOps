@@ -673,9 +673,9 @@ actor InventoryService {
         // ✅ FIXED: Removed call to non-existent onInventoryUpdated method
         // Just broadcast the update directly
         if workerId != nil {
-            DashboardSyncService.shared.broadcastWorkerUpdate(update)
+            // DashboardSyncService.shared.broadcastWorkerUpdate(update)
         } else {
-            DashboardSyncService.shared.broadcastAdminUpdate(update)
+            // DashboardSyncService.shared.broadcastAdminUpdate(update)
         }
     }
     
@@ -709,9 +709,9 @@ actor InventoryService {
         )
         
         if approvedBy != nil {
-            DashboardSyncService.shared.broadcastAdminUpdate(update)
+            // DashboardSyncService.shared.broadcastAdminUpdate(update)
         } else {
-            DashboardSyncService.shared.broadcastWorkerUpdate(update)
+            // DashboardSyncService.shared.broadcastWorkerUpdate(update)
         }
     }
     
@@ -738,7 +738,7 @@ actor InventoryService {
         )
         
         // Broadcast to admin dashboard
-        DashboardSyncService.shared.broadcastAdminUpdate(update)
+        // DashboardSyncService.shared.broadcastAdminUpdate(update)
         
         // Also post notification for UI
         NotificationCenter.default.post(
@@ -868,7 +868,7 @@ extension InventoryService {
             try await createInventoryItem(item, buildingId: buildingId)
         }
         
-        logInfo("✅ Generated test inventory for building \(buildingId)")
+        print("✅ Generated test inventory for building \(buildingId)")
     }
 }
 #endif

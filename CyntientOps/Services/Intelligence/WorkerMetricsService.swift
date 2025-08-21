@@ -14,7 +14,7 @@ import Foundation
 class WorkerMetricsService: ObservableObject {
     static let shared = WorkerMetricsService()
     
-    private let taskService = TaskService.shared
+    // private let taskService = // TaskService injection needed
     private let grdbManager = GRDBManager.shared
     
     private init() {}
@@ -59,7 +59,7 @@ class WorkerMetricsService: ObservableObject {
                 lastActiveDate: await getLastActiveDate(for: workerId) ?? Date()
             )
         } catch {
-            logInfo("⚠️ Error calculating worker metrics: \(error)")
+            print("⚠️ Error calculating worker metrics: \(error)")
             return createDefaultMetrics(workerId: workerId, buildingId: buildingId)
         }
     }
@@ -160,7 +160,7 @@ class WorkerMetricsService: ObservableObject {
                 return Double(completed) / Double(scheduled)
             }
         } catch {
-            logInfo("⚠️ Error calculating routine adherence: \(error)")
+            print("⚠️ Error calculating routine adherence: \(error)")
         }
         
         return 0.85 // Default good adherence
@@ -192,7 +192,7 @@ class WorkerMetricsService: ObservableObject {
                 return formatter.date(from: dateString)
             }
         } catch {
-            logInfo("⚠️ Error getting last active date: \(error)")
+            print("⚠️ Error getting last active date: \(error)")
         }
         
         return Date()
@@ -249,7 +249,7 @@ extension WorkerMetricsService {
                 completedTasks: completedTasks.count
             )
         } catch {
-            logInfo("⚠️ Error getting overall worker performance: \(error)")
+            print("⚠️ Error getting overall worker performance: \(error)")
             return CoreTypes.PerformanceMetrics(
                 completionRate: 0.0,
                 avgTaskTime: 0.0,

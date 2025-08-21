@@ -64,7 +64,7 @@ public final class OfflineQueueManager: ObservableObject {
             // Remove oldest actions to make room
             let excessCount = pendingActions.count - Config.maxQueueSize + 1
             pendingActions.removeFirst(excessCount)
-            logInfo("⚠️ Offline queue overflow - removed \(excessCount) oldest actions")
+            print("⚠️ Offline queue overflow - removed \(excessCount) oldest actions")
         }
         
         pendingActions.append(action)
@@ -100,7 +100,7 @@ public final class OfflineQueueManager: ObservableObject {
                     }
                 }
             } catch {
-                logInfo("Failed to process offline action \(action.id): \(error)")
+                print("Failed to process offline action \(action.id): \(error)")
                 
                 // Handle retry logic
                 if action.retryCount < Config.maxRetryAttempts {
@@ -109,7 +109,7 @@ public final class OfflineQueueManager: ObservableObject {
                     }
                 } else {
                     // Max retries exceeded - move to failed queue or remove
-                    logInfo("Max retries exceeded for action \(action.id) - removing from queue")
+                    print("Max retries exceeded for action \(action.id) - removing from queue")
                     pendingActions.removeAll { $0.id == action.id }
                 }
             }
@@ -206,7 +206,7 @@ public final class OfflineQueueManager: ObservableObject {
         
         // Simulate task completion API call
         // In production, this would call the actual service
-        logInfo("Processing offline task completion: \(data.taskId)")
+        print("Processing offline task completion: \(data.taskId)")
         
         // Add small delay to simulate network call
         try await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
@@ -219,7 +219,7 @@ public final class OfflineQueueManager: ObservableObject {
             throw OfflineQueueError.invalidActionData
         }
         
-        logInfo("Processing offline clock-in: \(data.workerId) at \(data.buildingId)")
+        print("Processing offline clock-in: \(data.workerId) at \(data.buildingId)")
         try await Task.sleep(nanoseconds: 500_000_000)
         
         return true
@@ -230,7 +230,7 @@ public final class OfflineQueueManager: ObservableObject {
             throw OfflineQueueError.invalidActionData
         }
         
-        logInfo("Processing offline clock-out: \(data.workerId)")
+        print("Processing offline clock-out: \(data.workerId)")
         try await Task.sleep(nanoseconds: 500_000_000)
         
         return true
@@ -241,7 +241,7 @@ public final class OfflineQueueManager: ObservableObject {
             throw OfflineQueueError.invalidActionData
         }
         
-        logInfo("Processing offline photo upload: \(data.taskId)")
+        print("Processing offline photo upload: \(data.taskId)")
         try await Task.sleep(nanoseconds: 1_000_000_000) // 1 second for photo upload
         
         return true
@@ -252,14 +252,14 @@ public final class OfflineQueueManager: ObservableObject {
             throw OfflineQueueError.invalidActionData
         }
         
-        logInfo("Processing offline compliance update: \(data.buildingId)")
+        print("Processing offline compliance update: \(data.buildingId)")
         try await Task.sleep(nanoseconds: 500_000_000)
         
         return true
     }
     
     private func processSyncData(_ action: OfflineAction) async throws -> Bool {
-        logInfo("Processing offline sync data")
+        print("Processing offline sync data")
         try await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds for sync
         
         return true
@@ -278,7 +278,7 @@ public final class OfflineQueueManager: ObservableObject {
             let data = try encoder.encode(pendingActions)
             try data.write(to: persistenceURL, options: .atomic)
         } catch {
-            logInfo("Failed to persist offline queue to file: \(error)")
+            print("Failed to persist offline queue to file: \(error)")
         }
     }
     
@@ -309,7 +309,7 @@ public final class OfflineQueueManager: ObservableObject {
                     ])
                 }
             } catch {
-                logInfo("Failed to persist offline queue to database: \(error)")
+                print("Failed to persist offline queue to database: \(error)")
             }
         }
     }
@@ -323,7 +323,7 @@ public final class OfflineQueueManager: ObservableObject {
         }
         
         if !loaded {
-            logInfo("No persisted queue found - starting fresh")
+            print("No persisted queue found - starting fresh")
             pendingActions = []
         }
         
@@ -348,19 +348,19 @@ public final class OfflineQueueManager: ObservableObject {
                         let action = try decoder.decode(OfflineAction.self, from: actionData)
                         actions.append(action)
                     } catch {
-                        logInfo("Failed to decode offline action: \(error)")
+                        print("Failed to decode offline action: \(error)")
                     }
                 }
             }
             
             if !actions.isEmpty {
                 pendingActions = actions
-                logInfo("Loaded \(actions.count) offline actions from database")
+                print("Loaded \(actions.count) offline actions from database")
                 return true
             }
             
         } catch {
-            logInfo("Failed to load offline queue from database: \(error)")
+            print("Failed to load offline queue from database: \(error)")
         }
         
         return false
@@ -374,14 +374,14 @@ public final class OfflineQueueManager: ObservableObject {
             let actions = try decoder.decode([OfflineAction].self, from: data)
             pendingActions = actions
             
-            logInfo("Loaded \(actions.count) offline actions from file backup")
+            print("Loaded \(actions.count) offline actions from file backup")
             
             // Restore to database
             persistToDatabase()
             
             return true
         } catch {
-            logInfo("Failed to load offline queue from file: \(error)")
+            print("Failed to load offline queue from file: \(error)")
             return false
         }
     }
@@ -392,7 +392,7 @@ public final class OfflineQueueManager: ObservableObject {
         if uniqueActions.count != pendingActions.count {
             pendingActions = uniqueActions.sorted { $0.timestamp < $1.timestamp }
             persistQueue()
-            logInfo("Removed \(pendingActions.count - uniqueActions.count) duplicate offline actions")
+            print("Removed \(pendingActions.count - uniqueActions.count) duplicate offline actions")
         }
     }
     
@@ -419,7 +419,7 @@ public final class OfflineQueueManager: ObservableObject {
             """)
             
         } catch {
-            logInfo("Failed to create offline queue table: \(error)")
+            print("Failed to create offline queue table: \(error)")
         }
     }
     

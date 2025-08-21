@@ -99,12 +99,12 @@ public class AdminTaskSchedulingService: ObservableObject {
             // 7. Update task with scheduling information
             await updateTaskWithScheduleInfo(task: task, schedule: finalSchedule)
             
-            logInfo("✅ Task scheduled successfully: \(task.title) at \(scheduledDateTime)")
+            print("✅ Task scheduled successfully: \(task.title) at \(scheduledDateTime)")
             return finalSchedule
             
         } catch {
             lastSchedulingError = error.localizedDescription
-            logInfo("❌ Failed to schedule task: \(error)")
+            print("❌ Failed to schedule task: \(error)")
             throw error
         }
     }
@@ -170,7 +170,7 @@ public class AdminTaskSchedulingService: ObservableObject {
             )
             
             if !conflicts.isEmpty {
-                logInfo("⚠️ Rescheduling will create conflicts: \(conflicts.count) conflicts detected")
+                print("⚠️ Rescheduling will create conflicts: \(conflicts.count) conflicts detected")
                 // Still proceed but mark conflicts
             }
         }
@@ -194,7 +194,7 @@ public class AdminTaskSchedulingService: ObservableObject {
             )
         }
         
-        logInfo("✅ Task rescheduled: \(schedule.taskId) from \(oldDateTime) to \(newDateTime)")
+        print("✅ Task rescheduled: \(schedule.taskId) from \(oldDateTime) to \(newDateTime)")
     }
     
     /// Cancel a scheduled task
@@ -223,7 +223,7 @@ public class AdminTaskSchedulingService: ObservableObject {
             await notifyWorkerOfCancellation(workerId: workerId, schedule: schedule, reason: reason)
         }
         
-        logInfo("✅ Task schedule cancelled: \(schedule.taskId)")
+        print("✅ Task schedule cancelled: \(schedule.taskId)")
     }
     
     /// Get all scheduled tasks for a specific worker
@@ -271,7 +271,7 @@ public class AdminTaskSchedulingService: ObservableObject {
         var optimizedSchedule = schedule
         
         if !conflicts.isEmpty {
-            logInfo("⚠️ Schedule conflicts detected, finding optimal time slot...")
+            print("⚠️ Schedule conflicts detected, finding optimal time slot...")
             
             // Find best alternative time slot
             if let recommendedSlot = await smartSchedulingEngine.findBestTimeSlot(
@@ -281,8 +281,8 @@ public class AdminTaskSchedulingService: ObservableObject {
                 context: context
             ) {
                 optimizedSchedule.scheduledDateTime = recommendedSlot.startTime
-                logInfo("✅ Optimized schedule time: \(recommendedSlot.startTime)")
-                logInfo("📝 Reason: \(recommendedSlot.reasoning)")
+                print("✅ Optimized schedule time: \(recommendedSlot.startTime)")
+                print("📝 Reason: \(recommendedSlot.reasoning)")
             }
         }
         
@@ -422,7 +422,7 @@ public class AdminTaskSchedulingService: ObservableObject {
     private func saveSchedule(_ schedule: CoreTypes.AdminTaskSchedule) async {
         // This would save to the database
         // For now, we'll just update the local state
-        logInfo("💾 Saving schedule: \(schedule.id)")
+        print("💾 Saving schedule: \(schedule.id)")
     }
     
     private func updateTaskWithScheduleInfo(
@@ -430,7 +430,7 @@ public class AdminTaskSchedulingService: ObservableObject {
         schedule: CoreTypes.AdminTaskSchedule
     ) async {
         // Update the original task with scheduling information
-        logInfo("📝 Updating task with schedule info: \(task.id)")
+        print("📝 Updating task with schedule info: \(task.id)")
     }
     
     // MARK: - Worker Notifications
@@ -440,7 +440,7 @@ public class AdminTaskSchedulingService: ObservableObject {
         schedule: CoreTypes.AdminTaskSchedule
     ) async {
         // This would send a notification to the worker
-        logInfo("🔔 Notifying worker \(workerId) of new schedule: \(schedule.scheduledDateTime)")
+        print("🔔 Notifying worker \(workerId) of new schedule: \(schedule.scheduledDateTime)")
     }
     
     private func notifyWorkerOfReschedule(
@@ -449,7 +449,7 @@ public class AdminTaskSchedulingService: ObservableObject {
         oldDateTime: Date,
         reason: String
     ) async {
-        logInfo("🔔 Notifying worker \(workerId) of reschedule from \(oldDateTime) to \(schedule.scheduledDateTime)")
+        print("🔔 Notifying worker \(workerId) of reschedule from \(oldDateTime) to \(schedule.scheduledDateTime)")
     }
     
     private func notifyWorkerOfCancellation(
@@ -457,7 +457,7 @@ public class AdminTaskSchedulingService: ObservableObject {
         schedule: CoreTypes.AdminTaskSchedule,
         reason: String
     ) async {
-        logInfo("🔔 Notifying worker \(workerId) of cancelled schedule: \(schedule.scheduledDateTime)")
+        print("🔔 Notifying worker \(workerId) of cancelled schedule: \(schedule.scheduledDateTime)")
     }
     
     // MARK: - Real-Time Synchronization
@@ -472,7 +472,7 @@ public class AdminTaskSchedulingService: ObservableObject {
         context: CoreTypes.WorkerScheduleContext
     ) async {
         // Broadcast to all listening views (especially WorkerProfileView)
-        logInfo("📡 Broadcasting schedule update for worker: \(workerId)")
+        print("📡 Broadcasting schedule update for worker: \(workerId)")
     }
 }
 

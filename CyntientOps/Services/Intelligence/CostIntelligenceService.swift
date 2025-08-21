@@ -61,7 +61,7 @@ public class CostIntelligenceService: ObservableObject {
             lastAnalysisTime = Date()
         }
         
-        logInfo("💰 Starting comprehensive cost intelligence analysis...")
+        print("💰 Starting comprehensive cost intelligence analysis...")
         
         do {
             // Get all buildings
@@ -94,10 +94,10 @@ public class CostIntelligenceService: ObservableObject {
             savingsOpportunities = newSavingsOpportunities.sorted { $0.annualSavings > $1.annualSavings }
             contractorComparisons = contractorComps
             
-            logInfo("✅ Cost intelligence analysis completed: \(newCostAnalyses.count) buildings analyzed")
+            print("✅ Cost intelligence analysis completed: \(newCostAnalyses.count) buildings analyzed")
             
         } catch {
-            logInfo("❌ Cost intelligence analysis failed: \(error)")
+            print("❌ Cost intelligence analysis failed: \(error)")
         }
     }
     

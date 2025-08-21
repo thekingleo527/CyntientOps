@@ -47,7 +47,7 @@ public class DirectDataInitializer: ObservableObject {
     public func initializeIfNeeded() async throws {
         guard !isInitialized && !isInitializing else { return }
         
-        logInfo("Starting direct data initialization...", category: .appLifecycle)
+        print("Starting direct data initialization...", category: .appLifecycle)
         
         isInitializing = true
         error = nil
@@ -99,7 +99,7 @@ public class DirectDataInitializer: ObservableObject {
         currentStepIndex = step
         progress = Double(step) / Double(initializationSteps.count - 1)
         statusMessage = initializationSteps[step]
-        logInfo("Step \(step + 1)/\(initializationSteps.count): \(statusMessage)", category: .appLifecycle)
+        print("Step \(step + 1)/\(initializationSteps.count): \(statusMessage)", category: .appLifecycle)
     }
     
     private func createDatabaseSchema() async throws {
@@ -226,7 +226,7 @@ public class DirectDataInitializer: ObservableObject {
             }
         }
         
-        logInfo("✅ Loaded \(canonicalBuildings.count) buildings from OperationalDataManager canonical data")
+        print("✅ Loaded \(canonicalBuildings.count) buildings from OperationalDataManager canonical data")
     }
     
     private func loadWorkerAssignments() async throws {
@@ -277,7 +277,7 @@ public class DirectDataInitializer: ObservableObject {
             }
         }
         
-        logInfo("✅ Loaded \(canonicalWorkers.count) workers with assignments from real operational data")
+        print("✅ Loaded \(canonicalWorkers.count) workers with assignments from real operational data")
     }
     
     private func loadTaskTemplates() async throws {
@@ -325,7 +325,7 @@ public class DirectDataInitializer: ObservableObject {
             }
         }
         
-        logInfo("✅ Loaded \(uniqueTaskTypes.count) task templates from operational data")
+        print("✅ Loaded \(uniqueTaskTypes.count) task templates from operational data")
     }
     
     private func setupUserAccounts() async throws {
@@ -362,7 +362,7 @@ public class DirectDataInitializer: ObservableObject {
             }
         }
         
-        logInfo("✅ Created user accounts for \(workers.count) workers")
+        print("✅ Created user accounts for \(workers.count) workers")
     }
     
     private func validateDataIntegrity() async throws {
@@ -385,7 +385,7 @@ public class DirectDataInitializer: ObservableObject {
             )
         }
         
-        logInfo("✅ Data integrity validated - Buildings: \(buildings), Workers: \(workers), Assignments: \(assignments), Templates: \(templates), Users: \(users)")
+        print("✅ Data integrity validated - Buildings: \(buildings), Workers: \(workers), Assignments: \(assignments), Templates: \(templates), Users: \(users)")
     }
 }
 

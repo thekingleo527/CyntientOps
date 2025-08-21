@@ -15,7 +15,7 @@ class DSNYTaskGenerator {
     
     func generateDSNYTasks(for buildingId: String, date: Date) async throws -> [CoreTypes.MaintenanceTask] {
         guard await GRDBManager.shared.isDatabaseReady() else {  // ✅ FIXED: Added await
-            logInfo("⚠️ GRDB not ready")
+            print("⚠️ GRDB not ready")
             return []
         }
         
@@ -65,10 +65,10 @@ class DSNYTaskGenerator {
     
     func scheduleRecurringDSNYTasks(for buildingId: String) async throws {
         guard await GRDBManager.shared.isDatabaseReady() else {  // ✅ FIXED: Added await
-            logInfo("⚠️ GRDB not ready for scheduling")
+            print("⚠️ GRDB not ready for scheduling")
             return
         }
         
-        logInfo("✅ DSNY recurring tasks scheduled for building \(buildingId)")
+        print("✅ DSNY recurring tasks scheduled for building \(buildingId)")
     }
 }

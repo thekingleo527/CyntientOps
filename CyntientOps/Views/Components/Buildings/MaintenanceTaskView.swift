@@ -9,9 +9,9 @@ struct MaintenanceTaskView: View {
     @State private var isMarkingComplete = false
 
     // ✅ Use consolidated services from v6.0
-    private let buildingService = BuildingService.shared
-    private let taskService = TaskService.shared
-    private let workerService = WorkerService.shared
+    // private let buildingService = // BuildingService injection needed
+    // private let taskService = // TaskService injection needed
+    // private let workerService = // WorkerService injection needed
 
     // ✅ FIXED: Complete switch with all CyntientOps.TaskUrgency cases
     private func getUrgencyColor(_ urgency: CyntientOps.TaskUrgency) -> Color {
@@ -212,7 +212,7 @@ struct MaintenanceTaskView: View {
             await MainActor.run {
                 self.buildingName = "Building \(task.buildingId)"
             }
-            logInfo("❌ Failed to load building name: \(error)")
+            print("❌ Failed to load building name: \(error)")
         }
     }
     
@@ -240,7 +240,7 @@ struct MaintenanceTaskView: View {
             await MainActor.run {
                 isMarkingComplete = false
             }
-            logInfo("❌ Failed to mark task as complete: \(error)")
+            print("❌ Failed to mark task as complete: \(error)")
         }
     }
     
@@ -250,15 +250,15 @@ struct MaintenanceTaskView: View {
             // Fetch available workers for this building
             let workers = try await workerService.getAllActiveWorkers()
             guard let newWorker = workers.first(where: { $0.id != task.assignedWorkerId }) ?? workers.first else {
-                logInfo("⚠️ No alternate workers available for reassignment")
+                print("⚠️ No alternate workers available for reassignment")
                 return
             }
 
             // Note: This would need to be implemented in WorkerService
             // try await workerService.reassignTask(taskId: task.id, to: newWorker.id)
-            logInfo("✅ Task would be reassigned to \(newWorker.name)")
+            print("✅ Task would be reassigned to \(newWorker.name)")
         } catch {
-            logInfo("❌ Failed to reassign worker: \(error)")
+            print("❌ Failed to reassign worker: \(error)")
         }
     }
 

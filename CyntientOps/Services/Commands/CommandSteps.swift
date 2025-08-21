@@ -92,12 +92,12 @@ public struct DatabaseTransactionCommand: CommandStep {
         try await container.tasks.completeTask(taskId, evidence: evidence)
         
         // Update worker stats - placeholder
-        logInfo("Worker \(workerId) completed task \(taskId)")
+        print("Worker \(workerId) completed task \(taskId)")
         
         // Update building metrics - placeholder
         let task = try await container.tasks.getTask(taskId)
         if let buildingId = task.buildingId {
-            logInfo("Updated activity for building \(buildingId)")
+            print("Updated activity for building \(buildingId)")
         }
         
         return true
@@ -383,7 +383,7 @@ public struct UploadToStorageCommand: CommandStep {
         // Store reference in database
         let photoId = UUID().uuidString
         // Photo capture placeholder - service method needs different signature
-        logInfo("Photo captured for task \(taskId) by worker \(workerId)")
+        print("Photo captured for task \(taskId) by worker \(workerId)")
         
         return uploadId
     }

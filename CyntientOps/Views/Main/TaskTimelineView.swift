@@ -662,7 +662,7 @@ struct NovaTaskInsightsView: View {
             }
             
         } catch {
-            logInfo("Failed to load Nova insights: \(error)")
+            print("Failed to load Nova insights: \(error)")
             insights = generateLocalInsights()
         }
     }
@@ -827,8 +827,8 @@ class TaskTimelineViewModel: ObservableObject {
     
     private var workerId: String = ""
     private var workerName: String?
-    private let taskService = TaskService.shared
-    private let dashboardSyncService = DashboardSyncService.shared
+    // private let taskService = // TaskService injection needed
+    // private let dashboardSyncService = // DashboardSyncService injection needed
     private var cancellables = Set<AnyCancellable>()
     
     // Computed properties
@@ -924,7 +924,7 @@ class TaskTimelineViewModel: ObservableObject {
             updateTaskStats()
             
         } catch {
-            logInfo("❌ Failed to load timeline tasks: \(error)")
+            print("❌ Failed to load timeline tasks: \(error)")
             tasks = []
         }
     }

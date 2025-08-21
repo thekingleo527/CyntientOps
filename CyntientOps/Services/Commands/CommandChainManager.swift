@@ -320,7 +320,7 @@ public final class CommandChainManager: ObservableObject {
         let successRate = Double(recentExecutions.filter { $0.status == .success }.count) / Double(recentExecutions.count)
         
         if successRate < 0.8 {
-            logInfo("⚠️ Command chain success rate low: \(String(format: "%.1f", successRate * 100))%")
+            print("⚠️ Command chain success rate low: \(String(format: "%.1f", successRate * 100))%")
         }
         
         // Report to Nova AI for insights

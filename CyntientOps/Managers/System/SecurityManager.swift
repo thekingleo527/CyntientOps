@@ -55,7 +55,7 @@ actor SecurityManager {
             expiration: credentials.expiresAt
         )
         
-        logInfo("✅ QuickBooks credentials stored securely")
+        print("✅ QuickBooks credentials stored securely")
     }
     
     /// Retrieve QuickBooks credentials from Keychain
@@ -68,7 +68,7 @@ actor SecurityManager {
         
         // Check if token is expired
         if credentials.expiresAt < Date() {
-            logInfo("⚠️ QuickBooks token expired, needs refresh")
+            print("⚠️ QuickBooks token expired, needs refresh")
             throw SecurityError.tokenExpired
         }
         
@@ -98,7 +98,7 @@ actor SecurityManager {
         try await deleteFromKeychain(key: "\(keyPrefix)qb_credentials")
         try await deleteFromKeychain(key: "\(keyPrefix)qb_refresh_token")
         
-        logInfo("✅ QuickBooks credentials cleared")
+        print("✅ QuickBooks credentials cleared")
     }
     
     // MARK: - Photo Encryption with Auto-Expiration
@@ -133,7 +133,7 @@ actor SecurityManager {
             compressionRatio: Double(compressedData.count) / Double(photoData.count)
         )
         
-        logInfo("✅ Photo encrypted: \(photoData.count) bytes → \(compressedData.count) bytes (saved \(Int((1 - encryptedPhoto.compressionRatio) * 100))%)")
+        print("✅ Photo encrypted: \(photoData.count) bytes → \(compressedData.count) bytes (saved \(Int((1 - encryptedPhoto.compressionRatio) * 100))%)")
         
         return encryptedPhoto
     }
@@ -156,7 +156,7 @@ actor SecurityManager {
         let sealedBox = try AES.GCM.SealedBox(combined: encryptedPhoto.encryptedData)
         let decryptedData = try AES.GCM.open(sealedBox, using: key)
         
-        logInfo("✅ Photo decrypted successfully")
+        print("✅ Photo decrypted successfully")
         return decryptedData
     }
     
@@ -164,7 +164,7 @@ actor SecurityManager {
     func cleanupExpiredPhotos() async {
         // This would scan for expired photo keys and remove them
         // Implementation depends on your key naming strategy
-        logInfo("🧹 Cleaning up expired photo keys...")
+        print("🧹 Cleaning up expired photo keys...")
     }
     
     // MARK: - App Background Protection
@@ -187,7 +187,7 @@ actor SecurityManager {
             Task { await self.unmaskSensitiveViews() }
         }
         
-        logInfo("✅ Background protection enabled")
+        print("✅ Background protection enabled")
     }
     
     /// Mask sensitive content when app goes to background
@@ -261,7 +261,7 @@ actor SecurityManager {
             ofItemAtPath: documentsPath.path
         )
         
-        logInfo("✅ Data protection enabled for app documents")
+        print("✅ Data protection enabled for app documents")
     }
     
     // MARK: - Private Helpers

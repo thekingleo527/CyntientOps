@@ -74,7 +74,7 @@ public final class LocationManager: NSObject, ObservableObject {
             lastError = .permissionDenied
             showLocationSettingsAlert()
         case .authorizedAlways:
-            logInfo("✅ Location permission already granted ('Always').")
+            print("✅ Location permission already granted ('Always').")
         @unknown default:
             break
         }
@@ -98,7 +98,7 @@ public final class LocationManager: NSObject, ObservableObject {
         isUpdatingLocation = true
         startLocationUpdateTimer()
         
-        logInfo("📍 Started location updates with \(accuracy.description) accuracy")
+        print("📍 Started location updates with \(accuracy.description) accuracy")
     }
     
     public func stopUpdatingLocation() {
@@ -108,7 +108,7 @@ public final class LocationManager: NSObject, ObservableObject {
         locationUpdateTimer = nil
         isUpdatingLocation = false
         
-        logInfo("📍 Stopped location updates")
+        print("📍 Stopped location updates")
     }
     
     public func requestSingleUpdate() {
@@ -134,7 +134,7 @@ public final class LocationManager: NSObject, ObservableObject {
     
     public func startMonitoringGeofence(for building: CoreTypes.NamedCoordinate, radius: CLLocationDistance? = nil) {
         guard authorizationStatus == .authorizedAlways else {
-            logInfo("⚠️ 'Always' authorization required for geofencing. Requesting...")
+            print("⚠️ 'Always' authorization required for geofencing. Requesting...")
             requestLocationPermission()
             return
         }
@@ -146,7 +146,7 @@ public final class LocationManager: NSObject, ObservableObject {
         if let region = monitoredRegions[buildingId] {
             coreLocationManager.stopMonitoring(for: region)
             monitoredRegions.removeValue(forKey: buildingId)
-            logInfo("🎯 Stopped monitoring geofence for building \(buildingId)")
+            print("🎯 Stopped monitoring geofence for building \(buildingId)")
         }
     }
     
@@ -154,7 +154,21 @@ public final class LocationManager: NSObject, ObservableObject {
         guard let location = location else { return }
         
         do {
-            let buildings = try await BuildingService.shared.getAllBuildings()
+            // Load buildings directly from database since BuildingService.shared doesn't exist
+            let rows = try await GRDBManager.shared.query("SELECT id, name, address, latitude, longitude FROM buildings", [])
+            let buildings = rows.compactMap { row -> CoreTypes.NamedCoordinate? in
+                guard let id = row["id"] as? String,
+                      let name = row["name"] as? String,
+                      let address = row["address"] as? String else { return nil }
+                
+                return CoreTypes.NamedCoordinate(
+                    id: id,
+                    name: name,
+                    address: address,
+                    latitude: row["latitude"] as? Double ?? 0,
+                    longitude: row["longitude"] as? Double ?? 0
+                )
+            }
             
             let proximityList = buildings.compactMap { building -> BuildingProximity? in
                 let distance = distanceToBuilding(building) ?? .greatestFiniteMagnitude
@@ -175,7 +189,7 @@ public final class LocationManager: NSObject, ObservableObject {
                 self.currentBuilding = nil
             }
         } catch {
-            logInfo("❌ Failed to update nearby buildings: \(error)")
+            print("❌ Failed to update nearby buildings: \(error)")
         }
     }
     
@@ -196,26 +210,26 @@ public final class LocationManager: NSObject, ObservableObject {
     private func setupBackgroundLocationIfAvailable() {
         // For now, disable background location to prevent crashes
         // This can be enabled later when proper entitlements are configured
-        logInfo("📍 Background location disabled for stability - app works with foreground location")
+        print("📍 Background location disabled for stability - app works with foreground location")
         
         // Future implementation when entitlements are properly configured:
         /*
         // Check if app has background location entitlements
         guard hasBackgroundLocationEntitlements() else {
-            logInfo("📍 Background location not available - missing entitlements")
+            print("📍 Background location not available - missing entitlements")
             return
         }
         
         // Only attempt background location if we have "Always" permission
         guard authorizationStatus == .authorizedAlways else {
-            logInfo("📍 Background location not available - requires 'Always' permission")
+            print("📍 Background location not available - requires 'Always' permission")
             return
         }
         
         // Safe to enable background location updates
         coreLocationManager.allowsBackgroundLocationUpdates = true
         coreLocationManager.showsBackgroundLocationIndicator = false
-        logInfo("✅ Background location updates enabled")
+        print("✅ Background location updates enabled")
         */
     }
     
@@ -275,7 +289,7 @@ public final class LocationManager: NSObject, ObservableObject {
         coreLocationManager.startMonitoring(for: region)
         monitoredRegions[building.id] = region
         
-        logInfo("🎯 Started monitoring geofence for \(building.name) (radius: \(geofenceRadius)m)")
+        print("🎯 Started monitoring geofence for \(building.name) (radius: \(geofenceRadius)m)")
     }
     
     private func startLocationUpdateTimer() {
@@ -292,7 +306,7 @@ public final class LocationManager: NSObject, ObservableObject {
     private func handleBatteryLevelChange() {
         let batteryLevel = UIDevice.current.batteryLevel
         if batteryLevel > 0 && batteryLevel < config.lowBatteryThreshold && locationAccuracy == .precise {
-            logInfo("🔋 Low battery detected, switching to balanced accuracy")
+            print("🔋 Low battery detected, switching to balanced accuracy")
             startUpdatingLocation(accuracy: .balanced)
         }
     }
@@ -379,7 +393,7 @@ extension LocationManager: CLLocationManagerDelegate {
         DispatchQueue.main.async { [weak self] in
             let clError = error as? CLError
             self?.lastError = clError.flatMap { LocationError(from: $0) } ?? .other(error.localizedDescription)
-            logInfo("❌ Location error: \(String(describing: self?.lastError))")
+            print("❌ Location error: \(String(describing: self?.lastError))")
         }
     }
     

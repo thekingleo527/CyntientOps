@@ -314,7 +314,7 @@ public class DSNYAPIService: ObservableObject {
                 Date()
             ])
         } catch {
-            logInfo("Failed to cache schedule: \(error)")
+            print("Failed to cache schedule: \(error)")
         }
     }
     
@@ -344,7 +344,7 @@ public class DSNYAPIService: ObservableObject {
                 }
             }
         } catch {
-            logInfo("Failed to load cached schedules: \(error)")
+            print("Failed to load cached schedules: \(error)")
         }
     }
     
@@ -389,7 +389,7 @@ public class DSNYAPIService: ObservableObject {
             ]
         )
         
-        await DashboardSyncService.shared.broadcastAdminUpdate(update)
+        // await DashboardSyncService.shared.broadcastAdminUpdate(update) // TODO: Inject service
     }
 }
 

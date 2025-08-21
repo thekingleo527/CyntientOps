@@ -73,7 +73,7 @@ public final class ComplianceViewModel: ObservableObject {
             
         } catch {
             errorMessage = "Failed to load compliance data: \(error.localizedDescription)"
-            logInfo("⚠️ ComplianceViewModel error: \(error)")
+            print("⚠️ ComplianceViewModel error: \(error)")
         }
         
         isLoading = false
@@ -108,7 +108,7 @@ public final class ComplianceViewModel: ObservableObject {
     
     /// Generate comprehensive compliance report
     public func generateComplianceReport() async {
-        logInfo("✅ Generating comprehensive compliance report...")
+        print("✅ Generating comprehensive compliance report...")
         // Implementation would generate and export report
     }
     
@@ -234,7 +234,7 @@ public final class ComplianceViewModel: ObservableObject {
             recentViolations = activeViolations.filter { $0.dueDate >= thirtyDaysAgo }
             
         } catch {
-            logInfo("⚠️ Failed to load violations data: \(error)")
+            print("⚠️ Failed to load violations data: \(error)")
         }
     }
     
@@ -269,7 +269,7 @@ public final class ComplianceViewModel: ObservableObject {
             pendingInspections = inspections.sorted { $0.dueDate < $1.dueDate }
             
         } catch {
-            logInfo("⚠️ Failed to load inspection data: \(error)")
+            print("⚠️ Failed to load inspection data: \(error)")
         }
     }
     

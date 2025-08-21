@@ -559,7 +559,7 @@ struct AdminPerformanceMetrics: View {
             buildings = await container.operationalData.buildings
             
             // Load workers
-            let workerService = WorkerService.shared
+            let workerService = // WorkerService injection needed
             workers = try await workerService.getAllActiveWorkers()
             
             // Generate performance data
@@ -574,7 +574,7 @@ struct AdminPerformanceMetrics: View {
             dashboardSync.broadcastUpdate(update)
             
         } catch {
-            logInfo("❌ Failed to load performance metrics data: \(error)")
+            print("❌ Failed to load performance metrics data: \(error)")
         }
         
         isLoading = false
@@ -605,7 +605,7 @@ struct AdminPerformanceMetrics: View {
     private func calculateEfficiency() async -> Double {
         // Calculate task completion efficiency
         do {
-            let taskService = TaskService.shared
+            let taskService = // TaskService injection needed
             let allTasks = try await taskService.getAllTasks()
             let completedTasks = allTasks.filter { $0.status == .completed }
             

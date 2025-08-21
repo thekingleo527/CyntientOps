@@ -226,7 +226,7 @@ class TaskStateManager: ObservableObject {
     @Published var isLoading = false
     
     private var refreshTimer: Timer?
-    private let taskService = TaskService.shared
+    // TaskService will be injected when needed - singleton removed
     
     init() {
         startAutoRefresh()

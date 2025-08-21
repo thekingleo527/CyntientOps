@@ -146,7 +146,7 @@ extension BuildingIntelligenceDTO {
     private static func createRealOperationalMetrics(for buildingId: CoreTypes.BuildingID) async -> OperationalMetricsDTO {
         do {
             // ✅ FIXED: Use getAllTasks() then filter instead of non-existent getTasksForBuilding()
-            let allTasks = try await TaskService.shared.getAllTasks()
+            let allTasks = try await // TaskService injection needed.getAllTasks()
             let buildingTasks = allTasks.filter { task in
                 task.buildingId == buildingId || task.building?.id == buildingId
             }
@@ -220,7 +220,7 @@ extension BuildingIntelligenceDTO {
         for workerId in workerIds {
             do {
                 // Get real task data for this worker
-                let allTasks = try await TaskService.shared.getAllTasks()
+                let allTasks = try await // TaskService injection needed.getAllTasks()
                 let workerTasks = allTasks.filter { task in
                     (task.buildingId == buildingId || task.building?.id == buildingId) &&
                     (task.assignedWorkerId == workerId || task.worker?.id == workerId)

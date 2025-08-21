@@ -392,11 +392,11 @@ struct AdminTasksOverview: View {
         
         do {
             // Load tasks
-            let taskService = TaskService.shared
+            let taskService = // TaskService injection needed
             allTasks = try await taskService.getAllTasks()
             
             // Load workers
-            let workerService = WorkerService.shared
+            let workerService = // WorkerService injection needed
             workers = try await workerService.getAllActiveWorkers()
             
             // Load buildings
@@ -413,7 +413,7 @@ struct AdminTasksOverview: View {
             dashboardSync.broadcastUpdate(update)
             
         } catch {
-            logInfo("❌ Failed to load task data: \(error)")
+            print("❌ Failed to load task data: \(error)")
         }
         
         isLoading = false

@@ -971,15 +971,15 @@ struct ClientBuildingGridItemWithImage: View {
                             .frame(height: 80)
                             .clipped()
                             .onAppear {
-                                logInfo("✅ Building \(building.id) - Image '\(imageAssetName)' loaded successfully")
+                                print("✅ Building \(building.id) - Image '\(imageAssetName)' loaded successfully")
                             }
                     } else {
                         fallbackImageView
                             .onAppear {
                                 if let imageAssetName = building.imageAssetName {
-                                    logInfo("⚠️ Building \(building.id) - Image '\(imageAssetName)' not found in assets")
+                                    print("⚠️ Building \(building.id) - Image '\(imageAssetName)' not found in assets")
                                 } else {
-                                    logInfo("⚠️ Building \(building.id) - No imageAssetName provided")
+                                    print("⚠️ Building \(building.id) - No imageAssetName provided")
                                 }
                             }
                     }

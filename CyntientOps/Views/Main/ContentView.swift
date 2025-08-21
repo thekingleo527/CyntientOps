@@ -77,7 +77,7 @@ struct ContentView: View {
     private func handleRoleChange(from oldRole: CoreTypes.UserRole?, to newRole: CoreTypes.UserRole?) {
         // Log role changes for analytics
         #if DEBUG
-        logInfo("🔄 Role transition: \(oldRole?.rawValue ?? "none") → \(newRole?.rawValue ?? "none")")
+        print("🔄 Role transition: \(oldRole?.rawValue ?? "none") → \(newRole?.rawValue ?? "none")")
         #endif
         
         // Clear any role-specific caches if needed
@@ -155,7 +155,7 @@ struct UndefinedRoleView: View {
                 do {
                     try await authManager.refreshSession()
                 } catch {
-                    logInfo("Failed to refresh session: \(error)")
+                    print("Failed to refresh session: \(error)")
                 }
             }
             

@@ -599,14 +599,14 @@ struct ComplianceOverviewView: View {
                     self.daysUntilNextAudit = Calendar.current.dateComponents([.day], from: Date(), to: nextAudit.date).day
                 }
                 
-                logInfo("✅ Loaded real compliance data:")
-                logInfo("  - \(upcomingAudits.count) upcoming audits")
-                logInfo("  - \(auditHistory.count) historical audits") 
-                logInfo("  - \(allIssues.count) compliance issues")
-                logInfo("  - Next audit: \(nextAudit?.date.formatted() ?? "None scheduled")")
+                print("✅ Loaded real compliance data:")
+                print("  - \(upcomingAudits.count) upcoming audits")
+                print("  - \(auditHistory.count) historical audits") 
+                print("  - \(allIssues.count) compliance issues")
+                print("  - Next audit: \(nextAudit?.date.formatted() ?? "None scheduled")")
             }
         } catch {
-            logInfo("❌ Failed to load compliance data: \(error)")
+            print("❌ Failed to load compliance data: \(error)")
             // Fallback to empty data
             await MainActor.run {
                 self.upcomingAudits = []
@@ -739,7 +739,7 @@ struct ComplianceOverviewView: View {
             
         case .building(let id):
             // Navigate to building detail
-            logInfo("Navigate to building: \(id)")
+            print("Navigate to building: \(id)")
             
         case .audit:
             showingAuditScheduler = true
@@ -809,7 +809,7 @@ struct ComplianceOverviewView: View {
     private func scheduleAudit(for date: Date) {
         onScheduleAudit?()
         // Schedule audit - would integrate with ComplianceService in production
-        logInfo("✅ Scheduled compliance audit for \(date.formatted())")
+        print("✅ Scheduled compliance audit for \(date.formatted())")
         
         // Refresh data after scheduling
         Task {

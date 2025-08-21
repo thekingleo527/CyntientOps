@@ -699,7 +699,7 @@ final class AdminTaskRequestViewModel: ObservableObject {
         
         do {
             // Create task via service
-            try await TaskService.shared.createTask(task)
+            try await // TaskService injection needed.createTask(task)
             
             // Broadcast admin-created task update
             let dashboardUpdate = CoreTypes.DashboardUpdate(
@@ -745,20 +745,20 @@ final class AdminTaskRequestViewModel: ObservableObject {
     }
     
     private func recordInventoryRequirements(for taskId: String) {
-        logInfo("Recording inventory requirements for admin task \(taskId)")
+        print("Recording inventory requirements for admin task \(taskId)")
         for (itemId, quantity) in requiredInventory {
             if let item = availableInventory.first(where: { $0.id == itemId }) {
-                logInfo("  - \(quantity) of \(item.name)")
+                print("  - \(quantity) of \(item.name)")
             }
         }
     }
     
     private func saveTaskPhoto(_ image: UIImage, for taskId: String) {
-        logInfo("Saving photo for admin task \(taskId)")
+        print("Saving photo for admin task \(taskId)")
     }
     
     private func scheduleRecurringTask(baseTask: CoreTypes.ContextualTask) {
-        logInfo("Scheduling recurring task: \(recurringFrequency)")
+        print("Scheduling recurring task: \(recurringFrequency)")
         // Implementation would schedule future tasks based on frequency
     }
 }

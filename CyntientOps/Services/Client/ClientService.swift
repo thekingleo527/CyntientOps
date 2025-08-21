@@ -74,9 +74,7 @@ public actor ClientService {
         public let budgetUtilization: Double
     }
     
-    // MARK: - Initialization
-    
-    public init() {}
+    // MARK: - Additional Methods
     
     // MARK: - Public Methods - Client Access
     

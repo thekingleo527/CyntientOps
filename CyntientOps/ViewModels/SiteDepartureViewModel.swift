@@ -26,6 +26,23 @@ public class SiteDepartureViewModel: ObservableObject {
     let availableBuildings: [CoreTypes.NamedCoordinate]
     
     private let locationManager = LocationManager.shared
+    private var container: ServiceContainer?
+    
+    // MARK: - Initialization
+    
+    public init(
+        workerId: String,
+        currentBuilding: CoreTypes.NamedCoordinate,
+        workerCapabilities: WorkerCapability? = nil,
+        availableBuildings: [CoreTypes.NamedCoordinate] = [],
+        container: ServiceContainer? = nil
+    ) {
+        self.workerId = workerId
+        self.currentBuilding = currentBuilding
+        self.workerCapabilities = workerCapabilities
+        self.availableBuildings = availableBuildings
+        self.container = container
+    }
     
     // MARK: - Worker Capability Structure
     public struct WorkerCapability {
@@ -80,7 +97,8 @@ public class SiteDepartureViewModel: ObservableObject {
         error = nil
         
         do {
-            let checklist = try await TaskService.shared.getDepartureChecklistItems(
+            guard let container = container else { return }
+            let checklist = try await container.tasks.getDepartureChecklistItems(
                 for: workerId,
                 buildingId: currentBuilding.id
             )
@@ -101,7 +119,7 @@ public class SiteDepartureViewModel: ObservableObject {
     }
     
     func finalizeDeparture(method: DepartureMethod = .normal) async -> Bool {
-        guard let checklist = checklist else { return false }
+        guard let checklist = checklist, let container = container else { return false }
         
         isSaving = true
         error = nil
@@ -130,7 +148,7 @@ public class SiteDepartureViewModel: ObservableObject {
                     isActive: true
                 )
                 
-                let evidence = try await PhotoEvidenceService.shared.captureQuick(
+                let evidence = try await container.photos.captureQuick(
                     image: photo,
                     category: .afterWork,
                     buildingId: currentBuilding.id,
@@ -138,7 +156,7 @@ public class SiteDepartureViewModel: ObservableObject {
                     notes: "Departure photo for \(currentBuilding.name)"
                 )
                 
-                logInfo("✅ Departure photo saved: \(evidence.id)")
+                print("✅ Departure photo saved: \(evidence.id)")
             }
             
             // Create departure log
@@ -153,7 +171,7 @@ public class SiteDepartureViewModel: ObservableObject {
                 location: locationManager.location
             )
             
-            logInfo("✅ Departure log created: \(logId)")
+            print("✅ Departure log created: \(logId)")
             
             isSaving = false
             return true

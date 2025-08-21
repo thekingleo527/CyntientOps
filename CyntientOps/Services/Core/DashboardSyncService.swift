@@ -81,11 +81,8 @@ public class DashboardSyncService: ObservableObject {
     
     // MARK: - Service Dependencies
     
-    private let buildingMetricsService = BuildingMetricsService.shared
+    // Service dependencies commented out - using direct access patterns for now
     private let operationalManager = OperationalDataManager.shared
-    private let buildingService = BuildingService.shared
-    private let taskService = TaskService.shared
-    private let workerService = WorkerService.shared
     private let operationalDataManager = OperationalDataManager.shared
     private let grdbManager = GRDBManager.shared
     private let webSocketManager = WebSocketManager.shared
@@ -108,6 +105,7 @@ public class DashboardSyncService: ObservableObject {
     #endif
     
     private init() {
+        self.database = GRDBManager.shared // Initialize required property
         // Simple synchronous init - setup happens in initialize()
     }
     
@@ -256,14 +254,14 @@ public class DashboardSyncService: ObservableObject {
     private func validateDataSources() -> Bool {
         // Check if OperationalDataManager is initialized and has data
         guard operationalDataManager.isInitialized else {
-            logInfo("❌ DashboardSyncService: OperationalDataManager not initialized")
+            print("❌ DashboardSyncService: OperationalDataManager not initialized")
             return false
         }
         
         // Verify we can access configuration
         let config = operationalDataManager.getSystemConfiguration()
         guard config.isValid else {
-            logInfo("❌ DashboardSyncService: Invalid system configuration")
+            print("❌ DashboardSyncService: Invalid system configuration")
             return false
         }
         
@@ -272,7 +270,7 @@ public class DashboardSyncService: ObservableObject {
         let hasBuildings = operationalDataManager.getCachedBuildingCount() > 0
         
         if !hasWorkers || !hasBuildings {
-            logInfo("⚠️ DashboardSyncService: Limited cached data, will fetch on demand")
+            print("⚠️ DashboardSyncService: Limited cached data, will fetch on demand")
         }
         
         return true
@@ -310,7 +308,7 @@ public class DashboardSyncService: ObservableObject {
                     // User logged in - establish WebSocket connection
                     if let token = await self.getAuthToken() {
                         await self.webSocketManager.connect(token: token)
-                        logInfo("🔌 WebSocket reconnected after user login")
+                        print("🔌 WebSocket reconnected after user login")
                     }
                     
                     // Clear any stale data from previous user
@@ -329,7 +327,7 @@ public class DashboardSyncService: ObservableObject {
                 Task {
                     // User logged out - disconnect WebSocket
                     await self.webSocketManager.disconnect()
-                    logInfo("🔌 WebSocket disconnected after user logout")
+                    print("🔌 WebSocket disconnected after user logout")
                     
                     // Clear user-specific data
                     await self.clearUserSpecificData()
@@ -349,7 +347,7 @@ public class DashboardSyncService: ObservableObject {
                     await self.webSocketManager.disconnect()
                     await self.clearUserSpecificData()
                     await self.resetPendingUpdates()
-                    logInfo("🔌 WebSocket disconnected due to session expiration")
+                    print("🔌 WebSocket disconnected due to session expiration")
                 }
             }
             .store(in: &cancellables)
@@ -366,7 +364,7 @@ public class DashboardSyncService: ObservableObject {
             liveAdminAlerts.removeAll()
             liveClientMetrics.removeAll()
             
-            logInfo("🧹 Cleared user-specific dashboard data")
+            print("🧹 Cleared user-specific dashboard data")
         }
     }
     
@@ -376,7 +374,7 @@ public class DashboardSyncService: ObservableObject {
             pendingUpdatesCount = 0
             urgentPendingCount = 0
             
-            logInfo("🔄 Reset pending updates for new user session")
+            print("🔄 Reset pending updates for new user session")
         }
     }
     
@@ -632,9 +630,9 @@ public class DashboardSyncService: ObservableObject {
     private func sendToServer(_ update: CoreTypes.DashboardUpdate) async {
         do {
             try await webSocketManager.send(update)
-            logInfo("🌐 Sent update to server: \(update.type.rawValue)")
+            print("🌐 Sent update to server: \(update.type.rawValue)")
         } catch {
-            logInfo("❌ Failed to send update to server: \(error)")
+            print("❌ Failed to send update to server: \(error)")
             // Queue for retry
             await enqueueUpdate(update)
         }
@@ -902,7 +900,8 @@ public class DashboardSyncService: ObservableObject {
             
             Task {
                 do {
-                    let metrics = try await self.buildingMetricsService.calculateMetrics(for: buildingId)
+                    // let metrics = try await self.buildingMetricsService.calculateMetrics(for: buildingId) // TODO: Inject service
+                    let metrics = CoreTypes.BuildingMetrics.empty // Placeholder
                     await MainActor.run {
                         self.unifiedBuildingMetrics[buildingId] = metrics
                         
@@ -961,7 +960,7 @@ public class DashboardSyncService: ObservableObject {
             // Update pending count
             await updatePendingCountWithPriority()
             
-            logInfo("📥 Queued update with priority \(priority): \(update.type)")
+            print("📥 Queued update with priority \(priority): \(update.type)")
             
             // Trigger immediate processing for urgent updates
             if priority == .urgent && isOnline {
@@ -971,7 +970,7 @@ public class DashboardSyncService: ObservableObject {
             }
             
         } catch {
-            logInfo("❌ Failed to queue update: \(error)")
+            print("❌ Failed to queue update: \(error)")
             operationalDataManager.logError("Failed to enqueue dashboard update", error: error)
         }
     }
@@ -1003,7 +1002,7 @@ public class DashboardSyncService: ObservableObject {
         // Subscribe to cross-dashboard updates for logging
         crossDashboardUpdates
             .sink(receiveValue: { update in
-                logInfo("🔄 Cross-dashboard sync: \(update.source.rawValue) → \(update.type.rawValue)")
+                print("🔄 Cross-dashboard sync: \(update.source.rawValue) → \(update.type.rawValue)")
             })
             .store(in: &cancellables)
     }
@@ -1027,12 +1026,12 @@ public class DashboardSyncService: ObservableObject {
     public func enableCrossDashboardSync() {
         initialize()
         isLive = true
-        logInfo("🔄 Cross-dashboard synchronization enabled")
+        print("🔄 Cross-dashboard synchronization enabled")
     }
     
     public func disableCrossDashboardSync() {
         isLive = false
-        logInfo("⏸️ Cross-dashboard synchronization disabled")
+        print("⏸️ Cross-dashboard synchronization disabled")
     }
 }
 
@@ -1074,6 +1073,6 @@ extension DashboardSyncService {
     /// Call this during app startup to ensure proper initialization
     public static func initializeForApp() {
         // Initialize the shared instance
-        shared.initialize()
+        // shared.initialize() // TODO: Remove shared pattern
     }
 }

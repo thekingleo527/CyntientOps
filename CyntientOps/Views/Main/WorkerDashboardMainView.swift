@@ -366,7 +366,7 @@ struct WorkerDashboardMainView: View {
                                     await viewModel.completeTask(contextualTask, evidence: evidence)
                                 }
                             } catch {
-                                logInfo("Failed to capture photo evidence: \(error)")
+                                print("Failed to capture photo evidence: \(error)")
                                 // Show error to user
                             }
                         }

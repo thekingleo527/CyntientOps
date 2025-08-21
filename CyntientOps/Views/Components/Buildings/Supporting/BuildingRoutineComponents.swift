@@ -156,7 +156,7 @@ struct DailyRoutinesCard: View {
             isLoading = false
             
         } catch {
-            logInfo("❌ Error loading daily routines: \(error)")
+            print("❌ Error loading daily routines: \(error)")
             isLoading = false
         }
     }
@@ -216,7 +216,7 @@ struct DailyRoutinesCard: View {
                 await loadDailyRoutines()
                 
             } catch {
-                logInfo("❌ Error toggling routine completion: \(error)")
+                print("❌ Error toggling routine completion: \(error)")
             }
         }
     }

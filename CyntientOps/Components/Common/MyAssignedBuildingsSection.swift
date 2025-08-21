@@ -17,7 +17,7 @@ struct MyAssignedBuildingsSection: View {
     let onShowAllBuildings: () -> Void
     
     // Service references
-    private let buildingMetricsService = BuildingMetricsService.shared
+    // private let buildingMetricsService = // BuildingMetricsService injection needed
     
     @State private var buildingMetrics: [String: CoreTypes.BuildingMetrics] = [:]
     @State private var isLoadingMetrics = false

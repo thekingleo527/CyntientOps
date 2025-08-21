@@ -34,22 +34,22 @@ actor BuildingConfigurationManager {
 
     // ✅ FIXED: Proper async initialization without accessing actor state in Task
     private init() {
-        logInfo("⚙️ BuildingConfigurationManager initialized")
+        print("⚙️ BuildingConfigurationManager initialized")
         
         // Load configurations synchronously during init
         if let data = UserDefaults.standard.data(forKey: persistenceKey) {
             do {
                 buildingConfigurations = try JSONDecoder().decode([CoreTypes.BuildingID: BuildingFeatureConfiguration].self, from: data)
-                logInfo("⚙️ Loaded \(buildingConfigurations.count) custom configs")
+                print("⚙️ Loaded \(buildingConfigurations.count) custom configs")
             } catch {
-                logInfo("🚨 Failed to load building configurations during init: \(error)")
+                print("🚨 Failed to load building configurations during init: \(error)")
             }
         }
     }
 
     /// Enables a specific feature configuration for a given building.
     func enableIntelligence(for buildingId: CoreTypes.BuildingID, configuration: BuildingFeatureConfiguration) {
-        logInfo("🔧 Setting config for building \(buildingId) to: \(configuration.rawValue)")
+        print("🔧 Setting config for building \(buildingId) to: \(configuration.rawValue)")
         buildingConfigurations[buildingId] = configuration
         saveConfigurations()
     }
@@ -63,7 +63,7 @@ actor BuildingConfigurationManager {
     /// A convenience method to set up the initial pilot program.
     /// This would be called from a debug menu or on first launch for testing.
     func enablePilotProgram() {
-        logInfo("🚀 Enabling pilot program for select buildings...")
+        print("🚀 Enabling pilot program for select buildings...")
         // As per the plan, enable for Rubin Museum and 136 W 17th Street
         enableIntelligence(for: "14", configuration: .pilot)
         enableIntelligence(for: "7", configuration: .pilot)
@@ -71,7 +71,7 @@ actor BuildingConfigurationManager {
     
     /// Enables the full production feature set for all buildings.
     func enableProductionRollout(allBuildingIds: [CoreTypes.BuildingID]) {
-        logInfo("🚀 Enabling production rollout for all buildings...")
+        print("🚀 Enabling production rollout for all buildings...")
         for id in allBuildingIds {
             enableIntelligence(for: id, configuration: .production)
         }
@@ -84,7 +84,7 @@ actor BuildingConfigurationManager {
             let data = try JSONEncoder().encode(buildingConfigurations)
             UserDefaults.standard.set(data, forKey: persistenceKey)
         } catch {
-            logInfo("🚨 Failed to save building configurations: \(error)")
+            print("🚨 Failed to save building configurations: \(error)")
         }
     }
     
@@ -94,9 +94,9 @@ actor BuildingConfigurationManager {
         guard let data = UserDefaults.standard.data(forKey: persistenceKey) else { return }
         do {
             buildingConfigurations = try JSONDecoder().decode([CoreTypes.BuildingID: BuildingFeatureConfiguration].self, from: data)
-            logInfo("⚙️ Reloaded \(buildingConfigurations.count) custom configs")
+            print("⚙️ Reloaded \(buildingConfigurations.count) custom configs")
         } catch {
-            logInfo("🚨 Failed to reload building configurations: \(error)")
+            print("🚨 Failed to reload building configurations: \(error)")
         }
     }
 }

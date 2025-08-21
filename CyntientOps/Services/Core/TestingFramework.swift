@@ -53,7 +53,7 @@ public final class TestingFramework: ObservableObject {
         isRunning = true
         testResults.removeAll()
         
-        logInfo("🧪 Starting comprehensive test suite...")
+        print("🧪 Starting comprehensive test suite...")
         
         // Unit Tests
         await runUnitTests()
@@ -74,13 +74,13 @@ public final class TestingFramework: ObservableObject {
         calculateOverallStatus()
         
         isRunning = false
-        logInfo("✅ Test suite completed")
+        print("✅ Test suite completed")
     }
     
     // MARK: - Unit Tests
     
     private func runUnitTests() async {
-        logInfo("🔬 Running unit tests...")
+        print("🔬 Running unit tests...")
         
         await runTest("AuthenticationService Login", category: .unit) {
             try await testAuthenticationLogin()
@@ -106,7 +106,7 @@ public final class TestingFramework: ObservableObject {
     // MARK: - Integration Tests
     
     private func runIntegrationTests() async {
-        logInfo("🔗 Running integration tests...")
+        print("🔗 Running integration tests...")
         
         await runTest("Database Operations", category: .integration) {
             try await testDatabaseIntegration()
@@ -128,7 +128,7 @@ public final class TestingFramework: ObservableObject {
     // MARK: - System Tests
     
     private func runSystemTests() async {
-        logInfo("🏗️ Running system tests...")
+        print("🏗️ Running system tests...")
         
         await runTest("Production Data Integrity", category: .system) {
             try await testProductionDataIntegrity()
@@ -150,7 +150,7 @@ public final class TestingFramework: ObservableObject {
     // MARK: - Performance Tests
     
     private func runPerformanceTests() async {
-        logInfo("⚡ Running performance tests...")
+        print("⚡ Running performance tests...")
         
         await runTest("App Launch Performance", category: .performance) {
             try await testAppLaunchPerformance()
@@ -168,7 +168,7 @@ public final class TestingFramework: ObservableObject {
     // MARK: - Security Tests
     
     private func runSecurityTests() async {
-        logInfo("🔒 Running security tests...")
+        print("🔒 Running security tests...")
         
         await runTest("Credential Security", category: .security) {
             try await testCredentialSecurity()
@@ -202,7 +202,7 @@ public final class TestingFramework: ObservableObject {
             )
             
             testResults.append(result)
-            logInfo("✅ \(name) - PASSED (\(String(format: "%.2f", duration))s)")
+            print("✅ \(name) - PASSED (\(String(format: "%.2f", duration))s)")
             
         } catch {
             let duration = Date().timeIntervalSince(startTime)
@@ -217,7 +217,7 @@ public final class TestingFramework: ObservableObject {
             )
             
             testResults.append(result)
-            logInfo("❌ \(name) - FAILED: \(error.localizedDescription)")
+            print("❌ \(name) - FAILED: \(error.localizedDescription)")
         }
     }
     
@@ -235,7 +235,7 @@ public final class TestingFramework: ObservableObject {
             overallStatus = .partial
         }
         
-        logInfo("📊 Test Results: \(passedCount)/\(totalCount) passed")
+        print("📊 Test Results: \(passedCount)/\(totalCount) passed")
     }
     
     // MARK: - Individual Test Implementations
@@ -262,7 +262,7 @@ public final class TestingFramework: ObservableObject {
     }
     
     private func testTaskServiceOperations() async throws {
-        let taskService = TaskService.shared
+        let taskService = // TaskService injection needed
         
         // Test task retrieval (this should work with existing data)
         let tasks = try await taskService.getTasks(for: "4", date: Date())
@@ -327,7 +327,7 @@ public final class TestingFramework: ObservableObject {
     
     private func testProductionDataIntegrity() async throws {
         // Test Kevin's 38 tasks
-        let taskService = TaskService.shared
+        let taskService = // TaskService injection needed
         let kevinTasks = try await taskService.getTasks(for: "4", date: Date())
         XCTAssertEqual(kevinTasks.count, 38, "Kevin should have exactly 38 tasks")
         
@@ -342,7 +342,7 @@ public final class TestingFramework: ObservableObject {
     }
     
     private func testWorkerTaskSystem() async throws {
-        let workerService = WorkerService.shared
+        let workerService = // WorkerService injection needed
         let workers = try await workerService.getAllWorkers()
         XCTAssertFalse(workers.isEmpty)
     }

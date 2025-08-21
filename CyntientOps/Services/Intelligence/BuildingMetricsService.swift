@@ -55,10 +55,7 @@ public actor BuildingMetricsService {
         }
     }
     
-    private init() {
-        // ✅ FIXED: Use proper actor initialization pattern
-        // Don't call async methods in init - use separate initialize() method
-    }
+    // ✅ FIXED: Using proper actor initialization pattern above
     
     // MARK: - Initialization
     
@@ -66,7 +63,7 @@ public actor BuildingMetricsService {
     public func initialize() async {
         // ✅ FIXED: Remove await since setupRealTimeObservations is not async
         setupRealTimeObservations()
-        logInfo("📊 BuildingMetricsService initialized")
+        print("📊 BuildingMetricsService initialized")
     }
     
     // MARK: - Public Interface
@@ -75,7 +72,7 @@ public actor BuildingMetricsService {
     public func calculateMetrics(for buildingId: String) async throws -> CoreTypes.BuildingMetrics {
         // Check cache first
         if let cached = metricsCache[buildingId], !cached.isExpired {
-            logInfo("📊 Using cached metrics for building: \(buildingId)")
+            print("📊 Using cached metrics for building: \(buildingId)")
             return cached.metrics
         }
         
@@ -105,7 +102,7 @@ public actor BuildingMetricsService {
     public func calculateBatchMetrics(for buildingIds: [String]) async throws -> [String: CoreTypes.BuildingMetrics] {
         var results: [String: CoreTypes.BuildingMetrics] = [:]
         
-        logInfo("📊 Calculating metrics for \(buildingIds.count) buildings concurrently")
+        print("📊 Calculating metrics for \(buildingIds.count) buildings concurrently")
         
         // Use TaskGroup for concurrent GRDB queries
         await withTaskGroup(of: (String, CoreTypes.BuildingMetrics?).self) { group in
@@ -115,7 +112,7 @@ public actor BuildingMetricsService {
                         let metrics = try await self.calculateMetrics(for: buildingId)
                         return (buildingId, metrics)
                     } catch {
-                        logInfo("⚠️ Failed to calculate metrics for building \(buildingId): \(error)")
+                        print("⚠️ Failed to calculate metrics for building \(buildingId): \(error)")
                         return (buildingId, nil)
                     }
                 }
@@ -128,7 +125,7 @@ public actor BuildingMetricsService {
             }
         }
         
-        logInfo("✅ Calculated metrics for \(results.count) buildings")
+        print("✅ Calculated metrics for \(results.count) buildings")
         return results
     }
     
@@ -139,7 +136,7 @@ public actor BuildingMetricsService {
             return existing
         }
         
-        logInfo("🔄 Setting up real-time observation for building: \(buildingId)")
+        print("🔄 Setting up real-time observation for building: \(buildingId)")
         
         // ✅ FIXED: Use proper Combine pattern with existing GRDBManager methods
         let observation = grdbManager.observeTasks(for: buildingId)
@@ -157,14 +154,14 @@ public actor BuildingMetricsService {
     
     /// Invalidate cache for a building (trigger on task completion)
     public func invalidateCache(for buildingId: String) {
-        logInfo("🗑️ Invalidating cache for building: \(buildingId)")
+        print("🗑️ Invalidating cache for building: \(buildingId)")
         metricsCache.removeValue(forKey: buildingId)
         observationSubscriptions.removeValue(forKey: buildingId)
     }
     
     /// Invalidate all caches (trigger on major data changes)
     public func invalidateAllCaches() {
-        logInfo("🗑️ Invalidating all building metrics caches")
+        print("🗑️ Invalidating all building metrics caches")
         metricsCache.removeAll()
         observationSubscriptions.removeAll()
     }
@@ -172,7 +169,7 @@ public actor BuildingMetricsService {
     // MARK: - Real Data Calculation (GRDB)
     
     private func performRealMetricsCalculation(buildingId: String) async throws -> CoreTypes.BuildingMetrics {
-        logInfo("📊 Calculating REAL metrics for building: \(buildingId) with GRDB")
+        print("📊 Calculating REAL metrics for building: \(buildingId) with GRDB")
         
         // 1. Get today's tasks for the building using GRDB
         let taskRows = try await grdbManager.query("""
@@ -275,7 +272,7 @@ public actor BuildingMetricsService {
             weeklyCompletionTrend: weeklyCompletionTrend
         )
         
-        logInfo("✅ GRDB Metrics calculated - Building: \(buildingId), Score: \(Int(overallScore)), Completion: \(Int(completionRate * 100))%")
+        print("✅ GRDB Metrics calculated - Building: \(buildingId), Score: \(Int(overallScore)), Completion: \(Int(completionRate * 100))%")
         
         
         // Notify other dashboards
@@ -362,7 +359,7 @@ public actor BuildingMetricsService {
     // MARK: - Real-time Observations Setup
     
     private func setupRealTimeObservations() {
-        logInfo("🔄 Setting up GRDB real-time observations for building metrics")
+        print("🔄 Setting up GRDB real-time observations for building metrics")
         
         // ✅ FIXED: Use standard Task syntax for periodic refresh
         Task { [weak self] in
@@ -371,7 +368,7 @@ public actor BuildingMetricsService {
                     try await Task.sleep(nanoseconds: 30_000_000_000) // 30 seconds
                     guard let self = self else { break }
                     await self.invalidateAllCaches()
-                    logInfo("🔄 Periodic cache invalidation completed")
+                    print("🔄 Periodic cache invalidation completed")
                 } catch {
                     break // Exit if task is cancelled
                 }
@@ -385,7 +382,7 @@ public actor BuildingMetricsService {
                     try await Task.sleep(nanoseconds: 60_000_000_000) // 60 seconds
                     guard let self = self else { break }
                     await self.invalidateAllCaches()
-                    logInfo("🔄 Periodic building metrics refresh")
+                    print("🔄 Periodic building metrics refresh")
                 } catch {
                     break // Exit if task is cancelled
                 }
@@ -458,7 +455,7 @@ extension BuildingMetricsService {
     public func subscribeToMetrics(for buildingId: String) -> AnyPublisher<CoreTypes.BuildingMetrics, Never> {
         return observeMetrics(for: buildingId)
             .catch { error in
-                logInfo("⚠️ Metrics observation error for building \(buildingId): \(error)")
+                print("⚠️ Metrics observation error for building \(buildingId): \(error)")
                 return Just(CoreTypes.BuildingMetrics.empty)
             }
             .eraseToAnyPublisher()

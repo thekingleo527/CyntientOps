@@ -288,7 +288,7 @@ public class AdminOperationalIntelligence: ObservableObject, AdminOperationalInt
         )
         
         dashboardSync.broadcastWorkerUpdate(update)
-        logInfo("✅ Worker note added to operational intelligence: \(category)")
+        print("✅ Worker note added to operational intelligence: \(category)")
     }
     
     /// Log a supply request from workers
@@ -316,7 +316,7 @@ public class AdminOperationalIntelligence: ObservableObject, AdminOperationalInt
         )
         
         dashboardSync.broadcastWorkerUpdate(update)
-        logInfo("✅ Supply request logged: \(requestNumber)")
+        print("✅ Supply request logged: \(requestNumber)")
     }
     
     private func generateWeeklyTaskReminders(for date: Date) async {

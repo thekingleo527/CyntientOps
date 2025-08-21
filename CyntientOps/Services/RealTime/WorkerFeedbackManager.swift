@@ -69,7 +69,7 @@ class WorkerFeedbackManager: ObservableObject {
 
     /// Called immediately when a worker performs an action. This provides instant UI feedback.
     func recordAction(type: WorkerActionType, buildingName: String, actionId: String) async {
-        logInfo("👍 Recording action for immediate feedback: \(type.feedbackDisplayName)")
+        print("👍 Recording action for immediate feedback: \(type.feedbackDisplayName)")
         
         let confirmation = ActionConfirmation(
             id: actionId,
@@ -121,7 +121,7 @@ class WorkerFeedbackManager: ObservableObject {
             
             for (index, action) in recentActions.enumerated().reversed() {
                 if action.status == .pending && syncedCount > 0 {
-                    logInfo("✅ Marking action as synced: \(action.actionType.feedbackDisplayName)")
+                    print("✅ Marking action as synced: \(action.actionType.feedbackDisplayName)")
                     recentActions[index].status = .synced
                     syncedCount -= 1
                 }
@@ -147,7 +147,7 @@ class WorkerFeedbackManager: ObservableObject {
     /// Mark an action as failed
     func markActionFailed(actionId: String) {
         if let index = recentActions.firstIndex(where: { $0.id == actionId }) {
-            logInfo("❌ Marking action as failed: \(recentActions[index].actionType.feedbackDisplayName)")
+            print("❌ Marking action as failed: \(recentActions[index].actionType.feedbackDisplayName)")
             recentActions[index].status = .failed
             updatePendingCount()
         }
@@ -156,7 +156,7 @@ class WorkerFeedbackManager: ObservableObject {
     /// Retry a failed action
     func retryAction(_ actionId: String) {
         if let index = recentActions.firstIndex(where: { $0.id == actionId && $0.status == .failed }) {
-            logInfo("🔄 Retrying action: \(recentActions[index].actionType.feedbackDisplayName)")
+            print("🔄 Retrying action: \(recentActions[index].actionType.feedbackDisplayName)")
             recentActions[index].status = .pending
             updatePendingCount()
             

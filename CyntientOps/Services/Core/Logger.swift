@@ -28,21 +28,21 @@ public class CyntientLogger {
     
     public func info(_ message: String, category: LogCategory = .general) {
         #if DEBUG
-        logInfo("ℹ️ [\(category.rawValue)] \(message)")
+        print("ℹ️ [\(category.rawValue)] \(message)")
         #endif
         os_log("%{public}@", log: logForCategory(category), type: .info, message)
     }
     
     public func debug(_ message: String, category: LogCategory = .general) {
         #if DEBUG
-        logInfo("🐛 [\(category.rawValue)] \(message)")
+        print("🐛 [\(category.rawValue)] \(message)")
         #endif
         os_log("%{public}@", log: logForCategory(category), type: .debug, message)
     }
     
     public func warning(_ message: String, category: LogCategory = .general) {
         #if DEBUG
-        logInfo("⚠️ [\(category.rawValue)] \(message)")
+        print("⚠️ [\(category.rawValue)] \(message)")
         #endif
         os_log("%{public}@", log: logForCategory(category), type: .default, message)
     }
@@ -50,14 +50,14 @@ public class CyntientLogger {
     public func error(_ message: String, category: LogCategory = .general, error: Error? = nil) {
         let fullMessage = error != nil ? "\(message) - Error: \(error!.localizedDescription)" : message
         #if DEBUG
-        logInfo("❌ [\(category.rawValue)] \(fullMessage)")
+        print("❌ [\(category.rawValue)] \(fullMessage)")
         #endif
         os_log("%{public}@", log: logForCategory(category), type: .error, fullMessage)
     }
     
     public func success(_ message: String, category: LogCategory = .general) {
         #if DEBUG
-        logInfo("✅ [\(category.rawValue)] \(message)")
+        print("✅ [\(category.rawValue)] \(message)")
         #endif
         os_log("%{public}@", log: logForCategory(category), type: .info, message)
     }
@@ -116,7 +116,7 @@ public class PerformanceTimer {
 
 // MARK: - Global Convenience Functions
 
-public func logInfo(_ message: String, category: LogCategory = .general) {
+public func print(_ message: String, category: LogCategory = .general) {
     CyntientLogger.shared.info(message, category: category)
 }
 

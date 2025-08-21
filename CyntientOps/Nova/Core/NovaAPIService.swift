@@ -18,9 +18,9 @@ public actor NovaAPIService {
     
     // MARK: - Dependencies
     private let operationalManager = OperationalDataManager.shared
-    private let buildingService = BuildingService.shared
-    private let taskService = TaskService.shared
-    private let workerService = WorkerService.shared
+    // private let buildingService = // BuildingService injection needed
+    // private let taskService = // TaskService injection needed
+    // private let workerService = // WorkerService injection needed
     
     // MARK: - Configuration
     private let processingTimeout: TimeInterval = 30.0

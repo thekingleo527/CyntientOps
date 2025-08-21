@@ -863,39 +863,30 @@ public struct AdminReportsView: View {
         currentContext = .creating
         
         Task {
-            do {
-                let config = ReportConfiguration(
-                    type: selectedReportType,
-                    dateRange: selectedDateRange.dateInterval,
-                    includePhotos: true,
-                    format: .pdf
-                )
-                
-                // Simulate progress updates
-                await MainActor.run {
-                    reportGen.isGenerating = true
-                    reportGen.generationProgress = 0.1
-                    reportGen.currentStep = "Initializing report generation..."
-                }
-                
-                // Use the actual ReportService to generate a real report
-                let report = await generateRealReport(config: config)
-                
-                await MainActor.run {
-                    isGenerating = false
-                    reportGen.isGenerating = false
-                    reportGen.generationProgress = 1.0
-                    currentContext = .overview
-                    currentReport = report
-                    showingReportPreview = true
-                }
-            } catch {
-                await MainActor.run {
-                    isGenerating = false
-                    reportGen.isGenerating = false
-                    currentContext = .overview
-                    logInfo("❌ Error generating report: \(error)")
-                }
+            let config = ReportConfiguration(
+                type: selectedReportType,
+                dateRange: selectedDateRange.dateInterval,
+                includePhotos: true,
+                format: .pdf
+            )
+            
+            // Simulate progress updates
+            await MainActor.run {
+                reportGen.isGenerating = true
+                reportGen.generationProgress = 0.1
+                reportGen.currentStep = "Initializing report generation..."
+            }
+            
+            // Use the actual ReportService to generate a real report
+            let report = await generateRealReport(config: config)
+            
+            await MainActor.run {
+                isGenerating = false
+                reportGen.isGenerating = false
+                reportGen.generationProgress = 1.0
+                currentContext = .overview
+                currentReport = report
+                showingReportPreview = true
             }
         }
     }
@@ -927,7 +918,7 @@ public struct AdminReportsView: View {
                     isGenerating = false
                     reportGen.isGenerating = false
                     currentContext = .overview
-                    logInfo("❌ Error generating report: \(error)")
+                    print("❌ Error generating report: \(error)")
                 }
             }
         }
@@ -1009,7 +1000,7 @@ public struct AdminReportsView: View {
             return report
             
         } catch {
-            logInfo("❌ Failed to generate real report: \(error)")
+            print("❌ Failed to generate real report: \(error)")
             
             // Return a mock report as fallback
             return AdminGeneratedReport(
@@ -1093,7 +1084,7 @@ public struct AdminReportsView: View {
         do {
             return try await reportService.getAllReports()
         } catch {
-            logInfo("❌ Failed to load reports: \(error)")
+            print("❌ Failed to load reports: \(error)")
             return []
         }
     }
@@ -2141,7 +2132,7 @@ extension Calendar {
 struct AdminReportsView_Previews: PreviewProvider {
     static var previews: some View {
         AdminReportsView()
-            .environmentObject(DashboardSyncService.shared)
+            // .environmentObject(DashboardSyncService.shared) // TODO: Remove shared pattern
             .preferredColorScheme(.dark)
     }
 }

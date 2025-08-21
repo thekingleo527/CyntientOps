@@ -55,18 +55,18 @@ public final class ProductionCredentialsManager: ObservableObject {
             
             if status != .valid {
                 allValid = false
-                logInfo("❌ Invalid credential: \(key)")
+                print("❌ Invalid credential: \(key)")
             } else {
-                logInfo("✅ Valid credential: \(key)")
+                print("✅ Valid credential: \(key)")
             }
         }
         
         isProductionReady = allValid
         
         if allValid {
-            logInfo("🎉 All credentials validated - PRODUCTION READY")
+            print("🎉 All credentials validated - PRODUCTION READY")
         } else {
-            logInfo("⚠️ Missing or invalid credentials - NOT PRODUCTION READY")
+            print("⚠️ Missing or invalid credentials - NOT PRODUCTION READY")
         }
     }
     
@@ -111,10 +111,10 @@ public final class ProductionCredentialsManager: ObservableObject {
         let status = SecItemAdd(query as CFDictionary, nil)
         
         if status == errSecSuccess {
-            logInfo("🔐 Stored credential: \(key)")
+            print("🔐 Stored credential: \(key)")
             return true
         } else {
-            logInfo("❌ Failed to store credential: \(key)")
+            print("❌ Failed to store credential: \(key)")
             return false
         }
     }
@@ -157,7 +157,7 @@ public final class ProductionCredentialsManager: ObservableObject {
     
     /// Setup credentials for production deployment
     public func setupProductionCredentials() async -> Bool {
-        logInfo("🚀 Setting up production credentials...")
+        print("🚀 Setting up production credentials...")
         
         let requiredCredentials = [
             "QUICKBOOKS_CLIENT_ID",
@@ -185,15 +185,15 @@ public final class ProductionCredentialsManager: ObservableObject {
         }
         
         if !missingCredentials.isEmpty {
-            logInfo("❌ Missing production credentials:")
+            print("❌ Missing production credentials:")
             for credential in missingCredentials {
-                logInfo("  • \(credential)")
+                print("  • \(credential)")
             }
             
-            logInfo("\n📝 To complete production setup:")
-            logInfo("1. Obtain all required API credentials")
-            logInfo("2. Set environment variables or use Keychain")
-            logInfo("3. Run setupProductionCredentials() again")
+            print("\n📝 To complete production setup:")
+            print("1. Obtain all required API credentials")
+            print("2. Set environment variables or use Keychain")
+            print("3. Run setupProductionCredentials() again")
             
             return false
         }
@@ -252,7 +252,7 @@ public final class ProductionCredentialsManager: ObservableObject {
     
     /// Enable demo mode for development/testing
     public func enableDemoMode() {
-        logInfo("🧪 Enabling demo mode - using mock credentials")
+        print("🧪 Enabling demo mode - using mock credentials")
         
         let demoCredentials = [
             "QUICKBOOKS_CLIENT_ID": "demo_client_id",

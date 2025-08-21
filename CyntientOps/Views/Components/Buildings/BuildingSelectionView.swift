@@ -481,7 +481,7 @@ struct BuildingSelectionMapPin: View {
             )
         ],
         onSelect: { building in
-            logInfo("Selected: \(building.name)")
+            print("Selected: \(building.name)")
         },
         purpose: BuildingSelectionView.SelectionPurpose.clockIn  // Fixed: Full type path
     )
@@ -521,7 +521,7 @@ struct BuildingSelectionMapPin: View {
             )
         ],
         onSelect: { building in
-            logInfo("Selected: \(building.name)")
+            print("Selected: \(building.name)")
         },
         purpose: BuildingSelectionView.SelectionPurpose.navigation  // Fixed: Full type path
     )

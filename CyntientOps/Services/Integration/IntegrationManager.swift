@@ -48,9 +48,9 @@ final class IntegrationManager {
         for integration in integrations.values {
             do {
                 try await integration.connect()
-                logInfo("✅ Integration connected: \(integration.name)")
+                print("✅ Integration connected: \(integration.name)")
             } catch {
-                logInfo("❌ Failed to connect integration '\(integration.name)': \(error)")
+                print("❌ Failed to connect integration '\(integration.name)': \(error)")
             }
         }
     }
@@ -60,9 +60,9 @@ final class IntegrationManager {
         for integration in integrations.values {
             do {
                 try await integration.sync()
-                logInfo("🔄 Integration synced: \(integration.name)")
+                print("🔄 Integration synced: \(integration.name)")
             } catch {
-                logInfo("❌ Failed to sync integration '\(integration.name)': \(error)")
+                print("❌ Failed to sync integration '\(integration.name)': \(error)")
             }
         }
     }
@@ -83,17 +83,17 @@ final class QuickBooksIntegration: Integration {
     
     func connect() async throws {
         // Logic for OAuth 2.0 flow with QuickBooks.
-        logInfo("Connecting to QuickBooks...")
+        print("Connecting to QuickBooks...")
     }
     
     func disconnect() async {
         // Logic to revoke tokens.
-        logInfo("Disconnecting from QuickBooks...")
+        print("Disconnecting from QuickBooks...")
     }
     
     func sync() async throws {
         // Logic to sync payroll data, invoices, etc.
-        logInfo("Syncing with QuickBooks...")
+        print("Syncing with QuickBooks...")
     }
 }
 
@@ -102,16 +102,16 @@ final class GoogleCalendarIntegration: Integration {
     
     func connect() async throws {
         // Logic for Google Calendar API authentication.
-        logInfo("Connecting to Google Calendar...")
+        print("Connecting to Google Calendar...")
     }
     
     func disconnect() async {
-        logInfo("Disconnecting from Google Calendar...")
+        print("Disconnecting from Google Calendar...")
     }
     
     func sync() async throws {
         // Logic to sync task schedules with a shared calendar.
-        logInfo("Syncing with Google Calendar...")
+        print("Syncing with Google Calendar...")
     }
 }
 
@@ -120,15 +120,15 @@ final class SlackIntegration: Integration {
     
     func connect() async throws {
         // Logic for Slack API authentication.
-        logInfo("Connecting to Slack...")
+        print("Connecting to Slack...")
     }
     
     func disconnect() async {
-        logInfo("Disconnecting from Slack...")
+        print("Disconnecting from Slack...")
     }
     
     func sync() async throws {
         // Logic to post notifications for urgent tasks or reports to a Slack channel.
-        logInfo("Syncing with Slack...")
+        print("Syncing with Slack...")
     }
 }

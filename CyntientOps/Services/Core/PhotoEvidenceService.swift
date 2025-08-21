@@ -322,7 +322,7 @@ public class PhotoEvidenceService: ObservableObject {
             await updateStorageUsage()
             
         } catch {
-            logInfo("❌ Cleanup failed: \(error)")
+            print("❌ Cleanup failed: \(error)")
         }
     }
     
@@ -335,7 +335,7 @@ public class PhotoEvidenceService: ObservableObject {
                 }
             }
         } catch {
-            logInfo("⚠️ Storage calculation failed: \(error)")
+            print("⚠️ Storage calculation failed: \(error)")
         }
     }
     
@@ -345,7 +345,7 @@ public class PhotoEvidenceService: ObservableObject {
         do {
             try FileManager.default.createDirectory(at: photosDirectory, withIntermediateDirectories: true)
         } catch {
-            logInfo("❌ Failed to create photos directory: \(error)")
+            print("❌ Failed to create photos directory: \(error)")
         }
     }
     

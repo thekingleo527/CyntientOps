@@ -796,7 +796,7 @@ public struct AddInventoryItemView: View {
         )
         
         // TODO: Save item to database
-        logInfo("Adding inventory item: \(newItem)")
+        print("Adding inventory item: \(newItem)")
         
         // Simulate network delay
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) {

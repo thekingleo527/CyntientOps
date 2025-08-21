@@ -1181,7 +1181,7 @@ struct UnifiedTaskDetailView: View {
     private func verifyTask() {
         // Admin function to verify completion - placeholder implementation
         // TODO: Implement task verification in TaskDetailViewModel
-        logInfo("Task verification requested for task: \(task.id)")
+        print("Task verification requested for task: \(task.id)")
     }
     
     private func contactWorker() {

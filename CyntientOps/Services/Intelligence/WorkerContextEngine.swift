@@ -74,10 +74,10 @@ public final class WorkerContextEngine: ObservableObject {
     
     // MARK: - Dependencies
     private let operationalData = OperationalDataManager.shared
-    private let workerService = WorkerService.shared
-    private let buildingService = BuildingService.shared
+    // private let workerService = // WorkerService injection needed
+    // private let buildingService = // BuildingService injection needed
     private let clockInManager = ClockInManager.shared
-    private let taskService = TaskService.shared
+    // private let taskService = // TaskService injection needed
     
     // MARK: - Initialization
     private init() {
@@ -144,12 +144,12 @@ public final class WorkerContextEngine: ObservableObject {
             updatePendingScenarioStatus()
             lastRefreshTime = Date()
             
-            logInfo("✅ Context loaded successfully for worker: \(currentWorker?.name ?? workerId)")
+            print("✅ Context loaded successfully for worker: \(currentWorker?.name ?? workerId)")
             
         } catch {
             lastError = error
             errorMessage = error.localizedDescription
-            logInfo("❌ loadContext failed: \(error)")
+            print("❌ loadContext failed: \(error)")
             throw error
         }
         

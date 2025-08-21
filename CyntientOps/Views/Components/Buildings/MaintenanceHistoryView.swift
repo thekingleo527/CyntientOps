@@ -493,7 +493,7 @@ struct MaintenanceHistoryView: View {
         Task {
             do {
                 // Fetch all tasks - using TaskService directly
-                let tasks = try await TaskService.shared.getAllTasks()
+                let tasks = try await // TaskService injection needed.getAllTasks()
                 
                 // Filter tasks for this building and completed status
                 let buildingTasks = tasks.filter { task in
@@ -548,7 +548,7 @@ struct MaintenanceHistoryView: View {
                     self.allTasks = []
                     self.isLoading = false
                 }
-                logInfo("❌ Failed to load maintenance history: \(error)")
+                print("❌ Failed to load maintenance history: \(error)")
             }
         }
     }

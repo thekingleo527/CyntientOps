@@ -34,11 +34,11 @@ struct ProfileView: View {
     }
     
     private var currentWorkerRole: String {
-        contextEngine.currentWorker?.role.rawValue.capitalized ?? "Worker"
+        contextEngine.workerContext?.profile.role.rawValue.capitalized ?? "Worker"
     }
     
     private var currentWorkerEmail: String? {
-        contextEngine.currentWorker?.email
+        contextEngine.workerContext?.profile.email
     }
     
     var body: some View {
@@ -209,7 +209,7 @@ struct ProfileView: View {
                 ProfileInfoRow(
                     icon: "building.2.fill",
                     label: "Assigned Buildings",
-                    value: "\(contextEngine.assignedBuildings.count)",
+                    value: "\(contextEngine.workerContext?.assignedBuildings.count ?? 0)",
                     role: dashboardRole
                 )
                 
@@ -244,7 +244,7 @@ struct ProfileView: View {
                 HStack(spacing: CyntientOpsDesign.Spacing.md) {
                     ProfileStatCard(
                         title: "Tasks Today",
-                        value: "\(contextEngine.todaysTasks.count)",
+                        value: "\(contextEngine.taskContext.todaysTasks.count)",
                         color: CyntientOpsDesign.DashboardColors.info
                     )
                     
@@ -399,19 +399,19 @@ struct ProfileView: View {
     }
     
     private func getPendingTasksCount() -> Int {
-        contextEngine.todaysTasks.filter { task in
+        contextEngine.taskContext.todaysTasks.filter { task in
             !task.isCompleted
         }.count
     }
     
     private func getCompletedTasksCount() -> Int {
-        contextEngine.todaysTasks.filter { task in
+        contextEngine.taskContext.todaysTasks.filter { task in
             task.isCompleted
         }.count
     }
     
     private func getUrgentTasksCount() -> Int {
-        contextEngine.todaysTasks.filter { task in
+        contextEngine.taskContext.todaysTasks.filter { task in
             guard let urgency = task.urgency else { return false }
             let urgencyValue = urgency.rawValue.lowercased()
             return urgencyValue == "high" || urgencyValue == "critical" || urgencyValue == "urgent"

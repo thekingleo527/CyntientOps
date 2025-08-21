@@ -65,7 +65,7 @@ public final class NYCComplianceService: ObservableObject {
             await saveComplianceDataToDatabase()
             
         } catch {
-            logInfo("Error syncing compliance data: \(error)")
+            print("Error syncing compliance data: \(error)")
         }
         
         isLoading = false
@@ -326,7 +326,7 @@ public final class NYCComplianceService: ObservableObject {
                 """
                 try await database.execute(query, [buildingId, data, Date().timeIntervalSince1970])
             } catch {
-                logInfo("Failed to cache compliance data for building \(buildingId): \(error)")
+                print("Failed to cache compliance data for building \(buildingId): \(error)")
             }
         }
     }

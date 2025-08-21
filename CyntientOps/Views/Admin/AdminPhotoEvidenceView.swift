@@ -426,7 +426,7 @@ struct AdminPhotoEvidenceView: View {
             buildings = await container.operationalData.buildings
             
             // Load workers
-            let workerService = WorkerService.shared
+            let workerService = // WorkerService injection needed
             workers = try await workerService.getAllActiveWorkers()
             
             applyFilters()
@@ -440,7 +440,7 @@ struct AdminPhotoEvidenceView: View {
             dashboardSync.broadcastUpdate(update)
             
         } catch {
-            logInfo("❌ Failed to load photo evidence data: \(error)")
+            print("❌ Failed to load photo evidence data: \(error)")
         }
         
         isLoading = false

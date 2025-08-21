@@ -3520,10 +3520,10 @@ public typealias RecommendationPriority = CoreTypes.RecommendationPriority
         }
     }
 
-// Building Spaces
-public typealias BuildingSpace = CoreTypes.BuildingSpace
-public typealias SpaceCategory = CoreTypes.SpaceCategory
-public typealias AccessLevel = CoreTypes.AccessLevel
+// Building Spaces - Types moved or removed
+// public typealias BuildingSpace = CoreTypes.BuildingSpace
+// public typealias SpaceCategory = CoreTypes.SpaceCategory  
+// public typealias AccessLevel = CoreTypes.AccessLevel
 
 // MARK: - AdminOperationalIntelligence Types (Direct Access)  
 // Note: These types are already public in AdminOperationalIntelligence.swift

@@ -55,7 +55,7 @@ public class ViolationPredictor: ObservableObject {
             lastAnalysisTime = Date()
         }
         
-        logInfo("🔮 Starting violation prediction analysis...")
+        print("🔮 Starting violation prediction analysis...")
         
         do {
             // Get all active buildings
@@ -78,10 +78,10 @@ public class ViolationPredictor: ObservableObject {
             predictions = newPredictions.sorted { $0.riskScore > $1.riskScore }
             riskScores = newRiskScores
             
-            logInfo("✅ Violation prediction analysis completed: \(newPredictions.count) predictions generated")
+            print("✅ Violation prediction analysis completed: \(newPredictions.count) predictions generated")
             
         } catch {
-            logInfo("❌ Violation prediction analysis failed: \(error)")
+            print("❌ Violation prediction analysis failed: \(error)")
         }
     }
     
@@ -332,7 +332,7 @@ public class ViolationPredictor: ObservableObject {
                 )
             }
         } catch {
-            logInfo("Failed to get compliance history: \(error)")
+            print("Failed to get compliance history: \(error)")
             return []
         }
     }

@@ -18,13 +18,13 @@ struct AssignedBuildingsView: View {
     @Environment(\.dismiss) private var dismiss
     
     // Use BuildingService directly without StateObject
-    private let buildingService = BuildingService.shared
+    // private let buildingService = // BuildingService injection needed
     
     @State private var buildingMetrics: [String: BuildingMetrics] = [:]
     @State private var isLoading = true
     
     var assignedBuildings: [NamedCoordinate] {
-        contextEngine.assignedBuildings
+        contextEngine.workerContext?.assignedBuildings ?? []
     }
     
     var body: some View {
@@ -136,12 +136,12 @@ struct AssignedBuildingsView: View {
     // MARK: - Helper Methods
     
     private func isCurrentBuilding(_ building: CoreTypes.NamedCoordinate) -> Bool {
-        contextEngine.clockInStatus.isClockedIn &&
-        contextEngine.clockInStatus.building?.id == building.id
+        contextEngine.operationalStatus.clockInStatus.isClockedIn &&
+        contextEngine.operationalStatus.clockInStatus.building?.id == building.id
     }
     
     private func isPrimaryAssignment(_ building: CoreTypes.NamedCoordinate) -> Bool {
-        contextEngine.assignedBuildings.first?.id == building.id
+        contextEngine.workerContext?.assignedBuildings.first?.id == building.id
     }
     
     private func getTaskCount(for building: CoreTypes.NamedCoordinate) -> Int {
@@ -162,7 +162,7 @@ struct AssignedBuildingsView: View {
             for building in assignedBuildings {
                 group.addTask {
                     do {
-                        let metrics = try await self.buildingService.getBuildingMetrics(building.id)
+                        let metrics = try await container.metrics.calculateMetrics(for: building.id)
                         return (building.id, metrics)
                     } catch {
                         return (building.id, nil)

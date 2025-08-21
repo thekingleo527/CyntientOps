@@ -17,9 +17,9 @@ public class UnifiedDataService: ObservableObject {
     
     // MARK: - Dependencies
     private let operationalData = OperationalDataManager.shared
-    private let taskService = TaskService.shared
-    private let workerService = WorkerService.shared
-    private let buildingService = BuildingService.shared
+    // private let taskService = // TaskService injection needed
+    // private let workerService = // WorkerService injection needed
+    // private let buildingService = // BuildingService injection needed
     
     // MARK: - Published State
     @Published public var isReady = false
@@ -39,12 +39,12 @@ public class UnifiedDataService: ObservableObject {
             }
             
             // Fallback to OperationalDataManager
-            logInfo("⚡ Using OperationalDataManager fallback for worker \(workerId)")
+            print("⚡ Using OperationalDataManager fallback for worker \(workerId)")
             lastFallbackUse = Date()
             return await getTasksFromOperationalData(workerId: workerId, date: date)
             
         } catch {
-            logInfo("❌ Database tasks failed, using fallback: \(error)")
+            print("❌ Database tasks failed, using fallback: \(error)")
             lastFallbackUse = Date()
             return await getTasksFromOperationalData(workerId: workerId, date: date)
         }
@@ -60,12 +60,12 @@ public class UnifiedDataService: ObservableObject {
             }
             
             // Fallback to OperationalDataManager
-            logInfo("⚡ Using OperationalDataManager fallback for all tasks")
+            print("⚡ Using OperationalDataManager fallback for all tasks")
             lastFallbackUse = Date()
             return await getAllTasksFromOperationalData()
             
         } catch {
-            logInfo("❌ Database tasks failed, using fallback: \(error)")
+            print("❌ Database tasks failed, using fallback: \(error)")
             lastFallbackUse = Date()
             return await getAllTasksFromOperationalData()
         }
@@ -82,12 +82,12 @@ public class UnifiedDataService: ObservableObject {
             }
             
             // Fallback: Generate insights from OperationalDataManager directly
-            logInfo("⚡ Generating insights from OperationalDataManager fallback")
+            print("⚡ Generating insights from OperationalDataManager fallback")
             lastFallbackUse = Date()
             return await generateInsightsFromOperationalData()
             
         } catch {
-            logInfo("❌ Normal insights failed, using fallback: \(error)")
+            print("❌ Normal insights failed, using fallback: \(error)")
             lastFallbackUse = Date()
             return await generateInsightsFromOperationalData()
         }
@@ -104,12 +104,12 @@ public class UnifiedDataService: ObservableObject {
             }
             
             // Fallback: Generate basic insights
-            logInfo("⚡ Using fallback for building insights")
+            print("⚡ Using fallback for building insights")
             lastFallbackUse = Date()
             return await generateBuildingInsightsFromOperationalData(buildingId: buildingId)
             
         } catch {
-            logInfo("❌ Building insights failed, using fallback: \(error)")
+            print("❌ Building insights failed, using fallback: \(error)")
             lastFallbackUse = Date()
             return await generateBuildingInsightsFromOperationalData(buildingId: buildingId)
         }
@@ -128,10 +128,10 @@ public class UnifiedDataService: ObservableObject {
             isReady = hasTasks && hasWorkers && hasBuildings
             
             if !isReady {
-                logInfo("⚠️ Services not fully ready - fallback mode available")
+                print("⚠️ Services not fully ready - fallback mode available")
             }
         } catch {
-            logInfo("❌ Service check failed: \(error)")
+            print("❌ Service check failed: \(error)")
             isReady = false
         }
     }
@@ -340,7 +340,7 @@ public class UnifiedDataService: ObservableObject {
                 buildingName.lowercased().contains(building.name.lowercased())
             }?.id
         } catch {
-            logInfo("⚠️ Error looking up building '\(buildingName)': \(error)")
+            print("⚠️ Error looking up building '\(buildingName)': \(error)")
             return nil
         }
     }
@@ -350,7 +350,7 @@ public class UnifiedDataService: ObservableObject {
             let building = try await buildingService.getBuilding(buildingId: buildingId)
             return building.name
         } catch {
-            logInfo("⚠️ Error getting building name for ID '\(buildingId)': \(error)")
+            print("⚠️ Error getting building name for ID '\(buildingId)': \(error)")
             return nil
         }
     }

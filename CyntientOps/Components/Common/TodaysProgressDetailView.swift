@@ -37,7 +37,7 @@ struct TodaysProgressDetailView: View {
     // MARK: - Computed Properties
     
     private var allTasks: [ContextualTask] {
-        contextEngine.todaysTasks
+        contextEngine.taskContext.todaysTasks
     }
     
     private var completedTasks: [ContextualTask] {
@@ -311,21 +311,135 @@ struct TodaysProgressDetailView: View {
     // MARK: - Time & Priority Breakdown (Implementations as before)
     
     private var timeBreakdownContent: some View {
-        // Implementation remains the same
-        Text("Time Breakdown Content Placeholder").foregroundColor(.white)
+        let tasksByHour = Dictionary(grouping: allTasks) { task in
+            if let dueDate = task.dueDate {
+                return Calendar.current.component(.hour, from: dueDate)
+            }
+            return 0
+        }
+        
+        return VStack(spacing: 16) {
+            ForEach(Array(tasksByHour.keys.sorted()), id: \.self) { hour in
+                let tasks = tasksByHour[hour] ?? []
+                let completed = tasks.filter { $0.isCompleted }.count
+                
+                timeSlotCard(
+                    timeSlot: "\(hour):00",
+                    completed: completed,
+                    total: tasks.count,
+                    tasks: tasks
+                )
+            }
+        }
     }
     
     private var priorityBreakdownContent: some View {
-        // Implementation remains the same
-        Text("Priority Breakdown Content Placeholder").foregroundColor(.white)
+        let tasksByUrgency = Dictionary(grouping: allTasks) { task in
+            task.urgency ?? CoreTypes.TaskUrgency.normal
+        }
+        
+        return VStack(spacing: 16) {
+            ForEach(Array(tasksByUrgency.keys.sorted(by: { $0.urgencyLevel > $1.urgencyLevel })), id: \.self) { urgency in
+                let tasks = tasksByUrgency[urgency] ?? []
+                let completed = tasks.filter { $0.isCompleted }.count
+                
+                priorityCard(
+                    urgency: urgency,
+                    completed: completed,
+                    total: tasks.count,
+                    tasks: tasks
+                )
+            }
+        }
     }
     
     // MARK: - Helper Methods
+    
+    private func timeSlotCard(timeSlot: String, completed: Int, total: Int, tasks: [ContextualTask]) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "clock.fill")
+                    .foregroundColor(.blue)
+                
+                Text(timeSlot)
+                    .font(.headline)
+                    .fontWeight(.medium)
+                    .foregroundColor(.white)
+                
+                Spacer()
+                
+                Text("\(completed)/\(total)")
+                    .font(.caption)
+                    .foregroundColor(.white.opacity(0.6))
+            }
+            
+            if total > 0 {
+                let progress = Double(completed) / Double(total) * 100
+                HStack {
+                    ProgressView(value: progress / 100)
+                        .progressViewStyle(LinearProgressViewStyle(tint: .green))
+                    
+                    Text("\(Int(progress))%")
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .foregroundColor(.white)
+                        .frame(width: 40, alignment: .trailing)
+                }
+            }
+        }
+        .padding(16)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
+    }
+    
+    private func priorityCard(urgency: CoreTypes.TaskUrgency, completed: Int, total: Int, tasks: [ContextualTask]) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundColor(priorityColor(for: urgency))
+                
+                Text(urgency.rawValue.capitalized)
+                    .font(.headline)
+                    .fontWeight(.medium)
+                    .foregroundColor(.white)
+                
+                Spacer()
+                
+                Text("\(completed)/\(total)")
+                    .font(.caption)
+                    .foregroundColor(.white.opacity(0.6))
+            }
+            
+            if total > 0 {
+                let progress = Double(completed) / Double(total) * 100
+                HStack {
+                    ProgressView(value: progress / 100)
+                        .progressViewStyle(LinearProgressViewStyle(tint: priorityColor(for: urgency)))
+                    
+                    Text("\(Int(progress))%")
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .foregroundColor(.white)
+                        .frame(width: 40, alignment: .trailing)
+                }
+            }
+        }
+        .padding(16)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
+    }
     
     private func loadProgressData() async {
         // In a real app, this might fetch fresher data if needed.
         // For now, it relies on the already-loaded contextEngine.
         await contextEngine.refreshContext()
+    }
+    
+    private func priorityColor(for urgency: CoreTypes.TaskUrgency) -> Color {
+        switch urgency {
+        case .emergency, .critical: return .red
+        case .urgent, .high: return .orange
+        case .medium, .normal: return .yellow
+        case .low: return .blue
+        }
     }
 }
 

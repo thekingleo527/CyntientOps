@@ -294,7 +294,7 @@ public final class UserAccountSeeder {
     
     /// Seed all user accounts
     public func seedAccounts() async throws {
-        logInfo("🌱 Starting user account seeding...")
+        print("🌱 Starting user account seeding...")
         
         let allAccounts = productionAccounts + clientAccounts
         
@@ -309,7 +309,7 @@ public final class UserAccountSeeder {
                         let hashedPassword = try await self.hashPassword(account.password, for: account.email)
                         return (account, hashedPassword)
                     } catch {
-                        logInfo("❌ Failed to hash password for \(account.email): \(error)")
+                        print("❌ Failed to hash password for \(account.email): \(error)")
                         return (account, "")
                     }
                 }
@@ -342,23 +342,23 @@ public final class UserAccountSeeder {
             ])
         }
         
-        logInfo("✅ Seeded \(hashedAccounts.count) accounts in batch")
+        print("✅ Seeded \(hashedAccounts.count) accounts in batch")
         
         // Debug: Verify users were actually created
         let verifyUsers = try await grdbManager.query("SELECT id, name, email, role FROM workers")
-        logInfo("🔍 DEBUG: Found \(verifyUsers.count) users in database:")
+        print("🔍 DEBUG: Found \(verifyUsers.count) users in database:")
         for user in verifyUsers {
             if let id = user["id"] as? String, 
                let name = user["name"] as? String,
                let email = user["email"] as? String,
                let role = user["role"] as? String {
-                logInfo("  - \(name) (\(email)) - Role: \(role) - ID: \(id)")
+                print("  - \(name) (\(email)) - Role: \(role) - ID: \(id)")
             }
         }
         
         // Debug: Also insert some plain text passwords for testing
         #if DEBUG
-        logInfo("🔧 DEBUG: Adding plain text test credentials...")
+        print("🔧 DEBUG: Adding plain text test credentials...")
         let testCredentials = [
             ("test_admin", "Test Admin", "admin@test.com", "password", "admin"),
             ("test_shawn", "Shawn Test", "shawn@test.com", "password", "admin")
@@ -371,13 +371,13 @@ public final class UserAccountSeeder {
                 ) VALUES (?, ?, ?, ?, ?, 1, datetime('now'), datetime('now'))
             """, [id, name, email, password, role])
         }
-        logInfo("✅ Added test credentials with plain text passwords")
+        print("✅ Added test credentials with plain text passwords")
         #endif
         
         // Seed worker capabilities
         try await seedWorkerCapabilities()
         
-        logInfo("🎉 Account seeding completed successfully")
+        print("🎉 Account seeding completed successfully")
     }
     
     // MARK: - Private Methods
@@ -466,7 +466,7 @@ public final class UserAccountSeeder {
     }
     
     private func seedWorkerCapabilities() async throws {
-        logInfo("🔧 Seeding worker capabilities...")
+        print("🔧 Seeding worker capabilities...")
         
         // Create worker_capabilities table if it doesn't exist
         try await grdbManager.execute("""
@@ -508,6 +508,6 @@ public final class UserAccountSeeder {
             ])
         }
         
-        logInfo("✅ Seeded worker capabilities in batch")
+        print("✅ Seeded worker capabilities in batch")
     }
 }

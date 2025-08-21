@@ -228,7 +228,7 @@ public final class ClientContextEngine: ObservableObject {
     private func loadClientProfile() {
         // Load client profile data
         Task {
-            if let userId = await NewAuthManager.shared.currentUserId {
+            if let userId = NewAuthManager.shared.currentUserId {
                 let profile = try? await fetchClientProfile(userId: userId)
                 await MainActor.run {
                     self.clientProfile = profile
@@ -773,7 +773,7 @@ public final class ClientContextEngine: ObservableObject {
             
             // Count current week tasks - simplified for compilation
             var thisWeekTasksCount = 0
-            for task in allBuildingTasks {
+            for _ in allBuildingTasks {
                 // Simple week counting without date filtering for compilation
                 thisWeekTasksCount += 1
             }
@@ -837,7 +837,7 @@ public final class ClientContextEngine: ObservableObject {
                     realComplianceIssues.append(issue)
                 }
             } catch {
-                logInfo("Error loading violations for \(building.name): \(error)")
+                print("Error loading violations for \(building.name): \(error)")
             }
         }
         

@@ -102,9 +102,9 @@ public final class AnalyticsService: ObservableObject {
         
         // Log to console in debug
         #if DEBUG
-        logInfo("📊 Analytics Event: \(event.rawValue)")
+        print("📊 Analytics Event: \(event.rawValue)")
         if !enrichedProperties.isEmpty {
-            logInfo("   Properties: \(enrichedProperties)")
+            print("   Properties: \(enrichedProperties)")
         }
         #endif
         
@@ -235,19 +235,19 @@ protocol AnalyticsBackend {
 #if DEBUG
 class MockAnalyticsBackend: AnalyticsBackend {
     func track(event: String, properties: [String: Any]) {
-        logInfo("🔵 Mock Analytics: \(event)")
+        print("🔵 Mock Analytics: \(event)")
     }
     
     func setUserId(_ id: String) {
-        logInfo("🔵 Mock Analytics: User ID set to \(id)")
+        print("🔵 Mock Analytics: User ID set to \(id)")
     }
     
     func setUserProperty(key: String, value: String) {
-        logInfo("🔵 Mock Analytics: User property \(key) = \(value)")
+        print("🔵 Mock Analytics: User property \(key) = \(value)")
     }
     
     func clearUser() {
-        logInfo("🔵 Mock Analytics: User cleared")
+        print("🔵 Mock Analytics: User cleared")
     }
 }
 #endif
@@ -285,23 +285,23 @@ class ProductionAnalyticsBackend: AnalyticsBackend {
             self.pendingEvents.append(analyticsEvent)
         }
         
-        logInfo("📊 Analytics: \(event) tracked")
+        print("📊 Analytics: \(event) tracked")
     }
     
     func setUserId(_ id: String) {
         userId = id
-        logInfo("📊 Analytics: User ID set to \(id)")
+        print("📊 Analytics: User ID set to \(id)")
     }
     
     func setUserProperty(key: String, value: String) {
         userProperties[key] = value
-        logInfo("📊 Analytics: User property \(key) = \(value)")
+        print("📊 Analytics: User property \(key) = \(value)")
     }
     
     func clearUser() {
         userId = nil
         userProperties.removeAll()
-        logInfo("📊 Analytics: User cleared")
+        print("📊 Analytics: User cleared")
     }
     
     // MARK: - Private Methods
@@ -327,10 +327,10 @@ class ProductionAnalyticsBackend: AnalyticsBackend {
                     CREATE INDEX IF NOT EXISTS analytics_events_synced_idx ON analytics_events (synced, timestamp)
                 """)
                 
-                logInfo("📊 Analytics database initialized")
+                print("📊 Analytics database initialized")
                 
             } catch {
-                logInfo("❌ Failed to setup analytics database: \(error)")
+                print("❌ Failed to setup analytics database: \(error)")
             }
         }
     }
@@ -352,7 +352,7 @@ class ProductionAnalyticsBackend: AnalyticsBackend {
             ])
             
         } catch {
-            logInfo("❌ Failed to store analytics event locally: \(error)")
+            print("❌ Failed to store analytics event locally: \(error)")
         }
     }
     
@@ -368,7 +368,7 @@ class ProductionAnalyticsBackend: AnalyticsBackend {
     private func syncPendingEvents() async {
         guard !pendingEvents.isEmpty else { return }
         
-        logInfo("📊 Syncing \(pendingEvents.count) analytics events...")
+        print("📊 Syncing \(pendingEvents.count) analytics events...")
         
         // Get unsynced events from database
         do {
@@ -392,7 +392,7 @@ class ProductionAnalyticsBackend: AnalyticsBackend {
                     """, [eventId])
                 }
                 
-                logInfo("✅ Synced \(eventIds.count) analytics events")
+                print("✅ Synced \(eventIds.count) analytics events")
             }
             
             // Clear pending events
@@ -401,7 +401,7 @@ class ProductionAnalyticsBackend: AnalyticsBackend {
             }
             
         } catch {
-            logInfo("❌ Failed to sync analytics events: \(error)")
+            print("❌ Failed to sync analytics events: \(error)")
         }
     }
     
@@ -410,7 +410,7 @@ class ProductionAnalyticsBackend: AnalyticsBackend {
         // Examples: Firebase Analytics, Mixpanel, Amplitude, custom backend
         
         guard let url = URL(string: "\(EnvironmentConfig.shared.baseURL)/api/v1/analytics") else {
-            logInfo("❌ Invalid analytics URL")
+            print("❌ Invalid analytics URL")
             return
         }
         
@@ -432,14 +432,14 @@ class ProductionAnalyticsBackend: AnalyticsBackend {
             
             if let httpResponse = response as? HTTPURLResponse {
                 if 200...299 ~= httpResponse.statusCode {
-                    logInfo("📊 Successfully sent analytics to remote service")
+                    print("📊 Successfully sent analytics to remote service")
                 } else {
-                    logInfo("⚠️ Analytics remote service responded with status: \(httpResponse.statusCode)")
+                    print("⚠️ Analytics remote service responded with status: \(httpResponse.statusCode)")
                 }
             }
             
         } catch {
-            logInfo("❌ Failed to send analytics to remote service: \(error)")
+            print("❌ Failed to send analytics to remote service: \(error)")
             // Events remain marked as unsynced and will be retried
         }
     }

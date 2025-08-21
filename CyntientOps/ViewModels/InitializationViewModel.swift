@@ -65,7 +65,7 @@ public class InitializationViewModel: ObservableObject {
             try await databaseInitializer.initializeIfNeeded()
         } catch {
             self.error = error
-            logInfo("❌ Initialization failed: \(error)")
+            print("❌ Initialization failed: \(error)")
         }
         
         isInitializing = false

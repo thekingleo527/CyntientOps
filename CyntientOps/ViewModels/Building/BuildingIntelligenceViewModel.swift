@@ -32,16 +32,17 @@ public class BuildingIntelligenceViewModel: ObservableObject {
     // MARK: - Private Properties
     
     private let contextEngine = WorkerContextEngine.shared
-    private let buildingService = BuildingService.shared
-    private let taskService = TaskService.shared
-    private let workerService = WorkerService.shared
     private let operationalData = OperationalDataManager.shared
-    private let buildingMetricsService = BuildingMetricsService.shared
+    
+    // Service references - need to be injected
+    private var container: ServiceContainer?
     private var cancellables = Set<AnyCancellable>()
     
     // MARK: - Initialization
     
-    public init() {}
+    public init(container: ServiceContainer? = nil) {
+        self.container = container
+    }
     
     // MARK: - Public Methods
     
@@ -64,7 +65,7 @@ public class BuildingIntelligenceViewModel: ObservableObject {
             }
         }
         
-        logInfo("✅ Complete intelligence loaded for building: \(building.name)")
+        print("✅ Complete intelligence loaded for building: \(building.name)")
         isLoading = false
     }
     
@@ -73,10 +74,12 @@ public class BuildingIntelligenceViewModel: ObservableObject {
     /// Load building metrics and status
     private func loadBuildingMetrics(_ building: NamedCoordinate) async {
         do {
-            let buildingMetrics = try await buildingMetricsService.calculateMetrics(for: building.id)
+            // Use BuildingMetricsService via shared instance
+            let metricsService = BuildingMetricsService(database: GRDBManager.shared)
+            let buildingMetrics = try await metricsService.calculateMetrics(for: building.id)
             self.metrics = buildingMetrics
         } catch {
-            logInfo("⚠️ Failed to load building metrics: \(error)")
+            print("⚠️ Failed to load building metrics: \(error)")
             
             self.metrics = CoreTypes.BuildingMetrics(
                 buildingId: building.id,
@@ -97,7 +100,8 @@ public class BuildingIntelligenceViewModel: ObservableObject {
     /// Load all workers for the building
     private func loadAllWorkers(_ building: NamedCoordinate) async {
         do {
-            let allWorkers = try await workerService.getActiveWorkersForBuilding(building.id)
+            guard let container = container else { return }
+            let allWorkers = try await container.workers.getActiveWorkersForBuilding(building.id)
             self.allAssignedWorkers = allWorkers
             
             // Determine primary workers based on operational data
@@ -107,10 +111,10 @@ public class BuildingIntelligenceViewModel: ObservableObject {
             // Get currently on-site workers
             self.currentWorkersOnSite = await getCurrentWorkersOnSite(building, from: allWorkers)
             
-            logInfo("✅ Loaded \(allWorkers.count) workers for building: \(building.name)")
+            print("✅ Loaded \(allWorkers.count) workers for building: \(building.name)")
             
         } catch {
-            logInfo("❌ Failed to load workers for building: \(error)")
+            print("❌ Failed to load workers for building: \(error)")
             
             // Create fallback worker data
             await createFallbackWorkerData(building)
@@ -123,7 +127,7 @@ public class BuildingIntelligenceViewModel: ObservableObject {
         // Create basic schedule data for now
         await createFallbackScheduleData(building)
         
-        logInfo("✅ Loaded basic schedule data for building: \(building.name)")
+        print("✅ Loaded basic schedule data for building: \(building.name)")
     }
     
     /// Load building history and patterns
@@ -150,10 +154,10 @@ public class BuildingIntelligenceViewModel: ObservableObject {
             // Generate patterns from history
             self.patterns = generatePatterns(from: self.buildingHistory)
             
-            logInfo("✅ Loaded \(self.buildingHistory.count) history items, \(patterns.count) patterns")
+            print("✅ Loaded \(self.buildingHistory.count) history items, \(patterns.count) patterns")
             
         } catch {
-            logInfo("❌ Failed to load building history: \(error)")
+            print("❌ Failed to load building history: \(error)")
             
             // Create fallback history data
             await createFallbackHistoryData(building)
@@ -168,7 +172,7 @@ public class BuildingIntelligenceViewModel: ObservableObject {
         // Get emergency procedures
         self.emergencyProcedures = getEmergencyProcedures(for: building)
         
-        logInfo("✅ Loaded \(emergencyContacts.count) contacts, \(emergencyProcedures.count) procedures")
+        print("✅ Loaded \(emergencyContacts.count) contacts, \(emergencyProcedures.count) procedures")
     }
     
     // MARK: - Helper Methods
@@ -196,7 +200,7 @@ public class BuildingIntelligenceViewModel: ObservableObject {
         var onSiteWorkers: [WorkerProfile] = []
         
         for worker in workers {
-            let (isClockedIn, clockedInBuilding) = await ClockInManager.shared.getClockInStatus(for: worker.id)
+            let (isClockedIn, clockedInBuilding) = ClockInManager.shared.getClockInStatus(for: worker.id)
             
             // Check if worker is clocked in at this specific building
             if isClockedIn,
@@ -293,7 +297,7 @@ public class BuildingIntelligenceViewModel: ObservableObject {
     
     /// Create fallback worker data when service fails
     private func createFallbackWorkerData(_ building: NamedCoordinate) async {
-        logInfo("📝 Creating fallback worker data for: \(building.name)")
+        print("📝 Creating fallback worker data for: \(building.name)")
         
         // Create basic worker profiles based on building assignments
         var fallbackWorkers: [WorkerProfile] = []
@@ -332,7 +336,7 @@ public class BuildingIntelligenceViewModel: ObservableObject {
     
     /// Generate fallback schedule when service fails
     private func createFallbackScheduleData(_ building: NamedCoordinate) async {
-        logInfo("📝 Creating fallback schedule for: \(building.name)")
+        print("📝 Creating fallback schedule for: \(building.name)")
         
         var schedule: [ContextualTask] = []
         

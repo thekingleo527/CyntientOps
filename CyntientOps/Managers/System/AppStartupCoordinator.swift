@@ -39,7 +39,7 @@ public final class AppStartupCoordinator: ObservableObject {
     /// Start the app initialization sequence - fast and simple
     public func startInitialization() async throws {
         guard !isInitializing else {
-            logInfo("⚠️ Initialization already in progress")
+            print("⚠️ Initialization already in progress")
             return
         }
         
@@ -64,13 +64,13 @@ public final class AppStartupCoordinator: ObservableObject {
             isInitializing = false
             statusMessage = "Ready"
             
-            logInfo("✅ App startup completed successfully")
+            print("✅ App startup completed successfully")
             
         } catch {
             self.error = error
             isInitializing = false
             statusMessage = "Initialization failed"
-            logInfo("❌ App startup failed: \(error)")
+            print("❌ App startup failed: \(error)")
             throw error
         }
     }
@@ -88,13 +88,13 @@ public final class AppStartupCoordinator: ObservableObject {
         
         // Nova AI manager is already created and owned by ServiceContainer
         
-        logInfo("✅ ServiceContainer created and configured")
+        print("✅ ServiceContainer created and configured")
     }
     
     private func configureNetworkMonitoring() {
         // Start network monitoring without waiting
         networkMonitor.forceUpdate()
-        logInfo("✅ Network monitoring configured: \(networkMonitor.isConnected ? "Online" : "Offline")")
+        print("✅ Network monitoring configured: \(networkMonitor.isConnected ? "Online" : "Offline")")
     }
     
     // MARK: - Background Task Verification
@@ -107,13 +107,13 @@ public final class AppStartupCoordinator: ObservableObject {
             do {
                 let operationalData = OperationalDataManager.shared
                 guard operationalData.isInitialized else {
-                    logInfo("⚠️ OperationalDataManager not initialized, skipping Kevin tasks verification")
+                    print("⚠️ OperationalDataManager not initialized, skipping Kevin tasks verification")
                     return
                 }
                 
                 // Get Kevin's tasks
                 let kevinTasks = operationalData.getRealWorldTasks(for: "Kevin Dutan")
-                logInfo("📊 Background verification - Kevin's tasks: \(kevinTasks.count)")
+                print("📊 Background verification - Kevin's tasks: \(kevinTasks.count)")
                 
                 // Verify Rubin Museum assignment
                 let hasRubinMuseum = kevinTasks.contains { task in
@@ -121,13 +121,13 @@ public final class AppStartupCoordinator: ObservableObject {
                 }
                 
                 if hasRubinMuseum {
-                    logInfo("✅ Background verification - Kevin has Rubin Museum assignment")
+                    print("✅ Background verification - Kevin has Rubin Museum assignment")
                 } else {
-                    logInfo("⚠️ Background verification - Kevin missing Rubin Museum assignment")
+                    print("⚠️ Background verification - Kevin missing Rubin Museum assignment")
                 }
                 
             } catch {
-                logInfo("❌ Background Kevin tasks verification failed: \(error)")
+                print("❌ Background Kevin tasks verification failed: \(error)")
             }
         }
     }

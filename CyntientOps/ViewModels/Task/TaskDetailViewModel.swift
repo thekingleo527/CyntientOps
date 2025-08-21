@@ -75,11 +75,7 @@ public class TaskDetailViewModel: ObservableObject {
     
     // MARK: - Service Dependencies
     
-    private let taskService = TaskService.shared
-    private let buildingService = BuildingService.shared
-    private let workerService = WorkerService.shared
-    private let dashboardSyncService = DashboardSyncService.shared
-    private let photoEvidenceService = PhotoEvidenceService.shared
+    private var container: ServiceContainer?
     private let locationManager = LocationManager.shared
     private let grdbManager = GRDBManager.shared
     
@@ -89,6 +85,12 @@ public class TaskDetailViewModel: ObservableObject {
     private var currentTask: CoreTypes.ContextualTask?
     private var taskStartTime: Date?
     private var photoCompressionQuality: CGFloat = 0.7
+    
+    // MARK: - Initialization
+    
+    public init(container: ServiceContainer? = nil) {
+        self.container = container
+    }
     
     // MARK: - Computed Properties
     
@@ -238,9 +240,9 @@ public class TaskDetailViewModel: ObservableObject {
         taskProgress = .awaitingPhoto
         progressPercentage = 0.6
         
-        if let task = currentTask, let worker = workerProfile {
+        if let task = currentTask, let worker = workerProfile, let container = container {
             do {
-                let evidence = try await photoEvidenceService.captureQuick(
+                let evidence = try await container.photos.captureQuick(
                     image: image,
                     category: .afterWork,
                     buildingId: task.buildingId ?? "",
@@ -251,9 +253,9 @@ public class TaskDetailViewModel: ObservableObject {
                 photoLocalPath = evidence.filePath
                 photoData = image.jpegData(compressionQuality: photoCompressionQuality)
                 
-                logInfo("✅ Photo evidence captured: \(evidence.id)")
+                print("✅ Photo evidence captured: \(evidence.id)")
             } catch {
-                logInfo("❌ Failed to capture photo evidence: \(error)")
+                print("❌ Failed to capture photo evidence: \(error)")
                 errorMessage = error.localizedDescription
                 showError = true
             }
@@ -281,7 +283,8 @@ public class TaskDetailViewModel: ObservableObject {
                 timestamp: Date()
             )
             
-            try await taskService.completeTask(taskId, evidence: evidence)
+            guard let container = container else { return }
+            try await container.tasks.completeTask(taskId, evidence: evidence)
             
             await saveCompletionRecord(notes: notes, location: location)
             
@@ -361,7 +364,7 @@ public class TaskDetailViewModel: ObservableObject {
                 self.workerCapabilities = .init(canUploadPhotos: true, canAddNotes: true, canViewMap: true, canAddEmergencyTasks: false, requiresPhotoForSanitation: true, simplifiedInterface: false)
             }
         } catch {
-            logInfo("❌ Failed to load worker capabilities for task detail: \(error)")
+            print("❌ Failed to load worker capabilities for task detail: \(error)")
             self.workerCapabilities = .init(canUploadPhotos: true, canAddNotes: true, canViewMap: true, canAddEmergencyTasks: false, requiresPhotoForSanitation: true, simplifiedInterface: false)
         }
     }
@@ -379,12 +382,27 @@ public class TaskDetailViewModel: ObservableObject {
         }
         
         do {
-            let building = try await buildingService.getBuilding(buildingId: buildingId)
+            // Load building data directly from database
+            let rows = try await grdbManager.query("SELECT id, name, address, latitude, longitude FROM buildings WHERE id = ?", [buildingId])
+            guard let row = rows.first,
+                  let id = row["id"] as? String,
+                  let name = row["name"] as? String,
+                  let address = row["address"] as? String else {
+                throw NSError(domain: "BuildingNotFound", code: 404)
+            }
+            
+            let building = CoreTypes.NamedCoordinate(
+                id: id,
+                name: name,
+                address: address,
+                latitude: row["latitude"] as? Double ?? 0,
+                longitude: row["longitude"] as? Double ?? 0
+            )
             buildingName = building.name
             buildingAddress = building.address
             buildingCoordinate = CLLocationCoordinate2D(latitude: building.latitude, longitude: building.longitude)
         } catch {
-            logInfo("⚠️ Failed to load building info: \(error)")
+            print("⚠️ Failed to load building info: \(error)")
             buildingName = "Building #\(buildingId)"
         }
     }
@@ -396,7 +414,7 @@ public class TaskDetailViewModel: ObservableObject {
                 return name
             }
         } catch {
-            logInfo("⚠️ Database query failed: \(error)")
+            print("⚠️ Database query failed: \(error)")
         }
         return "Building #\(buildingId)"
     }
@@ -408,10 +426,11 @@ public class TaskDetailViewModel: ObservableObject {
         }
         
         do {
-            workerProfile = try await workerService.getWorkerProfile(for: workerId)
+            guard let container = container else { return }
+            workerProfile = try await container.workers.getWorkerProfile(for: workerId)
             workerName = workerProfile?.name ?? "Worker #\(workerId)"
         } catch {
-            logInfo("⚠️ Failed to load worker info: \(error)")
+            print("⚠️ Failed to load worker info: \(error)")
             workerName = "Worker #\(workerId)"
         }
     }
@@ -446,10 +465,10 @@ public class TaskDetailViewModel: ObservableObject {
                 ISO8601DateFormatter().string(from: Date())
             ])
             
-            logInfo("✅ Task completion recorded: \(completionId)")
+            print("✅ Task completion recorded: \(completionId)")
             
         } catch {
-            logInfo("❌ Failed to save completion record: \(error)")
+            print("❌ Failed to save completion record: \(error)")
         }
     }
     
@@ -473,7 +492,7 @@ public class TaskDetailViewModel: ObservableObject {
             ]
         )
         
-        dashboardSyncService.broadcastWorkerUpdate(update)
+        container?.dashboardSync.broadcastWorkerUpdate(update)
     }
     
     private func updateTaskMetrics(duration: TimeInterval) async {
@@ -486,7 +505,7 @@ public class TaskDetailViewModel: ObservableObject {
             "workerId": taskWorkerId ?? ""
         ]
         
-        logInfo("📊 Task metrics: \(metrics)")
+        print("📊 Task metrics: \(metrics)")
     }
     
     private func requiresPhotoEvidence() -> Bool {
@@ -541,7 +560,7 @@ public class TaskDetailViewModel: ObservableObject {
     }
     
     private func startAITaskMonitoring() {
-        logInfo("🤖 AI task monitoring started for task: \(taskId)")
+        print("🤖 AI task monitoring started for task: \(taskId)")
     }
     
     private func setupSubscriptions() {

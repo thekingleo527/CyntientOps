@@ -34,7 +34,7 @@ public final class PerformanceOptimizer: ObservableObject {
             }
         }
         
-        logInfo("📊 Performance monitoring started")
+        print("📊 Performance monitoring started")
     }
     
     private func updatePerformanceMetrics() async {
@@ -82,14 +82,14 @@ public final class PerformanceOptimizer: ObservableObject {
         
         if !newOptimizations.isEmpty {
             optimizations.append(contentsOf: newOptimizations)
-            logInfo("🔧 Applied \(newOptimizations.count) performance optimizations")
+            print("🔧 Applied \(newOptimizations.count) performance optimizations")
         }
     }
     
     // MARK: - Memory Optimization
     
     private func optimizeMemoryUsage() async -> OptimizationResult {
-        logInfo("🧹 Optimizing memory usage...")
+        print("🧹 Optimizing memory usage...")
         
         let beforeMemory = getCurrentMemoryUsage()
         
@@ -118,7 +118,7 @@ public final class PerformanceOptimizer: ObservableObject {
     // MARK: - Database Optimization
     
     private func optimizeDatabaseQueries() async -> OptimizationResult {
-        logInfo("🗄️ Optimizing database queries...")
+        print("🗄️ Optimizing database queries...")
         
         let beforeTime = currentMetrics.databaseQueryTime
         
@@ -149,7 +149,7 @@ public final class PerformanceOptimizer: ObservableObject {
     // MARK: - Cache Optimization
     
     private func optimizeCache() async -> OptimizationResult {
-        logInfo("💾 Optimizing cache performance...")
+        print("💾 Optimizing cache performance...")
         
         let beforeHitRate = currentMetrics.cacheHitRate
         
@@ -178,7 +178,7 @@ public final class PerformanceOptimizer: ObservableObject {
     // MARK: - Network Optimization
     
     private func optimizeNetworkRequests() async -> OptimizationResult {
-        logInfo("🌐 Optimizing network performance...")
+        print("🌐 Optimizing network performance...")
         
         let beforeLatency = currentMetrics.networkLatency
         
@@ -272,17 +272,17 @@ public final class PerformanceOptimizer: ObservableObject {
     
     private func cleanupDatabaseConnections() async {
         // Database connection cleanup
-        logInfo("Cleaning up database connections")
+        print("Cleaning up database connections")
     }
     
     private func removeStaleCache() {
         // Remove stale cache entries
-        logInfo("Removing stale cache entries")
+        print("Removing stale cache entries")
     }
     
     private func preloadFrequentData() async {
         // Preload frequently accessed data
-        logInfo("Preloading frequent data")
+        print("Preloading frequent data")
     }
     
     private func adjustCacheSizes() {
@@ -293,31 +293,31 @@ public final class PerformanceOptimizer: ObservableObject {
     
     private func cleanupExpiredCache() {
         // Remove expired cache entries
-        logInfo("Cleaning up expired cache")
+        print("Cleaning up expired cache")
     }
     
     private func enableRequestBatching() {
         // Enable HTTP/2 request batching
-        logInfo("Enabling request batching")
+        print("Enabling request batching")
     }
     
     private func optimizeConnectionPool() {
         // Optimize HTTP connection pooling
-        logInfo("Optimizing connection pool")
+        print("Optimizing connection pool")
     }
     
     private func enableResponseCompression() {
         // Enable response compression
-        logInfo("Enabling response compression")
+        print("Enabling response compression")
     }
     
     // MARK: - Public API
     
     /// Force performance optimization cycle
     public func forceOptimization() async {
-        logInfo("🚀 Starting forced optimization cycle...")
+        print("🚀 Starting forced optimization cycle...")
         await updatePerformanceMetrics()
-        logInfo("✅ Forced optimization completed")
+        print("✅ Forced optimization completed")
     }
     
     /// Get performance report

@@ -263,7 +263,7 @@ public class NetworkMonitor: ObservableObject {
             await updateConnectionQuality()
             
         } catch {
-            logInfo("⚠️ Speed test failed: \(error)")
+            print("⚠️ Speed test failed: \(error)")
         }
     }
     
@@ -299,7 +299,7 @@ public class NetworkMonitor: ObservableObject {
     // MARK: - Connection State Handlers
     
     private func handleConnectionRestored() {
-        logInfo("🟢 Network connection restored")
+        print("🟢 Network connection restored")
         
         // Trigger sync queue processing
         Task {
@@ -320,7 +320,7 @@ public class NetworkMonitor: ObservableObject {
     }
     
     private func handleConnectionLost() {
-        logInfo("🔴 Network connection lost")
+        print("🔴 Network connection lost")
         
         // Notify interested parties
         NotificationCenter.default.post(
@@ -513,7 +513,7 @@ private class SyncQueueManager {
     
     func processOfflineQueue() async {
         // This would integrate with your DashboardSyncService
-        logInfo("📤 Processing offline queue...")
+        print("📤 Processing offline queue...")
     }
 }
 

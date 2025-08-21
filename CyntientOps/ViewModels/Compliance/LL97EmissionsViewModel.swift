@@ -76,7 +76,7 @@ public final class LL97EmissionsViewModel: ObservableObject {
             
         } catch {
             errorMessage = "Failed to load emissions data: \(error.localizedDescription)"
-            logInfo("⚠️ LL97EmissionsViewModel error: \(error)")
+            print("⚠️ LL97EmissionsViewModel error: \(error)")
         }
         
         isLoading = false
@@ -94,7 +94,7 @@ public final class LL97EmissionsViewModel: ObservableObject {
     
     /// Generate emissions report
     public func generateEmissionsReport() async {
-        logInfo("✅ Generating LL97 emissions report...")
+        print("✅ Generating LL97 emissions report...")
         // Implementation would generate and export report
     }
     

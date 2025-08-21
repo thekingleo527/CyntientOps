@@ -25,14 +25,17 @@ class WorkerRoutineViewModel: ObservableObject {
     @Published var errorMessage: String?
     
     // MARK: - Dependencies (Using Singleton Pattern)
-    private let buildingService = BuildingService.shared
-    private let taskService = TaskService.shared
-    private let workerService = WorkerService.shared
-    private let buildingMetricsService = BuildingMetricsService.shared
+    private var container: ServiceContainer?
     private let contextEngine = WorkerContextEngine.shared
     
     // MARK: - Cancellables
     private var cancellables = Set<AnyCancellable>()
+    
+    // MARK: - Initialization
+    
+    init(container: ServiceContainer? = nil) {
+        self.container = container
+    }
     
     // MARK: - Supporting Types
     struct OptimizationRecord: Codable, Identifiable {
@@ -79,35 +82,32 @@ class WorkerRoutineViewModel: ObservableObject {
     
     // MARK: - Performance Metrics
     func loadPerformanceMetrics() async {
-        do {
-            // Calculate efficiency based on completed tasks
-            let completedTasks = await getCompletedTasksCount()
-            let totalTasks = await getTotalTasksCount()
-            let averageTime = await getAverageCompletionTime()
-            let qualityScore = await calculateQualityScore()
-            let efficiency = calculateEfficiency()
-            
-            // Using correct PerformanceMetrics initializer with proper parameter order
-            performanceMetrics = CoreTypes.PerformanceMetrics(
-                avgTaskTime: averageTime,
-                efficiency: efficiency,
-                qualityScore: qualityScore,
-                punctualityScore: 0.8,
-                totalTasks: totalTasks,
-                completedTasks: completedTasks
-            )
-        } catch {
-            errorMessage = "Failed to load performance metrics: \(error.localizedDescription)"
-        }
+        // Calculate efficiency based on completed tasks
+        let completedTasks = await getCompletedTasksCount()
+        let totalTasks = await getTotalTasksCount()
+        let averageTime = await getAverageCompletionTime()
+        let qualityScore = await calculateQualityScore()
+        let efficiency = calculateEfficiency()
+        
+        // Using correct PerformanceMetrics initializer with proper parameter order
+        performanceMetrics = CoreTypes.PerformanceMetrics(
+            avgTaskTime: averageTime,
+            efficiency: efficiency,
+            qualityScore: qualityScore,
+            punctualityScore: 0.8,
+            totalTasks: totalTasks,
+            completedTasks: completedTasks
+        )
     }
     
     private func getCompletedTasksCount() async -> Int {
         // Get completed tasks from TaskService
         do {
-            let tasks = try await taskService.getAllTasks()
+            guard let container = container else { return 0 }
+            let tasks = try await container.tasks.getAllTasks()
             return tasks.filter { $0.isCompleted }.count
         } catch {
-            logInfo("❌ Failed to get completed tasks count: \(error)")
+            print("❌ Failed to get completed tasks count: \(error)")
             return 0
         }
     }
@@ -115,10 +115,11 @@ class WorkerRoutineViewModel: ObservableObject {
     private func getTotalTasksCount() async -> Int {
         // Get total tasks from TaskService
         do {
-            let tasks = try await taskService.getAllTasks()
+            guard let container = container else { return 0 }
+            let tasks = try await container.tasks.getAllTasks()
             return tasks.count
         } catch {
-            logInfo("❌ Failed to get total tasks count: \(error)")
+            print("❌ Failed to get total tasks count: \(error)")
             return 0
         }
     }
@@ -153,10 +154,11 @@ class WorkerRoutineViewModel: ObservableObject {
             let workerId = currentUser?.workerId ?? ""
             
             // Get assigned buildings through BuildingService
-            let allBuildings = try await buildingService.getAllBuildings()
+            guard let container = container else { return [] }
+            let allBuildings = try await container.buildings.getAllBuildings()
             
             // Get worker assignments to filter buildings
-            let workerAssignments = try await workerService.getWorkerAssignments(workerId: workerId)
+            let workerAssignments = try await container.workers.getWorkerAssignments(workerId: workerId)
             let assignedBuildingIds = workerAssignments.map { $0.buildingId }
             
             let assignedBuildings = allBuildings.filter { building in
@@ -183,7 +185,7 @@ class WorkerRoutineViewModel: ObservableObject {
             }
             return []
         } catch {
-            logInfo("❌ Failed to fetch routes: \(error)")
+            print("❌ Failed to fetch routes: \(error)")
             return []
         }
     }
@@ -255,13 +257,14 @@ class WorkerRoutineViewModel: ObservableObject {
     private func fetchMaintenanceTasksForBuilding(_ buildingId: String) async -> [ContextualTask] {
         // Fetch tasks from TaskService for specific building
         do {
-            let allTasks = try await taskService.getAllTasks()
+            guard let container = container else { return [] }
+            let allTasks = try await container.tasks.getAllTasks()
             return allTasks.filter { task in
                 // Match building ID through the task's building property or buildingId
                 return task.buildingId == buildingId || task.building?.id == buildingId
             }
         } catch {
-            logInfo("❌ Failed to fetch tasks for building \(buildingId): \(error)")
+            print("❌ Failed to fetch tasks for building \(buildingId): \(error)")
             return []
         }
     }
@@ -318,7 +321,8 @@ class WorkerRoutineViewModel: ObservableObject {
     private func calculateWorkerEfficiency(for workerId: String) async -> Double {
         // Calculate worker-specific efficiency from real data
         do {
-            let tasks = try await taskService.getAllTasks()
+            guard let container = container else { return 0 }
+            let tasks = try await container.tasks.getAllTasks()
             let workerTasks = tasks.filter { task in
                 // Check both worker property and assigned worker fields
                 return task.worker?.id == workerId ||
@@ -329,7 +333,7 @@ class WorkerRoutineViewModel: ObservableObject {
             guard !workerTasks.isEmpty else { return 0.0 }
             return Double(completedTasks.count) / Double(workerTasks.count)
         } catch {
-            logInfo("❌ Failed to calculate worker efficiency: \(error)")
+            print("❌ Failed to calculate worker efficiency: \(error)")
             return 0.85 // Default efficiency
         }
     }

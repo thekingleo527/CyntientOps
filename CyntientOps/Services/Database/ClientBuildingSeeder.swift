@@ -111,7 +111,7 @@ public final class ClientBuildingSeeder {
     
     /// Create schema and seed client data
     public func seedClientStructure() async throws {
-        logInfo("🏢 Creating client-building structure...")
+        print("🏢 Creating client-building structure...")
         
         // Step 1: Create tables
         try await createClientTables()
@@ -131,13 +131,13 @@ public final class ClientBuildingSeeder {
         // Step 6: Verify data integrity
         try await verifyClientStructure()
         
-        logInfo("✅ Client-building structure created successfully")
+        print("✅ Client-building structure created successfully")
     }
     
     // MARK: - Private Methods - Schema
     
     private func createClientTables() async throws {
-        logInfo("📋 Creating client management tables...")
+        print("📋 Creating client management tables...")
         
         // Clients table
         try await grdbManager.execute("""
@@ -182,11 +182,11 @@ public final class ClientBuildingSeeder {
             )
         """)
         
-        logInfo("✅ Client tables created")
+        print("✅ Client tables created")
     }
     
     private func updateBuildingDatabase() async throws {
-        logInfo("🔧 Updating building database...")
+        print("🔧 Updating building database...")
         
         // Add BIN and BBL columns if they don't exist
         let tableInfo = try await grdbManager.query("PRAGMA table_info(buildings)")
@@ -267,11 +267,11 @@ public final class ClientBuildingSeeder {
             }
         }
         
-        logInfo("✅ Building database updated: \(buildingsAdded) added, \(buildingsUpdated) updated with coordinates")
+        print("✅ Building database updated: \(buildingsAdded) added, \(buildingsUpdated) updated with coordinates")
     }
     
     private func seedClients() async throws {
-        logInfo("🌱 Seeding client data...")
+        print("🌱 Seeding client data...")
         
         // Batch insert all clients
         let currentTime = Date().ISO8601Format()
@@ -295,11 +295,11 @@ public final class ClientBuildingSeeder {
             ])
         }
         
-        logInfo("✅ Seeded \(clients.count) clients in batch")
+        print("✅ Seeded \(clients.count) clients in batch")
     }
     
     private func createClientBuildingRelationships() async throws {
-        logInfo("🔗 Creating client-building relationships...")
+        print("🔗 Creating client-building relationships...")
         
         // First, verify all referenced buildings exist in batch
         let allBuildingIds = Set(clients.flatMap { $0.buildings })
@@ -313,7 +313,7 @@ public final class ClientBuildingSeeder {
         for client in clients {
             for buildingId in client.buildings {
                 if !existingBuildingSet.contains(buildingId) {
-                    logInfo("⚠️ Building \(buildingId) referenced by client \(client.name) does not exist")
+                    print("⚠️ Building \(buildingId) referenced by client \(client.name) does not exist")
                     throw ClientStructureError.missingBuilding(buildingId: buildingId, clientName: client.name)
                 }
             }
@@ -340,11 +340,11 @@ public final class ClientBuildingSeeder {
         }
         
         let totalRelationships = clients.reduce(0) { $0 + $1.buildings.count }
-        logInfo("✅ Created \(totalRelationships) client-building relationships in batch")
+        print("✅ Created \(totalRelationships) client-building relationships in batch")
     }
     
     private func linkClientUsers() async throws {
-        logInfo("👥 Linking client users...")
+        print("👥 Linking client users...")
         
         // Map of user emails to client IDs
         let userClientMap: [(email: String, clientId: String, role: String)] = [
@@ -391,11 +391,11 @@ public final class ClientBuildingSeeder {
             }
         }
         
-        logInfo("✅ Linked \(userClientMap.count) client users in batch")
+        print("✅ Linked \(userClientMap.count) client users in batch")
     }
     
     private func verifyClientStructure() async throws {
-        logInfo("🔍 Verifying client structure...")
+        print("🔍 Verifying client structure...")
         
         // Verify all clients have buildings
         for client in clients {
@@ -406,7 +406,7 @@ public final class ClientBuildingSeeder {
             """, [client.id])
             
             if let count = buildingCount.first?["count"] as? Int64 {
-                logInfo("✓ \(client.name): \(count) buildings")
+                print("✓ \(client.name): \(count) buildings")
                 
                 if count != client.buildings.count {
                     throw ClientStructureError.buildingCountMismatch(
@@ -429,7 +429,7 @@ public final class ClientBuildingSeeder {
             throw ClientStructureError.missingRubinMuseum
         }
         
-        logInfo("✅ Client structure verified successfully")
+        print("✅ Client structure verified successfully")
     }
 }
 

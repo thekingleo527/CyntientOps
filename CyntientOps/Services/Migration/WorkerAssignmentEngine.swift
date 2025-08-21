@@ -49,7 +49,7 @@ actor WorkerAssignmentEngine {
         role: String, // e.g., "Lead Maintenance", "Sanitation Specialist", "Museum Specialist"
         startDate: Date = Date()
     ) async throws {
-        logInfo("⚙️ Assigning worker \(workerId) to building \(buildingId) with role: \(role)")
+        print("⚙️ Assigning worker \(workerId) to building \(buildingId) with role: \(role)")
 
         // FIXED: Use GRDBManager execute method (no Async suffix, no parameters label)
         try await grdbManager.execute("""
@@ -75,7 +75,7 @@ actor WorkerAssignmentEngine {
             workerId
         ])
         
-        logInfo("✅ Worker assignment completed and synced to both tables")
+        print("✅ Worker assignment completed and synced to both tables")
     }
 
     /// Retrieves all active assignments for a given worker using GRDB.
@@ -108,7 +108,7 @@ actor WorkerAssignmentEngine {
                   let dateString = row["assigned_date"] as? String,
                   let date = ISO8601DateFormatter().date(from: dateString)
             else {
-                logInfo("⚠️ Skipping malformed assignment row")
+                print("⚠️ Skipping malformed assignment row")
                 return nil
             }
 
@@ -161,7 +161,7 @@ actor WorkerAssignmentEngine {
         workerId: CoreTypes.WorkerID,
         buildingId: CoreTypes.BuildingID
     ) async throws {
-        logInfo("⚙️ Unassigning worker \(workerId) from building \(buildingId)")
+        print("⚙️ Unassigning worker \(workerId) from building \(buildingId)")
         
         // FIXED: Use GRDBManager execute method
         try await grdbManager.execute("""
@@ -177,7 +177,7 @@ actor WorkerAssignmentEngine {
             WHERE worker_id = ? AND building_id = ? AND is_active = 1
         """, [workerId, buildingId])
         
-        logInfo("✅ Worker unassignment completed")
+        print("✅ Worker unassignment completed")
     }
     
     /// Get assignment statistics for reporting

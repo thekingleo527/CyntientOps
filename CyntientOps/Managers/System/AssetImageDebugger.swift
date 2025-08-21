@@ -26,53 +26,68 @@ final class AssetImageDebugger {
     func debugAllBuildingImages() async {
         // ✅ FIX: Use BuildingService to get all buildings
         do {
-            let buildings = try await BuildingService.shared.getAllBuildings()
+            // Load buildings from database using GRDBManager
+            // Load buildings from database using direct query
+            let rows = try await GRDBManager.shared.query("SELECT * FROM buildings", [])
+            let buildings = rows.compactMap { row -> CoreTypes.NamedCoordinate? in
+                guard let id = row["id"] as? String,
+                      let name = row["name"] as? String,
+                      let address = row["address"] as? String else { return nil }
+                
+                return CoreTypes.NamedCoordinate(
+                    id: id,
+                    name: name,
+                    address: address,
+                    latitude: row["latitude"] as? Double ?? 0,
+                    longitude: row["longitude"] as? Double ?? 0
+                )
+            }
             
-            logInfo("🏢 DIAGNOSING BUILDING IMAGES:")
-            logInfo("==============================")
-            logInfo("Number of buildings: \(buildings.count)")
-            logInfo("==============================")
+            print("🏢 DIAGNOSING BUILDING IMAGES:")
+            print("==============================")
+            print("Number of buildings: \(buildings.count)")
+            print("==============================")
             
             for building in buildings {
                 debugBuildingImage(building)
             }
             
-            logInfo("==============================")
-            logInfo("Diagnosis complete")
-            logInfo("==============================")
+            print("==============================")
+            print("Diagnosis complete")
+            print("==============================")
         } catch {
-            logInfo("❌ Failed to load buildings: \(error)")
+            print("❌ Failed to load buildings: \(error)")
         }
     }
 
     private func debugBuildingImage(_ building: DebugBuilding) {
-        logInfo("🏢 Building: \(building.name) (ID: \(building.id))")
+        print("🏢 Building: \(building.name) (ID: \(building.id))")
 
         // 1️⃣ Check if building has imageAssetName property
         // Note: NamedCoordinate doesn't have imageAssetName in CoreTypes
         // Using building ID to asset name mapping instead
         let assetName = buildingIdToAssetName(building.id)
         let assetExists = UIImage(named: assetName) != nil
-        logInfo("   • Asset name: \"\(assetName)\"  →  \(assetExists ? "✅ found" : "❌ missing")")
+        print("   • Asset name: \"\(assetName)\"  →  \(assetExists ? "✅ found" : "❌ missing")")
 
         // 2️⃣ A "standardised" fallback asset name
         let standardName = building.name
                             .replacingOccurrences(of: "[\\s,()\\-]", with: "_",
                                                   options: .regularExpression)
         let standardExist = UIImage(named: standardName) != nil
-        logInfo("   • Standard name : \"\(standardName)\"  →  \(standardExist ? "✅ found" : "❌ missing")")
+        print("   • Standard name : \"\(standardName)\"  →  \(standardExist ? "✅ found" : "❌ missing")")
         
         // 3️⃣ Check if this is a special case (Kevin's Rubin Museum)
         if building.id == "14" && building.name.contains("Rubin") {
-            logInfo("   • ✅ KEVIN ASSIGNMENT: Rubin Museum correctly assigned")
+            print("   • ✅ KEVIN ASSIGNMENT: Rubin Museum correctly assigned")
         }
         
         // 4️⃣ Check for deprecated Franklin Street assignment
         if building.name.contains("104 Franklin") {
-            logInfo("   • ⚠️  DEPRECATED: 104 Franklin Street should not be used (Kevin now works at Rubin Museum)")
+            print("   • ⚠️  DEPRECATED: 104 Franklin Street should not be used (Kevin now works at Rubin Museum)")
         }
         
-        logInfo("")
+        print("")
     }
     
     // MARK: - Building ID to Asset Name Mapping
@@ -106,14 +121,14 @@ final class AssetImageDebugger {
     func debugAllAssetNames() {
         let assets = listAllAssetNames()
 
-        logInfo("📁 ASSETS CATALOG CONTENTS:")
-        logInfo("===========================")
-        logInfo("Number of assets: \(assets.count)")
-        logInfo("===========================")
+        print("📁 ASSETS CATALOG CONTENTS:")
+        print("===========================")
+        print("Number of assets: \(assets.count)")
+        print("===========================")
 
-        for asset in assets.sorted() { logInfo("   • \(asset)") }
+        for asset in assets.sorted() { print("   • \(asset)") }
 
-        logInfo("===========================")
+        print("===========================")
     }
 
     private func listAllAssetNames() -> [String] {
@@ -154,46 +169,76 @@ final class AssetImageDebugger {
     
     // MARK: - Enhanced Debugging for Kevin Assignment
     func debugKevinAssignment() async {
-        logInfo("🔍 KEVIN ASSIGNMENT VALIDATION:")
-        logInfo("===============================")
+        print("🔍 KEVIN ASSIGNMENT VALIDATION:")
+        print("===============================")
         
         do {
-            let buildings = try await BuildingService.shared.getAllBuildings()
+            // Load buildings from database using GRDBManager
+            // Load buildings from database using direct query
+            let rows = try await GRDBManager.shared.query("SELECT * FROM buildings", [])
+            let buildings = rows.compactMap { row -> CoreTypes.NamedCoordinate? in
+                guard let id = row["id"] as? String,
+                      let name = row["name"] as? String,
+                      let address = row["address"] as? String else { return nil }
+                
+                return CoreTypes.NamedCoordinate(
+                    id: id,
+                    name: name,
+                    address: address,
+                    latitude: row["latitude"] as? Double ?? 0,
+                    longitude: row["longitude"] as? Double ?? 0
+                )
+            }
             
             // Check for Rubin Museum
             let rubinMuseum = buildings.first { $0.id == "14" && $0.name.contains("Rubin") }
             if let rubin = rubinMuseum {
-                logInfo("✅ Kevin's Rubin Museum found:")
-                logInfo("   • ID: \(rubin.id)")
-                logInfo("   • Name: \(rubin.name)")
+                print("✅ Kevin's Rubin Museum found:")
+                print("   • ID: \(rubin.id)")
+                print("   • Name: \(rubin.name)")
                 let assetName = buildingIdToAssetName(rubin.id)
-                logInfo("   • Asset: \(assetName)")
-                logInfo("   • Image exists: \(UIImage(named: assetName) != nil ? "✅" : "❌")")
+                print("   • Asset: \(assetName)")
+                print("   • Image exists: \(UIImage(named: assetName) != nil ? "✅" : "❌")")
             } else {
-                logInfo("❌ Kevin's Rubin Museum NOT FOUND!")
+                print("❌ Kevin's Rubin Museum NOT FOUND!")
             }
             
             // Check for deprecated Franklin Street
             let franklinStreet = buildings.first { $0.name.contains("104 Franklin") }
             if let franklin = franklinStreet {
-                logInfo("⚠️  DEPRECATED Franklin Street still exists:")
-                logInfo("   • ID: \(franklin.id)")
-                logInfo("   • Name: \(franklin.name)")
-                logInfo("   • This should be removed from Kevin's assignments")
+                print("⚠️  DEPRECATED Franklin Street still exists:")
+                print("   • ID: \(franklin.id)")
+                print("   • Name: \(franklin.name)")
+                print("   • This should be removed from Kevin's assignments")
             } else {
-                logInfo("✅ No deprecated Franklin Street assignments found")
+                print("✅ No deprecated Franklin Street assignments found")
             }
         } catch {
-            logInfo("❌ Failed to load buildings: \(error)")
+            print("❌ Failed to load buildings: \(error)")
         }
         
-        logInfo("===============================")
+        print("===============================")
     }
     
     // MARK: - Building Statistics
     func getBuildingImageStatistics() async -> (total: Int, found: Int, missing: Int, foundPercentage: Double) {
         do {
-            let buildings = try await BuildingService.shared.getAllBuildings()
+            // Load buildings from database using GRDBManager
+            // Load buildings from database using direct query
+            let rows = try await GRDBManager.shared.query("SELECT * FROM buildings", [])
+            let buildings = rows.compactMap { row -> CoreTypes.NamedCoordinate? in
+                guard let id = row["id"] as? String,
+                      let name = row["name"] as? String,
+                      let address = row["address"] as? String else { return nil }
+                
+                return CoreTypes.NamedCoordinate(
+                    id: id,
+                    name: name,
+                    address: address,
+                    latitude: row["latitude"] as? Double ?? 0,
+                    longitude: row["longitude"] as? Double ?? 0
+                )
+            }
             let total = buildings.count
             let found = buildings.filter { building in
                 let assetName = buildingIdToAssetName(building.id)
@@ -204,7 +249,7 @@ final class AssetImageDebugger {
             
             return (total: total, found: found, missing: missing, foundPercentage: percentage)
         } catch {
-            logInfo("❌ Failed to get building statistics: \(error)")
+            print("❌ Failed to get building statistics: \(error)")
             return (total: 0, found: 0, missing: 0, foundPercentage: 0)
         }
     }
@@ -357,7 +402,21 @@ struct AssetDebuggerView: View {
         
         Task {
             do {
-                let buildings = try await BuildingService.shared.getAllBuildings()
+                // Load buildings from database using GRDBManager
+                let rows = try await GRDBManager.shared.query("SELECT * FROM buildings", [])
+                let buildings = rows.compactMap { row -> CoreTypes.NamedCoordinate? in
+                    guard let id = row["id"] as? String,
+                          let name = row["name"] as? String,
+                          let address = row["address"] as? String else { return nil }
+                    
+                    return CoreTypes.NamedCoordinate(
+                        id: id,
+                        name: name,
+                        address: address,
+                        latitude: row["latitude"] as? Double ?? 0,
+                        longitude: row["longitude"] as? Double ?? 0
+                    )
+                }
                 let images = buildings.map { building in
                     let assetName = AssetImageDebugger.shared.buildingIdToAssetName(building.id)
                     return (building, UIImage(named: assetName))
@@ -367,7 +426,7 @@ struct AssetDebuggerView: View {
                 self.statistics = await AssetImageDebugger.shared.getBuildingImageStatistics()
                 self.isLoading = false
             } catch {
-                logInfo("❌ Failed to load buildings: \(error)")
+                print("❌ Failed to load buildings: \(error)")
                 self.isLoading = false
             }
         }
@@ -395,22 +454,22 @@ struct AssetDebuggerView_Previews: PreviewProvider {
 extension AssetImageDebugger {
     /// Quick console validation of all systems
     func validateEverything() async {
-        logInfo("\n🚀 CYNTIENTOPS ASSET VALIDATION")
-        logInfo("=================================")
+        print("\n🚀 CYNTIENTOPS ASSET VALIDATION")
+        print("=================================")
         
         await debugAllBuildingImages()
-        logInfo("\n")
+        print("\n")
         await debugKevinAssignment()
-        logInfo("\n")
+        print("\n")
         debugAllAssetNames()
         
         let stats = await getBuildingImageStatistics()
-        logInfo("\n📊 FINAL STATISTICS:")
-        logInfo("====================")
-        logInfo("Total Buildings: \(stats.total)")
-        logInfo("Images Found: \(stats.found)")
-        logInfo("Missing Images: \(stats.missing)")
-        logInfo("Success Rate: \(String(format: "%.1f", stats.foundPercentage))%")
-        logInfo("=================================\n")
+        print("\n📊 FINAL STATISTICS:")
+        print("====================")
+        print("Total Buildings: \(stats.total)")
+        print("Images Found: \(stats.found)")
+        print("Missing Images: \(stats.missing)")
+        print("Success Rate: \(String(format: "%.1f", stats.foundPercentage))%")
+        print("=================================\n")
     }
 }

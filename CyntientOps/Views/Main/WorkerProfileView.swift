@@ -618,8 +618,8 @@ class WorkerProfileViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String?
     
-    private let workerService = WorkerService.shared
-    private let taskService = TaskService.shared
+    // private let workerService = // WorkerService injection needed
+    // private let taskService = // TaskService injection needed
     private let workerMetricsService = WorkerMetricsService.shared
     
     func loadWorkerData(workerId: String) async {
@@ -686,7 +686,7 @@ class WorkerProfileViewModel: ObservableObject {
             
         } catch {
             errorMessage = "Failed to load worker data: \(error.localizedDescription)"
-            logInfo("Error loading worker data: \(error)")
+            print("Error loading worker data: \(error)")
             
             performanceMetrics = CoreTypes.PerformanceMetrics(
                 workerId: workerId,
@@ -766,10 +766,10 @@ class WorkerProfileViewModel: ObservableObject {
             
             await MainActor.run {
                 weeklySchedule = schedule
-                logInfo("✅ Loaded real weekly schedule for worker \(workerId): \(schedule.count) days, \(weeklyScheduleItems.count) total items")
+                print("✅ Loaded real weekly schedule for worker \(workerId): \(schedule.count) days, \(weeklyScheduleItems.count) total items")
             }
         } catch {
-            logInfo("❌ Failed to load real weekly schedule for worker \(workerId): \(error)")
+            print("❌ Failed to load real weekly schedule for worker \(workerId): \(error)")
             
             // Fallback to empty schedule
             await MainActor.run {
@@ -808,10 +808,10 @@ class WorkerProfileViewModel: ObservableObject {
             
             await MainActor.run {
                 assignedBuildings = uniqueBuildings
-                logInfo("✅ Loaded \(uniqueBuildings.count) assigned buildings for worker \(workerId) from real operational data")
+                print("✅ Loaded \(uniqueBuildings.count) assigned buildings for worker \(workerId) from real operational data")
             }
         } catch {
-            logInfo("❌ Failed to load assigned buildings for worker \(workerId): \(error)")
+            print("❌ Failed to load assigned buildings for worker \(workerId): \(error)")
             
             // Fallback to empty buildings
             await MainActor.run {

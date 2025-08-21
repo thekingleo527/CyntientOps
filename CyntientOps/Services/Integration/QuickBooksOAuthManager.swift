@@ -87,7 +87,7 @@ public actor QuickBooksOAuthManager {
         
         // Check if token is expired
         if credentials.isExpired {
-            logInfo("⚠️ QuickBooks token expired, attempting refresh...")
+            print("⚠️ QuickBooks token expired, attempting refresh...")
             return await refreshTokenIfNeeded()
         }
         
@@ -112,7 +112,7 @@ public actor QuickBooksOAuthManager {
         defer { authenticationInProgress = false }
         
         do {
-            logInfo("🔐 Starting QuickBooks OAuth flow...")
+            print("🔐 Starting QuickBooks OAuth flow...")
             
             // Generate secure state parameter
             let state = generateSecureState()
@@ -132,7 +132,7 @@ public actor QuickBooksOAuthManager {
             connectionStatus = QBConnectionStatus.connected
             await recordConnection(success: true, error: nil)
             
-            logInfo("✅ QuickBooks authentication successful!")
+            print("✅ QuickBooks authentication successful!")
             
         } catch {
             connectionStatus = QBConnectionStatus.error(error.localizedDescription)
@@ -143,7 +143,7 @@ public actor QuickBooksOAuthManager {
     
     /// Disconnect from QuickBooks
     public func disconnect() async throws {
-        logInfo("🔌 Disconnecting from QuickBooks...")
+        print("🔌 Disconnecting from QuickBooks...")
         
         // Revoke tokens if we have them
         if let credentials = currentCredentials {
@@ -161,13 +161,13 @@ public actor QuickBooksOAuthManager {
         // Record disconnection
         await recordConnection(success: false, error: nil)
         
-        logInfo("✅ Disconnected from QuickBooks")
+        print("✅ Disconnected from QuickBooks")
     }
     
     /// Refresh access token if expired
     public func refreshTokenIfNeeded() async -> Bool {
         guard let credentials = currentCredentials else {
-            logInfo("⚠️ No refresh token available")
+            print("⚠️ No refresh token available")
             connectionStatus = QBConnectionStatus.disconnected
             return false
         }
@@ -178,7 +178,7 @@ public actor QuickBooksOAuthManager {
             return connectionStatus == QBConnectionStatus.connected
         }
         
-        logInfo("🔄 Refreshing QuickBooks access token...")
+        print("🔄 Refreshing QuickBooks access token...")
         connectionStatus = QBConnectionStatus.connecting
         
         do {
@@ -187,11 +187,11 @@ public actor QuickBooksOAuthManager {
             
             connectionStatus = QBConnectionStatus.connected
             lastTokenRefresh = Date()
-            logInfo("✅ Access token refreshed successfully")
+            print("✅ Access token refreshed successfully")
             return true
             
         } catch {
-            logInfo("❌ Token refresh failed: \(error)")
+            print("❌ Token refresh failed: \(error)")
             connectionStatus = QBConnectionStatus.error("Token refresh failed")
             return false
         }
@@ -206,16 +206,16 @@ public actor QuickBooksOAuthManager {
                 currentCredentials = credentials
                 // companyId is fixed for FME, don't override
                 connectionStatus = QBConnectionStatus.connected
-                logInfo("✅ Loaded stored QuickBooks credentials")
+                print("✅ Loaded stored QuickBooks credentials")
             } else {
                 connectionStatus = QBConnectionStatus.disconnected
-                logInfo("ℹ️ No stored QuickBooks credentials found")
+                print("ℹ️ No stored QuickBooks credentials found")
             }
         } catch SecurityError.tokenExpired {
-            logInfo("⚠️ Stored QuickBooks token expired")
+            print("⚠️ Stored QuickBooks token expired")
             connectionStatus = QBConnectionStatus.expired
         } catch {
-            logInfo("❌ Failed to load QuickBooks credentials: \(error)")
+            print("❌ Failed to load QuickBooks credentials: \(error)")
             connectionStatus = QBConnectionStatus.error(error.localizedDescription)
         }
     }
@@ -443,7 +443,7 @@ public actor QuickBooksOAuthManager {
         request.httpBody = bodyString.data(using: .utf8)
         
         let _ = try await URLSession.shared.data(for: request)
-        logInfo("✅ QuickBooks tokens revoked")
+        print("✅ QuickBooks tokens revoked")
     }
     
     /// Record connection event in database
@@ -463,7 +463,7 @@ public actor QuickBooksOAuthManager {
                 companyId
             ])
         } catch {
-            logInfo("⚠️ Failed to record QuickBooks connection: \(error)")
+            print("⚠️ Failed to record QuickBooks connection: \(error)")
         }
     }
 }

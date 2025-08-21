@@ -305,7 +305,7 @@ class WorkerPreferencesViewModel: ObservableObject {
             saveLocalPreferences()
             captureInitialState() // Reset the "changes" tracker
             
-            logInfo("✅ Preferences saved successfully for worker \(workerId)")
+            print("✅ Preferences saved successfully for worker \(workerId)")
             
             // Notify the rest of the app that preferences have changed.
             NotificationCenter.default.post(name: .workerPreferencesChanged, object: nil)

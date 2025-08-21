@@ -25,7 +25,7 @@ struct BuildingsView: View {
     @State private var showingMapView = false
     
     // Services
-    private let buildingService = BuildingService.shared
+    // private let buildingService = // BuildingService injection needed
     
     // MARK: - Enums
     enum BuildingFilter: String, CaseIterable {

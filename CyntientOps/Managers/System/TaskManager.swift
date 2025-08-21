@@ -21,18 +21,18 @@ public class TaskManager: ObservableObject {
         defer { isLoading = false }
         
         do {
-            tasks = try await TaskService.shared.getAllTasks()
+            tasks = try await // TaskService injection needed.getAllTasks()
         } catch {
-            logInfo("❌ Failed to load tasks: \(error)")
+            print("❌ Failed to load tasks: \(error)")
         }
     }
     
     public func updateTask(_ task: ContextualTask) async {
         do {
-            try await TaskService.shared.updateTask(task)
+            try await // TaskService injection needed.updateTask(task)
             await loadTasks()
         } catch {
-            logInfo("❌ Failed to update task: \(error)")
+            print("❌ Failed to update task: \(error)")
         }
     }
 }

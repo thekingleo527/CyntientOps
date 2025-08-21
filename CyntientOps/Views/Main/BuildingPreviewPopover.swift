@@ -630,7 +630,7 @@ struct BuildingPreviewPopover: View {
             }
             
         } catch {
-            logInfo("⚠️ Failed to load operational intelligence for building \(building.id): \(error)")
+            print("⚠️ Failed to load operational intelligence for building \(building.id): \(error)")
             
             // Set defaults on error
             await MainActor.run {
@@ -727,10 +727,10 @@ struct BuildingPreviewPopover_Previews: PreviewProvider {
                         longitude: -73.9979
                     ),
                     onDetails: {
-                        logInfo("Show Rubin Museum details")
+                        print("Show Rubin Museum details")
                     },
                     onDismiss: {
-                        logInfo("Dismiss popover")
+                        print("Dismiss popover")
                     }
                 )
                 
@@ -744,10 +744,10 @@ struct BuildingPreviewPopover_Previews: PreviewProvider {
                         longitude: -73.9732
                     ),
                     onDetails: {
-                        logInfo("Show park details")
+                        print("Show park details")
                     },
                     onDismiss: {
-                        logInfo("Dismiss popover")
+                        print("Dismiss popover")
                     }
                 )
             }

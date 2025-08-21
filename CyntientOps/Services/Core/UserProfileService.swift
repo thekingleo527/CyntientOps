@@ -80,7 +80,7 @@ public final class UserProfileService: ObservableObject {
             """
             
             try await database.execute(sql, parameters)
-            logInfo("✅ Profile updated for user: \(userId)")
+            print("✅ Profile updated for user: \(userId)")
         }
     }
     
@@ -126,7 +126,7 @@ public final class UserProfileService: ObservableObject {
         ])
         
         userPreferences = preferences
-        logInfo("✅ Preferences saved for user: \(preferences.userId)")
+        print("✅ Preferences saved for user: \(preferences.userId)")
     }
     
     /// Update specific preference

@@ -299,7 +299,7 @@ public final class ClientDashboardViewModel: ObservableObject {
         // Get current client user
         guard let currentUser = session.user,
               currentUser.role == "client" else {
-            logInfo("⚠️ No client user logged in")
+            print("⚠️ No client user logged in")
             return
         }
         
@@ -339,7 +339,7 @@ public final class ClientDashboardViewModel: ObservableObject {
                     // Create coordinate array for backwards compatibility
                     self.clientBuildings = clientBuildingsWithImages.map { $0.coordinate }
                 } catch {
-                    logInfo("⚠️ Failed to load buildings with images: \(error)")
+                    print("⚠️ Failed to load buildings with images: \(error)")
                     // Fallback to existing method
                     let allBuildings = try? await container.buildings.getAllBuildings()
                     let buildingIds = Set(buildingCoordinates.map { $0.id })
@@ -356,7 +356,7 @@ public final class ClientDashboardViewModel: ObservableObject {
                         }
                 }
                 
-                logInfo("✅ Client \(clientData.name) has access to \(clientBuildings.count) buildings")
+                print("✅ Client \(clientData.name) has access to \(clientBuildings.count) buildings")
                 
                 // Set map region to focus on client's buildings
                 setInitialRegion(for: self.clientBuildings)
@@ -453,10 +453,10 @@ public final class ClientDashboardViewModel: ObservableObject {
             self.totalBuildings = self.buildingsList.count
             
             // REAL DATA verification
-            logInfo("✅ Loading REAL client data:")
-            logInfo("   - Client Buildings: \(self.buildingsList.count)")
-            logInfo("   - Buildings with Images: \(self.buildingsWithImages.count)")
-            logInfo("   - Buildings: \(self.buildingsList.map { $0.name }.joined(separator: ", "))")
+            print("✅ Loading REAL client data:")
+            print("   - Client Buildings: \(self.buildingsList.count)")
+            print("   - Buildings with Images: \(self.buildingsWithImages.count)")
+            print("   - Buildings: \(self.buildingsList.map { $0.name }.joined(separator: ", "))")
         }
     }
     
@@ -473,7 +473,7 @@ public final class ClientDashboardViewModel: ObservableObject {
                 )
             }
         } catch {
-            logInfo("⚠️ Failed to load all buildings: \(error)")
+            print("⚠️ Failed to load all buildings: \(error)")
             return []
         }
     }
@@ -486,7 +486,7 @@ public final class ClientDashboardViewModel: ObservableObject {
                     self.buildingMetrics[building.id] = metrics
                 }
             } catch {
-                logInfo("⚠️ Failed to load metrics for building \(building.id): \(error)")
+                print("⚠️ Failed to load metrics for building \(building.id): \(error)")
             }
         }
         
@@ -558,7 +558,7 @@ public final class ClientDashboardViewModel: ObservableObject {
             }
             
         } catch {
-            logInfo("⚠️ Failed to generate compliance issues: \(error)")
+            print("⚠️ Failed to generate compliance issues: \(error)")
         }
     }
     
@@ -580,7 +580,7 @@ public final class ClientDashboardViewModel: ObservableObject {
             self.isLoadingInsights = false
         }
         
-        logInfo("✅ Loaded \(clientInsights.count) intelligence insights for client")
+        print("✅ Loaded \(clientInsights.count) intelligence insights for client")
     }
     
     private func generateExecutiveSummary() async {
@@ -627,7 +627,7 @@ public final class ClientDashboardViewModel: ObservableObject {
                     }
                     
                     let clientBuildingsForWorker = assignedBuildings.filter { clientBuildingIds.contains($0) }
-                    logInfo("✅ Active worker \(worker.name) assigned to client buildings: \(clientBuildingsForWorker)")
+                    print("✅ Active worker \(worker.name) assigned to client buildings: \(clientBuildingsForWorker)")
                 }
             }
             
@@ -642,7 +642,7 @@ public final class ClientDashboardViewModel: ObservableObject {
             
             return activeCount
         } catch {
-            logInfo("⚠️ Failed to count active workers: \(error)")
+            print("⚠️ Failed to count active workers: \(error)")
             return 0
         }
     }
@@ -949,7 +949,7 @@ public final class ClientDashboardViewModel: ObservableObject {
                 self.recentPhotos = Array(updatedPhotos.sorted { $0.timestamp > $1.timestamp }.prefix(20))
             }
         } catch {
-            logInfo("⚠️ Failed to load photos for building \(buildingId): \(error)")
+            print("⚠️ Failed to load photos for building \(buildingId): \(error)")
         }
     }
     
@@ -981,7 +981,7 @@ public final class ClientDashboardViewModel: ObservableObject {
                 self.photoCategories = categoryBreakdown
             }
         } catch {
-            logInfo("⚠️ Failed to update photo metrics: \(error)")
+            print("⚠️ Failed to update photo metrics: \(error)")
         }
     }
     
@@ -1033,17 +1033,17 @@ public final class ClientDashboardViewModel: ObservableObject {
                         totalAssessedValue += assessedValue
                         totalMarketValue += marketValue
                         
-                        logInfo("✅ Real DOF data for \(building.name): Assessed $\(Int(assessedValue)), Market $\(Int(marketValue))")
+                        print("✅ Real DOF data for \(building.name): Assessed $\(Int(assessedValue)), Market $\(Int(marketValue))")
                     } else {
                         // No DOF data found, use estimation
                         let estimatedValue = estimatePropertyValue(for: building)
                         totalAssessedValue += estimatedValue
                         totalMarketValue += estimatedValue * 1.2
                         
-                        logInfo("ℹ️ No DOF data for \(building.name), using estimate: $\(Int(estimatedValue))")
+                        print("ℹ️ No DOF data for \(building.name), using estimate: $\(Int(estimatedValue))")
                     }
                 } catch {
-                    logInfo("⚠️ Failed to fetch DOF data for \(building.name): \(error)")
+                    print("⚠️ Failed to fetch DOF data for \(building.name): \(error)")
                     // Fallback to estimated value
                     let estimatedValue = estimatePropertyValue(for: building)
                     totalAssessedValue += estimatedValue
@@ -1055,7 +1055,7 @@ public final class ClientDashboardViewModel: ObservableObject {
                 totalAssessedValue += estimatedValue
                 totalMarketValue += estimatedValue * 1.2
                 
-                logInfo("ℹ️ No BBL for \(building.name), using estimate: $\(Int(estimatedValue))")
+                print("ℹ️ No BBL for \(building.name), using estimate: $\(Int(estimatedValue))")
             }
         }
         
@@ -1072,7 +1072,7 @@ public final class ClientDashboardViewModel: ObservableObject {
                 daysRemaining: self.monthlyMetrics.daysRemaining
             )
             
-            logInfo("✅ David Edelman portfolio: Assessed $\(Int(totalAssessedValue)), Market $\(Int(totalMarketValue))")
+            print("✅ David Edelman portfolio: Assessed $\(Int(totalAssessedValue)), Market $\(Int(totalMarketValue))")
         }
     }
     
@@ -1089,7 +1089,7 @@ public final class ClientDashboardViewModel: ObservableObject {
                 return bbl
             }
         } catch {
-            logInfo("⚠️ Failed to get BBL for building \(buildingId): \(error)")
+            print("⚠️ Failed to get BBL for building \(buildingId): \(error)")
         }
         
         return ""
@@ -1153,7 +1153,7 @@ public final class ClientDashboardViewModel: ObservableObject {
             daysRemaining: monthlyMetrics.daysRemaining
         )
         
-        logInfo("✅ Calculated monthly operational costs: $\(Int(totalMonthlySpend)) (utilization: \(Int(monthlyMetrics.budgetUtilization * 100))%)")
+        print("✅ Calculated monthly operational costs: $\(Int(totalMonthlySpend)) (utilization: \(Int(monthlyMetrics.budgetUtilization * 100))%)")
     }
     
     /// Calculate compliance costs for a specific building
@@ -1291,13 +1291,13 @@ public final class ClientDashboardViewModel: ObservableObject {
                 self.clientTasks = filteredTasks
                 self.clientTaskMetrics = metrics
                 
-                logInfo("✅ Loaded \(filteredTasks.count) tasks for David Edelman's portfolio")
-                logInfo("   • Completed: \(completedTasks.count), Overdue: \(overdueTasks.count)")
-                logInfo("   • Buildings covered: \(tasksByBuilding.keys.count), Workers involved: \(tasksByWorker.keys.count)")
+                print("✅ Loaded \(filteredTasks.count) tasks for David Edelman's portfolio")
+                print("   • Completed: \(completedTasks.count), Overdue: \(overdueTasks.count)")
+                print("   • Buildings covered: \(tasksByBuilding.keys.count), Workers involved: \(tasksByWorker.keys.count)")
             }
             
         } catch {
-            logInfo("⚠️ Failed to load client task data: \(error)")
+            print("⚠️ Failed to load client task data: \(error)")
         }
     }
     
@@ -1359,15 +1359,15 @@ public final class ClientDashboardViewModel: ObservableObject {
                     self.dsnyViolationsData[building.id] = dsnyViolationsConverted
                 }
                 
-                logInfo("✅ NYC compliance data for \(building.name):")
-                logInfo("   • HPD Violations: \(activeViolations.count) active")
-                logInfo("   • DOB Permits: \(pendingPermits.count) pending")
-                logInfo("   • DSNY Violations: \(dsnyViolationsConverted.filter { $0.isActive }.count) active")
-                logInfo("   • LL97 Issues: \(activeLLComplaints.count) non-compliant")
-                logInfo("   • 311 Complaints: \(recentComplaints.count) recent")
+                print("✅ NYC compliance data for \(building.name):")
+                print("   • HPD Violations: \(activeViolations.count) active")
+                print("   • DOB Permits: \(pendingPermits.count) pending")
+                print("   • DSNY Violations: \(dsnyViolationsConverted.filter { $0.isActive }.count) active")
+                print("   • LL97 Issues: \(activeLLComplaints.count) non-compliant")
+                print("   • 311 Complaints: \(recentComplaints.count) recent")
                 
             } else {
-                logInfo("ℹ️ No BBL available for \(building.name) - using mock compliance data")
+                print("ℹ️ No BBL available for \(building.name) - using mock compliance data")
             }
         }
     }
@@ -1421,7 +1421,7 @@ public final class ClientDashboardViewModel: ObservableObject {
     
     /// Generate realistic NYC property data for buildings
     private func generatePropertyDataForBuilding(_ building: CoreTypes.NamedCoordinate, coordinate: CLLocationCoordinate2D) async -> CoreTypes.NYCPropertyData? {
-        logInfo("🔢 Generating property data for: \(building.name)")
+        print("🔢 Generating property data for: \(building.name)")
         
         // Generate BBL based on coordinate (simplified approach)
         let bbl = generateBBLFromCoordinate(coordinate)
@@ -1443,7 +1443,7 @@ public final class ClientDashboardViewModel: ObservableObject {
             violations: violations
         )
         
-        logInfo("✅ Generated property data for \(building.name): BBL \(bbl), Value $\(Int(financialData.marketValue).formatted(.number))")
+        print("✅ Generated property data for \(building.name): BBL \(bbl), Value $\(Int(financialData.marketValue).formatted(.number))")
         return propertyData
     }
     
@@ -1515,7 +1515,7 @@ public final class ClientDashboardViewModel: ObservableObject {
             return realViolations
         } catch {
             // If no real violations, return empty array
-            logInfo("⚠️ No real violations found for \(building.name)")
+            print("⚠️ No real violations found for \(building.name)")
             return []
         }
     }
@@ -1525,10 +1525,10 @@ public final class ClientDashboardViewModel: ObservableObject {
     /// Load real NYC API data for client buildings using NYCAPIService
     @MainActor
     public func loadRealNYCAPIData() async {
-        logInfo("🗽 Loading real NYC API data for client buildings...")
+        print("🗽 Loading real NYC API data for client buildings...")
         
         guard !clientBuildingsWithImages.isEmpty else {
-            logInfo("⚠️ No client buildings to load NYC data for")
+            print("⚠️ No client buildings to load NYC data for")
             return
         }
         
@@ -1538,7 +1538,7 @@ public final class ClientDashboardViewModel: ObservableObject {
         let nycAPIService = NYCAPIService.shared
         
         for building in clientBuildingsWithImages {
-            logInfo("   📊 Loading NYC data for: \(building.name)")
+            print("   📊 Loading NYC data for: \(building.name)")
             
             // Generate BBL for building (simplified approach using coordinates)
             let bbl = generateBBLFromCoordinate(building.coordinate.coordinate)
@@ -1581,10 +1581,10 @@ public final class ClientDashboardViewModel: ObservableObject {
                     ll97EmissionsData[building.id] = ll97Emissions
                 }
                 
-                logInfo("   ✅ Loaded NYC data for \(building.name): \(hpdViolations.count) HPD violations, \(dsnyRoutes.count) DSNY routes, \(dsnyViolations.count) DSNY violations")
+                print("   ✅ Loaded NYC data for \(building.name): \(hpdViolations.count) HPD violations, \(dsnyRoutes.count) DSNY routes, \(dsnyViolations.count) DSNY violations")
                 
             } catch {
-                logInfo("   ❌ Failed to load NYC data for \(building.name): \(error)")
+                print("   ❌ Failed to load NYC data for \(building.name): \(error)")
             }
         }
         
@@ -1598,7 +1598,7 @@ public final class ClientDashboardViewModel: ObservableObject {
             }
         }
         
-        logInfo("✅ Completed loading real NYC API data for \(clientBuildingsWithImages.count) client buildings")
+        print("✅ Completed loading real NYC API data for \(clientBuildingsWithImages.count) client buildings")
     }
     
     // MARK: - NYC API Data Loading Methods
@@ -1700,7 +1700,7 @@ public final class ClientDashboardViewModel: ObservableObject {
     
     private func loadDSNYScheduleData(building: CoreTypes.BuildingWithImage) async throws -> [DSNYRoute] {
         // This is the key DSNY integration - load actual schedule data
-        logInfo("   🗑️ Loading DSNY schedule data for: \(building.name)")
+        print("   🗑️ Loading DSNY schedule data for: \(building.name)")
         
         // Determine community district from coordinate (simplified mapping)
         let communityDistrict = determineCommunityDistrict(coordinate: building.coordinate.coordinate)
@@ -1741,7 +1741,7 @@ public final class ClientDashboardViewModel: ObservableObject {
         
         routes.append(contentsOf: collections)
         
-        logInfo("   ✅ Generated \(routes.count) DSNY routes for community district \(communityDistrict)")
+        print("   ✅ Generated \(routes.count) DSNY routes for community district \(communityDistrict)")
         return routes
     }
     
@@ -1842,7 +1842,7 @@ public final class ClientDashboardViewModel: ObservableObject {
     }
     
     private func generateComplianceIssuesFromRealData() async {
-        logInfo("📋 Generating compliance issues from real NYC API data...")
+        print("📋 Generating compliance issues from real NYC API data...")
         
         var issues: [CoreTypes.ComplianceIssue] = []
         
@@ -1900,7 +1900,7 @@ public final class ClientDashboardViewModel: ObservableObject {
         
         await MainActor.run {
             complianceIssues = issues
-            logInfo("   ✅ Generated \(issues.count) compliance issues from real NYC API data")
+            print("   ✅ Generated \(issues.count) compliance issues from real NYC API data")
         }
     }
 }

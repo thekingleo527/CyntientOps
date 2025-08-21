@@ -145,7 +145,7 @@ class AdminDashboardViewModel: ObservableObject {
         isSynced = dashboardSyncStatus == .synced
         lastSyncAt = Date()
         
-        logInfo("🔄 Updated digital twin metrics: \(buildingCount) buildings, \(workersActive)/\(workersTotal) workers, \(Int(completionToday*100))% completion")
+        print("🔄 Updated digital twin metrics: \(buildingCount) buildings, \(workersActive)/\(workersTotal) workers, \(Int(completionToday*100))% completion")
     }
     
     @MainActor
@@ -169,7 +169,7 @@ class AdminDashboardViewModel: ObservableObject {
             span: MKCoordinateSpan(latitudeDelta: max(spanLat, 0.01), longitudeDelta: max(spanLon, 0.01))
         )
         
-        logInfo("🗺️ Set admin map region to center: \(centerLat), \(centerLon)")
+        print("🗺️ Set admin map region to center: \(centerLat), \(centerLon)")
     }
     
     /// Get pressing tasks for hero card display (includes operational intelligence)
@@ -321,7 +321,7 @@ class AdminDashboardViewModel: ObservableObject {
     
     /// Generate realistic NYC property data for buildings
     func generatePropertyDataForBuilding(_ building: CoreTypes.NamedCoordinate, coordinate: CLLocationCoordinate2D) async -> CoreTypes.NYCPropertyData? {
-        logInfo("🔢 Generating property data for: \(building.name)")
+        print("🔢 Generating property data for: \(building.name)")
         
         // Generate BBL based on coordinate (simplified approach)
         let bbl = self.generateBBLFromCoordinate(coordinate)
@@ -343,7 +343,7 @@ class AdminDashboardViewModel: ObservableObject {
             violations: violations
         )
         
-        logInfo("✅ Generated property data for \(building.name): BBL \(bbl), Value $\(Int(financialData.marketValue).formatted(.number))")
+        print("✅ Generated property data for \(building.name): BBL \(bbl), Value $\(Int(financialData.marketValue).formatted(.number))")
         return propertyData
     }
     
@@ -417,7 +417,7 @@ class AdminDashboardViewModel: ObservableObject {
             let realViolations = try await container.operationalData.getViolationsForBuilding(buildingId: building.id)
             violations = realViolations
         } catch {
-            logInfo("⚠️ Could not load violations for \(building.name): \(error)")
+            print("⚠️ Could not load violations for \(building.name): \(error)")
             violations = [] // No violations if can't load real data
         }
         
@@ -485,12 +485,12 @@ class AdminDashboardViewModel: ObservableObject {
             }
             
             // REAL DATA: Verify we're getting actual production data
-            logInfo("✅ Loading REAL data with OperationalDataManager integration:")
-            logInfo("   - Buildings: \(buildings.count) (should be 17)")
-            logInfo("   - Workers: \(workers.count) (should be 7)")
-            logInfo("   - Original Tasks: \(tasks.count)")
-            logInfo("   - Real Task Assignments: \(realTaskAssignments.count)")
-            logInfo("   - Enhanced Tasks Total: \(enhancedTasks.count)")
+            print("✅ Loading REAL data with OperationalDataManager integration:")
+            print("   - Buildings: \(buildings.count) (should be 17)")
+            print("   - Workers: \(workers.count) (should be 7)")
+            print("   - Original Tasks: \(tasks.count)")
+            print("   - Real Task Assignments: \(realTaskAssignments.count)")
+            print("   - Enhanced Tasks Total: \(enhancedTasks.count)")
             
             self.buildings = buildings
             self.workers = workers
@@ -536,28 +536,28 @@ class AdminDashboardViewModel: ObservableObject {
             
             // Initialize comprehensive NYC data if not already done
             if propertyData.isEmpty && !buildings.isEmpty {
-                logInfo("🏢 Initializing comprehensive NYC property data...")
+                print("🏢 Initializing comprehensive NYC property data...")
                 await initializeBuildingDataFromAPIs()
             } else if buildings.isEmpty {
                 // Test BBL service with known address if no buildings are loaded yet
-                logInfo("🧪 No buildings loaded yet, testing BBL service...")
+                print("🧪 No buildings loaded yet, testing BBL service...")
                 await testBBLService()
             }
             
             self.lastUpdateTime = Date()
             
             let successMessage = NSLocalizedString("Admin dashboard loaded successfully", comment: "Dashboard load success")
-            logInfo("✅ \(successMessage): \(buildings.count) buildings, \(workers.count) workers, \(tasks.count) tasks")
+            print("✅ \(successMessage): \(buildings.count) buildings, \(workers.count) workers, \(tasks.count) tasks")
             
             if !propertyData.isEmpty {
-                logInfo("🏢 NYC Property data loaded for \(propertyData.count) buildings")
+                print("🏢 NYC Property data loaded for \(propertyData.count) buildings")
             }
             
         } catch {
             self.error = error
             let baseError = NSLocalizedString("Failed to load administrator data", comment: "Admin dashboard loading error")
             self.errorMessage = "\(baseError). \(NSLocalizedString("Please check your network connection.", comment: "Network error advice"))"
-            logInfo("❌ Failed to load admin dashboard: \(error)")
+            print("❌ Failed to load admin dashboard: \(error)")
         }
         
         // Update digital twin metrics after all data is loaded
@@ -570,17 +570,17 @@ class AdminDashboardViewModel: ObservableObject {
     /// Load real building data using BBL generation and NYC APIs
     @MainActor
     private func loadRealBuildingData() async {
-        logInfo("🏗️ Loading real building data with NYC APIs...")
+        print("🏗️ Loading real building data with NYC APIs...")
         let nycAPI = NYCAPIService.shared
         
         // Generate BBLs and fetch comprehensive property data using direct NYC API calls
         for building in buildings {
             do {
-                logInfo("🔢 Generating BBL for: \(building.name)")
+                print("🔢 Generating BBL for: \(building.name)")
                 
                 // Generate BBL from building coordinates (Manhattan pattern)
                 let bbl = generateBBLFromCoordinates(building.coordinate)
-                logInfo("✅ Generated BBL \(bbl) for \(building.name)")
+                print("✅ Generated BBL \(bbl) for \(building.name)")
                 
                 // Fetch real DOF assessed value data
                 do {
@@ -590,8 +590,8 @@ class AdminDashboardViewModel: ObservableObject {
                         let assessedValue = assessment.assessedValueTotal ?? 0
                         let marketValue = assessment.marketValue ?? assessedValue * 1.5 // Fallback estimate
                         
-                        logInfo("   💰 Real Assessed Value: $\(Int(assessedValue).formatted(.number))")
-                        logInfo("   🏛️ Real Market Value: $\(Int(marketValue).formatted(.number))")
+                        print("   💰 Real Assessed Value: $\(Int(assessedValue).formatted(.number))")
+                        print("   🏛️ Real Market Value: $\(Int(marketValue).formatted(.number))")
                         
                         // Store real property data for portfolio calculations
                         let financialData = CoreTypes.PropertyFinancialData(
@@ -620,17 +620,17 @@ class AdminDashboardViewModel: ObservableObject {
                             self.propertyData[building.id] = propertyData
                         }
                     } else {
-                        logInfo("⚠️ No DOF tax data found for BBL \(bbl)")
+                        print("⚠️ No DOF tax data found for BBL \(bbl)")
                     }
                 } catch {
-                    logInfo("⚠️ Error fetching DOF data for \(building.name): \(error)")
+                    print("⚠️ Error fetching DOF data for \(building.name): \(error)")
                 }
                 
                 // Rate limiting between requests
                 try await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds
                 
             } catch {
-                logInfo("❌ Error loading data for \(building.name): \(error)")
+                print("❌ Error loading data for \(building.name): \(error)")
             }
         }
     }
@@ -638,7 +638,7 @@ class AdminDashboardViewModel: ObservableObject {
     /// Load real NYC API compliance data for all buildings
     @MainActor
     private func loadRealComplianceData() async {
-        logInfo("🗽 Loading real NYC API compliance data...")
+        print("🗽 Loading real NYC API compliance data...")
         let nycAPI = NYCAPIService.shared
         
         var hpdData: [String: [HPDViolation]] = [:]
@@ -664,13 +664,13 @@ class AdminDashboardViewModel: ObservableObject {
                 let ll97Emissions = try await nycAPI.fetchLL97Compliance(bbl: building.id)
                 ll97Data[building.id] = ll97Emissions
                 
-                logInfo("✅ Loaded compliance data for \(building.name): HPD(\(hpdViolations.count)), DOB(\(dobPermits.count)), LL97(\(ll97Emissions.count))")
+                print("✅ Loaded compliance data for \(building.name): HPD(\(hpdViolations.count)), DOB(\(dobPermits.count)), LL97(\(ll97Emissions.count))")
                 
                 // Rate limiting
                 try await Task.sleep(nanoseconds: 1_000_000_000) // 1 second between calls
                 
             } catch {
-                logInfo("⚠️ Error loading compliance data for \(building.name): \(error)")
+                print("⚠️ Error loading compliance data for \(building.name): \(error)")
             }
         }
         
@@ -680,7 +680,7 @@ class AdminDashboardViewModel: ObservableObject {
         self.dsnyScheduleData = dsnyData
         self.ll97EmissionsData = ll97Data
         
-        logInfo("🗽 Real NYC compliance data loaded for \(buildings.count) buildings")
+        print("🗽 Real NYC compliance data loaded for \(buildings.count) buildings")
     }
     
     /// Initialize the AdminDashboardViewModel
@@ -697,7 +697,7 @@ class AdminDashboardViewModel: ObservableObject {
     /// Load all dashboard data including building info from NYC APIs
     @MainActor
     private func loadAllData() async {
-        logInfo("🚀 Loading comprehensive admin dashboard data...")
+        print("🚀 Loading comprehensive admin dashboard data...")
         
         // Load basic dashboard data
         await loadBasicDashboardData()
@@ -705,7 +705,7 @@ class AdminDashboardViewModel: ObservableObject {
         // Initialize building data from NYC APIs
         await initializeBuildingDataFromAPIs()
         
-        logInfo("✅ Comprehensive admin dashboard data loaded successfully")
+        print("✅ Comprehensive admin dashboard data loaded successfully")
     }
     
     /// Load basic dashboard data (workers, buildings, etc.)
@@ -746,9 +746,9 @@ class AdminDashboardViewModel: ObservableObject {
                     isActive: (row["isActive"] as? Int64 ?? 1) == 1
                 )
             }
-            logInfo("✅ Loaded \(activeWorkers.count) active workers from database")
+            print("✅ Loaded \(activeWorkers.count) active workers from database")
         } catch {
-            logInfo("❌ Failed to load active workers: \(error)")
+            print("❌ Failed to load active workers: \(error)")
             activeWorkers = []
         }
     }
@@ -777,9 +777,9 @@ class AdminDashboardViewModel: ObservableObject {
                     longitude: lng
                 )
             }
-            logInfo("✅ Loaded \(buildings.count) buildings from database")
+            print("✅ Loaded \(buildings.count) buildings from database")
         } catch {
-            logInfo("❌ Failed to load buildings: \(error)")
+            print("❌ Failed to load buildings: \(error)")
             buildings = []
         }
     }
@@ -802,7 +802,7 @@ class AdminDashboardViewModel: ObservableObject {
             complianceScore: 85.0, // This should be calculated from real data
             lastUpdated: Date()
         )
-        logInfo("✅ Portfolio metrics calculated")
+        print("✅ Portfolio metrics calculated")
     }
     
     // MARK: - Worker Capabilities Methods
@@ -826,7 +826,7 @@ class AdminDashboardViewModel: ObservableObject {
                     )
                 }
             } catch {
-                logInfo("⚠️ Failed to load capabilities for worker \(worker.id): \(error)")
+                print("⚠️ Failed to load capabilities for worker \(worker.id): \(error)")
             }
         }
     }
@@ -949,7 +949,7 @@ class AdminDashboardViewModel: ObservableObject {
     /// Initialize comprehensive building data from NYC APIs for all locations
     @MainActor
     private func initializeBuildingDataFromAPIs() async {
-        logInfo("🏢 Initializing comprehensive building data from NYC APIs...")
+        print("🏢 Initializing comprehensive building data from NYC APIs...")
         isLoadingPropertyData = true
         defer { isLoadingPropertyData = false }
         
@@ -972,18 +972,18 @@ class AdminDashboardViewModel: ObservableObject {
             
             processedBuildings += batch.count
             let progress = Double(processedBuildings) / Double(totalBuildings)
-            logInfo("📊 Progress: \(processedBuildings)/\(totalBuildings) buildings processed (\(Int(progress * 100))%)")
+            print("📊 Progress: \(processedBuildings)/\(totalBuildings) buildings processed (\(Int(progress * 100))%)")
         }
         
         // Generate comprehensive analytics and summaries
-        logInfo("📈 Generating comprehensive analytics...")
+        print("📈 Generating comprehensive analytics...")
         await generateAllAnalytics()
         
-        logInfo("✅ Comprehensive building data initialization complete!")
-        logInfo("📊 Total properties loaded: \(propertyData.count)")
-        logInfo("💰 Portfolio financial summary generated")
-        logInfo("⚖️ Compliance tracking activated")
-        logInfo("🏛️ Violations monitoring enabled")
+        print("✅ Comprehensive building data initialization complete!")
+        print("📊 Total properties loaded: \(propertyData.count)")
+        print("💰 Portfolio financial summary generated")
+        print("⚖️ Compliance tracking activated")
+        print("🏛️ Violations monitoring enabled")
     }
     
     /// Load additional building enrichments beyond basic NYC data
@@ -992,12 +992,12 @@ class AdminDashboardViewModel: ObservableObject {
         // Get worker assignments for this building
         if let primaryWorker = WorkerBuildingAssignments.getPrimaryWorker(for: building.id) {
             let _ = workers.first { $0.name == primaryWorker }
-            logInfo("   👷 Primary Worker: \(primaryWorker)")
+            print("   👷 Primary Worker: \(primaryWorker)")
         }
         
         // Get client ownership
         if let client = WorkerBuildingAssignments.getClient(for: building.id) {
-            logInfo("   🏢 Client: \(client)")
+            print("   🏢 Client: \(client)")
         }
         
         // Calculate property metrics
@@ -1027,13 +1027,13 @@ class AdminDashboardViewModel: ObservableObject {
         }
         
         let finalScore = max(0, score)
-        logInfo("   📊 Performance Score: \(Int(finalScore))/100")
+        print("   📊 Performance Score: \(Int(finalScore))/100")
     }
     
     /// Generate all analytics and summaries
     @MainActor
     private func generateAllAnalytics() async {
-        logInfo("🔄 Generating comprehensive analytics...")
+        print("🔄 Generating comprehensive analytics...")
         
         // Core analytics
         generatePropertyViolationsSummary()
@@ -1046,13 +1046,13 @@ class AdminDashboardViewModel: ObservableObject {
         await generateOperationalInsights()
         await generateFinancialProjections()
         
-        logInfo("✅ All analytics generated successfully")
+        print("✅ All analytics generated successfully")
     }
     
     /// Generate risk assessments for each property
     @MainActor
     private func generateRiskAssessments() async {
-        logInfo("⚠️ Generating risk assessments...")
+        print("⚠️ Generating risk assessments...")
         
         var highRiskBuildings: [(String, String, [String])] = []
         
@@ -1086,17 +1086,17 @@ class AdminDashboardViewModel: ObservableObject {
             }
         }
         
-        logInfo("📊 Risk Assessment Complete:")
-        logInfo("   🔴 High Risk Buildings: \(highRiskBuildings.count)")
+        print("📊 Risk Assessment Complete:")
+        print("   🔴 High Risk Buildings: \(highRiskBuildings.count)")
         for (_, name, risks) in highRiskBuildings {
-            logInfo("     • \(name): \(risks.joined(separator: ", "))")
+            print("     • \(name): \(risks.joined(separator: ", "))")
         }
     }
     
     /// Generate performance metrics across the portfolio
     @MainActor
     private func generatePerformanceMetrics() async {
-        logInfo("📈 Generating performance metrics...")
+        print("📈 Generating performance metrics...")
         
         let properties = Array(propertyData.values)
         guard !properties.isEmpty else { return }
@@ -1116,18 +1116,18 @@ class AdminDashboardViewModel: ObservableObject {
         let totalAssetValue = properties.reduce(0) { $0 + $1.financialData.marketValue }
         let averageAssetValue = totalAssetValue / Double(properties.count)
         
-        logInfo("📊 Portfolio Performance Metrics:")
-        logInfo("   🏢 Total Properties: \(properties.count)")
-        logInfo("   📊 Average Violations: \(String(format: "%.1f", averageViolations)) per building")
-        logInfo("   ✅ Compliance Rate: \(String(format: "%.1f", complianceRate))%")
-        logInfo("   💰 Total Asset Value: $\(Int(totalAssetValue).formatted(.number))")
-        logInfo("   📈 Average Building Value: $\(Int(averageAssetValue).formatted(.number))")
+        print("📊 Portfolio Performance Metrics:")
+        print("   🏢 Total Properties: \(properties.count)")
+        print("   📊 Average Violations: \(String(format: "%.1f", averageViolations)) per building")
+        print("   ✅ Compliance Rate: \(String(format: "%.1f", complianceRate))%")
+        print("   💰 Total Asset Value: $\(Int(totalAssetValue).formatted(.number))")
+        print("   📈 Average Building Value: $\(Int(averageAssetValue).formatted(.number))")
     }
     
     /// Generate operational insights and recommendations
     @MainActor
     private func generateOperationalInsights() async {
-        logInfo("💡 Generating operational insights...")
+        print("💡 Generating operational insights...")
         
         let properties = Array(propertyData.values)
         
@@ -1150,16 +1150,16 @@ class AdminDashboardViewModel: ObservableObject {
         
         let topViolations = violationTypes.sorted { $0.value > $1.value }.prefix(3)
         
-        logInfo("🔍 Operational Insights:")
-        logInfo("   👥 Worker Assignments:")
+        print("🔍 Operational Insights:")
+        print("   👥 Worker Assignments:")
         for (worker, count) in workerWorkload.sorted(by: { $0.value > $1.value }) {
-            logInfo("     • \(worker): \(count) buildings")
+            print("     • \(worker): \(count) buildings")
         }
         
         if !topViolations.isEmpty {
-            logInfo("   🚨 Most Common Violations:")
+            print("   🚨 Most Common Violations:")
             for (type, count) in topViolations {
-                logInfo("     • \(type): \(count) occurrences")
+                print("     • \(type): \(count) occurrences")
             }
         }
     }
@@ -1167,7 +1167,7 @@ class AdminDashboardViewModel: ObservableObject {
     /// Generate financial projections and forecasts
     @MainActor
     private func generateFinancialProjections() async {
-        logInfo("💰 Generating financial projections...")
+        print("💰 Generating financial projections...")
         
         let properties = Array(propertyData.values)
         guard !properties.isEmpty else { return }
@@ -1182,11 +1182,11 @@ class AdminDashboardViewModel: ObservableObject {
         let ll11Overdue = properties.filter { $0.complianceData.ll11Status == .nonCompliant }.count
         let estimatedComplianceCosts = Double(ll97Overdue * 15000 + ll11Overdue * 25000)
         
-        logInfo("📊 Financial Projections:")
-        logInfo("   🏛️ Estimated Annual Property Taxes: $\(Int(estimatedAnnualTaxes).formatted(.number))")
-        logInfo("   🔧 Estimated Annual Maintenance: $\(Int(estimatedMaintenanceCosts).formatted(.number))")
-        logInfo("   ⚖️ Estimated Compliance Costs: $\(Int(estimatedComplianceCosts).formatted(.number))")
-        logInfo("   💸 Total Estimated Annual Expenses: $\(Int(estimatedAnnualTaxes + estimatedMaintenanceCosts + estimatedComplianceCosts).formatted(.number))")
+        print("📊 Financial Projections:")
+        print("   🏛️ Estimated Annual Property Taxes: $\(Int(estimatedAnnualTaxes).formatted(.number))")
+        print("   🔧 Estimated Annual Maintenance: $\(Int(estimatedMaintenanceCosts).formatted(.number))")
+        print("   ⚖️ Estimated Compliance Costs: $\(Int(estimatedComplianceCosts).formatted(.number))")
+        print("   💸 Total Estimated Annual Expenses: $\(Int(estimatedAnnualTaxes + estimatedMaintenanceCosts + estimatedComplianceCosts).formatted(.number))")
     }
     
     // MARK: - Public API Methods
@@ -1194,20 +1194,20 @@ class AdminDashboardViewModel: ObservableObject {
     /// Trigger comprehensive data generation for all buildings
     @MainActor
     public func generateComprehensivePortfolioData() async {
-        logInfo("🚀 Starting comprehensive portfolio data generation...")
+        print("🚀 Starting comprehensive portfolio data generation...")
         
         await initializeBuildingDataFromAPIs()
         
         // Force refresh UI data
         objectWillChange.send()
         
-        logInfo("✅ Comprehensive portfolio data generation complete!")
+        print("✅ Comprehensive portfolio data generation complete!")
     }
     
     /// Test BBL service functionality with a known address
     @MainActor
     public func testBBLService() async {
-        logInfo("🧪 Testing BBL service with known NYC address...")
+        print("🧪 Testing BBL service with known NYC address...")
         
         let testAddress = "142-148 West 17th Street, New York, NY"
         let testBuilding = CoreTypes.NamedCoordinate(
@@ -1219,18 +1219,18 @@ class AdminDashboardViewModel: ObservableObject {
         )
         
         do {
-            logInfo("🔢 Testing BBL generation for: \(testAddress)")
+            print("🔢 Testing BBL generation for: \(testAddress)")
             // Generate property data using internal methods
             let coordinate = CLLocationCoordinate2D(latitude: testBuilding.latitude, longitude: testBuilding.longitude)
             let property = await self.generatePropertyDataForBuilding(testBuilding, coordinate: coordinate)
             
             if let property = property {
-                logInfo("✅ BBL Service Test SUCCESSFUL!")
-                logInfo("   BBL: \(property.bbl)")
-                logInfo("   Market Value: $\(Int(property.financialData.marketValue).formatted(.number))")
-                logInfo("   Violations: \(property.violations.count)")
+                print("✅ BBL Service Test SUCCESSFUL!")
+                print("   BBL: \(property.bbl)")
+                print("   Market Value: $\(Int(property.financialData.marketValue).formatted(.number))")
+                print("   Violations: \(property.violations.count)")
             } else {
-                logInfo("❌ BBL Service Test FAILED - No property data returned")
+                print("❌ BBL Service Test FAILED - No property data returned")
             }
         }
     }
@@ -1287,7 +1287,7 @@ class AdminDashboardViewModel: ObservableObject {
             longitude: building.longitude
         )
         
-        logInfo("🏢 Loading comprehensive data for: \(building.name)")
+        print("🏢 Loading comprehensive data for: \(building.name)")
         
         // Generate comprehensive property data for building
         let property = await self.generatePropertyDataForBuilding(building, coordinate: coordinate)
@@ -1298,17 +1298,17 @@ class AdminDashboardViewModel: ObservableObject {
             }
             
             // Log detailed information
-            logInfo("✅ Loaded comprehensive data for: \(building.name)")
-            logInfo("   📍 BBL: \(property.bbl)")
-            logInfo("   💰 Market Value: $\(Int(property.financialData.marketValue).formatted(.number))")
-            logInfo("   🏛️ Violations: \(property.violations.count)")
-            logInfo("   ⚖️ LL97 Status: \(property.complianceData.ll97Status)")
+            print("✅ Loaded comprehensive data for: \(building.name)")
+            print("   📍 BBL: \(property.bbl)")
+            print("   💰 Market Value: $\(Int(property.financialData.marketValue).formatted(.number))")
+            print("   🏛️ Violations: \(property.violations.count)")
+            print("   ⚖️ LL97 Status: \(property.complianceData.ll97Status)")
             
             // Load additional enrichment data
             await loadAdditionalBuildingEnrichments(building, property: property)
             
         } else {
-            logInfo("⚠️ No property data found for: \(building.name) at \(building.address) - skipping building")
+            print("⚠️ No property data found for: \(building.name) at \(building.address) - skipping building")
             // Skip buildings without real data - no placeholder data in production
             return
         }
@@ -1372,7 +1372,7 @@ class AdminDashboardViewModel: ObservableObject {
             
         } catch {
             let errorMessage = NSLocalizedString("Failed to load completed tasks", comment: "Completed tasks loading error")
-            logInfo("❌ \(errorMessage): \(error)")
+            print("❌ \(errorMessage): \(error)")
             completedTasks = []
             recentCompletedTasks = []
         }
@@ -1399,7 +1399,7 @@ class AdminDashboardViewModel: ObservableObject {
             
         } catch {
             let errorMessage = NSLocalizedString("Failed to count today's photos", comment: "Photo count error")
-            logInfo("❌ \(errorMessage): \(error)")
+            print("❌ \(errorMessage): \(error)")
             todaysPhotoCount = 0
         }
     }
@@ -1433,7 +1433,7 @@ class AdminDashboardViewModel: ObservableObject {
             
         } catch {
             let errorMessage = NSLocalizedString("Failed to get tasks with photos", comment: "Tasks with photos error")
-            logInfo("❌ \(errorMessage): \(error)")
+            print("❌ \(errorMessage): \(error)")
             return []
         }
     }
@@ -1465,7 +1465,7 @@ class AdminDashboardViewModel: ObservableObject {
             
         } catch {
             let errorMessage = NSLocalizedString("Failed to get photo count", comment: "Photo count error")
-            logInfo("❌ \(errorMessage): \(error)")
+            print("❌ \(errorMessage): \(error)")
         }
         
         return 0
@@ -1506,7 +1506,7 @@ class AdminDashboardViewModel: ObservableObject {
             
         } catch {
             let errorMessage = NSLocalizedString("Failed to get photo compliance stats", comment: "Photo compliance error")
-            logInfo("❌ \(errorMessage): \(error)")
+            print("❌ \(errorMessage): \(error)")
             return PhotoComplianceStats(
                 tasksRequiringPhotos: 0,
                 tasksWithPhotos: 0,
@@ -1533,7 +1533,7 @@ class AdminDashboardViewModel: ObservableObject {
             .receive(on: DispatchQueue.main)
             .sink { count in
                 let pendingMessage = NSLocalizedString("Pending photo batches", comment: "Pending batches message")
-                logInfo("📸 \(pendingMessage): \(count)")
+                print("📸 \(pendingMessage): \(count)")
             }
             .store(in: &cancellables)
     }
@@ -1550,7 +1550,7 @@ class AdminDashboardViewModel: ObservableObject {
                 metrics[building.id] = buildingMetrics
             } catch {
                 let errorMessage = NSLocalizedString("Failed to load metrics for building", comment: "Building metrics error")
-                logInfo("⚠️ \(errorMessage) \(building.id): \(error)")
+                print("⚠️ \(errorMessage) \(building.id): \(error)")
             }
         }
         
@@ -1584,7 +1584,7 @@ class AdminDashboardViewModel: ObservableObject {
             self.isLoadingInsights = false
             
             let successMessage = NSLocalizedString("Portfolio insights loaded", comment: "Portfolio insights success")
-            logInfo("✅ \(successMessage): \(insights.count) insights")
+            print("✅ \(successMessage): \(insights.count) insights")
             
             // Create and broadcast update
             let update = CoreTypes.DashboardUpdate(
@@ -1610,7 +1610,7 @@ class AdminDashboardViewModel: ObservableObject {
     func fetchBuildingIntelligence(for buildingId: String) async {
         guard !buildingId.isEmpty else {
             let warningMessage = NSLocalizedString("Invalid building ID provided", comment: "Invalid building ID warning")
-            logInfo("⚠️ \(warningMessage)")
+            print("⚠️ \(warningMessage)")
             return
         }
         
@@ -1629,7 +1629,7 @@ class AdminDashboardViewModel: ObservableObject {
             self.isLoadingIntelligence = false
             
             let successMessage = NSLocalizedString("Intelligence loaded for building", comment: "Building intelligence success")
-            logInfo("✅ \(successMessage) \(buildingId): \(buildingInsights.count) insights")
+            print("✅ \(successMessage) \(buildingId): \(buildingInsights.count) insights")
             
             // Create and broadcast update
             let update = CoreTypes.DashboardUpdate(
@@ -1664,7 +1664,7 @@ class AdminDashboardViewModel: ObservableObject {
             buildingMetrics[buildingId] = metrics
             
             let successMessage = NSLocalizedString("Refreshed metrics for building", comment: "Building metrics refresh success")
-            logInfo("✅ \(successMessage) \(buildingId)")
+            print("✅ \(successMessage) \(buildingId)")
             
             // Create and broadcast update
             let buildingName = buildings.first { $0.id == buildingId }?.name ?? "Building"
@@ -1685,7 +1685,7 @@ class AdminDashboardViewModel: ObservableObject {
             
         } catch {
             let errorMessage = NSLocalizedString("Failed to refresh building metrics", comment: "Building metrics refresh error")
-            logInfo("❌ \(errorMessage): \(error)")
+            print("❌ \(errorMessage): \(error)")
         }
     }
     
@@ -1928,7 +1928,7 @@ class AdminDashboardViewModel: ObservableObject {
             .store(in: &cancellables)
         
         let setupMessage = NSLocalizedString("Admin dashboard cross-dashboard sync configured", comment: "Dashboard sync setup message")
-        logInfo("🔗 \(setupMessage)")
+        print("🔗 \(setupMessage)")
     }
     
     /// Broadcast admin update using DashboardUpdate directly
@@ -1943,7 +1943,7 @@ class AdminDashboardViewModel: ObservableObject {
         container.dashboardSync.broadcastAdminUpdate(update)
         
         let broadcastMessage = NSLocalizedString("Admin update broadcast", comment: "Update broadcast message")
-        logInfo("📡 \(broadcastMessage): \(update.type)")
+        print("📡 \(broadcastMessage): \(update.type)")
     }
     
     /// Setup auto-refresh timer
@@ -2082,7 +2082,7 @@ class AdminDashboardViewModel: ObservableObject {
     private func setupOperationalIntelligenceSubscriptions() {
         // Note: Operational intelligence subscriptions now handled through ServiceContainer
         // Real-time updates will come through dashboard sync service
-        logInfo("⚠️ Operational intelligence subscriptions deferred to dashboard sync service")
+        print("⚠️ Operational intelligence subscriptions deferred to dashboard sync service")
     }
     
     /// Calculate operational intelligence metrics summary (using generic data)
@@ -2243,7 +2243,7 @@ class AdminDashboardViewModel: ObservableObject {
     /// Load real worker assignments from OperationalDataManager
     @MainActor
     private func loadRealWorkerAssignments(operationalManager: OperationalDataManager) async {
-        logInfo("🔄 Loading real worker assignments from OperationalDataManager...")
+        print("🔄 Loading real worker assignments from OperationalDataManager...")
         
         // Group assignments by worker
         let allAssignments = operationalManager.getAllRealWorldTasks()
@@ -2277,17 +2277,17 @@ class AdminDashboardViewModel: ObservableObject {
                     clockStatus: worker.clockStatus
                 )
                 
-                logInfo("   ✅ Updated \(worker.name) with \(buildingIds.count) real building assignments")
+                print("   ✅ Updated \(worker.name) with \(buildingIds.count) real building assignments")
             }
         }
         
-        logInfo("✅ Completed real worker assignment integration")
+        print("✅ Completed real worker assignment integration")
     }
     
     /// Load building metrics with real task data from OperationalDataManager
     @MainActor
     private func loadBuildingMetricsWithRealData() async {
-        logInfo("📊 Loading building metrics with real task data...")
+        print("📊 Loading building metrics with real task data...")
         
         let operationalManager = OperationalDataManager.shared
         
@@ -2321,10 +2321,10 @@ class AdminDashboardViewModel: ObservableObject {
             
             buildingMetrics[building.id] = metrics
             
-            logInfo("   ✅ \(building.name): \(totalTasks) tasks, \(workersForBuilding) workers, \(categories.count) categories")
+            print("   ✅ \(building.name): \(totalTasks) tasks, \(workersForBuilding) workers, \(categories.count) categories")
         }
         
-        logInfo("✅ Completed building metrics integration with real data")
+        print("✅ Completed building metrics integration with real data")
     }
 }
 

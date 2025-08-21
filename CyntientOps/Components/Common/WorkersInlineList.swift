@@ -252,7 +252,7 @@ struct WorkersInlineList: View {
         
         do {
             // ✅ FIXED: Get workers assigned to this building directly
-            let buildingWorkers = try await WorkerService.shared.getActiveWorkersForBuilding(buildingId)
+            let buildingWorkers = try await // WorkerService injection needed.getActiveWorkersForBuilding(buildingId)
             
             var loadedWorkers: [WorkerInfo] = []
             
@@ -333,7 +333,7 @@ struct WorkersInlineList: View {
     private func getWorkerTaskCount(_ workerId: String) async -> Int {
         do {
             // Get tasks for this worker for today
-            let tasks = try await TaskService.shared.getTasks(for: workerId, date: Date())
+            let tasks = try await // TaskService injection needed.getTasks(for: workerId, date: Date())
             
             // Filter tasks for this specific building
             return tasks.filter { task in
@@ -351,7 +351,7 @@ struct WorkersInlineList: View {
         let workerId = getWorkerIdFromName(workerName)
         
         do {
-            let tasks = try await TaskService.shared.getTasks(for: workerId, date: Date())
+            let tasks = try await // TaskService injection needed.getTasks(for: workerId, date: Date())
             
             for task in tasks {
                 let isDSNYTask = task.category?.rawValue.lowercased().contains("sanitation") == true ||

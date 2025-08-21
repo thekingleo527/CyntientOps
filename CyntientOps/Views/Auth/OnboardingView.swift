@@ -198,7 +198,7 @@ private struct InterfaceOptionCard: View {
 struct OnboardingView_Previews: PreviewProvider {
     static var previews: some View {
         OnboardingView(onComplete: {
-            logInfo("Onboarding completed!")
+            print("Onboarding completed!")
         })
     }
 }
