@@ -466,7 +466,7 @@ class AdminDashboardViewModel: ObservableObject {
             let operationalManager = OperationalDataManager.shared
             
             // Get real task assignments from OperationalDataManager
-            let realTaskAssignments = operationalManager.realWorldTasks
+            let realTaskAssignments = operationalManager.getAllRealWorldTasks()
             
             // Convert operational assignments to ContextualTasks
             var enhancedTasks = tasks
@@ -575,7 +575,7 @@ class AdminDashboardViewModel: ObservableObject {
         
         var hpdData: [String: [HPDViolation]] = [:]
         var dobData: [String: [DOBPermit]] = [:]
-        var dsnyData: [String: [DSNYSchedule]] = [:]
+        let _ = [String: [DSNYSchedule]]()
         var ll97Data: [String: [LL97Emission]] = [:]
         
         for building in buildings {
@@ -589,7 +589,7 @@ class AdminDashboardViewModel: ObservableObject {
                 dobData[building.id] = dobPermits
                 
                 // Fetch real DSNY violations (if available)
-                let dsnyViolations = try? await nycAPI.fetchDSNYViolations(bin: building.id)
+                let _ = try? await nycAPI.fetchDSNYViolations(bin: building.id)
                 
                 // Fetch real LL97 emissions
                 let ll97Emissions = try await nycAPI.fetchLL97Compliance(bbl: building.id)
@@ -2304,16 +2304,16 @@ private func loadRealWorkerAssignments(operationalManager: OperationalDataManage
     print("🔄 Loading real worker assignments from OperationalDataManager...")
     
     // Group assignments by worker
-    let allAssignments = operationalManager.realWorldTasks
+    let allAssignments = operationalManager.getAllRealWorldTasks()
     let workerAssignments = Dictionary(grouping: allAssignments) { $0.workerId }
     
     // Update worker profiles with real assignment data
-    for (index, worker) in activeWorkers.enumerated() {
+    for (index, worker) in self.workers.enumerated() {
         if let assignments = workerAssignments[worker.id] {
             let buildingIds = Set(assignments.map { $0.buildingId })
             
             // Update worker with real assigned building IDs
-            activeWorkers[index] = CoreTypes.WorkerProfile(
+            self.workers[index] = CoreTypes.WorkerProfile(
                 id: worker.id,
                 name: worker.name,
                 email: worker.email,
@@ -2340,11 +2340,11 @@ private func loadRealWorkerAssignments(operationalManager: OperationalDataManage
     }
     
     // Update workers array as well
-    for (index, worker) in workers.enumerated() {
+    for (index, worker) in self.workers.enumerated() {
         if let assignments = workerAssignments[worker.id] {
             let buildingIds = Set(assignments.map { $0.buildingId })
             
-            workers[index] = CoreTypes.WorkerProfile(
+            self.workers[index] = CoreTypes.WorkerProfile(
                 id: worker.id,
                 name: worker.name,
                 email: worker.email,
@@ -2376,7 +2376,7 @@ private func loadBuildingMetricsWithRealData() async {
     
     let operationalManager = OperationalDataManager.shared
     
-    for building in buildings {
+    for building in self.buildingsList {
         // Get real tasks for this building
         let buildingTasks = operationalManager.getTasksForBuilding(building.name)
         
@@ -2386,27 +2386,22 @@ private func loadBuildingMetricsWithRealData() async {
         let skillLevels = buildingTasks.map { $0.skillLevel }
         let categories = Set(buildingTasks.map { $0.category })
         
+        // Calculate active workers for this building (simplified)
+        let workersForBuilding = self.workers.filter { worker in
+            worker.assignedBuildingIds?.contains(building.id) ?? false
+        }.count
+        
         // Create metrics with real data
         let metrics = CoreTypes.BuildingMetrics(
             buildingId: building.id,
-            totalTasks: totalTasks,
-            completedTasks: 0, // Would need to track completion in database
-            pendingTasks: totalTasks,
-            overdueTasks: 0,
             completionRate: 0.0, // Would need completion tracking
-            averageTaskDuration: totalTasks > 0 ? TimeInterval(estimatedDuration * 60) / TimeInterval(totalTasks) : 0,
-            lastActivityDate: Date(),
-            efficiency: 0.85, // Would calculate from actual completion data
-            maintenanceScore: calculateMaintenanceScore(categories: categories),
-            urgentTasksCount: skillLevels.filter { $0.lowercased().contains("high") || $0.lowercased().contains("expert") }.count,
-            workerCount: Set(buildingTasks.map { $0.workerId }).count,
-            photoComplianceRate: 0.9, // Would calculate from photo evidence
-            estimatedMonthlyHours: Double(estimatedDuration) / 60.0 * 4, // Rough monthly estimate
-            lastInspectionDate: nil,
-            nextInspectionDue: nil,
-            criticalIssues: skillLevels.filter { $0.lowercased().contains("critical") }.count,
-            routineTasksCount: buildingTasks.filter { $0.recurrence != "one-time" }.count,
-            oneTimeTasksCount: buildingTasks.filter { $0.recurrence == "one-time" }.count
+            averageTaskTime: totalTasks > 0 ? TimeInterval(estimatedDuration * 60) / TimeInterval(totalTasks) : 0,
+            overdueTasks: 0,
+            totalTasks: totalTasks,
+            activeWorkers: workersForBuilding,
+            overallScore: 0.85, // Would calculate from actual performance data
+            pendingTasks: totalTasks,
+            urgentTasksCount: skillLevels.filter { $0.lowercased().contains("high") || $0.lowercased().contains("expert") }.count
         )
         
         buildingMetrics[building.id] = metrics

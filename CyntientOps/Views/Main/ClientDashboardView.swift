@@ -10,10 +10,6 @@
 
 import SwiftUI
 
-// MARK: - Type Aliases for DSNY Data
-typealias DSNYRoute = DSNY.DSNYRoute
-typealias DSNYViolation = DSNY.DSNYViolation
-
 struct ClientDashboardView: View {
     @StateObject private var viewModel: ClientDashboardViewModel
     

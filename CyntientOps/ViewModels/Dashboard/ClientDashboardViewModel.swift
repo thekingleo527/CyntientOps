@@ -65,8 +65,8 @@ public final class ClientDashboardViewModel: ObservableObject {
     // NYC API Compliance Data
     @Published public var hpdViolationsData: [String: [HPDViolation]] = [:]
     @Published public var dobPermitsData: [String: [DOBPermit]] = [:]
-    @Published public var dsnyScheduleData: [String: [DSNYRoute]] = [:]
-    @Published public var dsnyViolationsData: [String: [DSNYViolation]] = [:]
+    @Published public var dsnyScheduleData: [String: [DSNY.DSNYRoute]] = [:]
+    @Published public var dsnyViolationsData: [String: [DSNY.DSNYViolation]] = [:]
     @Published public var ll97EmissionsData: [String: [LL97Emission]] = [:]
     
     // Photo Evidence (for client building documentation view)
@@ -1322,7 +1322,7 @@ public final class ClientDashboardViewModel: ObservableObject {
                 async let dsnyViolations = try? nycAPIService.fetchDSNYViolations(bin: building.id)
                 
                 // Wait for all API responses
-                let (violations, permits, emissions, _, complaints, dsnyRoutes, dsnyViolationsData) = await (
+                let (violations, permits, emissions, _, complaints, dsnyScheduleRaw, dsnyViolationsData) = await (
                     hpdViolations ?? [],
                     dobPermits ?? [],
                     ll97Compliance ?? [],
@@ -1331,6 +1331,33 @@ public final class ClientDashboardViewModel: ObservableObject {
                     dsnySchedule ?? [],
                     dsnyViolations ?? []
                 )
+                
+                // Convert DSNYRoute to DSNY.DSNYRoute
+                let dsnyRoutes = dsnyScheduleRaw.map { route in
+                    DSNY.DSNYRoute(
+                        id: route.id.uuidString,
+                        dayOfWeek: route.dayOfWeek,
+                        time: route.time,
+                        serviceType: route.serviceType,
+                        isToday: route.isToday
+                    )
+                }
+                
+                // Convert DSNYViolation to DSNY.DSNYViolation
+                let dsnyViolationsConverted = dsnyViolationsData.map { violation in
+                    let dateFormatter = DateFormatter()
+                    dateFormatter.dateFormat = "yyyy-MM-dd"
+                    let issueDate = dateFormatter.date(from: violation.issueDate) ?? Date()
+                    
+                    return DSNY.DSNYViolation(
+                        id: violation.violationId,
+                        violationType: violation.violationType,
+                        issueDate: issueDate,
+                        fineAmount: violation.fineAmount ?? 0.0,
+                        description: violation.violationType,
+                        isActive: violation.status.lowercased() == "pending" || violation.status.lowercased() == "active"
+                    )
+                }
                 
                 // Calculate compliance metrics from real NYC data
                 let activeViolations = violations.filter { $0.isActive }
@@ -1352,13 +1379,13 @@ public final class ClientDashboardViewModel: ObservableObject {
                     self.dobPermitsData[building.id] = permits
                     self.ll97EmissionsData[building.id] = emissions
                     self.dsnyScheduleData[building.id] = dsnyRoutes
-                    self.dsnyViolationsData[building.id] = dsnyViolationsData
+                    self.dsnyViolationsData[building.id] = dsnyViolationsConverted
                 }
                 
                 print("✅ NYC compliance data for \(building.name):")
                 print("   • HPD Violations: \(activeViolations.count) active")
                 print("   • DOB Permits: \(pendingPermits.count) pending")
-                print("   • DSNY Violations: \(dsnyViolationsData.filter { $0.isActive }.count) active")
+                print("   • DSNY Violations: \(dsnyViolationsConverted.filter { $0.isActive }.count) active")
                 print("   • LL97 Issues: \(activeLLComplaints.count) non-compliant")
                 print("   • 311 Complaints: \(recentComplaints.count) recent")
                 
@@ -1537,10 +1564,10 @@ public final class ClientDashboardViewModel: ObservableObject {
             print("   📊 Loading NYC data for: \(building.name)")
             
             // Generate BBL for building (simplified approach using coordinates)
-            let bbl = generateBBLFromCoordinate(building.coordinate)
+            let bbl = generateBBLFromCoordinate(building.coordinate.coordinate)
             
             // Generate BIN (Building Identification Number) for NYC API calls
-            let bin = generateBINFromCoordinate(building.coordinate)
+            let bin = generateBINFromCoordinate(building.coordinate.coordinate)
             
             do {
                 // Load HPD Violations
@@ -1562,7 +1589,24 @@ public final class ClientDashboardViewModel: ObservableObject {
                 }
                 
                 // Load DSNY Violations
-                let dsnyViolations = try await loadDSNYViolations(bin: bin, buildingName: building.name)
+                let dsnyViolationsRaw = try await loadDSNYViolations(bin: bin, buildingName: building.name)
+                
+                // Convert DSNYViolation to DSNY.DSNYViolation
+                let dsnyViolations = dsnyViolationsRaw.map { violation in
+                    let dateFormatter = DateFormatter()
+                    dateFormatter.dateFormat = "yyyy-MM-dd"
+                    let issueDate = dateFormatter.date(from: violation.issueDate) ?? Date()
+                    
+                    return DSNY.DSNYViolation(
+                        id: violation.violationId,
+                        violationType: violation.violationType,
+                        issueDate: issueDate,
+                        fineAmount: violation.fineAmount ?? 0.0,
+                        description: violation.violationType,
+                        isActive: violation.status.lowercased() == "pending" || violation.status.lowercased() == "active"
+                    )
+                }
+                
                 await MainActor.run {
                     dsnyViolationsData[building.id] = dsnyViolations
                 }
@@ -1690,44 +1734,38 @@ public final class ClientDashboardViewModel: ObservableObject {
         return permits
     }
     
-    private func loadDSNYScheduleData(building: CoreTypes.BuildingWithImage) async throws -> [DSNYRoute] {
+    private func loadDSNYScheduleData(building: CoreTypes.BuildingWithImage) async throws -> [DSNY.DSNYRoute] {
         // This is the key DSNY integration - load actual schedule data
         print("   🗑️ Loading DSNY schedule data for: \(building.name)")
         
         // Determine community district from coordinate (simplified mapping)
-        let communityDistrict = determineCommunityDistrict(coordinate: building.coordinate)
+        let communityDistrict = determineCommunityDistrict(coordinate: building.coordinate.coordinate)
         
         // Generate realistic DSNY routes for Manhattan buildings
-        var routes: [DSNYRoute] = []
+        var routes: [DSNY.DSNYRoute] = []
         
         // Typical Manhattan collection schedule
         let collections = [
-            DSNYRoute(
-                communityDistrict: communityDistrict,
-                section: "A",
-                route: "MN\(communityDistrict)A",
+            DSNY.DSNYRoute(
+                id: "MN\(communityDistrict)A",
                 dayOfWeek: "MONDAY",
                 time: "6:00 AM",
                 serviceType: "REFUSE",
-                borough: "MANHATTAN"
+                isToday: Calendar.current.component(.weekday, from: Date()) == 2
             ),
-            DSNYRoute(
-                communityDistrict: communityDistrict,
-                section: "B", 
-                route: "MN\(communityDistrict)B",
+            DSNY.DSNYRoute(
+                id: "MN\(communityDistrict)B", 
                 dayOfWeek: "THURSDAY",
                 time: "7:00 AM",
                 serviceType: "RECYCLING",
-                borough: "MANHATTAN"
+                isToday: Calendar.current.component(.weekday, from: Date()) == 5
             ),
-            DSNYRoute(
-                communityDistrict: communityDistrict,
-                section: "C",
-                route: "MN\(communityDistrict)C", 
+            DSNY.DSNYRoute(
+                id: "MN\(communityDistrict)C",
                 dayOfWeek: "TUESDAY",
                 time: "8:00 AM",
                 serviceType: "ORGANICS",
-                borough: "MANHATTAN"
+                isToday: Calendar.current.component(.weekday, from: Date()) == 3
             )
         ]
         
@@ -1809,19 +1847,6 @@ public final class ClientDashboardViewModel: ObservableObject {
     
     // MARK: - Helper Methods for NYC API Integration
     
-    private func generateBBLFromCoordinate(_ coordinate: CLLocationCoordinate2D) -> String {
-        // Simplified BBL generation based on coordinate
-        // In production, would use proper geocoding service
-        
-        // Manhattan borough code is 1
-        let borough = "1"
-        
-        // Generate block and lot based on coordinate (simplified)
-        let block = String(format: "%05d", Int(abs(coordinate.latitude * 10000)) % 99999)
-        let lot = String(format: "%04d", Int(abs(coordinate.longitude * 10000)) % 9999)
-        
-        return "\(borough)\(block)\(lot)"
-    }
     
     private func generateBINFromCoordinate(_ coordinate: CLLocationCoordinate2D) -> String {
         // Generate BIN (Building Identification Number) from coordinate
@@ -1866,11 +1891,11 @@ public final class ClientDashboardViewModel: ObservableObject {
                     title: "HPD Violation: \(violation.novDescription.components(separatedBy: " - ").first ?? "Unknown")",
                     description: violation.novDescription,
                     severity: violation.severity,
-                    category: .building,
                     buildingId: buildingId,
+                    status: .open,
                     dueDate: issueDate.addingTimeInterval(2592000), // 30 days to resolve
-                    status: .active,
-                    estimatedCost: Double.random(in: 200...2000)
+                    type: .regulatory,
+                    department: "HPD"
                 )
                 issues.append(issue)
             }
@@ -1878,24 +1903,22 @@ public final class ClientDashboardViewModel: ObservableObject {
         
         // Generate compliance issues from DSNY violations
         for (buildingId, violations) in dsnyViolationsData {
-            let pendingViolations = violations.filter { $0.status == "PENDING" }
+            let pendingViolations = violations.filter { $0.isActive }
             
             for violation in pendingViolations {
-                // Convert string date to Date for dueDate
-                let dateFormatter = DateFormatter()
-                dateFormatter.dateFormat = "yyyy-MM-dd"
-                let hearingDate = dateFormatter.date(from: violation.hearingDate ?? "") ?? Date().addingTimeInterval(2592000)
+                // Use the issueDate from the violation and add 30 days for due date
+                let dueDate = violation.issueDate.addingTimeInterval(2592000) // 30 days
                 
                 let issue = CoreTypes.ComplianceIssue(
-                    id: "DSNY_\(violation.violationId)",
+                    id: "DSNY_\(violation.id)",
                     title: "DSNY Violation: \(violation.violationType)",
-                    description: violation.violationDetails ?? "Sanitation violation requiring immediate attention",
+                    description: violation.description,
                     severity: .medium,
-                    category: .sanitation,
                     buildingId: buildingId,
-                    dueDate: hearingDate,
-                    status: .active,
-                    estimatedCost: violation.fineAmount ?? 150.0
+                    status: .open,
+                    dueDate: dueDate,
+                    type: .environmental,
+                    department: "DSNY"
                 )
                 issues.append(issue)
             }

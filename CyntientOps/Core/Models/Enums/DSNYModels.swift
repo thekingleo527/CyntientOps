@@ -437,7 +437,7 @@ public struct DSNY {
                 issueDate: violation.issueDate,
                 fineAmount: Double(truncating: violation.fineAmount as NSDecimalNumber),
                 description: violation.description,
-                isActive: violation.status == .active
+                isActive: violation.status == DSNY.ViolationStatus.pending || violation.status == DSNY.ViolationStatus.issued
             )
         }
     }
