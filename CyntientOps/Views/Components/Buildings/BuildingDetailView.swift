@@ -954,18 +954,12 @@ struct EmptyStateMessage: View {
 }
 
 struct AssignedWorkerRow: View {
-    let worker: CoreTypes.Worker
+    let worker: BDAssignedWorker
     
     var body: some View {
         HStack(spacing: 12) {
-            AsyncImage(url: URL(string: worker.profileImageURL ?? "")) { image in
-                image
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-            } placeholder: {
-                Image(systemName: "person.circle.fill")
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.inactive)
-            }
+            Image(systemName: "person.circle.fill")
+                .foregroundColor(CyntientOpsDesign.DashboardColors.inactive)
             .frame(width: 40, height: 40)
             .clipShape(Circle())
             
@@ -975,9 +969,11 @@ struct AssignedWorkerRow: View {
                     .fontWeight(.medium)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                 
-                Text(worker.role.rawValue)
-                    .font(.caption)
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                if let schedule = worker.schedule {
+                    Text(schedule)
+                        .font(.caption)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                }
             }
             
             Spacer()
