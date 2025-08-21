@@ -35,8 +35,6 @@ public struct PhotoBatch {
 
 @MainActor
 public class PhotoEvidenceService: ObservableObject {
-    public static let shared = PhotoEvidenceService()
-    
     // MARK: - Published Properties
     @Published public var uploadProgress: Double = 0
     @Published public var isProcessingBatch = false
@@ -45,8 +43,13 @@ public class PhotoEvidenceService: ObservableObject {
     @Published public var storageUsed: Int64 = 0
     
     // MARK: - Dependencies
-    private let database = GRDBManager.shared
-    private let dashboardSync = DashboardSyncService.shared
+    private let database: GRDBManager
+    private let dashboardSync: DashboardSyncService?
+    
+    public init(database: GRDBManager, dashboardSync: DashboardSyncService? = nil) {
+        self.database = database
+        self.dashboardSync = dashboardSync
+    }
     
     // MARK: - Optimized Configuration
     private let highQuality: CGFloat = 0.9 // Legal/compliance photos
@@ -264,7 +267,7 @@ public class PhotoEvidenceService: ObservableObject {
                 "timestamp": ISO8601DateFormatter().string(from: batch.timestamp)
             ]
         )
-        dashboardSync.broadcastWorkerUpdate(update)
+        dashboardSync?.broadcastWorkerUpdate(update)
     }
     
     private func broadcastUrgentPhotoUpdate(_ photo: CoreTypes.ProcessedPhoto) {
@@ -280,7 +283,7 @@ public class PhotoEvidenceService: ObservableObject {
                 "timestamp": ISO8601DateFormatter().string(from: photo.timestamp)
             ]
         )
-        dashboardSync.broadcastWorkerUpdate(update)
+        dashboardSync?.broadcastWorkerUpdate(update)
     }
     
     // MARK: - Auto Cleanup & Retention
@@ -319,7 +322,7 @@ public class PhotoEvidenceService: ObservableObject {
             await updateStorageUsage()
             
         } catch {
-            print("❌ Cleanup failed: \(error)")
+            logInfo("❌ Cleanup failed: \(error)")
         }
     }
     
@@ -332,7 +335,7 @@ public class PhotoEvidenceService: ObservableObject {
                 }
             }
         } catch {
-            print("⚠️ Storage calculation failed: \(error)")
+            logInfo("⚠️ Storage calculation failed: \(error)")
         }
     }
     
@@ -342,7 +345,7 @@ public class PhotoEvidenceService: ObservableObject {
         do {
             try FileManager.default.createDirectory(at: photosDirectory, withIntermediateDirectories: true)
         } catch {
-            print("❌ Failed to create photos directory: \(error)")
+            logInfo("❌ Failed to create photos directory: \(error)")
         }
     }
     

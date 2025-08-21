@@ -130,7 +130,7 @@ struct BuildingPhotoGallery: View {
             isLoading = false
             
         } catch {
-            print("❌ Error loading photos: \(error)")
+            logInfo("❌ Error loading photos: \(error)")
             isLoading = false
         }
     }
@@ -572,7 +572,7 @@ struct PhotoAnnotationTool: View {
     
     private func saveAnnotatedPhoto() {
         // Save annotated photo
-        print("Saving annotated photo with \(annotations.count) annotations")
+        logInfo("Saving annotated photo with \(annotations.count) annotations")
     }
 }
 
@@ -1019,7 +1019,7 @@ struct PhotoComplianceVerifier: View {
     
     private func submitCompliance() {
         // Submit compliance report with all photos
-        print("Submitting compliance report with \(capturedPhotos.count) photos")
+        logInfo("Submitting compliance report with \(capturedPhotos.count) photos")
     }
 }
 

@@ -628,9 +628,9 @@ struct AdminWorkerManagementView: View {
             
             await MainActor.run {
                 self.allWorkers = workers
-                print("✅ Loaded \(workers.count) real workers from database:")
+                logInfo("✅ Loaded \(workers.count) real workers from database:")
                 for worker in workers {
-                    print("  - \(worker.name) (\(worker.email)) - Role: \(worker.role)")
+                    logInfo("  - \(worker.name) (\(worker.email)) - Role: \(worker.role)")
                 }
             }
             
@@ -639,7 +639,7 @@ struct AdminWorkerManagementView: View {
                 // Filter workers who are currently clocked in
                 // Note: Would need to access ClockInManager's active sessions or add a public method
                 self.clockedInWorkers = [] // Placeholder - would implement proper clocked-in checking
-                print("✅ \(self.clockedInWorkers.count) workers currently clocked in")
+                logInfo("✅ \(self.clockedInWorkers.count) workers currently clocked in")
             }
             
             // Load understaffed buildings (simplified calculation)
@@ -669,7 +669,7 @@ struct AdminWorkerManagementView: View {
             }
             
         } catch {
-            print("❌ Failed to load real worker data: \(error)")
+            logInfo("❌ Failed to load real worker data: \(error)")
         }
     }
     
@@ -820,7 +820,7 @@ struct AdminWorkerManagementView: View {
             
         case .building(let id):
             // Navigate to building in main dashboard
-            print("Navigate to building: \(id)")
+            logInfo("Navigate to building: \(id)")
             
         case .schedule:
             showingScheduleManager = true
@@ -843,7 +843,7 @@ struct AdminWorkerManagementView: View {
                 try await container.workers.updateWorkerProfile(worker)
                 await loadRealWorkerData() // Refresh data
             } catch {
-                print("❌ Failed to update worker: \(error)")
+                logInfo("❌ Failed to update worker: \(error)")
             }
         }
         selectedWorker = nil
@@ -851,25 +851,25 @@ struct AdminWorkerManagementView: View {
     
     private func applySchedule(_ scheduleData: ScheduleData) {
         // Apply schedule using ServiceContainer
-        print("📅 Applying schedule for \(scheduleData.assignments.count) assignments")
+        logInfo("📅 Applying schedule for \(scheduleData.assignments.count) assignments")
         showingScheduleManager = false
     }
     
     private func processBulkAssignments(_ assignments: [BulkAssignment]) {
         // Process assignments using ServiceContainer
-        print("👥 Processing \(assignments.count) bulk assignments")
+        logInfo("👥 Processing \(assignments.count) bulk assignments")
         showingBulkAssignment = false
     }
     
     private func exportPerformanceReport(format: ExportFormat) {
         // Export performance report
-        print("📊 Exporting performance report in \(format.rawValue) format")
+        logInfo("📊 Exporting performance report in \(format.rawValue) format")
         showingPerformanceReports = false
     }
     
     private func updateCapabilities(_ updates: [CapabilityUpdate]) {
         // Update capabilities using ServiceContainer
-        print("🛠️ Updating capabilities for \(updates.count) workers")
+        logInfo("🛠️ Updating capabilities for \(updates.count) workers")
         showingCapabilitiesEditor = false
     }
     
@@ -877,7 +877,7 @@ struct AdminWorkerManagementView: View {
         // Add worker using ServiceContainer
         Task {
             // Note: Would need to add createWorker method to WorkerService
-            print("✅ Would create new worker: \(worker.name)")
+            logInfo("✅ Would create new worker: \(worker.name)")
             await loadRealWorkerData() // Refresh data
         }
         showingAddWorker = false
@@ -885,13 +885,13 @@ struct AdminWorkerManagementView: View {
     
     private func applyShiftPlan(_ plan: ShiftPlan) {
         // Apply shift plan using ServiceContainer
-        print("⏰ Applying shift plan for week starting \(plan.weekStarting)")
+        logInfo("⏰ Applying shift plan for week starting \(plan.weekStarting)")
         showingShiftPlanner = false
     }
     
     private func exportPayroll(format: ExportFormat) {
         // Export payroll using ServiceContainer
-        print("💰 Exporting payroll in \(format.rawValue) format")
+        logInfo("💰 Exporting payroll in \(format.rawValue) format")
         showingPayrollSummary = false
     }
 }

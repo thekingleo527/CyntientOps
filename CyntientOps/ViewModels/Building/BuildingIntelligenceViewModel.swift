@@ -64,7 +64,7 @@ public class BuildingIntelligenceViewModel: ObservableObject {
             }
         }
         
-        print("✅ Complete intelligence loaded for building: \(building.name)")
+        logInfo("✅ Complete intelligence loaded for building: \(building.name)")
         isLoading = false
     }
     
@@ -76,7 +76,7 @@ public class BuildingIntelligenceViewModel: ObservableObject {
             let buildingMetrics = try await buildingMetricsService.calculateMetrics(for: building.id)
             self.metrics = buildingMetrics
         } catch {
-            print("⚠️ Failed to load building metrics: \(error)")
+            logInfo("⚠️ Failed to load building metrics: \(error)")
             
             self.metrics = CoreTypes.BuildingMetrics(
                 buildingId: building.id,
@@ -107,10 +107,10 @@ public class BuildingIntelligenceViewModel: ObservableObject {
             // Get currently on-site workers
             self.currentWorkersOnSite = await getCurrentWorkersOnSite(building, from: allWorkers)
             
-            print("✅ Loaded \(allWorkers.count) workers for building: \(building.name)")
+            logInfo("✅ Loaded \(allWorkers.count) workers for building: \(building.name)")
             
         } catch {
-            print("❌ Failed to load workers for building: \(error)")
+            logInfo("❌ Failed to load workers for building: \(error)")
             
             // Create fallback worker data
             await createFallbackWorkerData(building)
@@ -123,7 +123,7 @@ public class BuildingIntelligenceViewModel: ObservableObject {
         // Create basic schedule data for now
         await createFallbackScheduleData(building)
         
-        print("✅ Loaded basic schedule data for building: \(building.name)")
+        logInfo("✅ Loaded basic schedule data for building: \(building.name)")
     }
     
     /// Load building history and patterns
@@ -150,10 +150,10 @@ public class BuildingIntelligenceViewModel: ObservableObject {
             // Generate patterns from history
             self.patterns = generatePatterns(from: self.buildingHistory)
             
-            print("✅ Loaded \(self.buildingHistory.count) history items, \(patterns.count) patterns")
+            logInfo("✅ Loaded \(self.buildingHistory.count) history items, \(patterns.count) patterns")
             
         } catch {
-            print("❌ Failed to load building history: \(error)")
+            logInfo("❌ Failed to load building history: \(error)")
             
             // Create fallback history data
             await createFallbackHistoryData(building)
@@ -168,7 +168,7 @@ public class BuildingIntelligenceViewModel: ObservableObject {
         // Get emergency procedures
         self.emergencyProcedures = getEmergencyProcedures(for: building)
         
-        print("✅ Loaded \(emergencyContacts.count) contacts, \(emergencyProcedures.count) procedures")
+        logInfo("✅ Loaded \(emergencyContacts.count) contacts, \(emergencyProcedures.count) procedures")
     }
     
     // MARK: - Helper Methods
@@ -293,7 +293,7 @@ public class BuildingIntelligenceViewModel: ObservableObject {
     
     /// Create fallback worker data when service fails
     private func createFallbackWorkerData(_ building: NamedCoordinate) async {
-        print("📝 Creating fallback worker data for: \(building.name)")
+        logInfo("📝 Creating fallback worker data for: \(building.name)")
         
         // Create basic worker profiles based on building assignments
         var fallbackWorkers: [WorkerProfile] = []
@@ -332,7 +332,7 @@ public class BuildingIntelligenceViewModel: ObservableObject {
     
     /// Generate fallback schedule when service fails
     private func createFallbackScheduleData(_ building: NamedCoordinate) async {
-        print("📝 Creating fallback schedule for: \(building.name)")
+        logInfo("📝 Creating fallback schedule for: \(building.name)")
         
         var schedule: [ContextualTask] = []
         

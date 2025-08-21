@@ -14,11 +14,13 @@ import GRDB
 import CoreLocation // Added for CLLocationCoordinate2D
 
 public actor TaskService {
-    static let shared = TaskService()
+    private let grdbManager: GRDBManager
+    private let dashboardSync: DashboardSyncService?
     
-    let grdbManager = GRDBManager.shared
-    
-    private init() {}
+    public init(database: GRDBManager, dashboardSync: DashboardSyncService? = nil) {
+        self.grdbManager = database
+        self.dashboardSync = dashboardSync
+    }
     
     // MARK: - Public API Methods
     
@@ -117,7 +119,9 @@ public actor TaskService {
             )
             
             // FIXED: Use single parameter call
-            await DashboardSyncService.shared.broadcastWorkerUpdate(update)
+            if let dashboardSync = dashboardSync {
+                await dashboardSync.broadcastWorkerUpdate(update)
+            }
         }
     }
     

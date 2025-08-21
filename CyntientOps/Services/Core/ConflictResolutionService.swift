@@ -166,7 +166,7 @@ actor ConflictResolutionService {
         conflictDetectedSubject.send(conflict)
         
         // Log for debugging
-        print("⚠️ Conflict detected for \(entityType) \(entityId)")
+        logInfo("⚠️ Conflict detected for \(entityType) \(entityId)")
         await logConflict(conflict)
         
         return conflict
@@ -297,7 +297,7 @@ actor ConflictResolutionService {
             
             try await saveVectorClock(clock, for: entity)
         } catch {
-            print("❌ Failed to update vector clock: \(error)")
+            logInfo("❌ Failed to update vector clock: \(error)")
         }
     }
     
@@ -396,7 +396,7 @@ actor ConflictResolutionService {
         // Notify observers
         conflictResolvedSubject.send(resolution)
         
-        print("✅ Conflict resolved: \(choice) by \(resolvedBy)")
+        logInfo("✅ Conflict resolved: \(choice) by \(resolvedBy)")
         
         return resolution
     }
@@ -533,7 +533,7 @@ actor ConflictResolutionService {
                 conflict.detectedAt.ISO8601Format()
             ])
         } catch {
-            print("❌ Failed to log conflict: \(error)")
+            logInfo("❌ Failed to log conflict: \(error)")
         }
     }
     
@@ -565,7 +565,7 @@ actor ConflictResolutionService {
                 conflict.id
             ])
         } catch {
-            print("❌ Failed to save resolution: \(error)")
+            logInfo("❌ Failed to save resolution: \(error)")
         }
     }
     

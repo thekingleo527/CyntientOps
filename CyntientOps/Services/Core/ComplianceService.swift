@@ -12,13 +12,13 @@ import Foundation
 import GRDB
 
 public actor ComplianceService {
-    static let shared = ComplianceService()
-    
-    private let grdbManager = GRDBManager.shared
+    private let grdbManager: GRDBManager
     // Note: We'll access DashboardSyncService through MainActor when needed
     // instead of storing a reference
     
-    private init() {}
+    public init(database: GRDBManager) {
+        self.grdbManager = database
+    }
     
     // MARK: - Public Methods
     

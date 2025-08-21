@@ -81,7 +81,7 @@ public class RealTimeMonitoringService: ObservableObject {
     public func startMonitoring() async {
         guard !isMonitoring else { return }
         
-        print("🔴 Starting real-time monitoring service...")
+        logInfo("🔴 Starting real-time monitoring service...")
         isMonitoring = true
         connectionStatus = .connecting
         
@@ -97,14 +97,14 @@ public class RealTimeMonitoringService: ObservableObject {
         // Update Nova AI state
         novaAI.setMonitoringState(active: true)
         
-        print("✅ Real-time monitoring service started")
+        logInfo("✅ Real-time monitoring service started")
     }
     
     /// Stop real-time monitoring
     public func stopMonitoring() {
         guard isMonitoring else { return }
         
-        print("⏹️ Stopping real-time monitoring service...")
+        logInfo("⏹️ Stopping real-time monitoring service...")
         
         isMonitoring = false
         connectionStatus = .disconnected
@@ -119,7 +119,7 @@ public class RealTimeMonitoringService: ObservableObject {
         // Update Nova AI state
         novaAI.setMonitoringState(active: false)
         
-        print("✅ Real-time monitoring service stopped")
+        logInfo("✅ Real-time monitoring service stopped")
     }
     
     /// Process incoming real-time data
@@ -128,7 +128,7 @@ public class RealTimeMonitoringService: ObservableObject {
         let buildingId = data["building_id"] as? String
         let source = data["source"] as? String ?? "unknown"
         
-        print("📡 Processing real-time update: \(updateType) from \(source)")
+        logInfo("📡 Processing real-time update: \(updateType) from \(source)")
         
         // Create alert based on update type
         let alert = await createAlertFromUpdate(data)
@@ -231,7 +231,7 @@ public class RealTimeMonitoringService: ObservableObject {
     
     private func connectWebhook(service: String, endpoint: String) async {
         guard let url = URL(string: endpoint) else {
-            print("❌ Invalid webhook URL for \(service): \(endpoint)")
+            logInfo("❌ Invalid webhook URL for \(service): \(endpoint)")
             return
         }
         
@@ -244,7 +244,7 @@ public class RealTimeMonitoringService: ObservableObject {
         await listenForMessages(service: service, task: webSocketTask)
         
         webSocketTask.resume()
-        print("🔌 Connected to \(service) webhook")
+        logInfo("🔌 Connected to \(service) webhook")
     }
     
     private func listenForMessages(service: String, task: URLSessionWebSocketTask) async {
@@ -275,7 +275,7 @@ public class RealTimeMonitoringService: ObservableObject {
             }
             
         } catch {
-            print("❌ WebSocket error for \(service): \(error)")
+            logInfo("❌ WebSocket error for \(service): \(error)")
             
             // Attempt reconnection
             await reconnectWebhook(service: service)
@@ -285,7 +285,7 @@ public class RealTimeMonitoringService: ObservableObject {
     private func reconnectWebhooks() async {
         guard isMonitoring else { return }
         
-        print("🔄 Reconnecting webhooks...")
+        logInfo("🔄 Reconnecting webhooks...")
         await connectToWebhooks()
     }
     
@@ -303,7 +303,7 @@ public class RealTimeMonitoringService: ObservableObject {
     private func disconnectWebhooks() {
         for (service, task) in webSocketTasks {
             task.cancel()
-            print("🔌 Disconnected from \(service) webhook")
+            logInfo("🔌 Disconnected from \(service) webhook")
         }
         webSocketTasks.removeAll()
     }
@@ -354,7 +354,7 @@ public class RealTimeMonitoringService: ObservableObject {
                 }
             }
         } catch {
-            print("❌ Failed to check for missed updates: \(error)")
+            logInfo("❌ Failed to check for missed updates: \(error)")
         }
     }
     
@@ -365,7 +365,7 @@ public class RealTimeMonitoringService: ObservableObject {
             if task.state == .running {
                 healthyConnections += 1
             } else {
-                print("⚠️ Connection to \(service) is unhealthy, attempting reconnect...")
+                logInfo("⚠️ Connection to \(service) is unhealthy, attempting reconnect...")
                 await reconnectWebhook(service: service)
             }
         }
@@ -567,9 +567,9 @@ public class RealTimeMonitoringService: ObservableObject {
         
         do {
             try await UNUserNotificationCenter.current().add(request)
-            print("📱 Push notification sent for alert: \(alert.title)")
+            logInfo("📱 Push notification sent for alert: \(alert.title)")
         } catch {
-            print("❌ Failed to send push notification: \(error)")
+            logInfo("❌ Failed to send push notification: \(error)")
         }
     }
     
@@ -611,16 +611,16 @@ public class RealTimeMonitoringService: ObservableObject {
         
         let removedCount = initialCount - activeAlerts.count
         if removedCount > 0 {
-            print("🧹 Cleaned up \(removedCount) expired alerts")
+            logInfo("🧹 Cleaned up \(removedCount) expired alerts")
         }
     }
     
     private func requestNotificationPermissions() {
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
             if granted {
-                print("✅ Push notification permissions granted")
+                logInfo("✅ Push notification permissions granted")
             } else {
-                print("❌ Push notification permissions denied")
+                logInfo("❌ Push notification permissions denied")
             }
         }
     }
@@ -736,16 +736,16 @@ extension NovaAIManager {
     public func setMonitoringState(active: Bool) {
         if active {
             self.novaState = .active
-            print("🔴 Nova AI monitoring state: ACTIVE")
+            logInfo("🔴 Nova AI monitoring state: ACTIVE")
         } else {
             self.novaState = .idle
-            print("⚪ Nova AI monitoring state: IDLE")
+            logInfo("⚪ Nova AI monitoring state: IDLE")
         }
     }
     
     public func processUrgentAlert(_ title: String, context: String) async {
         self.novaState = .urgent
-        print("🚨 Nova AI processing urgent alert: \(title)")
+        logInfo("🚨 Nova AI processing urgent alert: \(title)")
         
         // Simulate AI processing
         try? await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds

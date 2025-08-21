@@ -22,24 +22,50 @@ public enum BuildingAssignmentType {
     case unknown      // No assignment relationship
 }
 
+// MARK: - Optimized Context Data Structures
+
+public struct WorkerContext {
+    let profile: CoreTypes.WorkerProfile
+    let currentBuilding: CoreTypes.NamedCoordinate?
+    let assignedBuildings: [CoreTypes.NamedCoordinate]
+    let portfolioBuildings: [CoreTypes.NamedCoordinate]
+}
+
+public struct OperationalStatus {
+    var clockInStatus: (isClockedIn: Bool, building: CoreTypes.NamedCoordinate?) = (false, nil)
+    var hasPendingScenario: Bool = false
+    var lastRefreshTime: Date?
+}
+
+public struct ContextUIState {
+    var isLoading: Bool = false
+    var lastError: Error?
+    var errorMessage: String?
+}
+
+public struct TaskContext {
+    var todaysTasks: [CoreTypes.ContextualTask] = []
+    var taskProgress: CoreTypes.TaskProgress?
+}
+
 // MARK: - Worker Context Engine
 @MainActor
 public final class WorkerContextEngine: ObservableObject {
     public static let shared = WorkerContextEngine()
     
-    // MARK: - Published Properties for SwiftUI
-    @Published public var currentWorker: CoreTypes.WorkerProfile?
-    @Published public var currentBuilding: CoreTypes.NamedCoordinate?
-    @Published public var assignedBuildings: [CoreTypes.NamedCoordinate] = []
-    @Published public var portfolioBuildings: [CoreTypes.NamedCoordinate] = []
-    @Published public var todaysTasks: [CoreTypes.ContextualTask] = []
-    @Published public var taskProgress: CoreTypes.TaskProgress?
-    @Published public var clockInStatus: (isClockedIn: Bool, building: CoreTypes.NamedCoordinate?) = (false, nil)
-    @Published public var isLoading = false
-    @Published public var lastError: Error?
-    @Published public var hasPendingScenario = false
-    @Published public var lastRefreshTime: Date?
-    @Published public var errorMessage: String?
+    // MARK: - Optimized Context State
+    
+    /// Worker context combining profile, current location, and assignments
+    @Published public var workerContext: WorkerContext?
+    
+    /// Current operational status including clock-in and task progress
+    @Published public var operationalStatus: OperationalStatus = OperationalStatus()
+    
+    /// UI state for loading and error handling
+    @Published public var uiState: ContextUIState = ContextUIState()
+    
+    /// Task data and progress
+    @Published public var taskContext: TaskContext = TaskContext()
     
     // MARK: - Private Properties
     private var cancellables = Set<AnyCancellable>()
@@ -118,12 +144,12 @@ public final class WorkerContextEngine: ObservableObject {
             updatePendingScenarioStatus()
             lastRefreshTime = Date()
             
-            print("✅ Context loaded successfully for worker: \(currentWorker?.name ?? workerId)")
+            logInfo("✅ Context loaded successfully for worker: \(currentWorker?.name ?? workerId)")
             
         } catch {
             lastError = error
             errorMessage = error.localizedDescription
-            print("❌ loadContext failed: \(error)")
+            logInfo("❌ loadContext failed: \(error)")
             throw error
         }
         

@@ -64,13 +64,13 @@ public class LanguageManager: ObservableObject {
             currentLanguage = userPrimaryLanguage
             canToggleLanguage = userLanguageToggle
             
-            print("✅ Language preferences loaded for \(user.name):")
-            print("   - Primary language: \(userPrimaryLanguage)")
-            print("   - Can toggle: \(userLanguageToggle)")
-            print("   - Current language: \(currentLanguage)")
+            logInfo("✅ Language preferences loaded for \(user.name):")
+            logInfo("   - Primary language: \(userPrimaryLanguage)")
+            logInfo("   - Can toggle: \(userLanguageToggle)")
+            logInfo("   - Current language: \(currentLanguage)")
             
         } catch {
-            print("❌ Failed to load language preferences: \(error)")
+            logInfo("❌ Failed to load language preferences: \(error)")
             // Fallback to English
             resetToEnglish()
         }
@@ -111,14 +111,14 @@ public class LanguageManager: ObservableObject {
     /// Toggle between English and Spanish (only if user has toggle capability)
     public func toggleLanguage() {
         guard canToggleLanguage else {
-            print("⚠️ User cannot toggle language")
+            logInfo("⚠️ User cannot toggle language")
             return
         }
         
         let newLanguage = currentLanguage == "en" ? "es" : "en"
         currentLanguage = newLanguage
         
-        print("🌐 Language toggled to: \(newLanguage)")
+        logInfo("🌐 Language toggled to: \(newLanguage)")
         
         // Save preference
         UserDefaults.standard.set(newLanguage, forKey: "user_current_language_\(authManager.currentUser?.id ?? "")")

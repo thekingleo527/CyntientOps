@@ -82,7 +82,7 @@ class WeatherDataAdapter: ObservableObject {
     private let openMeteoBaseURL = "https://api.open-meteo.com/v1/forecast"
 
     public init() {
-        print("🌤️ WeatherDataAdapter initialized with unified error handling")
+        logInfo("🌤️ WeatherDataAdapter initialized with unified error handling")
         loadCacheFromDisk()
     }
     
@@ -106,7 +106,7 @@ class WeatherDataAdapter: ObservableObject {
         
         // Prevent duplicate requests
         guard !activeRequests.contains(buildingId) else {
-            print("⏳ Weather request already in progress for \(building.name)")
+            logInfo("⏳ Weather request already in progress for \(building.name)")
             return
         }
         
@@ -116,14 +116,14 @@ class WeatherDataAdapter: ObservableObject {
             self.forecast = cached.data
             self.currentWeather = cached.data.first
             self.lastUpdate = cached.timestamp
-            print("📦 Using cached weather for \(building.name)")
+            logInfo("📦 Using cached weather for \(building.name)")
             return
         }
         
         // Rate limiting check
         if let lastCall = lastApiCallTime[buildingId],
            Date().timeIntervalSince(lastCall) < apiCallMinInterval {
-            print("⏱️ Rate limiting: Waiting before next API call for \(building.name)")
+            logInfo("⏱️ Rate limiting: Waiting before next API call for \(building.name)")
             return
         }
         
@@ -152,11 +152,11 @@ class WeatherDataAdapter: ObservableObject {
             // Update API call tracking
             lastApiCallTime[buildingId] = Date()
             
-            print("✅ Weather loaded for \(building.name)")
+            logInfo("✅ Weather loaded for \(building.name)")
             
         } catch let weatherError as WeatherError {
             self.error = weatherError
-            print("❌ Weather fetch error for \(building.name): \(weatherError.localizedDescription)")
+            logInfo("❌ Weather fetch error for \(building.name): \(weatherError.localizedDescription)")
 
             // Fallback to disk cache when offline or to stale memory cache
             if case .networkError = weatherError,
@@ -165,15 +165,15 @@ class WeatherDataAdapter: ObservableObject {
                 self.currentWeather = diskCache.data.first
                 self.lastUpdate = diskCache.timestamp
                 weatherCache[buildingId] = (diskCache.data, diskCache.timestamp)
-                print("📂 Using disk cache due to network error for \(building.name)")
+                logInfo("📂 Using disk cache due to network error for \(building.name)")
             } else if let staleCache = weatherCache[buildingId] {
                 self.forecast = staleCache.data
                 self.currentWeather = staleCache.data.first
-                print("📦 Using stale cache due to error for \(building.name)")
+                logInfo("📦 Using stale cache due to error for \(building.name)")
             }
         } catch {
             self.error = .unknown(error)
-            print("❌ Unexpected weather error for \(building.name): \(error)")
+            logInfo("❌ Unexpected weather error for \(building.name): \(error)")
         }
         
         activeRequests.remove(buildingId)
@@ -571,7 +571,7 @@ class WeatherDataAdapter: ObservableObject {
     func clearCache() {
         weatherCache.removeAll()
         lastApiCallTime.removeAll()
-        print("🗑️ Weather cache cleared")
+        logInfo("🗑️ Weather cache cleared")
     }
     
     func getCachedWeatherCount() -> Int {
@@ -595,9 +595,9 @@ class WeatherDataAdapter: ObservableObject {
         do {
             let data = try encoder.encode(diskData)
             try data.write(to: cacheFileURL)
-            print("💾 Weather cache saved to disk")
+            logInfo("💾 Weather cache saved to disk")
         } catch {
-            print("❌ Failed to save weather cache: \(error)")
+            logInfo("❌ Failed to save weather cache: \(error)")
         }
     }
 
@@ -622,9 +622,9 @@ class WeatherDataAdapter: ObservableObject {
                 lastUpdate = first.value.timestamp
             }
 
-            print("📂 Loaded weather cache from disk with \(weatherCache.count) entries")
+            logInfo("📂 Loaded weather cache from disk with \(weatherCache.count) entries")
         } catch {
-            print("❌ Failed to load weather cache: \(error)")
+            logInfo("❌ Failed to load weather cache: \(error)")
         }
     }
 

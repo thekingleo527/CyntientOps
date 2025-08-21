@@ -221,7 +221,7 @@ public class PhotoSecurityManager: ObservableObject {
             
             if expiredPhotos.isEmpty {
                 cleanupStatus = .idle
-                print("✅ Photo cleanup: No expired photos found")
+                logInfo("✅ Photo cleanup: No expired photos found")
                 return
             }
             
@@ -251,12 +251,12 @@ public class PhotoSecurityManager: ObservableObject {
                     cleanupStatus = .cleaning(cleanedCount, expiredPhotos.count)
                     
                 } catch {
-                    print("Failed to clean up photo \(photo.id): \(error)")
+                    logInfo("Failed to clean up photo \(photo.id): \(error)")
                 }
             }
             
             cleanupStatus = .completed
-            print("✅ Photo cleanup completed: \(cleanedCount)/\(expiredPhotos.count) photos cleaned")
+            logInfo("✅ Photo cleanup completed: \(cleanedCount)/\(expiredPhotos.count) photos cleaned")
             
             // Reset status after delay
             DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
@@ -265,13 +265,13 @@ public class PhotoSecurityManager: ObservableObject {
             
         } catch {
             cleanupStatus = .error(error.localizedDescription)
-            print("❌ Photo cleanup failed: \(error)")
+            logInfo("❌ Photo cleanup failed: \(error)")
         }
     }
     
     /// Emergency cleanup when storage is critically low
     public func emergencyCleanup() async {
-        print("🚨 Performing emergency photo cleanup")
+        logInfo("🚨 Performing emergency photo cleanup")
         
         do {
             // Find all photos older than 12 hours (half TTL)
@@ -288,10 +288,10 @@ public class PhotoSecurityManager: ObservableObject {
                 )
             }
             
-            print("🚨 Emergency cleanup: removed \(min(emergencyExpired.count, 100)) photos")
+            logInfo("🚨 Emergency cleanup: removed \(min(emergencyExpired.count, 100)) photos")
             
         } catch {
-            print("❌ Emergency cleanup failed: \(error)")
+            logInfo("❌ Emergency cleanup failed: \(error)")
         }
     }
     

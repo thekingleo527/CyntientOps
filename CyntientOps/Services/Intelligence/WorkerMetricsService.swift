@@ -59,7 +59,7 @@ class WorkerMetricsService: ObservableObject {
                 lastActiveDate: await getLastActiveDate(for: workerId) ?? Date()
             )
         } catch {
-            print("⚠️ Error calculating worker metrics: \(error)")
+            logInfo("⚠️ Error calculating worker metrics: \(error)")
             return createDefaultMetrics(workerId: workerId, buildingId: buildingId)
         }
     }
@@ -160,7 +160,7 @@ class WorkerMetricsService: ObservableObject {
                 return Double(completed) / Double(scheduled)
             }
         } catch {
-            print("⚠️ Error calculating routine adherence: \(error)")
+            logInfo("⚠️ Error calculating routine adherence: \(error)")
         }
         
         return 0.85 // Default good adherence
@@ -192,7 +192,7 @@ class WorkerMetricsService: ObservableObject {
                 return formatter.date(from: dateString)
             }
         } catch {
-            print("⚠️ Error getting last active date: \(error)")
+            logInfo("⚠️ Error getting last active date: \(error)")
         }
         
         return Date()
@@ -249,7 +249,7 @@ extension WorkerMetricsService {
                 completedTasks: completedTasks.count
             )
         } catch {
-            print("⚠️ Error getting overall worker performance: \(error)")
+            logInfo("⚠️ Error getting overall worker performance: \(error)")
             return CoreTypes.PerformanceMetrics(
                 completionRate: 0.0,
                 avgTaskTime: 0.0,

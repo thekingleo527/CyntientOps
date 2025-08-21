@@ -1113,7 +1113,7 @@ struct AsyncPreviewWrapper<Content: View>: View {
                     self.loadedContent = result
                 }
             } catch {
-                print("Preview loading failed: \(error)")
+                logInfo("Preview loading failed: \(error)")
             }
         }
     }

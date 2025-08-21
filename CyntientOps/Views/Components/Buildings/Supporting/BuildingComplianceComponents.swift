@@ -173,7 +173,7 @@ struct ComplianceStatusCard: View {
             isLoading = false
             
         } catch {
-            print("❌ Error loading compliance data: \(error)")
+            logInfo("❌ Error loading compliance data: \(error)")
             isLoading = false
         }
     }
@@ -1095,7 +1095,7 @@ struct CompliancePhotoRequirements: View {
     
     private func submitPhotos() {
         // Submit compliance photos
-        print("Submitting \(capturedPhotos.count) compliance photos")
+        logInfo("Submitting \(capturedPhotos.count) compliance photos")
     }
 }
 

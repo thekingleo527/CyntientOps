@@ -16,7 +16,7 @@ import GRDB
 struct V003_WorkerAssignments {
     
     func run() async throws {
-        print("🔄 Starting V003_WorkerAssignments migration with GRDB...")
+        logInfo("🔄 Starting V003_WorkerAssignments migration with GRDB...")
         
         // ✅ FIXED: Use GRDBManager instead of GRDBManager
         let manager = GRDBManager.shared
@@ -105,7 +105,7 @@ struct V003_WorkerAssignments {
         // Combine all assignments
         let allAssignments = edwinAssignments + kevinAssignments + otherAssignments
         
-        print("📊 Inserting \(allAssignments.count) worker assignments...")
+        logInfo("📊 Inserting \(allAssignments.count) worker assignments...")
         
         // Insert all assignments with GRDB-compatible parameter binding
         for assignment in allAssignments {
@@ -131,7 +131,7 @@ struct V003_WorkerAssignments {
         
         // ✅ FIXED: Explicit type annotation for count
         let edwinCount: Int64 = edwinCheck.first?["count"] as? Int64 ?? 0
-        print("✅ Edwin has \(edwinCount) building assignments")
+        logInfo("✅ Edwin has \(edwinCount) building assignments")
         
         // Verify Kevin's assignments were created
         let kevinCheck: [[String: Any]] = try await manager.query("""
@@ -141,7 +141,7 @@ struct V003_WorkerAssignments {
         
         // ✅ FIXED: Explicit type annotation for count
         let kevinCount: Int64 = kevinCheck.first?["count"] as? Int64 ?? 0
-        print("✅ Kevin has \(kevinCount) building assignments")
+        logInfo("✅ Kevin has \(kevinCount) building assignments")
         
         // Get total assignment count
         let totalCheck: [[String: Any]] = try await manager.query("""
@@ -150,7 +150,7 @@ struct V003_WorkerAssignments {
         
         // ✅ FIXED: Explicit type annotation for count
         let totalCount: Int64 = totalCheck.first?["count"] as? Int64 ?? 0
-        print("✅ Total active assignments: \(totalCount)")
+        logInfo("✅ Total active assignments: \(totalCount)")
         
         // Print assignment summary by worker
         let summaryQuery: [[String: Any]] = try await manager.query("""
@@ -164,15 +164,15 @@ struct V003_WorkerAssignments {
             ORDER BY worker_name
         """)
         
-        print("\n📋 Assignment Summary:")
+        logInfo("\n📋 Assignment Summary:")
         for row in summaryQuery {
             let name = row["worker_name"] as? String ?? "Unknown"
             let count = row["assignment_count"] as? Int64 ?? 0
             let primary = row["primary_count"] as? Int64 ?? 0
-            print("   \(name): \(count) buildings (\(primary) primary)")
+            logInfo("   \(name): \(count) buildings (\(primary) primary)")
         }
         
-        print("\n✅ V003_WorkerAssignments GRDB migration completed successfully!")
+        logInfo("\n✅ V003_WorkerAssignments GRDB migration completed successfully!")
     }
 }
 
@@ -192,7 +192,7 @@ extension V003_WorkerAssignments {
         """)
         
         guard !tableCheck.isEmpty else {
-            print("❌ worker_assignments table not found")
+            logInfo("❌ worker_assignments table not found")
             return false
         }
         
@@ -205,10 +205,10 @@ extension V003_WorkerAssignments {
         """)
         
         if edwinCheck.count >= 8 {
-            print("✅ Migration verification: Edwin has \(edwinCheck.count) buildings")
+            logInfo("✅ Migration verification: Edwin has \(edwinCheck.count) buildings")
             return true
         } else {
-            print("⚠️ Migration verification: Edwin only has \(edwinCheck.count) buildings (expected 8)")
+            logInfo("⚠️ Migration verification: Edwin only has \(edwinCheck.count) buildings (expected 8)")
             return false
         }
     }
@@ -231,7 +231,7 @@ extension V003_WorkerAssignments {
             ORDER BY wa.worker_name, wa.building_id
         """)
         
-        print("\n📊 Detailed Assignment Report:")
+        logInfo("\n📊 Detailed Assignment Report:")
         var currentWorker = ""
         
         for row in report {
@@ -242,14 +242,14 @@ extension V003_WorkerAssignments {
             
             if workerName != currentWorker {
                 currentWorker = workerName
-                print("\n👤 \(workerName):")
+                logInfo("\n👤 \(workerName):")
             }
             
             let primaryFlag = isPrimary ? " (PRIMARY)" : ""
-            print("   🏢 \(buildingId): \(buildingName)\(primaryFlag)")
+            logInfo("   🏢 \(buildingId): \(buildingName)\(primaryFlag)")
         }
         
-        print("\n")
+        logInfo("\n")
     }
     
     /// Quick validation for specific workers
@@ -264,9 +264,9 @@ extension V003_WorkerAssignments {
         
         if let primary = edwinPrimary.first {
             let buildingId = primary["building_id"] as? String ?? "Unknown"
-            print("✅ Edwin's primary building: \(buildingId)")
+            logInfo("✅ Edwin's primary building: \(buildingId)")
         } else {
-            print("⚠️ Edwin has no primary building assignment")
+            logInfo("⚠️ Edwin has no primary building assignment")
         }
         
         // Validate Kevin's primary assignment (Rubin Museum)
@@ -277,9 +277,9 @@ extension V003_WorkerAssignments {
         
         if let primary = kevinPrimary.first {
             let buildingId = primary["building_id"] as? String ?? "Unknown"
-            print("✅ Kevin's primary building: \(buildingId)")
+            logInfo("✅ Kevin's primary building: \(buildingId)")
         } else {
-            print("⚠️ Kevin has no primary building assignment")
+            logInfo("⚠️ Kevin has no primary building assignment")
         }
         
         // Validate total assignments
@@ -288,7 +288,7 @@ extension V003_WorkerAssignments {
         """)
         
         if let total = totalAssignments.first?["total"] as? Int64 {
-            print("✅ Total active assignments: \(total)")
+            logInfo("✅ Total active assignments: \(total)")
         }
     }
 }

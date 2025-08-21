@@ -440,7 +440,7 @@ struct AdminPhotoEvidenceView: View {
             dashboardSync.broadcastUpdate(update)
             
         } catch {
-            print("❌ Failed to load photo evidence data: \(error)")
+            logInfo("❌ Failed to load photo evidence data: \(error)")
         }
         
         isLoading = false

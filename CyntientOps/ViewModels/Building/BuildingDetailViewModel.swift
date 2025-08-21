@@ -632,7 +632,7 @@ public class BuildingDetailViewModel: ObservableObject {
             await MainActor.run {
                 self.errorMessage = "Failed to load building details: \(error.localizedDescription)"
             }
-            print("❌ Error loading building details: \(error)")
+            logInfo("❌ Error loading building details: \(error)")
         }
     }
     
@@ -658,7 +658,7 @@ public class BuildingDetailViewModel: ObservableObject {
                 self.todaysTasks = (12, 9)
                 self.efficiencyScore = 85
             }
-            print("⚠️ Using default metrics: \(error)")
+            logInfo("⚠️ Using default metrics: \(error)")
         }
     }
     
@@ -770,14 +770,14 @@ public class BuildingDetailViewModel: ObservableObject {
                 self.completedRoutines = dailyRoutines.filter { $0.isCompleted }.count
                 self.totalRoutines = dailyRoutines.count
                 
-                print("📋 Loaded \(allRoutines.count) routines for building \(buildingId): \(todayTasks.count) tasks, \(recurringRoutines.count) recurring, \(dsnyTasks.count) DSNY")
+                logInfo("📋 Loaded \(allRoutines.count) routines for building \(buildingId): \(todayTasks.count) tasks, \(recurringRoutines.count) recurring, \(dsnyTasks.count) DSNY")
             }
             
             // Also load weekly/recurring routines for this building
             await loadWeeklyRoutines()
             
         } catch {
-            print("⚠️ Error loading routines: \(error)")
+            logInfo("⚠️ Error loading routines: \(error)")
             // Fallback to TaskService if database query fails
             do {
                 let routines = try await taskService.getTasksForBuilding(buildingId)
@@ -796,7 +796,7 @@ public class BuildingDetailViewModel: ObservableObject {
                     self.totalRoutines = dailyRoutines.count
                 }
             } catch {
-                print("❌ Both database and service failed for routines: \(error)")
+                logInfo("❌ Both database and service failed for routines: \(error)")
             }
         }
     }
@@ -869,27 +869,37 @@ public class BuildingDetailViewModel: ObservableObject {
                     )
                 }
                 
-                print("📊 Building \(buildingId) worker assignments: \(self.assignedWorkers.count) workers with detailed schedules")
+                logInfo("📊 Building \(buildingId) worker assignments: \(self.assignedWorkers.count) workers with detailed schedules")
                 
                 // Log specific assignments for debugging
                 for worker in self.assignedWorkers {
-                    print("   👷 \(worker.name): \(worker.schedule ?? "No schedule")")
+                    logInfo("   👷 \(worker.name): \(worker.schedule ?? "No schedule")")
                 }
             }
             
         } catch {
-            print("⚠️ Error loading weekly routines and worker assignments: \(error)")
+            logInfo("⚠️ Error loading weekly routines and worker assignments: \(error)")
         }
     }
     
     private func loadSpacesAndAccess() async {
         do {
-            // TODO: Implement getSpaces in BuildingService
-            let _: [Any] = [] // Placeholder until getSpaces is implemented
+            // Load building spaces from building service
+            let buildingSpaces = try await container.buildings.getSpaces(for: buildingId)
             
             await MainActor.run {
-                self.spaces = [] // Empty for now
-                self.accessCodes = [] // Empty for now
+                self.spaces = buildingSpaces.map { space in
+                    BDSpaceAccess(
+                        id: space.id,
+                        name: space.name,
+                        category: .room, // Default category
+                        accessLevel: .standard,
+                        hasCamera: false,
+                        lastAccess: nil,
+                        notes: space.description
+                    )
+                }
+                self.accessCodes = [] // Access codes loaded separately
             }
             
             // Load thumbnails asynchronously
@@ -907,7 +917,7 @@ public class BuildingDetailViewModel: ObservableObject {
                     return true
                 }.map { $0.id }
                 
-                if let firstPhoto = photos.first(where: { spacePhotoIds.contains($0.id) }) {
+                if photos.first(where: { spacePhotoIds.contains($0.id) }) != nil {
                     await MainActor.run {
                         self.spaces[index] = BDSpaceAccess(
                             id: space.id,
@@ -923,7 +933,7 @@ public class BuildingDetailViewModel: ObservableObject {
                     }
                 }
             } catch {
-                print("⚠️ Error loading thumbnail for space \(space.id): \(error)")
+                logInfo("⚠️ Error loading thumbnail for space \(space.id): \(error)")
             }
         }
     }
@@ -965,7 +975,7 @@ public class BuildingDetailViewModel: ObservableObject {
                 self.totalInventoryValue = totalValue
             }
         } catch {
-            print("⚠️ Error loading inventory: \(error)")
+            logInfo("⚠️ Error loading inventory: \(error)")
         }
     }
     
@@ -1063,7 +1073,7 @@ public class BuildingDetailViewModel: ObservableObject {
                 self.rawLL97Data = ll97Data
             }
         } catch {
-            print("⚠️ Error loading compliance: \(error)")
+            logInfo("⚠️ Error loading compliance: \(error)")
         }
     }
     
@@ -1116,7 +1126,7 @@ public class BuildingDetailViewModel: ObservableObject {
                 self.workerProfiles = workers
             }
         } catch {
-            print("⚠️ Error loading activity data: \(error)")
+            logInfo("⚠️ Error loading activity data: \(error)")
         }
     }
     
@@ -1165,7 +1175,7 @@ public class BuildingDetailViewModel: ObservableObject {
                     }
             }
         } catch {
-            print("⚠️ Error loading tasks: \(error)")
+            logInfo("⚠️ Error loading tasks: \(error)")
         }
     }
     
@@ -1199,7 +1209,7 @@ public class BuildingDetailViewModel: ObservableObject {
                 dashboardSync.broadcastWorkerUpdate(update)
                 
             } catch {
-                print("❌ Error updating routine: \(error)")
+                logInfo("❌ Error updating routine: \(error)")
             }
         }
     }
@@ -1227,7 +1237,7 @@ public class BuildingDetailViewModel: ObservableObject {
             )
             
             let savedPhoto = try await photoEvidenceService.captureQuick(image: photo, category: category, buildingId: buildingId, workerId: currentWorker.id, notes: notes)
-            print("✅ Photo saved: \(savedPhoto.id)")
+            logInfo("✅ Photo saved: \(savedPhoto.id)")
             
             // Reload spaces if it was a space photo
             if category == .compliance || category == .issue {
@@ -1249,7 +1259,7 @@ public class BuildingDetailViewModel: ObservableObject {
             dashboardSync.broadcastWorkerUpdate(update)
             
         } catch {
-            print("❌ Failed to save photo: \(error)")
+            logInfo("❌ Failed to save photo: \(error)")
         }
     }
     
@@ -1263,13 +1273,61 @@ public class BuildingDetailViewModel: ObservableObject {
         await loadInventorySummary()
     }
     
+    public func loadDailyRoutines() async {
+        do {
+            // Load daily routines using real operational data
+            let operationalDataManager = container.operationalData
+            
+            // Get building-specific tasks from operational data
+            let buildingTasks = operationalDataManager.getTasksForBuilding(buildingName)
+            
+            await MainActor.run {
+                self.dailyRoutines = buildingTasks.compactMap { task in
+                    // Convert operational task to daily routine
+                    let scheduledTime = extractTimeFromTask(task) ?? "09:00"
+                    
+                    return BDDailyRoutine(
+                        id: "task_\(task.workerId)_\(task.buildingId)",
+                        title: task.taskName,
+                        scheduledTime: scheduledTime,
+                        isCompleted: false, // Resets daily
+                        assignedWorker: task.assignedWorker,
+                        requiredInventory: []
+                    )
+                }.prefix(10).map { $0 } // Limit to 10 daily routines
+            }
+        } catch {
+            await MainActor.run {
+                self.errorMessage = "Failed to load daily routines: \(error.localizedDescription)"
+            }
+        }
+    }
+    
+    private func extractTimeFromTask(_ task: OperationalDataTaskAssignment) -> String? {
+        // Use start hour if available
+        if let startHour = task.startHour {
+            return String(format: "%02d:00", startHour)
+        }
+        
+        // Extract time from task schedule or use defaults based on task type
+        if task.taskName.localizedCaseInsensitiveContains("morning") {
+            return "08:00"
+        } else if task.taskName.localizedCaseInsensitiveContains("evening") {
+            return "17:00"
+        } else if task.taskName.localizedCaseInsensitiveContains("trash") || task.taskName.localizedCaseInsensitiveContains("garbage") {
+            return "20:00" // Evening trash collection
+        } else {
+            return "10:00" // Default mid-morning time
+        }
+    }
+    
     public func updateInventoryItem(_ item: CoreTypes.InventoryItem) {
         Task {
             do {
                 try await inventoryService.updateInventoryItem(item)
                 await loadInventorySummary()
             } catch {
-                print("❌ Error updating inventory item: \(error)")
+                logInfo("❌ Error updating inventory item: \(error)")
             }
         }
     }
@@ -1282,7 +1340,7 @@ public class BuildingDetailViewModel: ObservableObject {
             
             for item in lowStockItems {
                 // TODO: Implement reorder request functionality
-                print("📦 Reorder needed for \(item.name): \(item.maxStock - item.currentStock) units")
+                logInfo("📦 Reorder needed for \(item.name): \(item.maxStock - item.currentStock) units")
             }
             
             await MainActor.run {
@@ -1293,7 +1351,7 @@ public class BuildingDetailViewModel: ObservableObject {
     
     public func exportBuildingReport() {
         // TODO: Implement report generation
-        print("📄 Generating building report...")
+        logInfo("📄 Generating building report...")
     }
     
     public func toggleFavorite() {
@@ -1303,17 +1361,17 @@ public class BuildingDetailViewModel: ObservableObject {
     
     public func editBuildingInfo() {
         // TODO: Navigate to edit screen (admin only)
-        print("📝 Opening building editor...")
+        logInfo("📝 Opening building editor...")
     }
     
     public func reportIssue() {
         // TODO: Open issue reporting flow
-        print("⚠️ Opening issue reporter...")
+        logInfo("⚠️ Opening issue reporter...")
     }
     
     public func requestSupplies() {
         // TODO: Open supply request flow
-        print("📦 Opening supply request...")
+        logInfo("📦 Opening supply request...")
     }
     
     public func reportEmergencyIssue() {

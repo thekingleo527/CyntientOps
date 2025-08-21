@@ -123,7 +123,7 @@ public final class UnifiedIntelligenceService: ObservableObject {
         setupAutoRefresh()
         updateTimeOfDay()
         
-        print("🧠 UnifiedIntelligenceService: Fully initialized with merged engines")
+        logInfo("🧠 UnifiedIntelligenceService: Fully initialized with merged engines")
     }
     
     // MARK: - Public API Methods
@@ -360,7 +360,7 @@ public final class UnifiedIntelligenceService: ObservableObject {
             updateTimeOfDay()
             
         } catch {
-            print("⚠️ Failed to initialize intelligence: \(error)")
+            logInfo("⚠️ Failed to initialize intelligence: \(error)")
         }
     }
     
@@ -386,7 +386,7 @@ public final class UnifiedIntelligenceService: ObservableObject {
         do {
             _ = try await generatePortfolioInsights()
         } catch {
-            print("⚠️ Failed to refresh intelligence: \(error)")
+            logInfo("⚠️ Failed to refresh intelligence: \(error)")
         }
     }
     
@@ -454,7 +454,7 @@ public final class UnifiedIntelligenceService: ObservableObject {
             performanceMetrics["taskCompletion"] = completionRate
             
         } catch {
-            print("⚠️ Failed to generate performance metrics: \(error)")
+            logInfo("⚠️ Failed to generate performance metrics: \(error)")
         }
         
         return performanceMetrics
@@ -506,7 +506,7 @@ public final class UnifiedIntelligenceService: ObservableObject {
             }
             
         } catch {
-            print("⚠️ Failed to process task completion: \(error)")
+            logInfo("⚠️ Failed to process task completion: \(error)")
         }
     }
     
@@ -533,7 +533,7 @@ public final class UnifiedIntelligenceService: ObservableObject {
                 try await Task.sleep(nanoseconds: 5 * 60 * 1_000_000_000)
                 await refreshIntelligence()
             } catch {
-                print("Intelligence monitoring interrupted: \(error)")
+                logInfo("Intelligence monitoring interrupted: \(error)")
                 break
             }
         }
@@ -594,7 +594,7 @@ extension UnifiedIntelligenceService {
     /// Cache insights to database for offline AI access
     private func cacheInsightsForOfflineAccess(_ insights: [CoreTypes.IntelligenceInsight]) async {
         // TODO: Fix database write ambiguity issue - temporarily disabled
-        print("📝 TODO: Cache \(insights.count) insights for offline AI access")
+        logInfo("📝 TODO: Cache \(insights.count) insights for offline AI access")
     }
     
     /// Get cached insights from database for offline AI
@@ -654,14 +654,14 @@ extension UnifiedIntelligenceService {
             }
             
         } catch {
-            print("❌ Failed to get cached insights: \(error)")
+            logInfo("❌ Failed to get cached insights: \(error)")
             return []
         }
     }
     
     /// Proactively generate and cache insights when online
     public func proactivelyUpdateOfflineCache() async {
-        print("🧠 Nova: Proactively updating offline cache...")
+        logInfo("🧠 Nova: Proactively updating offline cache...")
         
         do {
             // Generate fresh insights
@@ -673,10 +673,10 @@ extension UnifiedIntelligenceService {
             // Cache all insights
             await cacheInsightsForOfflineAccess(freshInsights + strategicInsights)
             
-            print("✅ Nova: Offline cache updated with \(freshInsights.count + strategicInsights.count) insights")
+            logInfo("✅ Nova: Offline cache updated with \(freshInsights.count + strategicInsights.count) insights")
             
         } catch {
-            print("❌ Nova: Failed to update offline cache: \(error)")
+            logInfo("❌ Nova: Failed to update offline cache: \(error)")
         }
     }
     
@@ -715,7 +715,7 @@ extension UnifiedIntelligenceService {
             ))
             
         } catch {
-            print("❌ Failed to generate strategic insights for offline: \(error)")
+            logInfo("❌ Failed to generate strategic insights for offline: \(error)")
         }
         
         return strategicInsights

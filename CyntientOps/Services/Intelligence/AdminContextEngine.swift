@@ -143,7 +143,7 @@ public final class AdminContextEngine: ObservableObject, AdminContextEngineProto
         } catch {
             syncStatus = .failed
             errorMessage = error.localizedDescription
-            print("❌ AdminContextEngine refresh failed: \(error)")
+            logInfo("❌ AdminContextEngine refresh failed: \(error)")
         }
         
         isLoading = false
@@ -496,7 +496,7 @@ public final class AdminContextEngine: ObservableObject, AdminContextEngineProto
                     buildingMetrics[buildingId] = metrics
                     buildingPerformanceMap[buildingId] = metrics.completionRate
                 } catch {
-                    print("Failed to refresh building metrics: \(error)")
+                    logInfo("Failed to refresh building metrics: \(error)")
                 }
             }
             
@@ -506,7 +506,7 @@ public final class AdminContextEngine: ObservableObject, AdminContextEngineProto
                 complianceOverview = try await complianceService?.getComplianceOverview() ?? complianceOverview
                 criticalIssues = try await complianceService?.getComplianceIssues(for: "") ?? []
             } catch {
-                print("Failed to refresh compliance data: \(error)")
+                logInfo("Failed to refresh compliance data: \(error)")
             }
             
         default:
@@ -631,7 +631,7 @@ extension WorkerService {
     
     func assignWorkerToBuilding(workerId: String, buildingId: String) async throws {
         // Implementation would update worker-building assignments in database
-        print("Assigning worker \(workerId) to building \(buildingId)")
+        logInfo("Assigning worker \(workerId) to building \(buildingId)")
     }
     
 }

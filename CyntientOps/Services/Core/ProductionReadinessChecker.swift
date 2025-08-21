@@ -46,7 +46,7 @@ public class ProductionReadinessChecker: ObservableObject {
             isChecking = false
         }
         
-        print("🔍 Starting comprehensive production readiness check...")
+        logInfo("🔍 Starting comprehensive production readiness check...")
         
         // Core System Checks
         await checkDatabaseConnection()
@@ -78,7 +78,7 @@ public class ProductionReadinessChecker: ObservableObject {
         // Final Assessment
         await assessOverallReadiness()
         
-        print("✅ Production readiness check completed")
+        logInfo("✅ Production readiness check completed")
     }
     
     /// Get production readiness report
@@ -549,14 +549,14 @@ public class ProductionReadinessChecker: ObservableObject {
         }
         
         let successRate = Double(passedChecks) / Double(totalChecks)
-        print("📊 Production readiness: \(String(format: "%.1f", successRate * 100))% (\(passedChecks)/\(totalChecks) checks passed)")
+        logInfo("📊 Production readiness: \(String(format: "%.1f", successRate * 100))% (\(passedChecks)/\(totalChecks) checks passed)")
         
         if blockers > 0 {
-            print("🚨 CRITICAL: \(blockers) blocking issues must be resolved before production")
+            logInfo("🚨 CRITICAL: \(blockers) blocking issues must be resolved before production")
         }
         
         if warnings > 0 {
-            print("⚠️ WARNING: \(warnings) issues should be addressed")
+            logInfo("⚠️ WARNING: \(warnings) issues should be addressed")
         }
     }
     

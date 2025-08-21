@@ -52,8 +52,8 @@ struct AuthenticationTester {
                 ("admin@cyntientops.com", "CyntientAdmin2025!"),
                 ("shawn.magloire@cyntientops.com", "ShawnHVAC2025!"),
                 ("greg.hutson@cyntientops.com", "GregWorker2025!"),
-                ("admin@test.com", "password"),  // Debug credentials
-                ("shawn@test.com", "password")   // Debug credentials
+                ("admin@test.com", "TestAdmin2025!"),  // Secure test credentials
+                ("shawn@test.com", "TestWorker2025!")   // Secure test credentials
             ]
             
             let authManager = NewAuthManager.shared

@@ -14,45 +14,59 @@ import Combine
 
 // MARK: - View Model
 
+// MARK: - Optimized Task Request Data Structures
+
+struct WorkerTaskFormData {
+    var taskName: String = ""
+    var taskDescription: String = ""
+    var selectedBuildingID: String = ""
+    var selectedCategory: CoreTypes.TaskCategory = .maintenance
+    var selectedUrgency: CoreTypes.TaskUrgency = .medium
+    var selectedDate: Date = Date().addingTimeInterval(86400)
+    var selectedWorkerId: String = "4"
+    
+    var isValid: Bool {
+        return !taskName.isEmpty &&
+               !taskDescription.isEmpty &&
+               !selectedBuildingID.isEmpty
+    }
+}
+
 @MainActor
 final class TaskRequestViewModel: ObservableObject {
-    // Published properties
-    @Published var taskName: String = ""
-    @Published var taskDescription: String = ""
-    @Published var selectedBuildingID: String = ""
-    @Published var selectedCategory: CoreTypes.TaskCategory = .maintenance
-    @Published var selectedUrgency: CoreTypes.TaskUrgency = .medium
-    @Published var selectedDate: Date = Date().addingTimeInterval(86400)
-    @Published var selectedWorkerId: String = "4"
-    @Published var attachPhoto: Bool = false
-    @Published var photo: UIImage?
-    @Published var requiredInventory: [String: Int] = [:]
-    @Published var availableInventory: [CoreTypes.InventoryItem] = []
+    // OPTIMIZED: Grouped form data
+    @Published var formData = WorkerTaskFormData()
+    @Published var schedule = TaskSchedule()
+    
+    // OPTIMIZED: Only UI state that needs reactivity
     @Published var isSubmitting: Bool = false
     @Published var errorMessage: String?
     @Published var showCompletionAlert: Bool = false
-    
-    // Data collections
-    @Published var buildingOptions: [CoreTypes.NamedCoordinate] = []
-    @Published var workerOptions: [CoreTypes.WorkerProfile] = []
-    @Published var suggestions: [TaskSuggestion] = []
     @Published var isLoadingBuildings: Bool = true
     @Published var showSuggestions: Bool = false
     
-    // Time options
-    @Published var addStartTime: Bool = false
-    @Published var startTime: Date = Date().addingTimeInterval(3600)
-    @Published var addEndTime: Bool = false
-    @Published var endTime: Date = Date().addingTimeInterval(7200)
+    // OPTIMIZED: Photo handling (keep reactive for UI binding)
+    @Published var attachPhoto: Bool = false
+    @Published var photo: UIImage?
+    
+    // OPTIMIZED: Non-reactive data collections (updated only when needed)
+    private(set) var buildingOptions: [CoreTypes.NamedCoordinate] = []
+    private(set) var workerOptions: [CoreTypes.WorkerProfile] = []
+    private(set) var suggestions: [TaskSuggestion] = []
+    private(set) var availableInventory: [CoreTypes.InventoryItem] = []
+    private(set) var requiredInventory: [String: Int] = [:]
+    
+    // OPTIMIZED: Trigger updates manually when data changes
+    func updateOptions(buildings: [CoreTypes.NamedCoordinate], workers: [CoreTypes.WorkerProfile]) {
+        buildingOptions = buildings
+        workerOptions = workers
+        objectWillChange.send()
+    }
     
     // MARK: - Computed Properties
     
     var isFormValid: Bool {
-        return !taskName.isEmpty &&
-               !taskDescription.isEmpty &&
-               !selectedBuildingID.isEmpty &&
-               !selectedWorkerId.isEmpty &&
-               (!attachPhoto || photo != nil)
+        return formData.isValid && (!attachPhoto || photo != nil)
     }
     
     // MARK: - Initialization
@@ -171,16 +185,16 @@ final class TaskRequestViewModel: ObservableObject {
     }
     
     private func recordInventoryRequirements(for taskId: String) {
-        print("Recording inventory requirements for task \(taskId)")
+        logInfo("Recording inventory requirements for task \(taskId)")
         for (itemId, quantity) in requiredInventory {
             if let item = availableInventory.first(where: { $0.id == itemId }) {
-                print("  - \(quantity) of \(item.name)")
+                logInfo("  - \(quantity) of \(item.name)")
             }
         }
     }
     
     private func saveTaskPhoto(_ image: UIImage, for taskId: String) {
-        print("Saving photo for task \(taskId)")
+        logInfo("Saving photo for task \(taskId)")
     }
     
     // MARK: - Static Data

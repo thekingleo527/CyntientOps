@@ -123,7 +123,7 @@ public actor QuickBooksPayrollExporter {
             self.lastExportDate = Date()
             self.exportProgress.status = "Export complete!"
             
-            print("✅ Successfully exported \(timeEntries.count) entries for \(entriesByWorker.count) workers")
+            logInfo("✅ Successfully exported \(timeEntries.count) entries for \(entriesByWorker.count) workers")
             
         } catch {
             self.exportError = error as? PayrollExportError ?? .exportFailed(error.localizedDescription)
@@ -489,7 +489,7 @@ public actor QuickBooksPayrollExporter {
         
         // In production, this would make an API call to QuickBooks
         // For now, just simulate the submission
-        print("📤 Submitted time entry for employee \(timeEntry.employeeId): \(timeEntry.regularHours) regular, \(timeEntry.overtimeHours) overtime")
+        logInfo("📤 Submitted time entry for employee \(timeEntry.employeeId): \(timeEntry.regularHours) regular, \(timeEntry.overtimeHours) overtime")
     }
     
     private func parseDate(_ dateString: String?) -> Date? {

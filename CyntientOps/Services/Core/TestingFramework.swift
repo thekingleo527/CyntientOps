@@ -53,7 +53,7 @@ public final class TestingFramework: ObservableObject {
         isRunning = true
         testResults.removeAll()
         
-        print("🧪 Starting comprehensive test suite...")
+        logInfo("🧪 Starting comprehensive test suite...")
         
         // Unit Tests
         await runUnitTests()
@@ -74,13 +74,13 @@ public final class TestingFramework: ObservableObject {
         calculateOverallStatus()
         
         isRunning = false
-        print("✅ Test suite completed")
+        logInfo("✅ Test suite completed")
     }
     
     // MARK: - Unit Tests
     
     private func runUnitTests() async {
-        print("🔬 Running unit tests...")
+        logInfo("🔬 Running unit tests...")
         
         await runTest("AuthenticationService Login", category: .unit) {
             try await testAuthenticationLogin()
@@ -106,7 +106,7 @@ public final class TestingFramework: ObservableObject {
     // MARK: - Integration Tests
     
     private func runIntegrationTests() async {
-        print("🔗 Running integration tests...")
+        logInfo("🔗 Running integration tests...")
         
         await runTest("Database Operations", category: .integration) {
             try await testDatabaseIntegration()
@@ -128,7 +128,7 @@ public final class TestingFramework: ObservableObject {
     // MARK: - System Tests
     
     private func runSystemTests() async {
-        print("🏗️ Running system tests...")
+        logInfo("🏗️ Running system tests...")
         
         await runTest("Production Data Integrity", category: .system) {
             try await testProductionDataIntegrity()
@@ -150,7 +150,7 @@ public final class TestingFramework: ObservableObject {
     // MARK: - Performance Tests
     
     private func runPerformanceTests() async {
-        print("⚡ Running performance tests...")
+        logInfo("⚡ Running performance tests...")
         
         await runTest("App Launch Performance", category: .performance) {
             try await testAppLaunchPerformance()
@@ -168,7 +168,7 @@ public final class TestingFramework: ObservableObject {
     // MARK: - Security Tests
     
     private func runSecurityTests() async {
-        print("🔒 Running security tests...")
+        logInfo("🔒 Running security tests...")
         
         await runTest("Credential Security", category: .security) {
             try await testCredentialSecurity()
@@ -202,7 +202,7 @@ public final class TestingFramework: ObservableObject {
             )
             
             testResults.append(result)
-            print("✅ \(name) - PASSED (\(String(format: "%.2f", duration))s)")
+            logInfo("✅ \(name) - PASSED (\(String(format: "%.2f", duration))s)")
             
         } catch {
             let duration = Date().timeIntervalSince(startTime)
@@ -217,7 +217,7 @@ public final class TestingFramework: ObservableObject {
             )
             
             testResults.append(result)
-            print("❌ \(name) - FAILED: \(error.localizedDescription)")
+            logInfo("❌ \(name) - FAILED: \(error.localizedDescription)")
         }
     }
     
@@ -235,7 +235,7 @@ public final class TestingFramework: ObservableObject {
             overallStatus = .partial
         }
         
-        print("📊 Test Results: \(passedCount)/\(totalCount) passed")
+        logInfo("📊 Test Results: \(passedCount)/\(totalCount) passed")
     }
     
     // MARK: - Individual Test Implementations

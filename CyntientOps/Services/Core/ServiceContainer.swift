@@ -163,57 +163,61 @@ public final class ServiceContainer: ObservableObject {
     // MARK: - Initialization Order is CRITICAL
     
     public init() async throws {
-        print("🚀 Initializing ServiceContainer...")
+        logInfo("🚀 Initializing ServiceContainer...")
         
         // Layer 0: Database MUST be first
         self.database = GRDBManager.shared
         self.operationalData = OperationalDataManager.shared
-        print("✅ Layer 0: Database initialized")
+        logInfo("✅ Layer 0: Database initialized")
         
         // Ensure database is initialized
         let dbInitializer = DatabaseInitializer.shared
         if !dbInitializer.isInitialized {
-            print("📊 Initializing database schema...")
+            logInfo("📊 Initializing database schema...")
             try await dbInitializer.initializeIfNeeded()
         }
         
         // Initialize OperationalDataManager (includes worker routine seeding)
-        print("📊 Initializing operational data...")
+        logInfo("📊 Initializing operational data...")
         try await self.operationalData.initializeOperationalData()
-        print("✅ Operational data initialized")
+        logInfo("✅ Operational data initialized")
         
         // Layer 1: Core Services (no circular dependencies)
-        print("🔧 Layer 1: Initializing core services...")
+        logInfo("🔧 Layer 1: Initializing core services...")
         
-        self.auth = NewAuthManager.shared
-        self.workers = WorkerService.shared
-        self.buildings = BuildingService.shared
-        self.tasks = TaskService.shared
+        self.auth = NewAuthManager.shared // Keep for now due to complex initialization
+        self.workers = WorkerService(database: database) // FIXED: No singleton
+        self.buildings = BuildingService(database: database) // FIXED: No singleton
+        
+        // Initialize DashboardSyncService first for Layer 1 dependencies
+        let tempDashboardSync = DashboardSyncService(database: database) // FIXED: No singleton
+        self.tasks = TaskService(database: database, dashboardSync: tempDashboardSync) // FIXED: No singleton
         
         // Create ClockInService wrapper for the actor-based ClockInManager
         self.clockIn = ClockInService()
         
-        self.photos = PhotoEvidenceService.shared // Allowed singleton
-        self.client = ClientService()
+        self.photos = PhotoEvidenceService(database: database, dashboardSync: tempDashboardSync) // FIXED: No singleton
+        // ClientService will be updated after metrics is available
+        self.client = ClientService(database: database) // FIXED: No singleton - will set services after Layer 2
         self.userProfile = UserProfileServiceTemp(database: database)
         
-        print("✅ Layer 1: Core services initialized")
+        logInfo("✅ Layer 1: Core services initialized")
         
         // Layer 2: Business Logic (depends on Layer 1)
-        print("📈 Layer 2: Initializing business logic...")
+        logInfo("📈 Layer 2: Initializing business logic...")
         
-        self.dashboardSync = DashboardSyncService.shared
+        self.dashboardSync = tempDashboardSync // FIXED: Use existing instance
         
-        self.metrics = BuildingMetricsService.shared
+        self.metrics = BuildingMetricsService(database: database, dashboardSync: tempDashboardSync) // FIXED: No singleton
         
-        self.compliance = ComplianceService.shared
+        self.compliance = ComplianceService(database: database) // FIXED: No singleton
         
-        self.dailyOps = DailyOpsReset.shared
+        self.dailyOps = DailyOpsReset(database: database) // FIXED: No singleton
         
-        print("✅ Layer 2: Business logic initialized")
+        logInfo("✅ Layer 2: Business logic initialized")
         
         // Layer 3: Unified Intelligence (depends on Layer 2)
-        print("🧠 Layer 3: Initializing unified intelligence...")
+        logInfo("🧠 Layer 3: Initializing unified intelligence...")
         
         self.intelligence = try await UnifiedIntelligenceService(
             database: database,
@@ -224,42 +228,42 @@ public final class ServiceContainer: ObservableObject {
             compliance: compliance
         )
         
-        print("✅ Layer 3: Intelligence initialized")
+        logInfo("✅ Layer 3: Intelligence initialized")
         
         // Layer 4: Context Engines (needs reference to container)
-        print("🎯 Layer 4: Initializing context engines...")
+        logInfo("🎯 Layer 4: Initializing context engines...")
         
         self.workerContext = WorkerContextEngine.shared
         self.adminContext = AdminContextEngine() // Initialize without container first
         
-        print("✅ Layer 4: Context engines initialized")
+        logInfo("✅ Layer 4: Context engines initialized")
         
         // Admin Services will be initialized later to avoid circular dependencies
         self.adminIntelligence = nil
         
         // Initialize NovaAIManager (owned by ServiceContainer)
-        print("🧠 Initializing Nova AI Manager...")
+        logInfo("🧠 Initializing Nova AI Manager...")
         self.novaManager = NovaAIManager()
-        print("✅ Nova AI Manager initialized")
+        logInfo("✅ Nova AI Manager initialized")
         
-        print("⚡ Layer 5: Command chains and client context - lazy initialization on first access")
+        logInfo("⚡ Layer 5: Command chains and client context - lazy initialization on first access")
         
         // Layer 6: Offline Support
-        print("💾 Layer 6: Initializing offline support...")
+        logInfo("💾 Layer 6: Initializing offline support...")
         
         self.offlineQueue = OfflineQueueManager()
         self.cache = CacheManager()
         
-        print("✅ Layer 6: Offline support initialized")
+        logInfo("✅ Layer 6: Offline support initialized")
         
         // Layer 7: NYC API Integration
-        print("🏢 Layer 7: Initializing NYC API integration...")
+        logInfo("🏢 Layer 7: Initializing NYC API integration...")
         
         self.nycCompliance = NYCComplianceService(database: database)
         self.nycIntegration = NYCIntegrationManager(database: database)
         // BBLGenerationService initialized independently as singleton
         
-        print("✅ Layer 7: NYC API integration initialized")
+        logInfo("✅ Layer 7: NYC API integration initialized")
         
         // Start background services
         await startBackgroundServices()
@@ -273,14 +277,14 @@ public final class ServiceContainer: ObservableObject {
         // Connect Nova to services after everything is initialized
         connectNovaToServices()
         
-        print("✅ ServiceContainer initialization complete!")
+        logInfo("✅ ServiceContainer initialization complete!")
     }
     
     // MARK: - AdminContext Initialization
     
     /// Initialize AdminContextEngine after container is fully created (solves circular dependency)
     private func initializeAdminContext() async {
-        print("🎯 Initializing AdminContextEngine...")
+        logInfo("🎯 Initializing AdminContextEngine...")
         
         // Now that container is fully initialized, set the container reference
         adminContext.setContainer(self)
@@ -292,9 +296,9 @@ public final class ServiceContainer: ObservableObject {
             // Trigger initial context refresh to load all admin data
             await adminContext.refreshContext()
             
-            print("✅ AdminContextEngine successfully initialized and refreshed")
+            logInfo("✅ AdminContextEngine successfully initialized and refreshed")
         } catch {
-            print("❌ AdminContextEngine initialization failed: \(error)")
+            logInfo("❌ AdminContextEngine initialization failed: \(error)")
         }
     }
     
@@ -309,23 +313,23 @@ public final class ServiceContainer: ObservableObject {
         // Nova integration handled by intelligence service
         // Context engines use intelligence service for Nova
         
-        print("🧠 Nova AI Manager connected to services")
+        logInfo("🧠 Nova AI Manager connected to services")
     }
     
     // MARK: - AdminOperationalIntelligence Initialization
     
     /// Initialize AdminOperationalIntelligence after container is ready
     private func initializeAdminIntelligence() async {
-        print("🏢 Initializing AdminOperationalIntelligence...")
+        logInfo("🏢 Initializing AdminOperationalIntelligence...")
         
         // Create instance through reflection to avoid import issues
         if let intelligenceClass = NSClassFromString("CyntientOps.AdminOperationalIntelligence") as? NSObject.Type {
             // Use runtime creation if available
-            print("✅ AdminOperationalIntelligence class found, but deferred initialization")
+            logInfo("✅ AdminOperationalIntelligence class found, but deferred initialization")
             // Set to nil for now - will be initialized when first accessed
             self.adminIntelligence = nil
         } else {
-            print("⚠️ AdminOperationalIntelligence class not found - using placeholder")
+            logInfo("⚠️ AdminOperationalIntelligence class not found - using placeholder")
             self.adminIntelligence = nil
         }
     }
@@ -334,47 +338,47 @@ public final class ServiceContainer: ObservableObject {
     
     /// Start all background services and monitoring
     private func startBackgroundServices() async {
-        print("🔄 Starting background services...")
+        logInfo("🔄 Starting background services...")
         
         // 1. Daily operations reset (runs at midnight)
         let dailyOpsTask = Task {
             // Daily ops reset scheduler placeholder
-            print("Daily ops reset scheduler started")
+            logInfo("Daily ops reset scheduler started")
         }
         backgroundTasks.insert(dailyOpsTask)
         
         // 2. Dashboard sync monitoring
         let syncTask = Task {
             // DashboardSync background monitoring
-            print("Dashboard sync monitoring started")
+            logInfo("Dashboard sync monitoring started")
         }
         backgroundTasks.insert(syncTask)
         
         // 3. Intelligence monitoring
         let intelligenceTask = Task {
             // Intelligence monitoring background task
-            print("Intelligence monitoring started")
+            logInfo("Intelligence monitoring started")
         }
         backgroundTasks.insert(intelligenceTask)
         
         // 4. Offline queue processing
         let offlineTask = Task {
             // Offline queue processing
-            print("Offline queue processing started")
+            logInfo("Offline queue processing started")
         }
         backgroundTasks.insert(offlineTask)
         
         // 5. Cache cleanup
         let cacheTask = Task {
             // Cache cleanup task
-            print("Cache cleanup started")
+            logInfo("Cache cleanup started")
         }
         backgroundTasks.insert(cacheTask)
         
         // 6. Metrics calculation
         let metricsTask = Task {
             // Metrics calculation scheduler placeholder
-            print("Metrics calculation started")
+            logInfo("Metrics calculation started")
         }
         backgroundTasks.insert(metricsTask)
         
@@ -384,21 +388,21 @@ public final class ServiceContainer: ObservableObject {
         }
         backgroundTasks.insert(nycTask)
         
-        print("✅ Background services started")
+        logInfo("✅ Background services started")
     }
     
     // MARK: - Cleanup
     
     /// Stop all background services
     public func stopBackgroundServices() {
-        print("🛑 Stopping background services...")
+        logInfo("🛑 Stopping background services...")
         
         for task in backgroundTasks {
             task.cancel()
         }
         backgroundTasks.removeAll()
         
-        print("✅ Background services stopped")
+        logInfo("✅ Background services stopped")
     }
     
     // MARK: - Utility Methods
@@ -411,10 +415,10 @@ public final class ServiceContainer: ObservableObject {
                    true // Operational data loaded placeholder
         
         if !ready {
-            print("⚠️ Services not ready:")
-            print("   - Database connected: \(database.isConnected)")
-            print("   - Auth initialized: true") // Placeholder
-            print("   - Operational data loaded: true") // Placeholder
+            logInfo("⚠️ Services not ready:")
+            logInfo("   - Database connected: \(database.isConnected)")
+            logInfo("   - Auth initialized: true") // Placeholder
+            logInfo("   - Operational data loaded: true") // Placeholder
         }
         
         return ready

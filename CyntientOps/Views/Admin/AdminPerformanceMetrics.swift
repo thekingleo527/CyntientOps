@@ -574,7 +574,7 @@ struct AdminPerformanceMetrics: View {
             dashboardSync.broadcastUpdate(update)
             
         } catch {
-            print("❌ Failed to load performance metrics data: \(error)")
+            logInfo("❌ Failed to load performance metrics data: \(error)")
         }
         
         isLoading = false

@@ -894,7 +894,7 @@ public struct AdminReportsView: View {
                     isGenerating = false
                     reportGen.isGenerating = false
                     currentContext = .overview
-                    print("❌ Error generating report: \(error)")
+                    logInfo("❌ Error generating report: \(error)")
                 }
             }
         }
@@ -927,7 +927,7 @@ public struct AdminReportsView: View {
                     isGenerating = false
                     reportGen.isGenerating = false
                     currentContext = .overview
-                    print("❌ Error generating report: \(error)")
+                    logInfo("❌ Error generating report: \(error)")
                 }
             }
         }
@@ -1009,7 +1009,7 @@ public struct AdminReportsView: View {
             return report
             
         } catch {
-            print("❌ Failed to generate real report: \(error)")
+            logInfo("❌ Failed to generate real report: \(error)")
             
             // Return a mock report as fallback
             return AdminGeneratedReport(
@@ -1093,7 +1093,7 @@ public struct AdminReportsView: View {
         do {
             return try await reportService.getAllReports()
         } catch {
-            print("❌ Failed to load reports: \(error)")
+            logInfo("❌ Failed to load reports: \(error)")
             return []
         }
     }

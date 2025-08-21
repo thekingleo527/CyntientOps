@@ -314,7 +314,7 @@ public class DSNYAPIService: ObservableObject {
                 Date()
             ])
         } catch {
-            print("Failed to cache schedule: \(error)")
+            logInfo("Failed to cache schedule: \(error)")
         }
     }
     
@@ -344,7 +344,7 @@ public class DSNYAPIService: ObservableObject {
                 }
             }
         } catch {
-            print("Failed to load cached schedules: \(error)")
+            logInfo("Failed to load cached schedules: \(error)")
         }
     }
     

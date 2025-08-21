@@ -81,7 +81,7 @@ public final class EmergencyContactService: ObservableObject {
     /// Make emergency call (extracted from CoverageInfoCard logic)
     public func makeEmergencyCall(_ contact: EmergencyContact, buildingId: String? = nil) {
         guard let phoneURL = URL(string: "tel://\(contact.phoneNumber)") else {
-            print("❌ Invalid phone number: \(contact.phoneNumber)")
+            logInfo("❌ Invalid phone number: \(contact.phoneNumber)")
             return
         }
         
@@ -277,7 +277,7 @@ public final class EmergencyContactService: ObservableObject {
             logMessage += " - Reason: \(reason.rawValue)"
         }
         
-        print("🚨 \(logMessage)")
+        logInfo("🚨 \(logMessage)")
         
         // In production, this would also log to external services
         // SentrySDK.addBreadcrumb(message: logMessage, category: "emergency")
@@ -287,7 +287,7 @@ public final class EmergencyContactService: ObservableObject {
     
     private func notifyManagement(of emergency: EmergencyCall) async {
         // In production, this would send push notifications, emails, etc.
-        print("📧 Notifying management of emergency: \(emergency.reason?.rawValue ?? "Unknown")")
+        logInfo("📧 Notifying management of emergency: \(emergency.reason?.rawValue ?? "Unknown")")
         
         // Auto-notify Shawn Magloire (Manager)
         let managerContact = EmergencyContact(

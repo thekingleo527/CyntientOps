@@ -868,7 +868,7 @@ extension InventoryService {
             try await createInventoryItem(item, buildingId: buildingId)
         }
         
-        print("✅ Generated test inventory for building \(buildingId)")
+        logInfo("✅ Generated test inventory for building \(buildingId)")
     }
 }
 #endif

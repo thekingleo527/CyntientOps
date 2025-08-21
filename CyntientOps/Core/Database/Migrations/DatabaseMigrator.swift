@@ -121,7 +121,7 @@ extension DatabaseMigrator {
                 id TEXT PRIMARY KEY,
                 name TEXT NOT NULL,
                 email TEXT UNIQUE NOT NULL,
-                password TEXT DEFAULT 'password',
+                password TEXT DEFAULT 'REQUIRES_SECURE_PASSWORD',
                 role TEXT NOT NULL DEFAULT 'worker',
                 phone TEXT,
                 hourlyRate REAL DEFAULT 25.0,

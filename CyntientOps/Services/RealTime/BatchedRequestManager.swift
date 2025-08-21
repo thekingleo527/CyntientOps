@@ -143,7 +143,7 @@ public actor BatchedRequestManager {
     public func addRequest(_ request: APIRequest) async {
         // Check network status first
         guard await networkMonitor.isConnected else {
-            print("⚠️ Network offline, queueing request: \(request.endpoint)")
+            logInfo("⚠️ Network offline, queueing request: \(request.endpoint)")
             await queueForOffline(request)
             return
         }
@@ -223,7 +223,7 @@ public actor BatchedRequestManager {
         let batchId = UUID().uuidString
         let startTime = Date()
         
-        print("📤 Sending batch \(batchId) with \(batch.count) requests")
+        logInfo("📤 Sending batch \(batchId) with \(batch.count) requests")
         
         // Create batch request
         let batchRequest = BatchRequest(
@@ -260,7 +260,7 @@ public actor BatchedRequestManager {
             }
             
         } catch {
-            print("❌ Batch \(batchId) failed: \(error)")
+            logInfo("❌ Batch \(batchId) failed: \(error)")
             await handleBatchError(batch, error: error, batchId: batchId)
         }
         
@@ -337,11 +337,11 @@ public actor BatchedRequestManager {
         
         batchProcessedSubject.send(batchedResponse)
         
-        print("✅ Batch \(batchId) completed: \(batchedResponse.successCount) success, \(batchedResponse.failureCount) failed")
+        logInfo("✅ Batch \(batchId) completed: \(batchedResponse.successCount) success, \(batchedResponse.failureCount) failed")
     }
     
     private func handleBatchFailure(_ batch: [APIRequest], statusCode: Int, batchId: String) async {
-        print("⚠️ Batch \(batchId) failed with status: \(statusCode)")
+        logInfo("⚠️ Batch \(batchId) failed with status: \(statusCode)")
         
         // Retry all requests if server error
         if (500...599).contains(statusCode) {
@@ -397,7 +397,7 @@ public actor BatchedRequestManager {
     private func queueForOffline(_ request: APIRequest) async {
         // This would integrate with your offline sync queue
         // For now, we'll store in a separate array
-        print("📱 Queuing request for offline: \(request.endpoint)")
+        logInfo("📱 Queuing request for offline: \(request.endpoint)")
     }
 }
 

@@ -327,7 +327,7 @@ struct QuickActionMenu_Previews: PreviewProvider {
             // Menu
             // ✅ FIXED: Now properly passes Binding to @Binding parameter
             QuickActionMenu(isPresented: .constant(true)) { action in
-                print("Selected: \(action.rawValue)")
+                logInfo("Selected: \(action.rawValue)")
             }
         }
         .preferredColorScheme(.dark)

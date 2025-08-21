@@ -1001,10 +1001,10 @@ public class WorkerDashboardViewModel: ObservableObject {
             // PHASE 2: Verify Kevin's 38 tasks
             if user.workerId == "4" {
                 assert(self.todaysTasks.count == 38, "Kevin must have 38 tasks, found \(self.todaysTasks.count)")
-                print("✅ Kevin verification: \(self.todaysTasks.count) tasks loaded")
+                logInfo("✅ Kevin verification: \(self.todaysTasks.count) tasks loaded")
             }
             
-            print("✅ Worker dashboard loaded successfully")
+            logInfo("✅ Worker dashboard loaded successfully")
         }
     }
     
@@ -1039,7 +1039,7 @@ public class WorkerDashboardViewModel: ObservableObject {
             // Update HeroTile properties
             await self.updateHeroTileProperties()
             
-            print("✅ Dashboard data refreshed")
+            logInfo("✅ Dashboard data refreshed")
         }
     }
     
@@ -1070,7 +1070,7 @@ public class WorkerDashboardViewModel: ObservableObject {
             // Broadcast update
             self.broadcastClockIn(workerId: workerId, building: building, hasLocation: self.locationManager.location != nil)
             
-            print("✅ Clocked in at \(building.name)")
+            logInfo("✅ Clocked in at \(building.name)")
         }
     }
     
@@ -1105,7 +1105,7 @@ public class WorkerDashboardViewModel: ObservableObject {
                 summary: sessionSummary
             )
             
-            print("✅ Clocked out from \(building.name)")
+            logInfo("✅ Clocked out from \(building.name)")
         }
     }
     
@@ -1164,7 +1164,7 @@ public class WorkerDashboardViewModel: ObservableObject {
                 evidence: taskEvidence
             )
             
-            print("✅ Task completed: \(task.title)")
+            logInfo("✅ Task completed: \(task.title)")
         }
     }
     
@@ -1173,14 +1173,14 @@ public class WorkerDashboardViewModel: ObservableObject {
         guard let workerId = currentWorkerId else { return }
         
         broadcastTaskStart(task: task, workerId: workerId, location: locationManager.location)
-        print("✅ Task started: \(task.title)")
+        logInfo("✅ Task started: \(task.title)")
     }
     
     /// Complete a task by ID (wrapper for UI convenience)
     public func completeTask(_ taskId: String) async {
         // Find the task in today's tasks
         guard let taskItem = todaysTasks.first(where: { $0.id == taskId }) else {
-            print("❌ Task not found: \(taskId)")
+            logInfo("❌ Task not found: \(taskId)")
             return
         }
         
@@ -1211,7 +1211,7 @@ public class WorkerDashboardViewModel: ObservableObject {
     public func startTask(_ taskId: String) async {
         // Find the task in today's tasks
         guard let taskItem = todaysTasks.first(where: { $0.id == taskId }) else {
-            print("❌ Task not found: \(taskId)")
+            logInfo("❌ Task not found: \(taskId)")
             return
         }
         
@@ -1223,7 +1223,7 @@ public class WorkerDashboardViewModel: ObservableObject {
     /// Prioritize a task based on weather or other conditions
     public func prioritizeTask(_ taskId: String) async {
         guard let taskIndex = todaysTasks.firstIndex(where: { $0.id == taskId }) else {
-            print("❌ Task not found for prioritization: \(taskId)")
+            logInfo("❌ Task not found for prioritization: \(taskId)")
             return
         }
         
@@ -1254,7 +1254,7 @@ public class WorkerDashboardViewModel: ObservableObject {
                 return (lhs.dueDate ?? Date.distantFuture) < (rhs.dueDate ?? Date.distantFuture)
             }
             
-            print("✅ Prioritized task: \(task.title)")
+            logInfo("✅ Prioritized task: \(task.title)")
         }
     }
     
@@ -1452,9 +1452,9 @@ public class WorkerDashboardViewModel: ObservableObject {
             // Calculate optimal map region from assigned buildings
             updateMapRegion()
             
-            print("✅ Loaded \(uniqueBuildings.count) assigned buildings for worker \(workerId) from real operational data")
+            logInfo("✅ Loaded \(uniqueBuildings.count) assigned buildings for worker \(workerId) from real operational data")
         } catch {
-            print("❌ Failed to load assigned buildings: \(error)")
+            logInfo("❌ Failed to load assigned buildings: \(error)")
             assignedBuildings = []
         }
     }
@@ -1491,7 +1491,7 @@ public class WorkerDashboardViewModel: ObservableObject {
             mapRegion = MKCoordinateRegion(center: center, span: span)
         }
         
-        print("✅ Updated map region for \(assignedBuildings.count) assigned buildings")
+        logInfo("✅ Updated map region for \(assignedBuildings.count) assigned buildings")
     }
     
     private func loadAllBuildings() async {
@@ -1515,9 +1515,9 @@ public class WorkerDashboardViewModel: ObservableObject {
                 )
             }
             
-            print("✅ Loaded \(allBuildings.count) total buildings for coverage")
+            logInfo("✅ Loaded \(allBuildings.count) total buildings for coverage")
         } catch {
-            print("❌ Failed to load all buildings: \(error)")
+            logInfo("❌ Failed to load all buildings: \(error)")
             allBuildings = []
         }
     }
@@ -1562,9 +1562,9 @@ public class WorkerDashboardViewModel: ObservableObject {
             
             // Combine routine tasks with regular tasks
             todaysTasks = routineTasks + regularTasks
-            print("✅ Loaded \(todaysTasks.count) tasks for worker \(workerId) (\(routineTasks.count) routine tasks + \(regularTasks.count) regular tasks)")
+            logInfo("✅ Loaded \(todaysTasks.count) tasks for worker \(workerId) (\(routineTasks.count) routine tasks + \(regularTasks.count) regular tasks)")
         } catch {
-            print("❌ Failed to load today's tasks: \(error)")
+            logInfo("❌ Failed to load today's tasks: \(error)")
             todaysTasks = []
         }
     }
@@ -1616,10 +1616,10 @@ public class WorkerDashboardViewModel: ObservableObject {
             }
             
             scheduleWeek = weekSchedule
-            print("✅ Loaded weekly schedule with \(weeklyScheduleItems.count) items from real operational data")
+            logInfo("✅ Loaded weekly schedule with \(weeklyScheduleItems.count) items from real operational data")
             
         } catch {
-            print("❌ Failed to load weekly schedule from operational data: \(error)")
+            logInfo("❌ Failed to load weekly schedule from operational data: \(error)")
             // Fallback to empty schedule
             scheduleWeek = []
         }
@@ -1674,7 +1674,7 @@ public class WorkerDashboardViewModel: ObservableObject {
                 await loadDefaultWeather(for: building)
             }
         } catch {
-            print("❌ Failed to load weather data: \(error)")
+            logInfo("❌ Failed to load weather data: \(error)")
             await loadDefaultWeather(for: building)
         }
     }
@@ -1890,7 +1890,7 @@ public class WorkerDashboardViewModel: ObservableObject {
         do {
             workerProfile = try await container.workers.getWorkerProfile(for: workerId)
         } catch {
-            print("⚠️ Failed to load worker profile: \(error)")
+            logInfo("⚠️ Failed to load worker profile: \(error)")
         }
     }
     
@@ -1910,14 +1910,14 @@ public class WorkerDashboardViewModel: ObservableObject {
                     requiresPhotoForSanitation: (row["requires_photo_for_sanitation"] as? Int64 ?? 1) == 1,
                     simplifiedInterface: (row["simplified_interface"] as? Int64 ?? 0) == 1
                 )
-                print("✅ Loaded capabilities for worker \(workerId)")
+                logInfo("✅ Loaded capabilities for worker \(workerId)")
             } else {
-                print("⚠️ No capabilities found, using defaults")
+                logInfo("⚠️ No capabilities found, using defaults")
                 workerCapabilities = .default
             }
         } catch {
             await showError(NSLocalizedString("Could not load worker settings.", comment: "Capabilities error"))
-            print("❌ Failed to load capabilities: \(error)")
+            logInfo("❌ Failed to load capabilities: \(error)")
             workerCapabilities = .default
         }
     }
@@ -1958,7 +1958,7 @@ public class WorkerDashboardViewModel: ObservableObject {
                 outdoorWorkRisk = currentWeather.outdoorWorkRisk
             }
         } catch {
-            print("❌ Failed to load weather data: \(error)")
+            logInfo("❌ Failed to load weather data: \(error)")
             // Fallback to default weather data
             weatherData = CoreTypes.WeatherData(
                 temperature: 70,
@@ -1988,9 +1988,9 @@ public class WorkerDashboardViewModel: ObservableObject {
                     requiresPhoto: task.requiresPhoto ?? false
                 )
             }
-            print("✅ Loaded \(todaysTasks.count) tasks for building \(buildingId)")
+            logInfo("✅ Loaded \(todaysTasks.count) tasks for building \(buildingId)")
         } catch {
-            print("❌ Failed to load tasks: \(error)")
+            logInfo("❌ Failed to load tasks: \(error)")
         }
     }
     
@@ -2000,7 +2000,7 @@ public class WorkerDashboardViewModel: ObservableObject {
                 let metrics = try await container.metrics.calculateMetrics(for: building.id)
                 buildingMetrics[building.id] = metrics
             } catch {
-                print("⚠️ Failed to load metrics for \(building.id): \(error)")
+                logInfo("⚠️ Failed to load metrics for \(building.id): \(error)")
             }
         }
     }
@@ -2116,7 +2116,7 @@ public class WorkerDashboardViewModel: ObservableObject {
         completionRate = totalTasks > 0 ? Double(completedTasks) / Double(totalTasks) : 0.0
         todaysEfficiency = calculateEfficiency()
         
-        print("✅ Progress: \(completedTasks)/\(totalTasks) = \(Int(completionRate * 100))%")
+        logInfo("✅ Progress: \(completedTasks)/\(totalTasks) = \(Int(completionRate * 100))%")
     }
     
     private func calculateEfficiency() -> Double {
@@ -2228,7 +2228,7 @@ public class WorkerDashboardViewModel: ObservableObject {
             hoursWorkedToday = totalHours
             
         } catch {
-            print("❌ Failed to calculate hours worked: \(error)")
+            logInfo("❌ Failed to calculate hours worked: \(error)")
             // Fallback to session calculation
             if let clockInTime = clockInTime {
                 hoursWorkedToday = Date().timeIntervalSince(clockInTime) / 3600.0
@@ -2260,7 +2260,7 @@ public class WorkerDashboardViewModel: ObservableObject {
             )
             container.dashboardSync.broadcastWorkerUpdate(update)
         } catch {
-            print("⚠️ Failed to update building metrics: \(error)")
+            logInfo("⚠️ Failed to update building metrics: \(error)")
         }
     }
     
@@ -2696,13 +2696,13 @@ public class WorkerDashboardViewModel: ObservableObject {
             
             // Success message
             let successMessage = NSLocalizedString("Vendor access logged successfully", comment: "Vendor access success")
-            print("✅ \(successMessage): \(vendorName) at \(building.name)")
+            logInfo("✅ \(successMessage): \(vendorName) at \(building.name)")
             
         } catch {
             isLoggingVendorAccess = false
             let errorMessage = NSLocalizedString("Failed to log vendor access", comment: "Vendor access error")
             await showError("\(errorMessage): \(error.localizedDescription)")
-            print("❌ Failed to log vendor access: \(error)")
+            logInfo("❌ Failed to log vendor access: \(error)")
         }
     }
     
@@ -2757,7 +2757,7 @@ public class WorkerDashboardViewModel: ObservableObject {
             
         } catch {
             let errorMessage = NSLocalizedString("Failed to load vendor access history", comment: "Vendor history error")
-            print("⚠️ \(errorMessage): \(error)")
+            logInfo("⚠️ \(errorMessage): \(error)")
         }
     }
     
@@ -2874,7 +2874,7 @@ public class WorkerDashboardViewModel: ObservableObject {
             isAddingNote = false
             hideAddNote()
             
-            print("✅ Daily note added: \(category.rawValue) at \(currentBuilding.name)")
+            logInfo("✅ Daily note added: \(category.rawValue) at \(currentBuilding.name)")
             
         } catch {
             isAddingNote = false
@@ -2919,7 +2919,7 @@ public class WorkerDashboardViewModel: ObservableObject {
             
         } catch {
             let errorMessage = NSLocalizedString("Failed to load daily notes", comment: "Notes error")
-            print("⚠️ \(errorMessage): \(error)")
+            logInfo("⚠️ \(errorMessage): \(error)")
         }
     }
     
@@ -3004,7 +3004,7 @@ public class WorkerDashboardViewModel: ObservableObject {
             isCreatingSupplyRequest = false
             hideInventoryRequest()
             
-            print("✅ Supply request created: \(requestNumber) for \(currentBuilding.name)")
+            logInfo("✅ Supply request created: \(requestNumber) for \(currentBuilding.name)")
             
         } catch {
             isCreatingSupplyRequest = false
@@ -3060,11 +3060,11 @@ public class WorkerDashboardViewModel: ObservableObject {
                 recentInventoryUsage.removeLast()
             }
             
-            print("✅ Inventory usage recorded: \(quantity) \(unit) of \(itemName)")
+            logInfo("✅ Inventory usage recorded: \(quantity) \(unit) of \(itemName)")
             
         } catch {
             let errorMessage = NSLocalizedString("Failed to record inventory usage", comment: "Inventory usage error")
-            print("❌ \(errorMessage): \(error)")
+            logInfo("❌ \(errorMessage): \(error)")
         }
     }
     
@@ -3131,7 +3131,7 @@ public class WorkerDashboardViewModel: ObservableObject {
             
         } catch {
             let errorMessage = NSLocalizedString("Failed to load inventory data", comment: "Inventory load error")
-            print("⚠️ \(errorMessage): \(error)")
+            logInfo("⚠️ \(errorMessage): \(error)")
         }
     }
     
@@ -3243,10 +3243,10 @@ public class WorkerDashboardViewModel: ObservableObject {
             // Trigger refresh
             await refreshData()
             
-            print("✅ Added quick action task: \(task.title)")
+            logInfo("✅ Added quick action task: \(task.title)")
             
         } catch {
-            print("❌ Failed to add quick action task: \(error)")
+            logInfo("❌ Failed to add quick action task: \(error)")
         }
     }
     
@@ -3289,7 +3289,7 @@ public class WorkerDashboardViewModel: ObservableObject {
         do {
             try await container.tasks.updateTask(updatedContextualTask)
         } catch {
-            print("❌ Failed to update task: \(error)")
+            logInfo("❌ Failed to update task: \(error)")
         }
     }
     

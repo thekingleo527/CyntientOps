@@ -469,50 +469,76 @@ struct AdminTaskRequestView: View {
 
 // MARK: - Admin Task Request ViewModel
 
+// MARK: - Optimized Data Structures
+
+struct TaskFormData {
+    var taskName: String = ""
+    var taskDescription: String = ""
+    var selectedBuildingID: String = ""
+    var selectedCategory: CoreTypes.TaskCategory = .maintenance
+    var selectedUrgency: CoreTypes.TaskUrgency = .medium
+    var selectedDate: Date = Date().addingTimeInterval(86400)
+    var selectedWorkerId: String = ""
+    
+    var isValid: Bool {
+        return !taskName.isEmpty &&
+               !taskDescription.isEmpty &&
+               !selectedBuildingID.isEmpty &&
+               !selectedWorkerId.isEmpty
+    }
+}
+
+struct TaskSchedule {
+    var addStartTime: Bool = false
+    var startTime: Date = Date().addingTimeInterval(3600)
+    var addEndTime: Bool = false
+    var endTime: Date = Date().addingTimeInterval(7200)
+}
+
+struct AdminOptions {
+    var priorityOverride: Bool = false
+    var isRecurring: Bool = false
+    var recurringFrequency: String = "weekly"
+}
+
 @MainActor
 final class AdminTaskRequestViewModel: ObservableObject {
-    // Published properties
-    @Published var taskName: String = ""
-    @Published var taskDescription: String = ""
-    @Published var selectedBuildingID: String = ""
-    @Published var selectedCategory: CoreTypes.TaskCategory = .maintenance
-    @Published var selectedUrgency: CoreTypes.TaskUrgency = .medium
-    @Published var selectedDate: Date = Date().addingTimeInterval(86400)
-    @Published var selectedWorkerId: String = ""
-    @Published var attachPhoto: Bool = false
-    @Published var photo: UIImage?
-    @Published var requiredInventory: [String: Int] = [:]
-    @Published var availableInventory: [CoreTypes.InventoryItem] = []
+    // OPTIMIZED: Grouped related properties
+    @Published var formData = TaskFormData()
+    @Published var schedule = TaskSchedule()
+    @Published var adminOptions = AdminOptions()
+    
+    // OPTIMIZED: Only UI state that needs reactivity
     @Published var isSubmitting: Bool = false
     @Published var errorMessage: String?
     @Published var showCompletionAlert: Bool = false
-    
-    // Admin-specific properties
-    @Published var adminPriorityOverride: Bool = false
-    @Published var isRecurring: Bool = false
-    @Published var recurringFrequency: String = "weekly"
-    @Published var buildingSearchText: String = ""
-    
-    // Data collections
-    @Published var availableBuildings: [CoreTypes.NamedCoordinate] = []
-    @Published var availableWorkers: [CoreTypes.WorkerProfile] = []
-    @Published var suggestedWorkers: [WorkerSuggestion] = []
     @Published var isLoadingData: Bool = true
     
-    // Time options
-    @Published var addStartTime: Bool = false
-    @Published var startTime: Date = Date().addingTimeInterval(3600)
-    @Published var addEndTime: Bool = false
-    @Published var endTime: Date = Date().addingTimeInterval(7200)
+    // OPTIMIZED: Photo handling (keep reactive for UI binding)
+    @Published var attachPhoto: Bool = false
+    @Published var photo: UIImage?
+    
+    // OPTIMIZED: Search text (needs reactivity for filtering)
+    @Published var buildingSearchText: String = ""
+    
+    // OPTIMIZED: Non-reactive data collections (updated only when needed)
+    private(set) var availableBuildings: [CoreTypes.NamedCoordinate] = []
+    private(set) var availableWorkers: [CoreTypes.WorkerProfile] = []
+    private(set) var suggestedWorkers: [WorkerSuggestion] = []
+    private(set) var availableInventory: [CoreTypes.InventoryItem] = []
+    private(set) var requiredInventory: [String: Int] = [:]
+    
+    // OPTIMIZED: Trigger updates manually when data changes
+    func updateAvailableData(buildings: [CoreTypes.NamedCoordinate], workers: [CoreTypes.WorkerProfile]) {
+        availableBuildings = buildings
+        availableWorkers = workers
+        objectWillChange.send() // Trigger UI update only when needed
+    }
     
     // MARK: - Computed Properties
     
     var isFormValid: Bool {
-        return !taskName.isEmpty &&
-               !taskDescription.isEmpty &&
-               !selectedBuildingID.isEmpty &&
-               !selectedWorkerId.isEmpty &&
-               (!attachPhoto || photo != nil)
+        return formData.isValid && (!attachPhoto || photo != nil)
     }
     
     var filteredBuildings: [CoreTypes.NamedCoordinate] {
@@ -719,20 +745,20 @@ final class AdminTaskRequestViewModel: ObservableObject {
     }
     
     private func recordInventoryRequirements(for taskId: String) {
-        print("Recording inventory requirements for admin task \(taskId)")
+        logInfo("Recording inventory requirements for admin task \(taskId)")
         for (itemId, quantity) in requiredInventory {
             if let item = availableInventory.first(where: { $0.id == itemId }) {
-                print("  - \(quantity) of \(item.name)")
+                logInfo("  - \(quantity) of \(item.name)")
             }
         }
     }
     
     private func saveTaskPhoto(_ image: UIImage, for taskId: String) {
-        print("Saving photo for admin task \(taskId)")
+        logInfo("Saving photo for admin task \(taskId)")
     }
     
     private func scheduleRecurringTask(baseTask: CoreTypes.ContextualTask) {
-        print("Scheduling recurring task: \(recurringFrequency)")
+        logInfo("Scheduling recurring task: \(recurringFrequency)")
         // Implementation would schedule future tasks based on frequency
     }
 }

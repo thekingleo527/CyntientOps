@@ -23,7 +23,11 @@ import Combine
 
 @MainActor
 public class DashboardSyncService: ObservableObject {
-    public static let shared = DashboardSyncService()
+    private let database: GRDBManager
+    
+    public init(database: GRDBManager) {
+        self.database = database
+    }
     
     // MARK: - Cross-Dashboard Publishers
     
@@ -252,14 +256,14 @@ public class DashboardSyncService: ObservableObject {
     private func validateDataSources() -> Bool {
         // Check if OperationalDataManager is initialized and has data
         guard operationalDataManager.isInitialized else {
-            print("❌ DashboardSyncService: OperationalDataManager not initialized")
+            logInfo("❌ DashboardSyncService: OperationalDataManager not initialized")
             return false
         }
         
         // Verify we can access configuration
         let config = operationalDataManager.getSystemConfiguration()
         guard config.isValid else {
-            print("❌ DashboardSyncService: Invalid system configuration")
+            logInfo("❌ DashboardSyncService: Invalid system configuration")
             return false
         }
         
@@ -268,7 +272,7 @@ public class DashboardSyncService: ObservableObject {
         let hasBuildings = operationalDataManager.getCachedBuildingCount() > 0
         
         if !hasWorkers || !hasBuildings {
-            print("⚠️ DashboardSyncService: Limited cached data, will fetch on demand")
+            logInfo("⚠️ DashboardSyncService: Limited cached data, will fetch on demand")
         }
         
         return true
@@ -306,7 +310,7 @@ public class DashboardSyncService: ObservableObject {
                     // User logged in - establish WebSocket connection
                     if let token = await self.getAuthToken() {
                         await self.webSocketManager.connect(token: token)
-                        print("🔌 WebSocket reconnected after user login")
+                        logInfo("🔌 WebSocket reconnected after user login")
                     }
                     
                     // Clear any stale data from previous user
@@ -325,7 +329,7 @@ public class DashboardSyncService: ObservableObject {
                 Task {
                     // User logged out - disconnect WebSocket
                     await self.webSocketManager.disconnect()
-                    print("🔌 WebSocket disconnected after user logout")
+                    logInfo("🔌 WebSocket disconnected after user logout")
                     
                     // Clear user-specific data
                     await self.clearUserSpecificData()
@@ -345,7 +349,7 @@ public class DashboardSyncService: ObservableObject {
                     await self.webSocketManager.disconnect()
                     await self.clearUserSpecificData()
                     await self.resetPendingUpdates()
-                    print("🔌 WebSocket disconnected due to session expiration")
+                    logInfo("🔌 WebSocket disconnected due to session expiration")
                 }
             }
             .store(in: &cancellables)
@@ -362,7 +366,7 @@ public class DashboardSyncService: ObservableObject {
             liveAdminAlerts.removeAll()
             liveClientMetrics.removeAll()
             
-            print("🧹 Cleared user-specific dashboard data")
+            logInfo("🧹 Cleared user-specific dashboard data")
         }
     }
     
@@ -372,7 +376,7 @@ public class DashboardSyncService: ObservableObject {
             pendingUpdatesCount = 0
             urgentPendingCount = 0
             
-            print("🔄 Reset pending updates for new user session")
+            logInfo("🔄 Reset pending updates for new user session")
         }
     }
     
@@ -628,9 +632,9 @@ public class DashboardSyncService: ObservableObject {
     private func sendToServer(_ update: CoreTypes.DashboardUpdate) async {
         do {
             try await webSocketManager.send(update)
-            print("🌐 Sent update to server: \(update.type.rawValue)")
+            logInfo("🌐 Sent update to server: \(update.type.rawValue)")
         } catch {
-            print("❌ Failed to send update to server: \(error)")
+            logInfo("❌ Failed to send update to server: \(error)")
             // Queue for retry
             await enqueueUpdate(update)
         }
@@ -957,7 +961,7 @@ public class DashboardSyncService: ObservableObject {
             // Update pending count
             await updatePendingCountWithPriority()
             
-            print("📥 Queued update with priority \(priority): \(update.type)")
+            logInfo("📥 Queued update with priority \(priority): \(update.type)")
             
             // Trigger immediate processing for urgent updates
             if priority == .urgent && isOnline {
@@ -967,7 +971,7 @@ public class DashboardSyncService: ObservableObject {
             }
             
         } catch {
-            print("❌ Failed to queue update: \(error)")
+            logInfo("❌ Failed to queue update: \(error)")
             operationalDataManager.logError("Failed to enqueue dashboard update", error: error)
         }
     }
@@ -999,7 +1003,7 @@ public class DashboardSyncService: ObservableObject {
         // Subscribe to cross-dashboard updates for logging
         crossDashboardUpdates
             .sink(receiveValue: { update in
-                print("🔄 Cross-dashboard sync: \(update.source.rawValue) → \(update.type.rawValue)")
+                logInfo("🔄 Cross-dashboard sync: \(update.source.rawValue) → \(update.type.rawValue)")
             })
             .store(in: &cancellables)
     }
@@ -1023,12 +1027,12 @@ public class DashboardSyncService: ObservableObject {
     public func enableCrossDashboardSync() {
         initialize()
         isLive = true
-        print("🔄 Cross-dashboard synchronization enabled")
+        logInfo("🔄 Cross-dashboard synchronization enabled")
     }
     
     public func disableCrossDashboardSync() {
         isLive = false
-        print("⏸️ Cross-dashboard synchronization disabled")
+        logInfo("⏸️ Cross-dashboard synchronization disabled")
     }
 }
 

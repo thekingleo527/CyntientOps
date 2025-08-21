@@ -128,7 +128,7 @@ public final class ClockInService: ObservableObject {
                 buildingName: building.name
             )
             
-            print("✅ Worker \(workerName) clocked in at \(building.name)")
+            logInfo("✅ Worker \(workerName) clocked in at \(building.name)")
             
         } catch {
             lastError = error
@@ -169,7 +169,7 @@ public final class ClockInService: ObservableObject {
                 buildingId: sessionBuildingId
             )
             
-            print("✅ Worker clocked out from \(sessionBuildingName)")
+            logInfo("✅ Worker clocked out from \(sessionBuildingName)")
             
         } catch {
             lastError = error
@@ -230,7 +230,7 @@ public final class ClockInService: ObservableObject {
             clockedInWorkers = newStatuses
             
         } catch {
-            print("❌ Failed to refresh clock in status: \(error)")
+            logInfo("❌ Failed to refresh clock in status: \(error)")
             lastError = error
         }
     }

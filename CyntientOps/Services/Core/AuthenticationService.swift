@@ -70,10 +70,10 @@ public final class AuthenticationService: ObservableObject {
             isAuthenticated = true
             sessionToken = storedToken
             
-            print("✅ Session restored for user: \(workerName)")
+            logInfo("✅ Session restored for user: \(workerName)")
             
         } catch {
-            print("❌ Failed to restore session: \(error)")
+            logInfo("❌ Failed to restore session: \(error)")
             clearStoredSession()
         }
     }
@@ -154,14 +154,14 @@ public final class AuthenticationService: ObservableObject {
         isAuthenticated = true
         sessionToken = token
         
-        print("✅ User authenticated: \(workerName) (role: \(roleString))")
+        logInfo("✅ User authenticated: \(workerName) (role: \(roleString))")
         
         return user
     }
     
     public func logout() async {
         if let user = currentUser {
-            print("👋 User logged out: \(user.name)")
+            logInfo("👋 User logged out: \(user.name)")
         }
         
         clearStoredSession()
@@ -204,7 +204,7 @@ public final class AuthenticationService: ObservableObject {
             user.id
         ])
         
-        print("🔐 Password changed successfully for user: \\(user.name)")
+        logInfo("🔐 Password changed successfully for user: \\(user.name)")
     }
     
     public func resetPassword(email: String) async throws -> String {
@@ -234,7 +234,7 @@ public final class AuthenticationService: ObservableObject {
             workerId
         ])
         
-        print("🔄 Password reset for user: \\(workerName)")
+        logInfo("🔄 Password reset for user: \\(workerName)")
         
         // In production, you would send this via email instead of returning it
         return tempPassword
@@ -289,7 +289,7 @@ public final class AuthenticationService: ObservableObject {
             workerId
         ])
         
-        print("🔒 Account locked until: \\(ISO8601DateFormatter().string(from: until))")
+        logInfo("🔒 Account locked until: \\(ISO8601DateFormatter().string(from: until))")
     }
     
     private func updateLastLogin(workerId: String) async throws {

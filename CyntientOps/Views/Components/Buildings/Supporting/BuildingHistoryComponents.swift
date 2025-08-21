@@ -162,7 +162,7 @@ struct VendorVisitsCard: View {
             isLoading = false
             
         } catch {
-            print("❌ Error loading vendor visits: \(error)")
+            logInfo("❌ Error loading vendor visits: \(error)")
             isLoading = false
         }
     }
@@ -723,9 +723,9 @@ struct ExportHistorySheet: View {
             try? await Task.sleep(nanoseconds: 2_000_000_000)
             
             // In real implementation, generate file and share
-            print("Exporting \(buildingName) history as \(exportFormat.rawValue)")
-            print("Categories: \(selectedCategories)")
-            print("Date range: \(dateRange.rawValue)")
+            logInfo("Exporting \(buildingName) history as \(exportFormat.rawValue)")
+            logInfo("Categories: \(selectedCategories)")
+            logInfo("Date range: \(dateRange.rawValue)")
             
             isExporting = false
             dismiss()

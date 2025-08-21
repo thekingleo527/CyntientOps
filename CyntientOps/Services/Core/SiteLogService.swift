@@ -283,7 +283,7 @@ public actor SiteLogService {
                 ])
             }
         } catch {
-            print("Failed to update clock out time: \(error)")
+            logInfo("Failed to update clock out time: \(error)")
         }
     }
 }

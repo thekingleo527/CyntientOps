@@ -324,7 +324,7 @@ struct WorkerScheduleGrid: View {
             isLoading = false
             
         } catch {
-            print("❌ Error loading worker schedule: \(error)")
+            logInfo("❌ Error loading worker schedule: \(error)")
             isLoading = false
         }
     }
@@ -555,7 +555,7 @@ struct WorkerCapabilityBadges: View {
                 )
             }
         } catch {
-            print("❌ Error loading worker capabilities: \(error)")
+            logInfo("❌ Error loading worker capabilities: \(error)")
         }
     }
     
@@ -1712,7 +1712,7 @@ struct ShiftAssignmentSheet: View {
             let workers = try await WorkerService.shared.getActiveWorkers()
             availableWorkers = workers
         } catch {
-            print("❌ Error loading workers: \(error)")
+            logInfo("❌ Error loading workers: \(error)")
         }
     }
 }

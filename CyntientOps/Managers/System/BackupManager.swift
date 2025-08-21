@@ -38,13 +38,13 @@ final class BackupManager {
     func createBackup() async throws -> URL {
         let backupURL = try getBackupDirectory().appendingPathComponent(createBackupFilename())
         
-        print("📦 Creating database backup at: \(backupURL.path)...")
+        logInfo("📦 Creating database backup at: \(backupURL.path)...")
         
         // Use GRDB's backup API with DatabaseQueue/Pool
         let backupQueue = try DatabaseQueue(path: backupURL.path)
         try await dbPool.backup(to: backupQueue)
         
-        print("✅ Backup created successfully.")
+        logInfo("✅ Backup created successfully.")
         return backupURL
     }
     
@@ -58,7 +58,7 @@ final class BackupManager {
             throw BackupError.fileNotFound
         }
         
-        print("🔄 Restoring database from backup: \(backupURL.path)...")
+        logInfo("🔄 Restoring database from backup: \(backupURL.path)...")
         
         // Get the current database file path
         let databasePath = try getDatabasePath()
@@ -89,8 +89,8 @@ final class BackupManager {
                 try fileManager.removeItem(atPath: tempBackupPath)
             }
             
-            print("✅ Database restored successfully from backup.")
-            print("⚠️  IMPORTANT: The app must be restarted for changes to take effect.")
+            logInfo("✅ Database restored successfully from backup.")
+            logInfo("⚠️  IMPORTANT: The app must be restarted for changes to take effect.")
             
         } catch {
             // Restore the safety backup if something went wrong
@@ -100,9 +100,9 @@ final class BackupManager {
                         try fileManager.removeItem(atPath: databasePath)
                     }
                     try fileManager.moveItem(atPath: tempBackupPath, toPath: databasePath)
-                    print("🔄 Restored original database due to restore failure.")
+                    logInfo("🔄 Restored original database due to restore failure.")
                 } catch {
-                    print("❌ Critical error: Could not restore original database!")
+                    logInfo("❌ Critical error: Could not restore original database!")
                 }
             }
             
@@ -169,7 +169,7 @@ final class BackupManager {
     /// Deletes a specific backup file.
     func deleteBackup(at url: URL) throws {
         try fileManager.removeItem(at: url)
-        print("🗑️ Deleted backup file: \(url.lastPathComponent)")
+        logInfo("🗑️ Deleted backup file: \(url.lastPathComponent)")
     }
     
     // MARK: - Private Helper Methods

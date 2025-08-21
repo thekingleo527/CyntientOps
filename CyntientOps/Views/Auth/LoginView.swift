@@ -312,7 +312,7 @@ struct LoginView: View {
                             // Forgot password link
                             Button(action: {
                                 // Handle forgot password
-                                print("Forgot password tapped")
+                                logInfo("Forgot password tapped")
                             }) {
                                 Text("Forgot Password?")
                                     .font(.caption)
@@ -534,7 +534,7 @@ struct LoginView: View {
     private func performLogin() async {
         guard !isLoading else { return }
         
-        print("🔐 LoginView: Starting login attempt for email: \(email)")
+        logInfo("🔐 LoginView: Starting login attempt for email: \(email)")
         
         await MainActor.run {
             withAnimation(Animation.easeInOut(duration: 0.2)) {
@@ -550,7 +550,7 @@ struct LoginView: View {
                 withAnimation(Animation.easeInOut(duration: 0.2)) {
                     isLoading = false
                 }
-                print("✅ Login successful")
+                logInfo("✅ Login successful")
             }
             
         } catch {
@@ -578,7 +578,7 @@ struct LoginView: View {
                 withAnimation(Animation.easeInOut(duration: 0.2)) {
                     isLoading = false
                 }
-                print("✅ Biometric login successful")
+                logInfo("✅ Biometric login successful")
             }
             
         } catch {

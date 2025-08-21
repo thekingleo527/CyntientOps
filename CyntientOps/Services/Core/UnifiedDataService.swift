@@ -39,12 +39,12 @@ public class UnifiedDataService: ObservableObject {
             }
             
             // Fallback to OperationalDataManager
-            print("⚡ Using OperationalDataManager fallback for worker \(workerId)")
+            logInfo("⚡ Using OperationalDataManager fallback for worker \(workerId)")
             lastFallbackUse = Date()
             return await getTasksFromOperationalData(workerId: workerId, date: date)
             
         } catch {
-            print("❌ Database tasks failed, using fallback: \(error)")
+            logInfo("❌ Database tasks failed, using fallback: \(error)")
             lastFallbackUse = Date()
             return await getTasksFromOperationalData(workerId: workerId, date: date)
         }
@@ -60,12 +60,12 @@ public class UnifiedDataService: ObservableObject {
             }
             
             // Fallback to OperationalDataManager
-            print("⚡ Using OperationalDataManager fallback for all tasks")
+            logInfo("⚡ Using OperationalDataManager fallback for all tasks")
             lastFallbackUse = Date()
             return await getAllTasksFromOperationalData()
             
         } catch {
-            print("❌ Database tasks failed, using fallback: \(error)")
+            logInfo("❌ Database tasks failed, using fallback: \(error)")
             lastFallbackUse = Date()
             return await getAllTasksFromOperationalData()
         }
@@ -82,12 +82,12 @@ public class UnifiedDataService: ObservableObject {
             }
             
             // Fallback: Generate insights from OperationalDataManager directly
-            print("⚡ Generating insights from OperationalDataManager fallback")
+            logInfo("⚡ Generating insights from OperationalDataManager fallback")
             lastFallbackUse = Date()
             return await generateInsightsFromOperationalData()
             
         } catch {
-            print("❌ Normal insights failed, using fallback: \(error)")
+            logInfo("❌ Normal insights failed, using fallback: \(error)")
             lastFallbackUse = Date()
             return await generateInsightsFromOperationalData()
         }
@@ -104,12 +104,12 @@ public class UnifiedDataService: ObservableObject {
             }
             
             // Fallback: Generate basic insights
-            print("⚡ Using fallback for building insights")
+            logInfo("⚡ Using fallback for building insights")
             lastFallbackUse = Date()
             return await generateBuildingInsightsFromOperationalData(buildingId: buildingId)
             
         } catch {
-            print("❌ Building insights failed, using fallback: \(error)")
+            logInfo("❌ Building insights failed, using fallback: \(error)")
             lastFallbackUse = Date()
             return await generateBuildingInsightsFromOperationalData(buildingId: buildingId)
         }
@@ -128,10 +128,10 @@ public class UnifiedDataService: ObservableObject {
             isReady = hasTasks && hasWorkers && hasBuildings
             
             if !isReady {
-                print("⚠️ Services not fully ready - fallback mode available")
+                logInfo("⚠️ Services not fully ready - fallback mode available")
             }
         } catch {
-            print("❌ Service check failed: \(error)")
+            logInfo("❌ Service check failed: \(error)")
             isReady = false
         }
     }
@@ -340,7 +340,7 @@ public class UnifiedDataService: ObservableObject {
                 buildingName.lowercased().contains(building.name.lowercased())
             }?.id
         } catch {
-            print("⚠️ Error looking up building '\(buildingName)': \(error)")
+            logInfo("⚠️ Error looking up building '\(buildingName)': \(error)")
             return nil
         }
     }
@@ -350,7 +350,7 @@ public class UnifiedDataService: ObservableObject {
             let building = try await buildingService.getBuilding(buildingId: buildingId)
             return building.name
         } catch {
-            print("⚠️ Error getting building name for ID '\(buildingId)': \(error)")
+            logInfo("⚠️ Error getting building name for ID '\(buildingId)': \(error)")
             return nil
         }
     }

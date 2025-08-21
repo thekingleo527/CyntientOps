@@ -535,7 +535,7 @@ struct AdminComplianceCenter: View {
             dashboardSync.broadcastUpdate(update)
             
         } catch {
-            print("❌ Failed to load compliance data: \(error)")
+            logInfo("❌ Failed to load compliance data: \(error)")
         }
         
         isLoading = false

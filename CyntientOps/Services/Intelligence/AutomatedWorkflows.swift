@@ -84,7 +84,7 @@ public class AutomatedWorkflows: ObservableObject {
         // Start workflow execution
         await executeWorkflow(workflowId)
         
-        print("✅ Created violation workflow: \(workflowId)")
+        logInfo("✅ Created violation workflow: \(workflowId)")
         return workflowId
     }
     
@@ -121,7 +121,7 @@ public class AutomatedWorkflows: ObservableObject {
         // Start workflow execution
         await executeWorkflow(workflowId)
         
-        print("✅ Created deadline workflow: \(workflowId)")
+        logInfo("✅ Created deadline workflow: \(workflowId)")
         return workflowId
     }
     
@@ -163,7 +163,7 @@ public class AutomatedWorkflows: ObservableObject {
         // Start workflow execution
         await executeWorkflow(workflowId)
         
-        print("✅ Created certification workflow: \(workflowId)")
+        logInfo("✅ Created certification workflow: \(workflowId)")
         return workflowId
     }
     
@@ -206,7 +206,7 @@ public class AutomatedWorkflows: ObservableObject {
         // Start workflow execution
         await executeWorkflow(workflowId)
         
-        print("✅ Created evidence filing workflow: \(workflowId)")
+        logInfo("✅ Created evidence filing workflow: \(workflowId)")
         return workflowId
     }
     
@@ -234,7 +234,7 @@ public class AutomatedWorkflows: ObservableObject {
             try? await updateWorkflowInDatabase(workflow)
             await updateWorkflowStats()
             
-            print("⏹️ Cancelled workflow: \(workflowId)")
+            logInfo("⏹️ Cancelled workflow: \(workflowId)")
         }
     }
     
@@ -324,7 +324,7 @@ public class AutomatedWorkflows: ObservableObject {
                     activeWorkflows.remove(at: workflowIndex)
                     completedWorkflows.append(workflow)
                     
-                    print("✅ Completed workflow: \(workflow.name)")
+                    logInfo("✅ Completed workflow: \(workflow.name)")
                 } else {
                     activeWorkflows[workflowIndex] = workflow
                 }
@@ -345,7 +345,7 @@ public class AutomatedWorkflows: ObservableObject {
                 
                 try? await updateWorkflowInDatabase(workflow)
                 
-                print("❌ Workflow step failed: \(workflow.name) - \(error)")
+                logInfo("❌ Workflow step failed: \(workflow.name) - \(error)")
             }
         }
     }
@@ -965,10 +965,10 @@ public enum WorkflowError: LocalizedError {
 
 public class NotificationService {
     func scheduleNotification(id: String, title: String, body: String, date: Date, userInfo: [String: Any]) async {
-        print("📅 Scheduled notification: \(title) for \(date)")
+        logInfo("📅 Scheduled notification: \(title) for \(date)")
     }
     
     func sendNotification(id: String, title: String, body: String, userInfo: [String: Any]) async {
-        print("🔔 Sent notification: \(title)")
+        logInfo("🔔 Sent notification: \(title)")
     }
 }

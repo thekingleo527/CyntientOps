@@ -548,7 +548,7 @@ struct MaintenanceHistoryView: View {
                     self.allTasks = []
                     self.isLoading = false
                 }
-                print("❌ Failed to load maintenance history: \(error)")
+                logInfo("❌ Failed to load maintenance history: \(error)")
             }
         }
     }

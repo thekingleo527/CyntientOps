@@ -36,15 +36,15 @@ extension TaskService {
         do {
             let dbTasks = try await getAllTasks()
             if !dbTasks.isEmpty {
-                print("✅ Using database tasks: \(dbTasks.count)")
+                logInfo("✅ Using database tasks: \(dbTasks.count)")
                 return dbTasks
             }
         } catch {
-            print("⚠️ Database query failed, falling back to operational data: \(error)")
+            logInfo("⚠️ Database query failed, falling back to operational data: \(error)")
         }
         
         // Fallback: Generate from OperationalDataManager
-        print("📊 Fallback: Generating tasks from OperationalDataManager")
+        logInfo("📊 Fallback: Generating tasks from OperationalDataManager")
         return await generateTasksFromOperationalData()
     }
     
@@ -54,11 +54,11 @@ extension TaskService {
         do {
             let dbTasks = try await getTasks(for: workerId, date: date)
             if !dbTasks.isEmpty {
-                print("✅ Using database tasks for worker \(workerId): \(dbTasks.count)")
+                logInfo("✅ Using database tasks for worker \(workerId): \(dbTasks.count)")
                 return dbTasks
             }
         } catch {
-            print("⚠️ Database worker tasks failed, falling back to operational data: \(error)")
+            logInfo("⚠️ Database worker tasks failed, falling back to operational data: \(error)")
         }
         
         // Fallback: Generate from OperationalDataManager
@@ -73,7 +73,7 @@ extension TaskService {
             $0.assignedWorker == workerName
         }
         
-        print("📊 Fallback: Generating \(workerTasks.count) tasks for \(workerName) from operational data")
+        logInfo("📊 Fallback: Generating \(workerTasks.count) tasks for \(workerName) from operational data")
         return await convertOperationalTasks(workerTasks, workerId: workerId)
     }
     
@@ -127,7 +127,7 @@ extension TaskService {
             }
             buildingId = building?.id
         } catch {
-            print("⚠️ Could not get building for \(opTask.building): \(error)")
+            logInfo("⚠️ Could not get building for \(opTask.building): \(error)")
         }
         
         // Map category

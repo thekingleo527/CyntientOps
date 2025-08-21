@@ -251,9 +251,9 @@ public class TaskDetailViewModel: ObservableObject {
                 photoLocalPath = evidence.filePath
                 photoData = image.jpegData(compressionQuality: photoCompressionQuality)
                 
-                print("✅ Photo evidence captured: \(evidence.id)")
+                logInfo("✅ Photo evidence captured: \(evidence.id)")
             } catch {
-                print("❌ Failed to capture photo evidence: \(error)")
+                logInfo("❌ Failed to capture photo evidence: \(error)")
                 errorMessage = error.localizedDescription
                 showError = true
             }
@@ -361,7 +361,7 @@ public class TaskDetailViewModel: ObservableObject {
                 self.workerCapabilities = .init(canUploadPhotos: true, canAddNotes: true, canViewMap: true, canAddEmergencyTasks: false, requiresPhotoForSanitation: true, simplifiedInterface: false)
             }
         } catch {
-            print("❌ Failed to load worker capabilities for task detail: \(error)")
+            logInfo("❌ Failed to load worker capabilities for task detail: \(error)")
             self.workerCapabilities = .init(canUploadPhotos: true, canAddNotes: true, canViewMap: true, canAddEmergencyTasks: false, requiresPhotoForSanitation: true, simplifiedInterface: false)
         }
     }
@@ -384,7 +384,7 @@ public class TaskDetailViewModel: ObservableObject {
             buildingAddress = building.address
             buildingCoordinate = CLLocationCoordinate2D(latitude: building.latitude, longitude: building.longitude)
         } catch {
-            print("⚠️ Failed to load building info: \(error)")
+            logInfo("⚠️ Failed to load building info: \(error)")
             buildingName = "Building #\(buildingId)"
         }
     }
@@ -396,7 +396,7 @@ public class TaskDetailViewModel: ObservableObject {
                 return name
             }
         } catch {
-            print("⚠️ Database query failed: \(error)")
+            logInfo("⚠️ Database query failed: \(error)")
         }
         return "Building #\(buildingId)"
     }
@@ -411,7 +411,7 @@ public class TaskDetailViewModel: ObservableObject {
             workerProfile = try await workerService.getWorkerProfile(for: workerId)
             workerName = workerProfile?.name ?? "Worker #\(workerId)"
         } catch {
-            print("⚠️ Failed to load worker info: \(error)")
+            logInfo("⚠️ Failed to load worker info: \(error)")
             workerName = "Worker #\(workerId)"
         }
     }
@@ -446,10 +446,10 @@ public class TaskDetailViewModel: ObservableObject {
                 ISO8601DateFormatter().string(from: Date())
             ])
             
-            print("✅ Task completion recorded: \(completionId)")
+            logInfo("✅ Task completion recorded: \(completionId)")
             
         } catch {
-            print("❌ Failed to save completion record: \(error)")
+            logInfo("❌ Failed to save completion record: \(error)")
         }
     }
     
@@ -486,7 +486,7 @@ public class TaskDetailViewModel: ObservableObject {
             "workerId": taskWorkerId ?? ""
         ]
         
-        print("📊 Task metrics: \(metrics)")
+        logInfo("📊 Task metrics: \(metrics)")
     }
     
     private func requiresPhotoEvidence() -> Bool {
@@ -541,7 +541,7 @@ public class TaskDetailViewModel: ObservableObject {
     }
     
     private func startAITaskMonitoring() {
-        print("🤖 AI task monitoring started for task: \(taskId)")
+        logInfo("🤖 AI task monitoring started for task: \(taskId)")
     }
     
     private func setupSubscriptions() {

@@ -149,7 +149,7 @@ public struct AdminEmergencyManagementView: View {
     
     private func resolveAlert(_ alert: CoreTypes.AdminAlert) {
         // Handle alert resolution
-        print("Resolving alert: \\(alert.title)")
+        logInfo("Resolving alert: \\(alert.title)")
     }
 }
 

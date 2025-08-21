@@ -95,11 +95,11 @@ public final class NYCIntegrationManager: ObservableObject {
             
             integrationStatus = .ready
             
-            print("✅ NYC Integration Manager initialized successfully")
+            logInfo("✅ NYC Integration Manager initialized successfully")
             
         } catch {
             integrationStatus = .error(error.localizedDescription)
-            print("❌ NYC Integration Manager initialization failed: \(error)")
+            logInfo("❌ NYC Integration Manager initialization failed: \(error)")
         }
     }
     
@@ -296,15 +296,15 @@ public final class NYCIntegrationManager: ObservableObject {
                         let compliance = try JSONDecoder().decode(NYCBuildingCompliance.self, from: data)
                         complianceService.complianceData[buildingId] = compliance
                     } catch {
-                        print("Failed to decode cached compliance data for \(buildingId): \(error)")
+                        logInfo("Failed to decode cached compliance data for \(buildingId): \(error)")
                     }
                 }
             }
             
-            print("✅ Loaded cached compliance data for \(complianceService.complianceData.count) buildings")
+            logInfo("✅ Loaded cached compliance data for \(complianceService.complianceData.count) buildings")
             
         } catch {
-            print("⚠️ Failed to load cached compliance data: \(error)")
+            logInfo("⚠️ Failed to load cached compliance data: \(error)")
         }
     }
     

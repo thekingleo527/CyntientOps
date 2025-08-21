@@ -13,11 +13,11 @@ import Foundation
 import GRDB
 
 public actor BuildingService {
-    static let shared = BuildingService()
+    private let grdbManager: GRDBManager
     
-    private let grdbManager = GRDBManager.shared
-    
-    private init() {}
+    public init(database: GRDBManager) {
+        self.grdbManager = database
+    }
     
     // MARK: - Public API Methods
     
@@ -742,6 +742,32 @@ extension BuildingService {
         }
         
         return criticalBuildings
+    }
+    
+    // MARK: - Building Spaces
+    
+    /// Get spaces for a specific building
+    func getSpaces(for buildingId: String) async throws -> [CoreTypes.BuildingSpace] {
+        let rows = try await grdbManager.query("""
+            SELECT * FROM building_spaces 
+            WHERE building_id = ? 
+            ORDER BY name
+        """, [buildingId])
+        
+        // Return empty array if no spaces found (common case)
+        return rows.compactMap { row in
+            guard let id = row["id"] as? String,
+                  let name = row["name"] as? String else { return nil }
+            
+            return CoreTypes.BuildingSpace(
+                id: id,
+                buildingId: buildingId,
+                name: name,
+                description: row["description"] as? String,
+                category: CoreTypes.SpaceCategory(rawValue: row["category"] as? String ?? "room") ?? .room,
+                accessLevel: CoreTypes.AccessLevel(rawValue: row["access_level"] as? String ?? "standard") ?? .standard
+            )
+        }
     }
 }
 

@@ -136,7 +136,7 @@ struct TaskScheduleView: View {
                     }
                 }
             } catch {
-                print("Failed to load building info: \(error)")
+                logInfo("Failed to load building info: \(error)")
             }
         }
     }
@@ -593,7 +593,7 @@ struct TaskScheduleView: View {
                 await MainActor.run {
                     self.tasks = []
                     self.isLoading = false
-                    print("❌ Failed to load tasks: \(error)")
+                    logInfo("❌ Failed to load tasks: \(error)")
                 }
             }
         }

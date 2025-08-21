@@ -212,7 +212,7 @@ struct MaintenanceTaskView: View {
             await MainActor.run {
                 self.buildingName = "Building \(task.buildingId)"
             }
-            print("❌ Failed to load building name: \(error)")
+            logInfo("❌ Failed to load building name: \(error)")
         }
     }
     
@@ -240,7 +240,7 @@ struct MaintenanceTaskView: View {
             await MainActor.run {
                 isMarkingComplete = false
             }
-            print("❌ Failed to mark task as complete: \(error)")
+            logInfo("❌ Failed to mark task as complete: \(error)")
         }
     }
     
@@ -250,15 +250,15 @@ struct MaintenanceTaskView: View {
             // Fetch available workers for this building
             let workers = try await workerService.getAllActiveWorkers()
             guard let newWorker = workers.first(where: { $0.id != task.assignedWorkerId }) ?? workers.first else {
-                print("⚠️ No alternate workers available for reassignment")
+                logInfo("⚠️ No alternate workers available for reassignment")
                 return
             }
 
             // Note: This would need to be implemented in WorkerService
             // try await workerService.reassignTask(taskId: task.id, to: newWorker.id)
-            print("✅ Task would be reassigned to \(newWorker.name)")
+            logInfo("✅ Task would be reassigned to \(newWorker.name)")
         } catch {
-            print("❌ Failed to reassign worker: \(error)")
+            logInfo("❌ Failed to reassign worker: \(error)")
         }
     }
 

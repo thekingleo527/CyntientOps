@@ -123,11 +123,11 @@ struct BuildingMessageComposer: View {
     
     private func sendMessage() {
         // Send message logic
-        print("Sending message to: \(recipients.joined(separator: ", "))")
-        print("Subject: \(subject)")
-        print("Urgent: \(isUrgent)")
-        print("Photos: \(selectedPhotos.count)")
-        print("Body: \(messageBody)")
+        logInfo("Sending message to: \(recipients.joined(separator: ", "))")
+        logInfo("Subject: \(subject)")
+        logInfo("Urgent: \(isUrgent)")
+        logInfo("Photos: \(selectedPhotos.count)")
+        logInfo("Body: \(messageBody)")
         
         // TODO: Implement actual sending via email client or API
         

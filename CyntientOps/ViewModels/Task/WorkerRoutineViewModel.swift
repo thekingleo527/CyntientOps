@@ -107,7 +107,7 @@ class WorkerRoutineViewModel: ObservableObject {
             let tasks = try await taskService.getAllTasks()
             return tasks.filter { $0.isCompleted }.count
         } catch {
-            print("❌ Failed to get completed tasks count: \(error)")
+            logInfo("❌ Failed to get completed tasks count: \(error)")
             return 0
         }
     }
@@ -118,7 +118,7 @@ class WorkerRoutineViewModel: ObservableObject {
             let tasks = try await taskService.getAllTasks()
             return tasks.count
         } catch {
-            print("❌ Failed to get total tasks count: \(error)")
+            logInfo("❌ Failed to get total tasks count: \(error)")
             return 0
         }
     }
@@ -183,7 +183,7 @@ class WorkerRoutineViewModel: ObservableObject {
             }
             return []
         } catch {
-            print("❌ Failed to fetch routes: \(error)")
+            logInfo("❌ Failed to fetch routes: \(error)")
             return []
         }
     }
@@ -261,7 +261,7 @@ class WorkerRoutineViewModel: ObservableObject {
                 return task.buildingId == buildingId || task.building?.id == buildingId
             }
         } catch {
-            print("❌ Failed to fetch tasks for building \(buildingId): \(error)")
+            logInfo("❌ Failed to fetch tasks for building \(buildingId): \(error)")
             return []
         }
     }
@@ -329,7 +329,7 @@ class WorkerRoutineViewModel: ObservableObject {
             guard !workerTasks.isEmpty else { return 0.0 }
             return Double(completedTasks.count) / Double(workerTasks.count)
         } catch {
-            print("❌ Failed to calculate worker efficiency: \(error)")
+            logInfo("❌ Failed to calculate worker efficiency: \(error)")
             return 0.85 // Default efficiency
         }
     }

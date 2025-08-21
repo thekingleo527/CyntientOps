@@ -69,7 +69,7 @@ public final class RealDataInitializationService: ObservableObject {
             isComplete = false
         }
         
-        print("🚀 Starting comprehensive real data initialization...")
+        logInfo("🚀 Starting comprehensive real data initialization...")
         
         do {
             var cumulativeProgress = 0.0
@@ -77,7 +77,7 @@ public final class RealDataInitializationService: ObservableObject {
             for step in InitializationStep.allCases {
                 await MainActor.run {
                     currentStep = step.rawValue
-                    print("   📝 \(step.rawValue)")
+                    logInfo("   📝 \(step.rawValue)")
                 }
                 
                 switch step {
@@ -113,7 +113,7 @@ public final class RealDataInitializationService: ObservableObject {
                 initializationProgress = 1.0
             }
             
-            print("✅ Real data initialization completed successfully")
+            logInfo("✅ Real data initialization completed successfully")
             
         } catch {
             await MainActor.run {
@@ -122,7 +122,7 @@ public final class RealDataInitializationService: ObservableObject {
                 currentStep = "Initialization failed"
             }
             
-            print("❌ Real data initialization failed: \(error)")
+            logInfo("❌ Real data initialization failed: \(error)")
         }
     }
     
@@ -130,14 +130,14 @@ public final class RealDataInitializationService: ObservableObject {
     
     /// Initialize operational data from OperationalDataManager
     private func initializeOperationalData() async {
-        print("   🔧 Loading real operational task data...")
+        logInfo("   🔧 Loading real operational task data...")
         
         // Verify OperationalDataManager has real data
         let taskCount = operationalDataManager.realWorldTaskCount
         let workerCount = operationalDataManager.realWorldWorkers.count
         let buildingCount = operationalDataManager.realWorldBuildings.count
         
-        print("   ✅ Operational data loaded: \(taskCount) tasks, \(workerCount) workers, \(buildingCount) buildings")
+        logInfo("   ✅ Operational data loaded: \(taskCount) tasks, \(workerCount) workers, \(buildingCount) buildings")
         
         // Validate data integrity
         guard taskCount > 0 else {
@@ -150,15 +150,15 @@ public final class RealDataInitializationService: ObservableObject {
     
     /// Initialize worker assignments using real operational data
     private func initializeWorkerAssignments() async {
-        print("   👷 Loading worker assignments from operational data...")
+        logInfo("   👷 Loading worker assignments from operational data...")
         
         let allTasks = operationalDataManager.realWorldTasks
         let workerGroups = Dictionary(grouping: allTasks) { $0.assignedWorker }
         
-        print("   📊 Assignment distribution:")
+        logInfo("   📊 Assignment distribution:")
         for (workerName, tasks) in workerGroups {
             let buildings = Set(tasks.map { $0.building }).count
-            print("     - \(workerName): \(tasks.count) tasks across \(buildings) buildings")
+            logInfo("     - \(workerName): \(tasks.count) tasks across \(buildings) buildings")
         }
         
         // Update database worker records with real assignment data
@@ -167,7 +167,7 @@ public final class RealDataInitializationService: ObservableObject {
     
     /// Initialize building data with real coordinates and metadata
     private func initializeBuildingData() async {
-        print("   🏢 Loading building data...")
+        logInfo("   🏢 Loading building data...")
         
         // Ensure all operational buildings are in database
         let operationalBuildings = operationalDataManager.realWorldBuildings
@@ -177,41 +177,41 @@ public final class RealDataInitializationService: ObservableObject {
             let exists = try? await checkBuildingExistsInDatabase(buildingName)
             
             if exists != true {
-                print("   ⚠️ Building '\(buildingName)' not found in database - adding...")
+                logInfo("   ⚠️ Building '\(buildingName)' not found in database - adding...")
                 await addBuildingToDatabase(buildingName)
             }
         }
         
-        print("   ✅ Building data synchronized with operational data")
+        logInfo("   ✅ Building data synchronized with operational data")
     }
     
     /// Initialize NYC API data for compliance monitoring
     private func initializeNYCAPIData() async {
-        print("   🗽 Initializing NYC API compliance data...")
+        logInfo("   🗽 Initializing NYC API compliance data...")
         
         // Get all buildings from database
         let buildings = try? await serviceContainer.buildings.getAllBuildings()
         let buildingCount = buildings?.count ?? 0
         
         if buildingCount > 0 {
-            print("   📊 NYC API will provide compliance data for \(buildingCount) buildings")
+            logInfo("   📊 NYC API will provide compliance data for \(buildingCount) buildings")
             
             // Test NYC API connectivity
             let isConnected = await testNYCAPIConnectivity()
             
             if isConnected {
-                print("   ✅ NYC API connectivity verified")
+                logInfo("   ✅ NYC API connectivity verified")
             } else {
-                print("   ⚠️ NYC API connectivity issues - will use generated data")
+                logInfo("   ⚠️ NYC API connectivity issues - will use generated data")
             }
         } else {
-            print("   ⚠️ No buildings found for NYC API data initialization")
+            logInfo("   ⚠️ No buildings found for NYC API data initialization")
         }
     }
     
     /// Validate database integrity after initialization
     private func validateDatabaseIntegrity() async {
-        print("   🔍 Validating database integrity...")
+        logInfo("   🔍 Validating database integrity...")
         
         do {
             // Check critical tables exist and have data
@@ -219,26 +219,26 @@ public final class RealDataInitializationService: ObservableObject {
             let buildingCount = try await serviceContainer.database.query("SELECT COUNT(*) as count FROM buildings").first?["count"] as? Int64 ?? 0
             let taskCount = try await serviceContainer.database.query("SELECT COUNT(*) as count FROM tasks").first?["count"] as? Int64 ?? 0
             
-            print("   📊 Database validation:")
-            print("     - Workers: \(workerCount)")
-            print("     - Buildings: \(buildingCount)")
-            print("     - Tasks: \(taskCount)")
+            logInfo("   📊 Database validation:")
+            logInfo("     - Workers: \(workerCount)")
+            logInfo("     - Buildings: \(buildingCount)")
+            logInfo("     - Tasks: \(taskCount)")
             
             guard workerCount > 0 && buildingCount > 0 else {
                 throw InitializationError.databaseIntegrityFailure
             }
             
-            print("   ✅ Database integrity validated")
+            logInfo("   ✅ Database integrity validated")
             
         } catch {
-            print("   ❌ Database validation failed: \(error)")
+            logInfo("   ❌ Database validation failed: \(error)")
             throw InitializationError.databaseValidationFailed(error)
         }
     }
     
     /// Perform final validation of all systems
     private func performFinalValidation() async {
-        print("   🎯 Performing final system validation...")
+        logInfo("   🎯 Performing final system validation...")
         
         // Validate operational data manager
         let operationalValid = operationalDataManager.realWorldTaskCount > 0
@@ -249,16 +249,16 @@ public final class RealDataInitializationService: ObservableObject {
         // Validate NYC API service
         let nycAPIValid = nycAPIService.isConnected
         
-        print("   📋 Final validation results:")
-        print("     - Operational Data: \(operationalValid ? "✅" : "❌")")
-        print("     - Service Container: \(containerValid ? "✅" : "❌")")
-        print("     - NYC API: \(nycAPIValid ? "✅" : "⚠️")")
+        logInfo("   📋 Final validation results:")
+        logInfo("     - Operational Data: \(operationalValid ? "✅" : "❌")")
+        logInfo("     - Service Container: \(containerValid ? "✅" : "❌")")
+        logInfo("     - NYC API: \(nycAPIValid ? "✅" : "⚠️")")
         
         guard operationalValid && containerValid else {
             throw InitializationError.finalValidationFailed
         }
         
-        print("   ✅ All systems validated and ready")
+        logInfo("   ✅ All systems validated and ready")
     }
     
     // MARK: - Helper Methods
@@ -267,7 +267,7 @@ public final class RealDataInitializationService: ObservableObject {
     private func seedDatabaseWithOperationalData() async {
         // This would typically check if data exists and seed if needed
         // For now, we'll assume the database seeding is handled elsewhere
-        print("   📝 Database seeding verified (handled by existing services)")
+        logInfo("   📝 Database seeding verified (handled by existing services)")
     }
     
     /// Update worker assignments in database based on operational data
@@ -284,10 +284,10 @@ public final class RealDataInitializationService: ObservableObject {
                 """, [buildingIds.joined(separator: ","), workerName])
             }
             
-            print("   ✅ Worker assignments updated in database")
+            logInfo("   ✅ Worker assignments updated in database")
             
         } catch {
-            print("   ⚠️ Failed to update worker assignments: \(error)")
+            logInfo("   ⚠️ Failed to update worker assignments: \(error)")
         }
     }
     
@@ -305,7 +305,7 @@ public final class RealDataInitializationService: ObservableObject {
     private func addBuildingToDatabase(_ buildingName: String) async {
         // This would add a new building record with proper coordinates
         // For now, just log the action
-        print("   📝 Would add building '\(buildingName)' to database")
+        logInfo("   📝 Would add building '\(buildingName)' to database")
     }
     
     /// Test NYC API connectivity

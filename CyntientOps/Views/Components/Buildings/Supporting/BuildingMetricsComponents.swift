@@ -632,7 +632,7 @@ class BuildingMetricsViewModel: ObservableObject {
             )
         } catch {
             self.error = error
-            print("❌ Failed to load metrics: \(error)")
+            logInfo("❌ Failed to load metrics: \(error)")
         }
         
         isLoading = false

@@ -413,7 +413,7 @@ struct AdminTasksOverview: View {
             dashboardSync.broadcastUpdate(update)
             
         } catch {
-            print("❌ Failed to load task data: \(error)")
+            logInfo("❌ Failed to load task data: \(error)")
         }
         
         isLoading = false

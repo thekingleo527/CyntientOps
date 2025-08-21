@@ -126,33 +126,33 @@ public class NewAuthManager: ObservableObject {
         
         do {
             // Get user from database
-            print("🔍 Looking up user with email: \(email)")
+            logInfo("🔍 Looking up user with email: \(email)")
             let userRows = try await grdbManager.query(
                 "SELECT id, name, email, password, role FROM workers WHERE email = ? AND isActive = 1",
                 [email]
             )
             
-            print("🔍 Raw query result: \(userRows)")
+            logInfo("🔍 Raw query result: \(userRows)")
             
             guard let userRow = userRows.first else {
                 loginAttempts += 1
-                print("❌ No user found for email: \(email)")
+                logInfo("❌ No user found for email: \(email)")
                 throw NewAuthError.authenticationFailed("Invalid credentials")
             }
             
-            print("✅ User found in database")
+            logInfo("✅ User found in database")
             
             // Get stored password hash
             guard let storedPasswordHash = userRow["password"] as? String,
                   let workerId = userRow["id"] as? String else {
-                print("❌ Invalid user data - missing password or ID")
+                logInfo("❌ Invalid user data - missing password or ID")
                 throw NewAuthError.authenticationFailed("Invalid user data")
             }
             
-            print("🔑 Stored password: '\(storedPasswordHash)'")
-            print("🔑 Provided password: '\(password)'")
-            print("🔑 Password length - stored: \(storedPasswordHash.count), provided: \(password.count)")
-            print("🔍 Checking password match...")
+            logInfo("🔑 Stored password: '\(storedPasswordHash)'")
+            logInfo("🔑 Provided password: '\(password)'")
+            logInfo("🔑 Password length - stored: \(storedPasswordHash.count), provided: \(password.count)")
+            logInfo("🔍 Checking password match...")
             
             // DEFINITIVE PASSWORD CHECK - Force reset to known passwords for debugging
             let knownPasswords = [
@@ -168,7 +168,7 @@ public class NewAuthManager: ObservableObject {
             
             if let expectedPassword = knownPasswords[email] {
                 if password == expectedPassword {
-                    print("✅ DEFINITIVE MATCH: Password verified against known credentials")
+                    logInfo("✅ DEFINITIVE MATCH: Password verified against known credentials")
                     // Force update database to ensure consistency
                     try await grdbManager.execute(
                         "UPDATE workers SET password = ? WHERE id = ?",
@@ -176,16 +176,16 @@ public class NewAuthManager: ObservableObject {
                     )
                 } else {
                     loginAttempts += 1
-                    print("❌ DEFINITIVE MISMATCH: Expected '\(expectedPassword)', got '\(password)'")
+                    logInfo("❌ DEFINITIVE MISMATCH: Expected '\(expectedPassword)', got '\(password)'")
                     throw NewAuthError.authenticationFailed("Invalid credentials")
                 }
             } else {
                 // For unknown users, try existing logic
                 if storedPasswordHash == password {
-                    print("✅ Plain text password match")
+                    logInfo("✅ Plain text password match")
                 } else {
                     loginAttempts += 1
-                    print("❌ Password verification failed - unknown user")
+                    logInfo("❌ Password verification failed - unknown user")
                     throw NewAuthError.authenticationFailed("Invalid credentials")
                 }
             }
@@ -217,7 +217,7 @@ public class NewAuthManager: ObservableObject {
             if user.role == "client" {
                 // Client organization data can be loaded later through the service layer
                 // Remove direct container dependency to avoid scope issues
-                print("📋 Client user authenticated - organization data will be loaded by dashboard")
+                logInfo("📋 Client user authenticated - organization data will be loaded by dashboard")
             }
             
             self.isAuthenticated = true
@@ -236,7 +236,7 @@ public class NewAuthManager: ObservableObject {
             // Start session monitoring
             startSessionTimer()
             
-            print("✅ Authentication successful for \(user.name)")
+            logInfo("✅ Authentication successful for \(user.name)")
             NotificationCenter.default.post(name: .userDidLogin, object: nil, userInfo: ["user": user])
             
             // Prompt for biometric enrollment if available
@@ -288,7 +288,7 @@ public class NewAuthManager: ObservableObject {
             [newHash, Date().ISO8601Format(), user.workerId]
         )
         
-        print("✅ Password changed successfully for \(user.name)")
+        logInfo("✅ Password changed successfully for \(user.name)")
         NotificationCenter.default.post(name: .passwordChanged, object: nil)
     }
     
@@ -323,7 +323,7 @@ public class NewAuthManager: ObservableObject {
             [newHash, Date().ISO8601Format(), workerId]
         )
         
-        print("✅ Password reset for user: \(email)")
+        logInfo("✅ Password reset for user: \(email)")
     }
     
     /// Authenticate with biometrics
@@ -365,7 +365,7 @@ public class NewAuthManager: ObservableObject {
                         
                         startSessionTimer()
                         
-                        print("✅ Biometric authentication successful")
+                        logInfo("✅ Biometric authentication successful")
                         NotificationCenter.default.post(name: .userDidLogin, object: nil, userInfo: ["user": session.user])
                     } else {
                         // Session expired, try to refresh
@@ -401,7 +401,7 @@ public class NewAuthManager: ObservableObject {
             if success {
                 UserDefaults.standard.set(true, forKey: biometricEnabledKey)
                 isBiometricEnabled = true
-                print("✅ Biometrics enabled successfully")
+                logInfo("✅ Biometrics enabled successfully")
             }
         } catch {
             throw NewAuthError.biometricEnrollmentFailed(error.localizedDescription)
@@ -412,7 +412,7 @@ public class NewAuthManager: ObservableObject {
     public func disableBiometrics() {
         UserDefaults.standard.set(false, forKey: biometricEnabledKey)
         isBiometricEnabled = false
-        print("🔐 Biometrics disabled")
+        logInfo("🔐 Biometrics disabled")
     }
     
     /// Logout current user
@@ -442,7 +442,7 @@ public class NewAuthManager: ObservableObject {
         sessionTimer = nil
         
         if let user = previousUser {
-            print("👋 \(user.name) logged out")
+            logInfo("👋 \(user.name) logged out")
         }
         
         NotificationCenter.default.post(name: .userDidLogout, object: nil)
@@ -476,7 +476,7 @@ public class NewAuthManager: ObservableObject {
             }
             
             NotificationCenter.default.post(name: .sessionRefreshed, object: nil)
-            print("✅ Session refreshed successfully")
+            logInfo("✅ Session refreshed successfully")
         } catch {
             sessionStatus = .expired
             throw NewAuthError.sessionRefreshFailed
@@ -509,7 +509,7 @@ public class NewAuthManager: ObservableObject {
             do {
                 try await refreshSession()
             } catch {
-                print("⚠️ Failed to refresh session: \(error)")
+                logInfo("⚠️ Failed to refresh session: \(error)")
             }
         }
         
@@ -567,7 +567,7 @@ public class NewAuthManager: ObservableObject {
             isBiometricEnabled = false
         }
         
-        print("🔐 Biometric setup - Type: \(biometricTypeString), Enabled: \(isBiometricEnabled)")
+        logInfo("🔐 Biometric setup - Type: \(biometricTypeString), Enabled: \(isBiometricEnabled)")
     }
     
     private func hashPassword(_ password: String, for email: String) async throws -> String {
@@ -599,7 +599,7 @@ public class NewAuthManager: ObservableObject {
         guard let salt = try? getFromKeychain(key: saltKey) as? Data else {
             // No salt found, this might be a plain text password that needs migration
             // Return false to let the main authenticate method handle plain text check
-            print("🔍 No salt found for \(email) - likely plain text password")
+            logInfo("🔍 No salt found for \(email) - likely plain text password")
             return false
         }
         
@@ -610,7 +610,7 @@ public class NewAuthManager: ObservableObject {
         let computedHashString = Data(computedHash).base64EncodedString()
         
         let isMatch = computedHashString == hash
-        print("🔐 Salted hash verification: \(isMatch)")
+        logInfo("🔐 Salted hash verification: \(isMatch)")
         return isMatch
     }
     
@@ -698,14 +698,14 @@ public class NewAuthManager: ObservableObject {
                         
                         startSessionTimer()
                         
-                        print("✅ Session restored for \(session.user.name)")
+                        logInfo("✅ Session restored for \(session.user.name)")
                     } else {
                         // Session expired
                         clearKeychain()
                     }
                 }
             } catch {
-                print("❌ Failed to restore session: \(error)")
+                logInfo("❌ Failed to restore session: \(error)")
             }
         }
     }
@@ -823,11 +823,11 @@ public class NewAuthManager: ObservableObject {
             ]
             let status = SecItemDelete(query as CFDictionary)
             if status == errSecSuccess {
-                print("  ✅ Keychain item '\(key)' deleted successfully.")
+                logInfo("  ✅ Keychain item '\(key)' deleted successfully.")
             } else if status == errSecItemNotFound {
-                print("  ⚠️ Keychain item '\(key)' not found, skipping.")
+                logInfo("  ⚠️ Keychain item '\(key)' not found, skipping.")
             } else {
-                print("  ❌ Error deleting keychain item '\(key)': \(status)")
+                logInfo("  ❌ Error deleting keychain item '\(key)': \(status)")
             }
         }
 
@@ -838,9 +838,9 @@ public class NewAuthManager: ObservableObject {
         ]
         let status = SecItemDelete(broadQuery as CFDictionary)
         if status == errSecSuccess {
-            print("  ✅ Keychain service '\(keychainService)' cleared.")
+            logInfo("  ✅ Keychain service '\(keychainService)' cleared.")
         } else if status != errSecItemNotFound {
-            print("  ❌ Error clearing keychain service: \(status)")
+            logInfo("  ❌ Error clearing keychain service: \(status)")
         }
     }
     

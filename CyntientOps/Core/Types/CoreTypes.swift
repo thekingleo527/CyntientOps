@@ -3364,6 +3364,44 @@ public struct WorkerPerformance: Codable, Identifiable {
         case high = "High"
         case critical = "Critical"
     }
+    
+    // MARK: - Building Spaces
+    
+    public struct BuildingSpace: Codable, Identifiable {
+        public let id: String
+        public let buildingId: String
+        public let name: String
+        public let description: String?
+        public let category: SpaceCategory
+        public let accessLevel: AccessLevel
+        
+        public init(id: String, buildingId: String, name: String, description: String? = nil, category: SpaceCategory = .room, accessLevel: AccessLevel = .standard) {
+            self.id = id
+            self.buildingId = buildingId
+            self.name = name
+            self.description = description
+            self.category = category
+            self.accessLevel = accessLevel
+        }
+    }
+    
+    public enum SpaceCategory: String, Codable, CaseIterable {
+        case room = "room"
+        case lobby = "lobby"
+        case basement = "basement"
+        case rooftop = "rooftop"
+        case mechanical = "mechanical"
+        case storage = "storage"
+        case office = "office"
+        case common = "common"
+    }
+    
+    public enum AccessLevel: String, Codable, CaseIterable {
+        case standard = "standard"
+        case restricted = "restricted"
+        case maintenance = "maintenance"
+        case emergency = "emergency"
+    }
 
 } // END of CoreTypes namespace
 
@@ -3482,8 +3520,12 @@ public typealias RecommendationPriority = CoreTypes.RecommendationPriority
         }
     }
 
+// Building Spaces
+public typealias BuildingSpace = CoreTypes.BuildingSpace
+public typealias SpaceCategory = CoreTypes.SpaceCategory
+public typealias AccessLevel = CoreTypes.AccessLevel
 
-// MARK: - AdminOperationalIntelligence Types (Direct Access)
+// MARK: - AdminOperationalIntelligence Types (Direct Access)  
 // Note: These types are already public in AdminOperationalIntelligence.swift
 // The ViewModels should import that file directly to access these types
 

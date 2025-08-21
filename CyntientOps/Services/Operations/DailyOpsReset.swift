@@ -14,7 +14,11 @@ import GRDB
 
 @MainActor
 public class DailyOpsReset: ObservableObject {
-    static let shared = DailyOpsReset()
+    private let database: GRDBManager
+    
+    public init(database: GRDBManager) {
+        self.database = database
+    }
     
     // MARK: - Migration Tracking
     private let migrationKeys = MigrationKeys()
@@ -76,7 +80,7 @@ public class DailyOpsReset: ObservableObject {
         UserDefaults.standard.set(false, forKey: migrationKeys.hasCreatedAssignments)
         UserDefaults.standard.set(false, forKey: migrationKeys.hasSetupCapabilities)
         UserDefaults.standard.set(0, forKey: migrationKeys.migrationVersion)
-        print("🔄 Migration flags reset - next run will perform full migration")
+        logInfo("🔄 Migration flags reset - next run will perform full migration")
     }
     
     // MARK: - Public Interface
@@ -88,24 +92,24 @@ public class DailyOpsReset: ObservableObject {
         
         // Force migration if version is outdated OR buildings are missing
         if currentVersion < migrationKeys.currentVersion {
-            print("🔧 Migration needed - version \(currentVersion) < \(migrationKeys.currentVersion)")
+            logInfo("🔧 Migration needed - version \(currentVersion) < \(migrationKeys.currentVersion)")
             return true
         }
         
         if !hasImportedBuildings {
-            print("🔧 Migration needed - buildings not imported")
+            logInfo("🔧 Migration needed - buildings not imported")
             return true
         }
         
         // Additional check: if buildings were supposedly imported but we have too few
         // This handles cases where the flag was set but import actually failed
         do {
-            let buildingCount = try GRDBManager.shared.database.read { db in
+            let buildingCount = try database.database.read { db in
                 try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM buildings") ?? 0
             }
             
             if buildingCount < 18 {
-                print("🔧 Force migration needed - only \(buildingCount) buildings found, expected 18+")
+                logInfo("🔧 Force migration needed - only \(buildingCount) buildings found, expected 18+")
                 // Reset flags to force complete re-migration
                 UserDefaults.standard.set(false, forKey: migrationKeys.hasImportedBuildings)
                 UserDefaults.standard.set(false, forKey: migrationKeys.hasImportedTemplates)
@@ -113,10 +117,10 @@ public class DailyOpsReset: ObservableObject {
                 return true
             }
             
-            print("✅ Migration check passed - \(buildingCount) buildings found")
+            logInfo("✅ Migration check passed - \(buildingCount) buildings found")
             return false
         } catch {
-            print("⚠️ Could not check building count: \(error) - forcing migration")
+            logInfo("⚠️ Could not check building count: \(error) - forcing migration")
             return true
         }
     }
@@ -125,16 +129,16 @@ public class DailyOpsReset: ObservableObject {
     func performOneTimeMigration() async throws {
         // Check if another migration is already in progress (actor-safe)
         if Self.migrationInProgress {
-            print("⚠️ Migration already in progress - skipping duplicate attempt")
+            logInfo("⚠️ Migration already in progress - skipping duplicate attempt")
             return
         }
         
         guard needsMigration() else {
-            print("✅ Migration already completed (version \(migrationKeys.currentVersion))")
+            logInfo("✅ Migration already completed (version \(migrationKeys.currentVersion))")
             return
         }
         
-        print("🚀 Starting one-time operational data migration...")
+        logInfo("🚀 Starting one-time operational data migration...")
         
         // Set migration in progress flags
         Self.migrationInProgress = true
@@ -175,13 +179,13 @@ public class DailyOpsReset: ObservableObject {
             migrationProgress = 1.0
             migrationStatus = "Migration completed successfully!"
             
-            print("✅ ONE-TIME MIGRATION COMPLETED SUCCESSFULLY - Version: \(migrationKeys.currentVersion)")
-            print("🔧 Migration flags - Version: \(UserDefaults.standard.integer(forKey: migrationKeys.migrationVersion)), Buildings: \(UserDefaults.standard.bool(forKey: migrationKeys.hasImportedBuildings))")
-            print("   - Workers imported: ✓")
-            print("   - Buildings imported: ✓")
-            print("   - Templates created: ✓")
-            print("   - Assignments created: ✓")
-            print("   - Capabilities setup: ✓")
+            logInfo("✅ ONE-TIME MIGRATION COMPLETED SUCCESSFULLY - Version: \(migrationKeys.currentVersion)")
+            logInfo("🔧 Migration flags - Version: \(UserDefaults.standard.integer(forKey: migrationKeys.migrationVersion)), Buildings: \(UserDefaults.standard.bool(forKey: migrationKeys.hasImportedBuildings))")
+            logInfo("   - Workers imported: ✓")
+            logInfo("   - Buildings imported: ✓")
+            logInfo("   - Templates created: ✓")
+            logInfo("   - Assignments created: ✓")
+            logInfo("   - Capabilities setup: ✓")
             
             // Generate initial tasks for today
             try await performDailyOperations()
@@ -192,7 +196,7 @@ public class DailyOpsReset: ObservableObject {
         } catch {
             migrationError = error
             migrationStatus = "Migration failed: \(error.localizedDescription)"
-            print("❌ Migration failed: \(error)")
+            logInfo("❌ Migration failed: \(error)")
             throw error
         }
     }
@@ -215,7 +219,7 @@ public class DailyOpsReset: ObservableObject {
         
         // Step 4: Import buildings
         // Always check if buildings actually exist, even if flag says they were imported
-        let buildingCount = try await GRDBManager.shared.query("SELECT COUNT(*) as count FROM buildings")
+        let buildingCount = try await database.query("SELECT COUNT(*) as count FROM buildings")
         let actualBuildingCount = (buildingCount.first?["count"] as? Int64) ?? 0
         
         if !UserDefaults.standard.bool(forKey: migrationKeys.hasImportedBuildings) || actualBuildingCount < 18 {
@@ -223,23 +227,23 @@ public class DailyOpsReset: ObservableObject {
             migrationStatus = "Importing buildings..."
             migrationProgress = 0.4
             
-            print("🏢 Building import needed - current count: \(actualBuildingCount), expected: 18+")
+            logInfo("🏢 Building import needed - current count: \(actualBuildingCount), expected: 18+")
             try await importBuildingsAsync()
             
             // Verify import succeeded before setting flag
-            let newBuildingCount = try await GRDBManager.shared.query("SELECT COUNT(*) as count FROM buildings")
+            let newBuildingCount = try await database.query("SELECT COUNT(*) as count FROM buildings")
             let finalCount = (newBuildingCount.first?["count"] as? Int64) ?? 0
             
             if finalCount >= 18 {
                 UserDefaults.standard.set(true, forKey: migrationKeys.hasImportedBuildings)
                 UserDefaults.standard.synchronize()
-                print("✅ Building import verified: \(finalCount) buildings imported")
+                logInfo("✅ Building import verified: \(finalCount) buildings imported")
             } else {
-                print("❌ Building import failed: only \(finalCount) buildings found")
+                logInfo("❌ Building import failed: only \(finalCount) buildings found")
                 throw DailyOpsError.migrationFailed("Building import verification failed")
             }
         } else {
-            print("✅ Buildings already imported: \(actualBuildingCount) buildings found")
+            logInfo("✅ Buildings already imported: \(actualBuildingCount) buildings found")
         }
         
         // Step 5: Import routine templates
@@ -287,11 +291,11 @@ public class DailyOpsReset: ObservableObject {
         // Check if already run today
         if let lastRun = UserDefaults.standard.object(forKey: lastRunKey) as? Date,
            Calendar.current.isDateInToday(lastRun) {
-            print("ℹ️ Daily operations already completed today")
+            logInfo("ℹ️ Daily operations already completed today")
             return
         }
         
-        print("🔄 Starting daily operations at \(Date())")
+        logInfo("🔄 Starting daily operations at \(Date())")
         
         // Generate tasks from templates
         try await generateTasksFromTemplates(for: today)
@@ -305,13 +309,13 @@ public class DailyOpsReset: ObservableObject {
         // Mark as completed
         UserDefaults.standard.set(today, forKey: lastRunKey)
         
-        print("✅ Daily operations completed at \(Date())")
+        logInfo("✅ Daily operations completed at \(Date())")
     }
     
     // MARK: - Migration Implementation
     
     private func createOperationalDataBackup() async throws {
-        print("🛡️ Creating operational data backup...")
+        logInfo("🛡️ Creating operational data backup...")
         
         let operationalData = OperationalDataManager.shared
         let allTasks = operationalData.getAllRealWorldTasks()
@@ -343,7 +347,7 @@ public class DailyOpsReset: ObservableObject {
             try backupData.write(to: backupPath)
             UserDefaults.standard.set(backupData, forKey: migrationKeys.operationalDataBackup)
             
-            print("✅ Backup created: \(backup.taskCount) tasks, \(backup.workerNames.count) workers, \(backup.buildingNames.count) buildings")
+            logInfo("✅ Backup created: \(backup.taskCount) tasks, \(backup.workerNames.count) workers, \(backup.buildingNames.count) buildings")
             
         } catch {
             throw DailyOpsError.backupFailed(error.localizedDescription)
@@ -353,38 +357,38 @@ public class DailyOpsReset: ObservableObject {
     // MARK: - Async Import Methods
     
     private func importWorkersAsync() async throws {
-        try await GRDBManager.shared.database.write { db in
+        try await database.database.write { db in
             try self.importWorkers(db: db)
         }
     }
     
     private func importBuildingsAsync() async throws {
-        print("🚀 Starting building import transaction...")
+        logInfo("🚀 Starting building import transaction...")
         
         do {
             // Force clear existing buildings to ensure clean import
-            try await GRDBManager.shared.database.write { db in
+            try await database.database.write { db in
                 try db.execute(sql: "DELETE FROM buildings")
-                print("🏢 Cleared existing buildings for fresh import")
+                logInfo("🏢 Cleared existing buildings for fresh import")
             }
             
             // Import all buildings
-            try await GRDBManager.shared.database.write { db in
+            try await database.database.write { db in
                 try self.forceImportAllBuildings(db: db)
             }
             
             // Verify buildings were imported successfully outside the transaction
-            let verifyCount = try await GRDBManager.shared.database.read { db in
+            let verifyCount = try await database.database.read { db in
                 try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM buildings") ?? 0
             }
-            print("✅ Building import completed - verified count: \(verifyCount)")
+            logInfo("✅ Building import completed - verified count: \(verifyCount)")
             
             if verifyCount < 18 {
                 throw DailyOpsError.importFailed("Building import failed: only \(verifyCount) buildings imported, expected 18")
             }
             
         } catch {
-            print("❌ Building import transaction failed: \(error)")
+            logInfo("❌ Building import transaction failed: \(error)")
             throw error
         }
     }
@@ -393,7 +397,7 @@ public class DailyOpsReset: ObservableObject {
         // Get tasks from OperationalDataManager on main actor
         let tasks = OperationalDataManager.shared.getAllRealWorldTasks()
         
-        try await GRDBManager.shared.database.write { db in
+        try await database.database.write { db in
             try self.importRoutineTemplates(db: db, tasks: tasks)
         }
     }
@@ -402,19 +406,19 @@ public class DailyOpsReset: ObservableObject {
         // Get tasks from OperationalDataManager on main actor
         let tasks = OperationalDataManager.shared.getAllRealWorldTasks()
         
-        try await GRDBManager.shared.database.write { db in
+        try await database.database.write { db in
             try self.createWorkerAssignments(db: db, tasks: tasks)
         }
     }
     
     private func setupWorkerCapabilitiesAsync() async throws {
-        try await GRDBManager.shared.database.write { db in
+        try await database.database.write { db in
             try self.setupWorkerCapabilities(db: db)
         }
     }
     
     private func fixRoleMappingsAsync() async throws {
-        try await GRDBManager.shared.database.write { db in
+        try await database.database.write { db in
             try self.fixRoleMappings(db: db)
         }
     }
@@ -422,7 +426,7 @@ public class DailyOpsReset: ObservableObject {
     // MARK: - Synchronous Import Methods (called within database transaction)
     
     private nonisolated func importWorkers(db: Database) throws {
-        print("👥 Importing workers...")
+        logInfo("👥 Importing workers...")
         
         var imported = 0
         
@@ -444,7 +448,7 @@ public class DailyOpsReset: ObservableObject {
             """, arguments: [id])
             
             if existingWorker != nil {
-                print("   Worker already exists: \(name)")
+                logInfo("   Worker already exists: \(name)")
                 continue
             }
             
@@ -466,15 +470,15 @@ public class DailyOpsReset: ObservableObject {
             imported += 1
         }
         
-        print("   ✓ Imported \(imported) workers")
+        logInfo("   ✓ Imported \(imported) workers")
     }
     
     private nonisolated func importBuildings(db: Database) throws {
-        print("🏢 Importing buildings...")
+        logInfo("🏢 Importing buildings...")
         
         // First check what buildings exist before import
         let existingCount = try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM buildings") ?? 0
-        print("   📊 Buildings before import: \(existingCount)")
+        logInfo("   📊 Buildings before import: \(existingCount)")
         
         var imported = 0
         
@@ -507,7 +511,7 @@ public class DailyOpsReset: ObservableObject {
             """, arguments: [id])
             
             if existingBuilding != nil {
-                print("   Building already exists: \(name)")
+                logInfo("   Building already exists: \(name)")
                 continue
             }
             
@@ -529,23 +533,23 @@ public class DailyOpsReset: ObservableObject {
         
         // Check final count after import
         let finalCount = try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM buildings") ?? 0
-        print("   📊 Buildings after import: \(finalCount)")
-        print("   ✓ Imported \(imported) buildings, final total: \(finalCount)")
+        logInfo("   📊 Buildings after import: \(finalCount)")
+        logInfo("   ✓ Imported \(imported) buildings, final total: \(finalCount)")
         
         // List all buildings for debugging
         let buildings = try Row.fetchAll(db, sql: "SELECT id, name FROM buildings ORDER BY id")
         for building in buildings {
-            print("   📋 Building: \(building["id"] as? String ?? "?") - \(building["name"] as? String ?? "?")")
+            logInfo("   📋 Building: \(building["id"] as? String ?? "?") - \(building["name"] as? String ?? "?")")
         }
     }
     
     /// Force import all buildings - clears existing buildings first and imports all 19
     private nonisolated func forceImportAllBuildings(db: Database) throws {
-        print("🔥 Force importing all buildings...")
+        logInfo("🔥 Force importing all buildings...")
         
         // First, clear all existing buildings to ensure clean import
         let existingCount = try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM buildings") ?? 0
-        print("   📊 Clearing \(existingCount) existing buildings")
+        logInfo("   📊 Clearing \(existingCount) existing buildings")
         try db.execute(sql: "DELETE FROM buildings")
         
         var imported = 0
@@ -588,18 +592,18 @@ public class DailyOpsReset: ObservableObject {
             ])
             
             imported += 1
-            print("   ✅ Force imported: \(name)")
+            logInfo("   ✅ Force imported: \(name)")
         }
         
         // Verify final count
         let finalCount = try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM buildings") ?? 0
-        print("   🎯 FORCE IMPORT COMPLETE: \(imported) buildings imported, final total: \(finalCount)")
+        logInfo("   🎯 FORCE IMPORT COMPLETE: \(imported) buildings imported, final total: \(finalCount)")
         
         // List all buildings for verification
         let buildings = try Row.fetchAll(db, sql: "SELECT id, name FROM buildings ORDER BY id")
-        print("   📋 All buildings after force import:")
+        logInfo("   📋 All buildings after force import:")
         for building in buildings {
-            print("     - ID \(building["id"] as? String ?? "?"):  \(building["name"] as? String ?? "?")")
+            logInfo("     - ID \(building["id"] as? String ?? "?"):  \(building["name"] as? String ?? "?")")
         }
         
         if finalCount != 19 {
@@ -608,7 +612,7 @@ public class DailyOpsReset: ObservableObject {
     }
     
     private nonisolated func importRoutineTemplates(db: Database, tasks: [OperationalDataTaskAssignment]) throws {
-        print("📋 Importing routine templates...")
+        logInfo("📋 Importing routine templates...")
         
         var imported = 0
         var skipped = 0
@@ -619,7 +623,7 @@ public class DailyOpsReset: ObservableObject {
         for task in tasks {
             // Validate IDs exist
             guard !task.workerId.isEmpty && !task.buildingId.isEmpty else {
-                print("⚠️ Skipping task with missing IDs: \(task.taskName)")
+                logInfo("⚠️ Skipping task with missing IDs: \(task.taskName)")
                 skipped += 1
                 continue
             }
@@ -664,14 +668,14 @@ public class DailyOpsReset: ObservableObject {
             imported += 1
         }
         
-        print("   ✓ Imported \(imported) routine templates (skipped \(skipped) invalid)")
+        logInfo("   ✓ Imported \(imported) routine templates (skipped \(skipped) invalid)")
         
         // Add specific routines for new 148 Chambers Street contract
         try create148ChambersRoutines(db: db)
     }
     
     private nonisolated func create148ChambersRoutines(db: Database) throws {
-        print("🏢 Creating 148 Chambers Street routines...")
+        logInfo("🏢 Creating 148 Chambers Street routines...")
         
         let chambersTemplates = [
             // Angel - Garbage collection on DSNY Mon/Wed/Fri schedule
@@ -755,11 +759,11 @@ public class DailyOpsReset: ObservableObject {
             created += 1
         }
         
-        print("   ✓ Created \(created) routine templates for 148 Chambers Street")
+        logInfo("   ✓ Created \(created) routine templates for 148 Chambers Street")
     }
     
     private nonisolated func createWorkerAssignments(db: Database, tasks: [OperationalDataTaskAssignment]) throws {
-        print("🔗 Creating worker-building assignments...")
+        logInfo("🔗 Creating worker-building assignments...")
         
         var assignmentSet = Set<String>()
         var created = 0
@@ -792,14 +796,14 @@ public class DailyOpsReset: ObservableObject {
             }
         }
         
-        print("   ✓ Created \(created) worker-building assignments")
+        logInfo("   ✓ Created \(created) worker-building assignments")
         
         // Add specific assignments for 148 Chambers Street
         try create148ChambersAssignments(db: db)
     }
     
     private nonisolated func create148ChambersAssignments(db: Database) throws {
-        print("🔗 Creating 148 Chambers Street worker assignments...")
+        logInfo("🔗 Creating 148 Chambers Street worker assignments...")
         
         let chambersAssignments = [
             (workerId: "7", buildingId: "21", role: "sanitation"), // Angel - Garbage collection
@@ -825,11 +829,11 @@ public class DailyOpsReset: ObservableObject {
             created += 1
         }
         
-        print("   ✓ Created \(created) worker assignments for 148 Chambers Street")
+        logInfo("   ✓ Created \(created) worker assignments for 148 Chambers Street")
     }
     
     private nonisolated func setupWorkerCapabilities(db: Database) throws {
-        print("⚙️ Setting up worker capabilities...")
+        logInfo("⚙️ Setting up worker capabilities...")
         
         let capabilities = [
             // Kevin - Power user
@@ -922,11 +926,11 @@ public class DailyOpsReset: ObservableObject {
             ])
         }
         
-        print("   ✓ Set up capabilities for \(capabilities.count) workers")
+        logInfo("   ✓ Set up capabilities for \(capabilities.count) workers")
     }
     
     private nonisolated func fixRoleMappings(db: Database) throws {
-        print("🔧 Fixing worker role mappings...")
+        logInfo("🔧 Fixing worker role mappings...")
         
         // Update worker roles to match CoreTypes.UserRole enum values
         let roleUpdates = [
@@ -953,15 +957,15 @@ public class DailyOpsReset: ObservableObject {
             updated += 1
         }
         
-        print("   ✓ Fixed role mappings for \(updated) workers")
+        logInfo("   ✓ Fixed role mappings for \(updated) workers")
     }
     
     // MARK: - Daily Operations
     
     private func generateTasksFromTemplates(for date: Date) async throws {
-        print("📅 Generating tasks from templates for \(date.formatted(date: .abbreviated, time: .omitted))...")
+        logInfo("📅 Generating tasks from templates for \(date.formatted(date: .abbreviated, time: .omitted))...")
         
-        let generated = try await GRDBManager.shared.database.write { [weak self] db -> Int in
+        let generated = try await database.database.write { [weak self] db -> Int in
             guard let self = self else { return 0 }
             
             // Read all active templates
@@ -1032,7 +1036,7 @@ public class DailyOpsReset: ObservableObject {
                 }
             }
             
-            print("   ✓ Generated \(generatedCount) tasks, skipped \(skipped) existing")
+            logInfo("   ✓ Generated \(generatedCount) tasks, skipped \(skipped) existing")
             return generatedCount
         }
     }
@@ -1108,12 +1112,12 @@ public class DailyOpsReset: ObservableObject {
     }
     
     private func cleanupOldData() async throws {
-        print("🧹 Cleaning up old data...")
+        logInfo("🧹 Cleaning up old data...")
         
         let retentionDays = 90 // Keep 90 days of history
         let cutoffDate = Date().addingTimeInterval(-Double(retentionDays * 24 * 60 * 60))
         
-        try await GRDBManager.shared.database.write { db in
+        try await database.database.write { db in
             // Clean old completed tasks
             try db.execute(sql: """
                 DELETE FROM routine_tasks
@@ -1136,12 +1140,12 @@ public class DailyOpsReset: ObservableObject {
                 )
             """)
             
-            print("   ✓ Cleaned up old data")
+            logInfo("   ✓ Cleaned up old data")
         }
     }
     
     private func updateDailyMetrics() async throws {
-        print("📊 Updating daily metrics...")
+        logInfo("📊 Updating daily metrics...")
         
         // Trigger metrics recalculation for all buildings
         let buildingIds = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "16", "17"]
@@ -1150,7 +1154,7 @@ public class DailyOpsReset: ObservableObject {
             _ = try await BuildingMetricsService.shared.calculateMetrics(for: buildingId)
         }
         
-        print("   ✓ Updated metrics for \(buildingIds.count) buildings")
+        logInfo("   ✓ Updated metrics for \(buildingIds.count) buildings")
     }
     
     // MARK: - Helper Methods

@@ -13,11 +13,11 @@ import Foundation
 import GRDB
 
 public actor WorkerService {
-    public static let shared = WorkerService()
+    private let grdbManager: GRDBManager
     
-    private let grdbManager = GRDBManager.shared
-    
-    private init() {}
+    public init(database: GRDBManager) {
+        self.grdbManager = database
+    }
     
     // MARK: - Public API Methods
     

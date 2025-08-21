@@ -110,13 +110,13 @@ class NotificationManager: ObservableObject {
     private func requestNotificationPermission() {
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { granted, error in
             if let error = error {
-                print("Notification authorization error: \(error)")
+                logInfo("Notification authorization error: \(error)")
             }
             
             if granted {
-                print("Notification permission granted")
+                logInfo("Notification permission granted")
             } else {
-                print("Notification permission denied")
+                logInfo("Notification permission denied")
             }
         }
     }
@@ -269,7 +269,7 @@ class NotificationManager: ObservableObject {
         
         UNUserNotificationCenter.current().add(request) { error in
             if let error = error {
-                print("Failed to send notification: \(error)")
+                logInfo("Failed to send notification: \(error)")
             }
         }
     }

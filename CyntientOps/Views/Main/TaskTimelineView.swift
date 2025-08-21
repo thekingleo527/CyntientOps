@@ -662,7 +662,7 @@ struct NovaTaskInsightsView: View {
             }
             
         } catch {
-            print("Failed to load Nova insights: \(error)")
+            logInfo("Failed to load Nova insights: \(error)")
             insights = generateLocalInsights()
         }
     }
@@ -924,7 +924,7 @@ class TaskTimelineViewModel: ObservableObject {
             updateTaskStats()
             
         } catch {
-            print("❌ Failed to load timeline tasks: \(error)")
+            logInfo("❌ Failed to load timeline tasks: \(error)")
             tasks = []
         }
     }

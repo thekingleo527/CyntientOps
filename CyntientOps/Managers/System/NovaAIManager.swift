@@ -149,12 +149,12 @@ public final class NovaAIManager: ObservableObject {
                 self.imageCache.setObject(loadedImage, forKey: "nova_original")
                 self.novaOriginalImage = loadedImage
                 self.novaImage = loadedImage // Legacy compatibility
-                print("✅ Nova AI image loaded and cached persistently")
+                logInfo("✅ Nova AI image loaded and cached persistently")
                 
                 // Generate holographic version
                 await generateHolographicVersion()
             } else {
-                print("⚠️ Failed to load Nova AI image, using fallback")
+                logInfo("⚠️ Failed to load Nova AI image, using fallback")
                 await generateFallbackImages()
             }
         }
@@ -180,7 +180,7 @@ public final class NovaAIManager: ObservableObject {
                     await MainActor.run {
                         self.novaHolographicImage = holographicImage
                         self.imageCache.setObject(holographicImage, forKey: "nova_holographic")
-                        print("✅ Holographic Nova image generated and cached")
+                        logInfo("✅ Holographic Nova image generated and cached")
                     }
                 }
             }
@@ -396,7 +396,7 @@ public final class NovaAIManager: ObservableObject {
             let impactFeedback = UIImpactFeedbackGenerator(style: .heavy)
             impactFeedback.impactOccurred()
             
-            print("🔮 Holographic mode activated")
+            logInfo("🔮 Holographic mode activated")
         }
     }
     
@@ -419,10 +419,10 @@ public final class NovaAIManager: ObservableObject {
                 
                 await MainActor.run {
                     // Handle voice response
-                    print("🗣️ Voice command processed: \(response.message)")
+                    logInfo("🗣️ Voice command processed: \(response.message)")
                 }
             } catch {
-                print("❌ Voice command processing failed: \(error)")
+                logInfo("❌ Voice command processing failed: \(error)")
             }
             
             await MainActor.run {
@@ -458,7 +458,7 @@ public final class NovaAIManager: ObservableObject {
     /// Enhanced voice listening with real speech recognition
     public func startVoiceListening() {
         guard speechRecognitionAvailable else {
-            print("❌ Speech recognition not available")
+            logInfo("❌ Speech recognition not available")
             return
         }
         
@@ -479,9 +479,9 @@ public final class NovaAIManager: ObservableObject {
             // Set wake word detection
             isWakeWordActive = true
             
-            print("🎤 Enhanced voice listening started with speech recognition")
+            logInfo("🎤 Enhanced voice listening started with speech recognition")
         } catch {
-            print("❌ Failed to start voice listening: \(error)")
+            logInfo("❌ Failed to start voice listening: \(error)")
         }
     }
     
@@ -556,7 +556,7 @@ public final class NovaAIManager: ObservableObject {
             }
             
             if let error = error {
-                print("❌ Speech recognition error: \(error)")
+                logInfo("❌ Speech recognition error: \(error)")
                 DispatchQueue.main.async {
                     self?.stopVoiceListening()
                 }
@@ -605,7 +605,7 @@ public final class NovaAIManager: ObservableObject {
             let impactFeedback = UIImpactFeedbackGenerator(style: .heavy)
             impactFeedback.impactOccurred()
             
-            print("🔮 Wake word 'Hey Nova' detected!")
+            logInfo("🔮 Wake word 'Hey Nova' detected!")
         }
     }
     

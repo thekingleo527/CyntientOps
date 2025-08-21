@@ -132,7 +132,7 @@ struct InventoryCategoryCard: View {
                 dashboardSync.broadcastWorkerUpdate(update)
                 
             } catch {
-                print("❌ Error updating inventory: \(error)")
+                logInfo("❌ Error updating inventory: \(error)")
             }
         }
     }
@@ -159,10 +159,10 @@ struct InventoryCategoryCard: View {
                     Date().ISO8601Format()
                 ])
                 
-                print("✅ New inventory item saved: \(item.name)")
+                logInfo("✅ New inventory item saved: \(item.name)")
                 
             } catch {
-                print("❌ Error saving inventory item: \(error)")
+                logInfo("❌ Error saving inventory item: \(error)")
             }
         }
     }

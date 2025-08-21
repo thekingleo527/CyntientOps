@@ -686,7 +686,7 @@ class WorkerProfileViewModel: ObservableObject {
             
         } catch {
             errorMessage = "Failed to load worker data: \(error.localizedDescription)"
-            print("Error loading worker data: \(error)")
+            logInfo("Error loading worker data: \(error)")
             
             performanceMetrics = CoreTypes.PerformanceMetrics(
                 workerId: workerId,
@@ -766,10 +766,10 @@ class WorkerProfileViewModel: ObservableObject {
             
             await MainActor.run {
                 weeklySchedule = schedule
-                print("✅ Loaded real weekly schedule for worker \(workerId): \(schedule.count) days, \(weeklyScheduleItems.count) total items")
+                logInfo("✅ Loaded real weekly schedule for worker \(workerId): \(schedule.count) days, \(weeklyScheduleItems.count) total items")
             }
         } catch {
-            print("❌ Failed to load real weekly schedule for worker \(workerId): \(error)")
+            logInfo("❌ Failed to load real weekly schedule for worker \(workerId): \(error)")
             
             // Fallback to empty schedule
             await MainActor.run {
@@ -808,10 +808,10 @@ class WorkerProfileViewModel: ObservableObject {
             
             await MainActor.run {
                 assignedBuildings = uniqueBuildings
-                print("✅ Loaded \(uniqueBuildings.count) assigned buildings for worker \(workerId) from real operational data")
+                logInfo("✅ Loaded \(uniqueBuildings.count) assigned buildings for worker \(workerId) from real operational data")
             }
         } catch {
-            print("❌ Failed to load assigned buildings for worker \(workerId): \(error)")
+            logInfo("❌ Failed to load assigned buildings for worker \(workerId): \(error)")
             
             // Fallback to empty buildings
             await MainActor.run {

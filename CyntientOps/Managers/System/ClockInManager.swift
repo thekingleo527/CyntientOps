@@ -115,7 +115,7 @@ public class ClockInManager: ObservableObject {
                 workerId
             ])
             
-            print("✅ Worker \(workerId) clocked IN at \(building.name)")
+            logInfo("✅ Worker \(workerId) clocked IN at \(building.name)")
             
             // Notify DashboardSyncService
             await notifyDashboardSync(
@@ -168,11 +168,11 @@ public class ClockInManager: ObservableObject {
                 workerId
             ])
             
-            print("✅ Worker \(workerId) clocked OUT from \(session.buildingName)")
+            logInfo("✅ Worker \(workerId) clocked OUT from \(session.buildingName)")
             
             // Calculate hours worked for immediate feedback
             let hoursWorked = clockOutTime.timeIntervalSince(session.startTime) / 3600.0
-            print("   Hours worked: \(String(format: "%.2f", hoursWorked))")
+            logInfo("   Hours worked: \(String(format: "%.2f", hoursWorked))")
             
             // Notify DashboardSyncService
             await notifyDashboardSync(
@@ -265,10 +265,10 @@ public class ClockInManager: ObservableObject {
                 ON time_clock_entries(workerId, clockInTime)
             """, [])
             
-            print("✅ Clock-in database schema verified")
+            logInfo("✅ Clock-in database schema verified")
             
         } catch {
-            print("❌ Failed to ensure database schema: \(error)")
+            logInfo("❌ Failed to ensure database schema: \(error)")
         }
     }
     
@@ -313,10 +313,10 @@ public class ClockInManager: ObservableObject {
                 activeSessions[workerId] = session
             }
             
-            print("✅ Loaded \(activeSessions.count) active sessions")
+            logInfo("✅ Loaded \(activeSessions.count) active sessions")
             
         } catch {
-            print("❌ Failed to load active sessions: \(error)")
+            logInfo("❌ Failed to load active sessions: \(error)")
         }
     }
     
@@ -508,15 +508,15 @@ extension ClockInManager {
     /// Clear all active sessions (for testing)
     public func clearAllSessions() {
         activeSessions.removeAll()
-        print("🧹 Cleared all clock-in sessions")
+        logInfo("🧹 Cleared all clock-in sessions")
     }
     
     /// Print current state
     public func printCurrentState() {
-        print("📍 Clock-In Manager State:")
-        print("   Active Sessions: \(activeSessions.count)")
+        logInfo("📍 Clock-In Manager State:")
+        logInfo("   Active Sessions: \(activeSessions.count)")
         for (workerId, session) in activeSessions {
-            print("   - Worker \(workerId): \(session.buildingName) since \(session.startTime)")
+            logInfo("   - Worker \(workerId): \(session.buildingName) since \(session.startTime)")
         }
     }
     
@@ -549,7 +549,7 @@ extension ClockInManager {
             ])
         }
         
-        print("✅ Generated \(days) days of test time entries for worker \(workerId)")
+        logInfo("✅ Generated \(days) days of test time entries for worker \(workerId)")
     }
 }
 #endif

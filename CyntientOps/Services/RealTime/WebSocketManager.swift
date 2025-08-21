@@ -60,12 +60,12 @@ actor WebSocketManager {
     
     func connect(token: String) {
         guard !isConnected else {
-            print("🔌 WebSocket is already connected or connecting.")
+            logInfo("🔌 WebSocket is already connected or connecting.")
             return
         }
         
         guard let url = getWebSocketURL() else {
-            print("❌ Invalid WebSocket URL.")
+            logInfo("❌ Invalid WebSocket URL.")
             return
         }
         
@@ -74,13 +74,13 @@ actor WebSocketManager {
         
         webSocketTask = urlSession.webSocketTask(with: request)
         
-        print("🔌 WebSocket connecting to \(url.absoluteString)...")
+        logInfo("🔌 WebSocket connecting to \(url.absoluteString)...")
         webSocketTask?.resume()
     }
     
     func disconnect() {
         guard isConnected else { return }
-        print("🔌 WebSocket disconnecting...")
+        logInfo("🔌 WebSocket disconnecting...")
         webSocketTask?.cancel(with: .goingAway, reason: "User initiated disconnect".data(using: .utf8))
         resetConnectionState()
     }
@@ -116,9 +116,9 @@ actor WebSocketManager {
             let data = try encoder.encode(updateToSend)
             
             try await task.send(.data(data))
-            print("⬆️ WebSocket update sent: \(update.type.rawValue)")
+            logInfo("⬆️ WebSocket update sent: \(update.type.rawValue)")
         } catch {
-            print("❌ WebSocket send error: \(error.localizedDescription)")
+            logInfo("❌ WebSocket send error: \(error.localizedDescription)")
             throw WebSocketError.encodingFailed(error)
         }
     }
@@ -135,7 +135,7 @@ actor WebSocketManager {
                 }
             } catch {
                 // If receive fails, it means the connection was severed.
-                print("❌ WebSocket receive error (connection likely closed): \(error.localizedDescription)")
+                logInfo("❌ WebSocket receive error (connection likely closed): \(error.localizedDescription)")
                 await handleDisconnection()
             }
         }
@@ -158,10 +158,10 @@ actor WebSocketManager {
             let decoder = JSONDecoder()
             decoder.dateDecodingStrategy = .iso8601
             let update = try decoder.decode(CoreTypes.DashboardUpdate.self, from: updateData)
-            print("⬇️ WebSocket update received: \(update.type.rawValue)")
+            logInfo("⬇️ WebSocket update received: \(update.type.rawValue)")
             await notifyDashboardSync(update)
         } catch {
-            print("❌ WebSocket decoding error: \(error.localizedDescription)")
+            logInfo("❌ WebSocket decoding error: \(error.localizedDescription)")
         }
     }
     
@@ -169,22 +169,22 @@ actor WebSocketManager {
     
     private func scheduleReconnect() {
         guard reconnectAttempts < maxReconnectAttempts else {
-            print("❌ WebSocket max reconnect attempts reached. Giving up.")
+            logInfo("❌ WebSocket max reconnect attempts reached. Giving up.")
             return
         }
         
         let delay = reconnectDelays[min(reconnectAttempts, reconnectDelays.count - 1)]
-        print("🔌 WebSocket will attempt to reconnect in \(delay) seconds...")
+        logInfo("🔌 WebSocket will attempt to reconnect in \(delay) seconds...")
         
         Task {
             try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
             
             if let token = await getAuthToken() {
-                print("🔌 Attempting to reconnect now (attempt \(reconnectAttempts + 1))...")
+                logInfo("🔌 Attempting to reconnect now (attempt \(reconnectAttempts + 1))...")
                 reconnectAttempts += 1
                 connect(token: token)
             } else {
-                print("🔌 Cannot reconnect: No authentication token available.")
+                logInfo("🔌 Cannot reconnect: No authentication token available.")
             }
         }
     }
@@ -199,12 +199,12 @@ actor WebSocketManager {
         self.isConnected = true
         resetReconnection()
         startReceiving()
-        print("✅ WebSocket connection opened")
+        logInfo("✅ WebSocket connection opened")
     }
     
     func handleConnectionClosed(closeCode: URLSessionWebSocketTask.CloseCode, reason: Data?) {
         let reasonString = reason.flatMap { String(data: $0, encoding: .utf8) } ?? "Unknown"
-        print("🔌 WebSocket connection closed. Code: \(closeCode.rawValue), Reason: \(reasonString)")
+        logInfo("🔌 WebSocket connection closed. Code: \(closeCode.rawValue), Reason: \(reasonString)")
         handleDisconnection()
     }
     
@@ -262,12 +262,12 @@ private class WebSocketDelegate: NSObject, URLSessionWebSocketDelegate {
     var onClose: ((URLSessionWebSocketTask.CloseCode, Data?) -> Void)?
     
     func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask, didOpenWithProtocol protocol: String?) {
-        print("🔌 URLSession WebSocket delegate: connection opened")
+        logInfo("🔌 URLSession WebSocket delegate: connection opened")
         onOpen?()
     }
     
     func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask, didCloseWith closeCode: URLSessionWebSocketTask.CloseCode, reason: Data?) {
-        print("🔌 URLSession WebSocket delegate: connection closed")
+        logInfo("🔌 URLSession WebSocket delegate: connection closed")
         onClose?(closeCode, reason)
     }
 }

@@ -51,11 +51,11 @@ public actor RouteOptimizer {
         
         let cacheKey = generateCacheKey(buildings: buildings, constraints: constraints)
         if let cached = routeCache[cacheKey], !cached.isExpired {
-            print("📍 Using cached route")
+            logInfo("📍 Using cached route")
             return cached.route
         }
         
-        print("🗺️ Calculating optimized route for \(buildings.count) buildings")
+        logInfo("🗺️ Calculating optimized route for \(buildings.count) buildings")
         
         let trafficData = await fetchTrafficConditions(for: buildings)
         let taskAnalysis = analyzeTaskDependencies(tasks, buildings: buildings)
@@ -72,7 +72,7 @@ public actor RouteOptimizer {
         
         routeCache[cacheKey] = CachedRoute(route: route, timestamp: Date())
         
-        print("✅ Route optimized: \(route.totalDistance.formattedDistance), \(route.estimatedDuration.formattedDuration)")
+        logInfo("✅ Route optimized: \(route.totalDistance.formattedDistance), \(route.estimatedDuration.formattedDuration)")
         
         return route
     }
@@ -119,7 +119,7 @@ public actor RouteOptimizer {
         let remainingWaypoints = Array(route.waypoints.suffix(from: currentIndex))
         
         if let expectedTime = remainingWaypoints.first?.estimatedArrival, Date() > expectedTime.addingTimeInterval(600) {
-            print("⚠️ Running behind schedule, recalculating route")
+            logInfo("⚠️ Running behind schedule, recalculating route")
             let remainingBuildings = remainingWaypoints.map { $0.building }
             if let newRoute = try? await optimizeRoute(buildings: remainingBuildings, tasks: [], startLocation: currentLocation, constraints: RouteConstraints(optimizeFor: .time)) {
                 return RouteAdjustment(reason: .runningLate, suggestedRoute: newRoute, timeSaved: route.estimatedDuration - newRoute.estimatedDuration)
@@ -127,7 +127,7 @@ public actor RouteOptimizer {
         }
         
         if await hasSignificantTrafficChange(for: remainingWaypoints) {
-            print("🚦 Traffic conditions changed, suggesting route adjustment")
+            logInfo("🚦 Traffic conditions changed, suggesting route adjustment")
             let remainingBuildings = remainingWaypoints.map { $0.building }
             if let newRoute = try? await optimizeRoute(buildings: remainingBuildings, tasks: [], startLocation: currentLocation, constraints: RouteConstraints(avoidTraffic: true)),
                newRoute.estimatedDuration < route.estimatedDuration * 0.9 {

@@ -23,7 +23,7 @@ public class TaskManager: ObservableObject {
         do {
             tasks = try await TaskService.shared.getAllTasks()
         } catch {
-            print("❌ Failed to load tasks: \(error)")
+            logInfo("❌ Failed to load tasks: \(error)")
         }
     }
     
@@ -32,7 +32,7 @@ public class TaskManager: ObservableObject {
             try await TaskService.shared.updateTask(task)
             await loadTasks()
         } catch {
-            print("❌ Failed to update task: \(error)")
+            logInfo("❌ Failed to update task: \(error)")
         }
     }
 }

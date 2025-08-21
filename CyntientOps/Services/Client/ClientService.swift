@@ -20,9 +20,15 @@ import GRDB
 public actor ClientService {
     
     // MARK: - Dependencies
-    private let grdbManager = GRDBManager.shared
-    private let buildingService = BuildingService.shared
-    private let buildingMetricsService = BuildingMetricsService.shared
+    private let grdbManager: GRDBManager
+    private let buildingService: BuildingService?
+    private let buildingMetricsService: BuildingMetricsService?
+    
+    public init(database: GRDBManager, buildingService: BuildingService? = nil, buildingMetricsService: BuildingMetricsService? = nil) {
+        self.grdbManager = database
+        self.buildingService = buildingService
+        self.buildingMetricsService = buildingMetricsService
+    }
     
     // MARK: - Cache
     private var clientCache: [String: Client] = [:]
@@ -138,7 +144,7 @@ public actor ClientService {
         // Get building details
         var buildings: [NamedCoordinate] = []
         for buildingId in buildingIds {
-            if let building = try? await buildingService.getBuilding(buildingId: buildingId) {
+            if let buildingService = buildingService, let building = try? await buildingService.getBuilding(buildingId: buildingId) {
                 buildings.append(building)
             }
         }
@@ -197,7 +203,7 @@ public actor ClientService {
         var validMetricsCount = 0
         
         for buildingId in buildingIds {
-            if let metrics = try? await buildingMetricsService.calculateMetrics(for: buildingId) {
+            if let buildingMetricsService = buildingMetricsService, let metrics = try? await buildingMetricsService.calculateMetrics(for: buildingId) {
                 totalServiceLevel += metrics.serviceLevel
                 totalComplianceScore += metrics.complianceScore
                 validMetricsCount += 1

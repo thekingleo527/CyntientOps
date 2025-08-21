@@ -3602,4 +3602,151 @@ struct BDDailyRoutineRow: View {
         .cornerRadius(8)
     }
 }
+
+// MARK: - Missing Building Components (CyntientOps Design Integration)
+
+struct BuildingSanitationTab: View {
+    let buildingId: String
+    let buildingName: String
+    let viewModel: BuildingDetailVM
+    
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 16) {
+                // DSNY Schedule Card
+                VStack(alignment: .leading, spacing: 12) {
+                    Label("Collection Schedule", systemImage: "calendar.badge.clock")
+                        .font(.headline)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                    
+                    LazyVStack(spacing: 8) {
+                        ForEach(["Monday - Refuse (6:00 AM)", "Thursday - Recycling (7:00 AM)", "Tuesday - Organics (8:00 AM)"], id: \.self) { schedule in
+                            HStack {
+                                Image(systemName: "trash.circle.fill")
+                                    .foregroundColor(.green)
+                                Text(schedule)
+                                    .font(.subheadline)
+                                Spacer()
+                                Text("Next: Tomorrow")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            .padding()
+                            .background(CyntientOpsDesign.DashboardColors.cardBackground)
+                            .cornerRadius(8)
+                        }
+                    }
+                }
+                .cyntientOpsDarkCardBackground()
+                
+                // Violations Card
+                VStack(alignment: .leading, spacing: 12) {
+                    Label("DSNY Violations", systemImage: "exclamationmark.triangle.fill")
+                        .font(.headline)
+                        .foregroundColor(.orange)
+                    
+                    if viewModel.dsnyViolations.isEmpty {
+                        Text("No active DSNY violations")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                            .padding()
+                    } else {
+                        ForEach(viewModel.dsnyViolations.prefix(5), id: \.id) { violation in
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(violation.violationType)
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+                                Text("Fine: $\(Int(violation.fineAmount ?? 0))")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            .padding()
+                            .background(Color.orange.opacity(0.1))
+                            .cornerRadius(8)
+                        }
+                    }
+                }
+                .cyntientOpsDarkCardBackground()
+            }
+            .padding()
+        }
+    }
+}
+
+struct MaintenanceTaskDetailSheet: View {
+    let task: String
+    @Binding var isPresented: Bool
+    
+    var body: some View {
+        NavigationView {
+            VStack(alignment: .leading, spacing: 20) {
+                Text("Task Details")
+                    .font(.title2)
+                    .fontWeight(.bold)
+                
+                Text(task)
+                    .font(.body)
+                
+                Spacer()
+            }
+            .padding()
+            .navigationTitle("Maintenance Task")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Close") {
+                        isPresented = false
+                    }
+                }
+            }
+        }
+    }
+}
+
+struct MaintenanceHistoryRow: View {
+    let record: BDMaintenanceRecord
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: record.type == "repair" ? "hammer.fill" : "wrench.fill")
+                .foregroundColor(record.priority == "high" ? .red : .orange)
+                .frame(width: 24, height: 24)
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text(record.description)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                
+                HStack {
+                    Text(record.completionDate?.formatted(date: .abbreviated, time: .omitted) ?? "Pending")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    
+                    Spacer()
+                    
+                    if let cost = record.cost {
+                        Text("$\(cost, specifier: "%.0f")")
+                            .font(.caption)
+                            .fontWeight(.medium)
+                            .foregroundColor(.green)
+                    }
+                }
+            }
+            
+            Spacer()
+            
+            if record.isCompleted {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundColor(.green)
+            } else {
+                Image(systemName: "clock.fill")
+                    .foregroundColor(.orange)
+            }
+        }
+        .padding()
+        .background(CyntientOpsDesign.DashboardColors.cardBackground)
+        .cornerRadius(12)
+    }
+}
+
 }

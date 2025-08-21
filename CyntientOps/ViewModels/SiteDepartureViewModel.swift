@@ -138,7 +138,7 @@ public class SiteDepartureViewModel: ObservableObject {
                     notes: "Departure photo for \(currentBuilding.name)"
                 )
                 
-                print("✅ Departure photo saved: \(evidence.id)")
+                logInfo("✅ Departure photo saved: \(evidence.id)")
             }
             
             // Create departure log
@@ -153,7 +153,7 @@ public class SiteDepartureViewModel: ObservableObject {
                 location: locationManager.location
             )
             
-            print("✅ Departure log created: \(logId)")
+            logInfo("✅ Departure log created: \(logId)")
             
             isSaving = false
             return true

@@ -837,7 +837,7 @@ public final class ClientContextEngine: ObservableObject {
                     realComplianceIssues.append(issue)
                 }
             } catch {
-                print("Error loading violations for \(building.name): \(error)")
+                logInfo("Error loading violations for \(building.name): \(error)")
             }
         }
         
