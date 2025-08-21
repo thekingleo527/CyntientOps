@@ -122,11 +122,22 @@ struct BuildingDetailView: View {
             )
         }
         .sheet(isPresented: $showingMessageComposer) {
-            MessageComposerView(
-                recipients: getMessageRecipients(),
-                subject: "Re: \(buildingName)",
-                prefilledBody: getBuildingContext()
-            )
+            // Simple message composer placeholder
+            VStack(spacing: 20) {
+                Text("Message Composer")
+                    .font(.title2)
+                    .fontWeight(.bold)
+                
+                Text("Message composition feature coming soon")
+                    .foregroundColor(.secondary)
+                
+                Button("Close") {
+                    showingMessageComposer = false
+                }
+                .buttonStyle(.borderedProminent)
+            }
+            .padding()
+            .presentationDetents([.medium])
         }
         .confirmationDialog("Call Contact", isPresented: $showingCallMenu) {
             callMenuOptions
@@ -1338,6 +1349,7 @@ struct BuildingMaintenanceTab: View {
                 StatCard(
                     title: "This Week",
                     value: "\(viewModel.maintenanceThisWeek)",
+                    trend: nil,
                     icon: "calendar.badge.clock",
                     color: CyntientOpsDesign.DashboardColors.info
                 )
@@ -1345,6 +1357,7 @@ struct BuildingMaintenanceTab: View {
                 StatCard(
                     title: "Repairs",
                     value: "\(viewModel.repairCount)",
+                    trend: nil,
                     icon: "hammer.fill",
                     color: CyntientOpsDesign.DashboardColors.warning
                 )
@@ -1352,6 +1365,7 @@ struct BuildingMaintenanceTab: View {
                 StatCard(
                     title: "Total Cost",
                     value: viewModel.totalMaintenanceCost.formatted(.currency(code: "USD")),
+                    trend: nil,
                     icon: "dollarsign.circle.fill",
                     color: CyntientOpsDesign.DashboardColors.primaryAction
                 )
@@ -3586,6 +3600,209 @@ struct BDDailyRoutineRow: View {
         .padding(.vertical, 8)
         .background(routine.isCompleted ? Color.green.opacity(0.1) : Color.clear)
         .cornerRadius(8)
+    }
+}
+
+// MARK: - Missing Component Placeholders
+
+struct BuildingActivityRow: View {
+    let activity: String
+    
+    var body: some View {
+        HStack {
+            Image(systemName: "clock")
+                .foregroundColor(.blue)
+            Text(activity)
+                .font(.subheadline)
+            Spacer()
+        }
+        .padding(.vertical, 8)
+    }
+}
+
+struct BuildingContactRow: View {
+    let contact: String
+    
+    var body: some View {
+        HStack {
+            Image(systemName: "person.fill")
+                .foregroundColor(.green)
+            Text(contact)
+                .font(.subheadline)
+            Spacer()
+        }
+        .padding(.vertical, 8)
+    }
+}
+
+struct BuildingFilterPill: View {
+    let title: String
+    let isSelected: Bool
+    
+    var body: some View {
+        Text(title)
+            .font(.caption)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .background(isSelected ? Color.blue : Color.gray.opacity(0.3))
+            .foregroundColor(isSelected ? .white : .primary)
+            .cornerRadius(16)
+    }
+}
+
+struct EmptyStateMessage: View {
+    let message: String
+    
+    var body: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "exclamationmark.circle")
+                .font(.system(size: 48))
+                .foregroundColor(.gray)
+            Text(message)
+                .font(.headline)
+                .foregroundColor(.gray)
+                .multilineTextAlignment(.center)
+        }
+        .padding()
+    }
+}
+
+struct MaintenanceTaskRow: View {
+    let task: String
+    
+    var body: some View {
+        HStack {
+            Image(systemName: "wrench")
+                .foregroundColor(.orange)
+            Text(task)
+                .font(.subheadline)
+            Spacer()
+        }
+        .padding(.vertical, 8)
+    }
+}
+
+struct ComplianceRow: View {
+    let item: String
+    
+    var body: some View {
+        HStack {
+            Image(systemName: "checkmark.shield")
+                .foregroundColor(.green)
+            Text(item)
+                .font(.subheadline)
+            Spacer()
+        }
+        .padding(.vertical, 8)
+    }
+}
+
+struct SummaryStatCard: View {
+    let title: String
+    let value: String
+    let icon: String
+    
+    var body: some View {
+        VStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.system(size: 24))
+                .foregroundColor(.blue)
+            Text(value)
+                .font(.headline)
+                .fontWeight(.bold)
+            Text(title)
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+        .padding()
+        .background(Color.gray.opacity(0.1))
+        .cornerRadius(12)
+    }
+}
+
+struct OnSiteWorkerRow: View {
+    let worker: String
+    
+    var body: some View {
+        HStack {
+            Image(systemName: "person.badge.clock")
+                .foregroundColor(.blue)
+            Text(worker)
+                .font(.subheadline)
+            Spacer()
+        }
+        .padding(.vertical, 8)
+    }
+}
+
+struct InventoryStatCard: View {
+    let title: String
+    let count: Int
+    let icon: String
+    
+    var body: some View {
+        VStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.system(size: 24))
+                .foregroundColor(.purple)
+            Text("\(count)")
+                .font(.headline)
+                .fontWeight(.bold)
+            Text(title)
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+        .padding()
+        .background(Color.gray.opacity(0.1))
+        .cornerRadius(12)
+    }
+}
+
+struct AccessCodeChip: View {
+    let code: String
+    
+    var body: some View {
+        Text(code)
+            .font(.caption.monospaced())
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(Color.blue.opacity(0.2))
+            .foregroundColor(.blue)
+            .cornerRadius(8)
+    }
+}
+
+struct BuildingEmergencyContactRow: View {
+    let contact: String
+    
+    var body: some View {
+        HStack {
+            Image(systemName: "phone.fill")
+                .foregroundColor(.red)
+            Text(contact)
+                .font(.subheadline)
+            Spacer()
+        }
+        .padding(.vertical, 8)
+    }
+}
+
+struct BuildingProcedureRow: View {
+    let procedure: String
+    
+    var body: some View {
+        HStack {
+            Image(systemName: "list.clipboard")
+                .foregroundColor(.orange)
+            Text(procedure)
+                .font(.subheadline)
+            Spacer()
+        }
+        .padding(.vertical, 8)
     }
 }
 
