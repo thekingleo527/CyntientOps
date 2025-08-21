@@ -526,14 +526,24 @@ struct ComplianceOverviewView: View {
                 
                 // Convert DSNY violations to ComplianceIssueData
                 if let dsnyViolations = dsny {
-                    let dsnyIssues = dsnyViolations.filter { $0.isActive }.map { violation in
-                        ComplianceIssueData(
+                    // Filter active violations first
+                    let activeViolations = dsnyViolations.filter { $0.isActive }
+                    
+                    // Create compliance issues from active violations
+                    let dsnyIssues: [ComplianceIssueData] = activeViolations.map { violation in
+                        // Parse issue date string to Date for due date calculation
+                        let dateFormatter = DateFormatter()
+                        dateFormatter.dateFormat = "yyyy-MM-dd"
+                        let issueDate = dateFormatter.date(from: violation.issueDate) ?? Date()
+                        let dueDate = Calendar.current.date(byAdding: .day, value: 30, to: issueDate)
+                        
+                        return ComplianceIssueData(
                             type: .environmental,
-                            severity: violation.fineAmount > 200 ? .critical : .high,
+                            severity: (violation.fineAmount ?? 0) > 200 ? .critical : .high,
                             description: "DSNY: \(violation.violationType)",
                             buildingId: building.id,
                             buildingName: building.name,
-                            dueDate: Calendar.current.date(byAdding: .day, value: 30, to: violation.issueDate)
+                            dueDate: dueDate
                         )
                     }
                     allViolationIssues.append(contentsOf: dsnyIssues)
