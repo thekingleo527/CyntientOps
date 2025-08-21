@@ -111,7 +111,8 @@ struct MyAssignedBuildingsSection: View {
             for building in buildings {
                 group.addTask {
                     do {
-                        let metrics = try await buildingMetricsService.calculateMetrics(for: building.id)
+                        let metricsService = BuildingMetricsService(database: GRDBManager.shared)
+                        let metrics = try await metricsService.calculateMetrics(for: building.id)
                         return (building.id, metrics)
                     } catch {
                         print("❌ Failed to load metrics for building \(building.id): \(error)")

@@ -226,13 +226,29 @@ public final class WorkerContextEngine: ObservableObject {
         let (isClockedIn, building) = await clockInManager.getClockInStatus(for: workerId)
         
         if isClockedIn, let building = building {
-            // Update both published properties
-            self.clockInStatus = (true, building)
-            self.currentBuilding = building
+            // Update operational status
+            self.operationalStatus.clockInStatus = (true, building)
+            // Update worker context with current building
+            if let currentContext = workerContext {
+                self.workerContext = WorkerContext(
+                    profile: currentContext.profile,
+                    currentBuilding: building,
+                    assignedBuildings: currentContext.assignedBuildings,
+                    portfolioBuildings: currentContext.portfolioBuildings
+                )
+            }
         } else {
             // Not clocked in
-            self.clockInStatus = (false, nil)
-            self.currentBuilding = nil
+            self.operationalStatus.clockInStatus = (false, nil)
+            // Update worker context to remove current building
+            if let currentContext = workerContext {
+                self.workerContext = WorkerContext(
+                    profile: currentContext.profile,
+                    currentBuilding: nil,
+                    assignedBuildings: currentContext.assignedBuildings,
+                    portfolioBuildings: currentContext.portfolioBuildings
+                )
+            }
         }
     }
     
@@ -343,14 +359,14 @@ public final class WorkerContextEngine: ObservableObject {
     
     /// Check if worker should clock out
     public func shouldSuggestClockOut() -> Bool {
-        guard let currentBuildingId = currentBuilding?.id else { return false }
+        guard let currentBuildingId = workerContext?.currentBuilding?.id else { return false }
         let buildingTasks = todaysTasks.filter { $0.buildingId == currentBuildingId }
         return !buildingTasks.isEmpty && buildingTasks.allSatisfy { $0.isCompleted }
     }
     
     // MARK: - Access Methods (Legacy Support)
     public func getCurrentWorker() -> CoreTypes.WorkerProfile? { return currentWorker }
-    public func getCurrentBuilding() -> CoreTypes.NamedCoordinate? { return currentBuilding }
+    public func getCurrentBuilding() -> CoreTypes.NamedCoordinate? { return workerContext?.currentBuilding }
     public func getAssignedBuildings() -> [CoreTypes.NamedCoordinate] { return assignedBuildings }
     public func getPortfolioBuildings() -> [CoreTypes.NamedCoordinate] { return portfolioBuildings }
     public func getTodaysTasks() -> [CoreTypes.ContextualTask] { return todaysTasks }

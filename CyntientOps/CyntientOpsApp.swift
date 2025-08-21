@@ -480,7 +480,7 @@ struct CyntientOpsApp: App {
     // Simplified data refresh - no complex migration logic needed
     private func refreshAppData() async {
         do {
-            await BuildingMetricsService.shared.invalidateAllCaches()
+            // BuildingMetricsService cache invalidation handled per-instance
             
             if let currentUser = authManager.currentUser {
                 try await contextEngine.loadContext(for: currentUser.workerId)

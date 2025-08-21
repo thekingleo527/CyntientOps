@@ -328,8 +328,9 @@ struct IntelligencePreviewPanel: View {
         }
         
         // Current building action
-        if let buildingId = contextEngine?.currentBuilding?.id,
-           let buildingName = contextEngine?.currentBuilding?.name {
+        if let currentBuilding = contextEngine?.getCurrentBuilding(),
+           let buildingId = currentBuilding.id,
+           let buildingName = currentBuilding.name {
             let shortName = String(buildingName.prefix(8))
             actions.append(QuickAction(
                 id: "current_building",
@@ -366,7 +367,7 @@ struct IntelligencePreviewPanel: View {
             id: "all_tasks",
             icon: "checkmark.circle",
             label: "All Tasks",
-            badge: contextEngine?.todaysTasks.filter { !$0.isCompleted }.count,
+            badge: contextEngine?.getTodaysTasks().filter { !$0.isCompleted }.count,
             target: .allTasks
         ))
         
@@ -379,7 +380,8 @@ struct IntelligencePreviewPanel: View {
         ))
         
         // Context-specific pills
-        if contextEngine?.clockInStatus.isClockedIn ?? false {
+        // Check actual clock-in status from operational status
+        if contextEngine?.operationalStatus.clockInStatus.isClockedIn ?? false {
             pills.append(NavigationPillData(
                 id: "clock_out",
                 icon: "clock.badge.checkmark",
