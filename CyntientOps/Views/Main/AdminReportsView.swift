@@ -896,36 +896,27 @@ public struct AdminReportsDebugView: View {
         isGenerating = true
         
         Task {
-            do {
-                // Simulate progress updates
-                await MainActor.run {
-                    reportGen.isGenerating = true
-                    reportGen.generationProgress = 0.1
-                    reportGen.currentStep = "Preparing report data..."
-                }
-                
-                let report = try await generateRealReport(config: config)
-                
-                await MainActor.run {
-                    isGenerating = false
-                    reportGen.isGenerating = false
-                    reportGen.generationProgress = 1.0
-                    currentReport = report
-                    showingReportBuilder = false
-                    showingReportPreview = true
-                }
-            } catch {
-                await MainActor.run {
-                    isGenerating = false
-                    reportGen.isGenerating = false
-                    currentContext = .overview
-                    print("❌ Error generating report: \(error)")
-                }
+            // Simulate progress updates
+            await MainActor.run {
+                reportGen.isGenerating = true
+                reportGen.generationProgress = 0.1
+                reportGen.currentStep = "Preparing report data..."
+            }
+            
+            let report = await generateRealReport(config: config)
+            
+            await MainActor.run {
+                isGenerating = false
+                reportGen.isGenerating = false
+                reportGen.generationProgress = 1.0
+                currentReport = report
+                showingReportBuilder = false
+                showingReportPreview = true
             }
         }
     }
     
-    private func generateRealReport(config: ReportConfiguration) async throws -> AdminGeneratedReport {
+    private func generateRealReport(config: ReportConfiguration) async -> AdminGeneratedReport {
         do {
             // Update progress
             await MainActor.run {

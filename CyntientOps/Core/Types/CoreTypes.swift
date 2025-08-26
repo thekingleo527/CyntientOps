@@ -651,6 +651,7 @@ public struct CoreTypes {
             case criticalAlert = "criticalAlert"
             case intelligenceGenerated = "intelligenceGenerated"
             case portfolioMetricsChanged = "portfolioMetricsChanged"
+            case workerPhotoUploaded = "workerPhotoUploaded"
         }
         
         public let id: String

@@ -85,6 +85,17 @@ public class WorkerDashboardViewModel: ObservableObject {
             case low, normal, high, urgent, critical, emergency
         }
         
+        public init(id: String, title: String, description: String?, buildingId: String?, dueDate: Date?, urgency: TaskUrgency, isCompleted: Bool, category: String, requiresPhoto: Bool) {
+            self.id = id
+            self.title = title
+            self.description = description
+            self.buildingId = buildingId
+            self.dueDate = dueDate
+            self.urgency = urgency
+            self.isCompleted = isCompleted
+            self.category = category
+            self.requiresPhoto = requiresPhoto
+        }
     }
     
     public struct DaySchedule {
@@ -851,7 +862,7 @@ public class WorkerDashboardViewModel: ObservableObject {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] insights in
                 guard let self = self else { return }
-                let role = self.session.user?.role ?? .worker
+                let role = self.session.user?.role ?? CoreTypes.UserRole.worker
                 self.currentInsights = self.container.intelligence.getInsights(for: role)
             }
             .store(in: &cancellables)

@@ -1563,7 +1563,7 @@ public final class ClientDashboardViewModel: ObservableObject {
                 // Sum latest record if available
                 if let latest = assessments.sorted(by: { ($0.year ?? 0) > ($1.year ?? 0) }).first {
                     totalMarket += latest.marketValue ?? 0
-                    totalAssessed += latest.assessedValue ?? 0
+                    totalAssessed += latest.assessedValueTotal ?? 0
                 }
             } catch {
                 // Non-fatal; skip if API fails
