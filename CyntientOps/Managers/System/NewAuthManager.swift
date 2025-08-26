@@ -426,6 +426,69 @@ public class NewAuthManager: ObservableObject {
         
         NotificationCenter.default.post(name: .userDidLogout, object: nil)
     }
+
+    #if DEBUG
+    /// Development-only quick login that bypasses password verification.
+    /// Fetches the user by email and establishes a session directly.
+    public func devQuickLogin(email: String) async throws {
+        isLoading = true
+        authError = nil
+        defer { isLoading = false }
+
+        // Ensure DB has users; if not, try to initialize/seed
+        do {
+            let countRows = try await grdbManager.query("SELECT COUNT(*) AS c FROM workers")
+            let count = Int((countRows.first?["c"] as? Int64) ?? 0)
+            if count == 0 {
+                print("🧪 DEBUG: Empty DB detected; attempting initialization before quick login…")
+                try? await DatabaseInitializer.shared.initializeIfNeeded()
+            }
+        } catch {
+            // Continue; we will still attempt login
+        }
+
+        // Fetch user
+        let userRows = try await grdbManager.query(
+            "SELECT id, name, email, role FROM workers WHERE email = ? AND isActive = 1",
+            [email]
+        )
+        guard let row = userRows.first,
+              let workerId = row["id"] as? String else {
+            throw NewAuthError.userNotFound
+        }
+
+        // Create a DB session row
+        _ = try await grdbManager.createSession(for: workerId, deviceInfo: getDeviceInfo())
+
+        // Populate current user/session in memory
+        let user = CoreTypes.User(
+            id: workerId,
+            workerId: workerId,
+            name: row["name"] as? String ?? "",
+            email: email,
+            role: row["role"] as? String ?? "worker"
+        )
+
+        // Dev tokens
+        let session = AuthSession(
+            token: UUID().uuidString,
+            refreshToken: UUID().uuidString,
+            expirationDate: Date().addingTimeInterval(sessionDuration),
+            user: user
+        )
+        try await storeSession(session: session, user: user)
+
+        self.currentUser = user
+        CoreTypes.Session.shared.user = user
+        self.sessionToken = session.token
+        self.refreshToken = session.refreshToken
+        self.sessionExpirationDate = session.expirationDate
+        self.isAuthenticated = true
+        self.sessionStatus = .active
+        startSessionTimer()
+        print("✅ DEV Quick Login established for \(user.email)")
+    }
+    #endif
     
     /// Refresh the current session
     public func refreshSession() async throws {

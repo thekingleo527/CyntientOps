@@ -1,2131 +1,366 @@
 //
-//  AdminReportsView.swift
+//  AdminReportsView.swift (Production Only)
 //  CyntientOps
 //
-//  Created by Shawn Magloire on 8/3/25.
+//  Production reports screen using real data from the ServiceContainer
+//  and ReportService. No mocks, no debug-only UI.
 //
 
-
-///
-//  AdminReportsView.swift
-//  CyntientOps v6.0
-//
-//  ✅ COMPLETE: Following established admin panel patterns
-//  ✅ INTELLIGENT: Report insights and recommendations
-//  ✅ AUTOMATED: Scheduled report generation
-//  ✅ COMPREHENSIVE: All report types and formats
-//  ✅ DARK ELEGANCE: Consistent theme
-//
-
-#if DEBUG
 import SwiftUI
-import Combine
+import UIKit
 
-public struct AdminReportsDebugView: View {
-    // MARK: - Properties
-    
-    @StateObject private var reportGen = ReportGenerator.shared
-    @StateObject private var reportService = ReportService.shared
-    @EnvironmentObject private var novaEngine: NovaAIManager
-    @EnvironmentObject private var dashboardSync: DashboardSyncService
-    @EnvironmentObject private var adminViewModel: AdminDashboardViewModel
-    
-    // State management
-    @State private var isHeroCollapsed = false
-    @State private var currentContext: ViewContext = .overview
-    @State private var selectedReportType: ReportType = .comprehensive
-    @State private var selectedDateRange: DateRange = .lastMonth
-    @State private var showingReportBuilder = false
-    @State private var showingScheduleSetup = false
-    @State private var showingExportOptions = false
-    @State private var showingReportHistory = false
-    @State private var showingReportPreview = false
-    @State private var showingTemplateLibrary = false
-    @State private var showingDistributionSettings = false
-    @State private var currentReport: AdminGeneratedReport?
+public struct AdminReportsView: View {
+    private let container: ServiceContainer
+    @State private var isLoading = false
     @State private var isGenerating = false
-    @State private var searchText = ""
-    @State private var filterCategory: ReportCategory = .all
-    
-    // Intelligence panel state
-    @AppStorage("reportsPanelPreference") private var userPanelPreference: IntelPanelState = .collapsed
-    
-    // MARK: - Mock Data Properties
-    @State private var mockGeneratedReports: [AdminGeneratedReport] = []
-    @State private var mockScheduledReports: [ReportSchedule] = []
-    @State private var mockReportTemplates: [ReportTemplate] = []
-    @State private var mockTotalReportsGenerated = 47
-    @State private var mockAvgGenerationTime: Double = 23.5
-    @State private var mockLastGeneratedDate: Date? = Date().addingTimeInterval(-3600)
-    @State private var mockFavoriteReports: [AdminGeneratedReport] = []
-    @State private var allReports: [AdminGeneratedReport] = []
-    @State private var mockFeaturedTemplates: [ReportTemplate] = []
-    @State private var mockPendingReports: [AdminGeneratedReport] = []
-    @State private var mockOverdueReports: [AdminGeneratedReport] = []
-    @State private var mockMostUsedTemplate: ReportTemplate?
-    @State private var mockDistributionSettings: DistributionSettings?
-    @State private var mockMonthlyReportCount = 15
-    
-    // MARK: - Enums
-    
-    enum ViewContext {
-        case overview
-        case building
-        case creating
-        case previewing
-        case exporting
+    @State private var errorMessage: String?
+    @State private var reports: [AdminGeneratedReport] = []
+    @State private var taxBills: [(buildingName: String, bill: DOFTaxBill)] = []
+    @State private var taxLiens: [(buildingName: String, lien: DOFTaxLien)] = []
+    @State private var showShareSheet: Bool = false
+    @State private var shareURL: URL?
+
+    @StateObject private var reportService = ReportService.shared
+
+    public init(container: ServiceContainer) {
+        self.container = container
     }
-    
-    enum IntelPanelState: String {
-        case hidden = "hidden"
-        case minimal = "minimal"
-        case collapsed = "collapsed"
-        case expanded = "expanded"
-    }
-    
-    public enum ReportType: String, CaseIterable {
-        case comprehensive = "Comprehensive"
-        case compliance = "Compliance"
-        case performance = "Performance"
-        case financial = "Financial"
-        case operations = "Operations"
-        case executive = "Executive Summary"
-        case custom = "Custom"
-        
-        public var icon: String {
-            switch self {
-            case .comprehensive: return "doc.text.fill"
-            case .compliance: return "checkmark.shield.fill"
-            case .performance: return "chart.line.uptrend.xyaxis"
-            case .financial: return "dollarsign.circle.fill"
-            case .operations: return "gear"
-            case .executive: return "briefcase.fill"
-            case .custom: return "slider.horizontal.3"
-            }
-        }
-        
-        public var color: Color {
-            switch self {
-            case .comprehensive: return CyntientOpsDesign.DashboardColors.primaryAction
-            case .compliance: return CyntientOpsDesign.DashboardColors.warning
-            case .performance: return CyntientOpsDesign.DashboardColors.success
-            case .financial: return CyntientOpsDesign.DashboardColors.info
-            case .operations: return CyntientOpsDesign.DashboardColors.tertiaryAction
-            case .executive: return CyntientOpsDesign.DashboardColors.critical
-            case .custom: return CyntientOpsDesign.DashboardColors.secondaryAction
-            }
-        }
-    }
-    
-    enum DateRange: String, CaseIterable {
-        case today = "Today"
-        case yesterday = "Yesterday"
-        case lastWeek = "Last Week"
-        case lastMonth = "Last Month"
-        case lastQuarter = "Last Quarter"
-        case lastYear = "Last Year"
-        case custom = "Custom Range"
-        
-        var dateInterval: DateInterval {
-            let now = Date()
-            let calendar = Calendar.current
-            
-            switch self {
-            case .today:
-                return DateInterval(start: calendar.startOfDay(for: now), end: now)
-            case .yesterday:
-                let yesterday = calendar.date(byAdding: .day, value: -1, to: now)!
-                return DateInterval(start: calendar.startOfDay(for: yesterday),
-                                  end: calendar.endOfDay(for: yesterday))
-            case .lastWeek:
-                let weekAgo = calendar.date(byAdding: .weekOfYear, value: -1, to: now)!
-                return DateInterval(start: weekAgo, end: now)
-            case .lastMonth:
-                let monthAgo = calendar.date(byAdding: .month, value: -1, to: now)!
-                return DateInterval(start: monthAgo, end: now)
-            case .lastQuarter:
-                let quarterAgo = calendar.date(byAdding: .month, value: -3, to: now)!
-                return DateInterval(start: quarterAgo, end: now)
-            case .lastYear:
-                let yearAgo = calendar.date(byAdding: .year, value: -1, to: now)!
-                return DateInterval(start: yearAgo, end: now)
-            case .custom:
-                return DateInterval(start: now, end: now)
-            }
-        }
-    }
-    
-    enum ReportCategory: String, CaseIterable {
-        case all = "All Reports"
-        case scheduled = "Scheduled"
-        case recent = "Recent"
-        case favorites = "Favorites"
-        case archived = "Archived"
-    }
-    
-    // MARK: - Computed Properties
-    
-    private var intelligencePanelState: IntelPanelState {
-        switch currentContext {
-        case .overview:
-            return hasReportingInsights() ? .expanded : userPanelPreference
-        case .building, .creating:
-            return .minimal
-        case .previewing, .exporting:
-            return .hidden
-        }
-    }
-    
-    private var filteredReports: [AdminGeneratedReport] {
-        mockGeneratedReports.filter { report in
-            let matchesSearch = searchText.isEmpty ||
-                report.name.localizedCaseInsensitiveContains(searchText) ||
-                report.type.localizedCaseInsensitiveContains(searchText)
-            
-            let matchesCategory: Bool = {
-                switch filterCategory {
-                case .all: return true
-                case .scheduled: return report.isScheduled
-                case .recent: return report.generatedDate > Date().addingTimeInterval(-7 * 24 * 3600)
-                case .favorites: return report.isFavorite
-                case .archived: return report.isArchived
-                }
-            }()
-            
-            return matchesSearch && matchesCategory
-        }
-    }
-    
-    private func hasReportingInsights() -> Bool {
-        mockPendingReports.count > 0 ||
-        mockOverdueReports.count > 0 ||
-        reportGen.hasQueuedReports
-    }
-    
-    // MARK: - Body
-    
+
     public var body: some View {
-        ZStack {
-            // Dark Elegance Background
-            CyntientOpsDesign.DashboardColors.baseBackground
-                .ignoresSafeArea()
-            
-            VStack(spacing: 0) {
-                // Header
-                reportsHeader
-                
+        NavigationStack {
+            ZStack {
+                CyntientOpsDesign.DashboardColors.baseBackground
+                    .ignoresSafeArea()
+
                 ScrollView {
                     VStack(spacing: 16) {
-                        // Collapsible Reports Hero
-                        CollapsibleReportsHeroWrapper(
-                            isCollapsed: $isHeroCollapsed,
-                            totalReports: mockTotalReportsGenerated,
-                            scheduledReports: mockScheduledReports.count,
-                            lastGenerated: mockLastGeneratedDate,
-                            avgGenerationTime: mockAvgGenerationTime,
-                            favoriteReports: mockFavoriteReports,
-                            onGenerateNow: { showingReportBuilder = true },
-                            onSchedule: { showingScheduleSetup = true },
-                            onViewHistory: { showingReportHistory = true },
-                            onTemplates: { showingTemplateLibrary = true }
-                        )
-                        .zIndex(50)
-                        
-                        // Quick Report Generation
-                        quickReportSection
-                        
-                        // Scheduled Reports (if any)
-                        if !mockScheduledReports.isEmpty {
-                            scheduledReportsSection
-                        }
-                        
-                        // Recent Reports
-                        if !filteredReports.isEmpty {
-                            recentReportsSection
-                        }
-                        
-                        // Report Templates
-                        reportTemplatesGrid
-                        
-                        // Spacer for intelligence panel
-                        Spacer(minLength: intelligencePanelState == .hidden ? 20 : 100)
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 16)
-                }
-                .refreshable {
-                    await refreshReportData()
-                }
-                
-                // Contextual Intelligence Panel
-                if intelligencePanelState != .hidden && !getReportingInsights().isEmpty {
-                    ReportIntelligencePanel(
-                        insights: getReportingInsights(),
-                        displayMode: intelligencePanelState,
-                        onNavigate: handleIntelligenceNavigation
-                    )
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-                    .animation(CyntientOpsDesign.Animations.spring, value: intelligencePanelState)
-                }
-            }
-            
-            // Overlay: Report generation progress
-            if isGenerating {
-                reportGenerationOverlay
-            }
-        }
-        .navigationBarHidden(true)
-        .preferredColorScheme(.dark)
-        .sheet(isPresented: $showingReportBuilder) {
-            ReportBuilderSheet(
-                reportType: selectedReportType,
-                dateRange: selectedDateRange,
-                buildings: adminViewModel.buildings,
-                workers: adminViewModel.workers,
-                onGenerate: { config in
-                    generateReport(with: config)
-                }
-            )
-            .onAppear { currentContext = .creating }
-            .onDisappear { currentContext = .overview }
-        }
-        .sheet(isPresented: $showingScheduleSetup) {
-            ScheduleReportSheet(
-                availableReports: mockReportTemplates,
-                onSchedule: { schedule in
-                    scheduleReport(schedule)
-                }
-            )
-        }
-        .sheet(isPresented: $showingExportOptions) {
-            if let report = currentReport {
-                ExportOptionsSheet(
-                    report: report,
-                    onExport: { format, destination in
-                        exportReport(report, format: format, to: destination)
-                    }
-                )
-            }
-        }
-        .sheet(isPresented: $showingReportHistory) {
-            ReportHistorySheet(
-                reports: allReports,
-                onSelect: { report in
-                    currentReport = report
-                    showingReportPreview = true
-                }
-            )
-        }
-        .sheet(isPresented: $showingReportPreview) {
-            if let report = currentReport {
-                ReportPreviewSheet(
-                    report: report,
-                    onExport: {
-                        showingExportOptions = true
-                    },
-                    onDismiss: {
-                        currentReport = nil
-                        showingReportPreview = false
-                    }
-                )
-                .onAppear { currentContext = .previewing }
-                .onDisappear { currentContext = .overview }
-            }
-        }
-        .sheet(isPresented: $showingTemplateLibrary) {
-            TemplateLibrarySheet(
-                templates: mockReportTemplates,
-                onSelect: { template in
-                    applyTemplate(template)
-                }
-            )
-        }
-        .sheet(isPresented: $showingDistributionSettings) {
-            DistributionSettingsSheet(
-                currentSettings: mockDistributionSettings,
-                onSave: { settings in
-                    updateDistributionSettings(settings)
-                }
-            )
-        }
-        .onAppear {
-            Task {
-                await loadReportData()
-            }
-        }
-    }
-    
-    // MARK: - Header
-    
-    private var reportsHeader: some View {
-        VStack(spacing: 0) {
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Reports & Analytics")
-                        .francoTypography(CyntientOpsDesign.Typography.dashboardTitle)
-                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-                    
-                    HStack(spacing: 8) {
-                        Text("\(mockTotalReportsGenerated)")
-                            .francoTypography(CyntientOpsDesign.Typography.headline)
-                            .foregroundColor(CyntientOpsDesign.DashboardColors.success)
-                        
-                        Text("reports generated")
-                            .francoTypography(CyntientOpsDesign.Typography.caption)
-                            .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
-                        
-                        if reportGen.isGenerating {
-                            ReportGeneratingIndicator()
-                        }
-                    }
-                }
-                
-                Spacer()
-                
-                // Quick action menu
-                Menu {
-                    Button(action: { showingReportBuilder = true }) {
-                        Label("Generate Report", systemImage: "doc.badge.plus")
-                    }
-                    
-                    Button(action: { showingScheduleSetup = true }) {
-                        Label("Schedule Report", systemImage: "calendar.badge.clock")
-                    }
-                    
-                    Button(action: { showingTemplateLibrary = true }) {
-                        Label("Report Templates", systemImage: "doc.on.doc")
-                    }
-                    
-                    Divider()
-                    
-                    Button(action: { showingReportHistory = true }) {
-                        Label("View History", systemImage: "clock.arrow.circlepath")
-                    }
-                    
-                    Button(action: { showingDistributionSettings = true }) {
-                        Label("Distribution Settings", systemImage: "paperplane")
-                    }
-                    
-                    Button(action: { showingExportOptions = true }) {
-                        Label("Export Settings", systemImage: "square.and.arrow.up")
-                    }
-                } label: {
-                    Image(systemName: "ellipsis.circle")
-                        .font(.title3)
-                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryAction)
-                }
-            }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 16)
-            
-            Divider()
-                .background(CyntientOpsDesign.DashboardColors.borderSubtle)
-        }
-    }
-    
-    // MARK: - Quick Report Section
-    
-    private var quickReportSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Quick Report")
-                .francoTypography(CyntientOpsDesign.Typography.headline)
-                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-            
-            VStack(spacing: 12) {
-                // Report type selector
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
-                        ForEach(ReportType.allCases, id: \.self) { type in
-                            ReportTypeChip(
-                                type: type,
-                                isSelected: selectedReportType == type,
-                                onTap: {
-                                    withAnimation {
-                                        selectedReportType = type
+                        headerBar
+
+                        if isLoading {
+                            ProgressView()
+                                .tint(CyntientOpsDesign.DashboardColors.primaryAction)
+                        } else if let errorMessage = errorMessage {
+                            glassMessage(icon: "exclamationmark.triangle",
+                                         color: CyntientOpsDesign.DashboardColors.warning,
+                                         title: errorMessage,
+                                         actionTitle: "Retry",
+                                         action: loadReports)
+                        } else if reports.isEmpty {
+                            glassMessage(icon: "doc.text.magnifyingglass",
+                                         color: CyntientOpsDesign.DashboardColors.tertiaryText,
+                                         title: "No reports found",
+                                         actionTitle: "Refresh",
+                                         action: loadReports)
+                        } else {
+                            if !taxBills.isEmpty || !taxLiens.isEmpty {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text("Portfolio Tax History")
+                                        .francoTypography(CyntientOpsDesign.Typography.headline)
+                                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                                    if !taxBills.isEmpty {
+                                        ForEach(taxBills.prefix(5), id: \.bill.id) { item in
+                                            taxBillRow(item.buildingName, item.bill)
+                                        }
+                                    }
+                                    if !taxLiens.isEmpty {
+                                        ForEach(taxLiens.prefix(3), id: \.lien.id) { item in
+                                            taxLienRow(item.buildingName, item.lien)
+                                        }
                                     }
                                 }
-                            )
-                        }
-                    }
-                }
-                
-                // Date range selector
-                HStack {
-                    Text("Period:")
-                        .francoTypography(CyntientOpsDesign.Typography.subheadline)
-                        .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
-                    
-                    Menu {
-                        ForEach(DateRange.allCases, id: \.self) { range in
-                            Button(range.rawValue) {
-                                selectedDateRange = range
+                                .francoCardPadding()
+                                .cyntientOpsDarkCardBackground()
                             }
-                        }
-                    } label: {
-                        HStack {
-                            Text(selectedDateRange.rawValue)
-                                .francoTypography(CyntientOpsDesign.Typography.subheadline)
-                                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-                            
-                            Image(systemName: "chevron.down")
-                                .font(.caption)
-                                .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
-                        }
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(CyntientOpsDesign.DashboardColors.cardBackground)
-                        .cornerRadius(8)
-                    }
-                    
-                    Spacer()
-                    
-                    Button(action: {
-                        generateQuickReport()
-                    }) {
-                        HStack {
-                            Image(systemName: "bolt.fill")
-                            Text("Generate")
-                        }
-                        .francoTypography(CyntientOpsDesign.Typography.subheadline)
-                        .fontWeight(.medium)
-                    }
-                    .buttonStyle(ReportActionButtonStyle(color: selectedReportType.color))
-                }
-            }
-            .francoCardPadding()
-            .cyntientOpsDarkCardBackground()
-        }
-    }
-    
-    // MARK: - Scheduled Reports Section
-    
-    private var scheduledReportsSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Label("Scheduled Reports", systemImage: "calendar.badge.clock")
-                    .francoTypography(CyntientOpsDesign.Typography.headline)
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-                
-                Spacer()
-                
-                Button("Manage") {
-                    showingScheduleSetup = true
-                }
-                .francoTypography(CyntientOpsDesign.Typography.caption)
-                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryAction)
-            }
-            
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 12) {
-                    ForEach(mockScheduledReports.prefix(5)) { schedule in
-                        ScheduledReportCard(
-                            schedule: schedule,
-                            onEdit: {
-                                editSchedule(schedule)
-                            },
-                            onDisable: {
-                                disableSchedule(schedule)
-                            }
-                        )
-                    }
-                }
-            }
-        }
-    }
-    
-    // MARK: - Recent Reports Section
-    
-    private var recentReportsSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            // Section header with search
-            HStack {
-                Text("Report Library")
-                    .francoTypography(CyntientOpsDesign.Typography.headline)
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-                
-                Spacer()
-                
-                // Category filter
-                Menu {
-                    ForEach(ReportCategory.allCases, id: \.self) { category in
-                        Button(category.rawValue) {
-                            withAnimation {
-                                filterCategory = category
+                            VStack(spacing: 12) {
+                                ForEach(reports) { report in
+                                    reportCard(report)
+                                }
                             }
                         }
                     }
-                } label: {
-                    HStack(spacing: 4) {
-                        Text(filterCategory.rawValue)
-                            .francoTypography(CyntientOpsDesign.Typography.caption)
-                            .fontWeight(.medium)
-                        Image(systemName: "chevron.down")
-                            .font(.caption2)
-                    }
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryAction)
+                    .padding(16)
                 }
             }
-            
-            // Search bar
-            HStack {
-                Image(systemName: "magnifyingglass")
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
-                
-                TextField("Search reports...", text: $searchText)
-                    .textFieldStyle(PlainTextFieldStyle())
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-                
-                if !searchText.isEmpty {
-                    Button(action: { searchText = "" }) {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
-                    }
-                }
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(CyntientOpsDesign.DashboardColors.cardBackground)
-            .cornerRadius(8)
-            
-            // Reports list
-            if filteredReports.isEmpty {
-                EmptyReportsState(category: filterCategory)
-            } else {
-                VStack(spacing: 8) {
-                    ForEach(filteredReports.prefix(5)) { report in
-                        ReportRowCard(
-                            report: report,
-                            onView: {
-                                currentReport = report
-                                showingReportPreview = true
-                            },
-                            onExport: {
-                                currentReport = report
-                                showingExportOptions = true
-                            },
-                            onFavorite: {
-                                toggleFavorite(report)
-                            }
-                        )
-                    }
-                    
-                    if filteredReports.count > 5 {
-                        Button(action: { showingReportHistory = true }) {
-                            HStack {
-                                Image(systemName: "doc.on.doc")
-                                Text("View All \(filteredReports.count) Reports")
-                            }
-                            .francoTypography(CyntientOpsDesign.Typography.subheadline)
-                            .foregroundColor(CyntientOpsDesign.DashboardColors.primaryAction)
-                        }
-                        .padding(.top, 8)
-                    }
-                }
-            }
-        }
-        .francoCardPadding()
-        .cyntientOpsDarkCardBackground()
-    }
-    
-    // MARK: - Report Templates Grid
-    
-    private var reportTemplatesGrid: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("Report Templates")
-                    .francoTypography(CyntientOpsDesign.Typography.headline)
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-                
-                Spacer()
-                
-                Button("View All") {
-                    showingTemplateLibrary = true
-                }
-                .francoTypography(CyntientOpsDesign.Typography.caption)
-                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryAction)
-            }
-            
-            LazyVGrid(columns: [
-                GridItem(.flexible()),
-                GridItem(.flexible())
-            ], spacing: 12) {
-                ForEach(mockFeaturedTemplates.prefix(4)) { template in
-                    TemplateCard(
-                        template: template,
-                        onUse: {
-                            useTemplate(template)
-                        }
-                    )
-                }
-            }
-        }
-    }
-    
-    // MARK: - Report Generation Overlay
-    
-    private var reportGenerationOverlay: some View {
-        ZStack {
-            CyntientOpsDesign.DashboardColors.baseBackground
-                .opacity(0.95)
-                .ignoresSafeArea()
-            
-            VStack(spacing: 24) {
-                // Progress indicator
-                ZStack {
-                    Circle()
-                        .stroke(CyntientOpsDesign.DashboardColors.cardBackground, lineWidth: 8)
-                        .frame(width: 100, height: 100)
-                    
-                    Circle()
-                        .trim(from: 0, to: reportGen.generationProgress)
-                        .stroke(CyntientOpsDesign.DashboardColors.primaryAction, style: StrokeStyle(lineWidth: 8, lineCap: .round))
-                        .frame(width: 100, height: 100)
-                        .rotationEffect(.degrees(-90))
-                        .animation(.easeInOut, value: reportGen.generationProgress)
-                    
-                    Text("\(Int(reportGen.generationProgress * 100))%")
-                        .francoTypography(CyntientOpsDesign.Typography.title2)
-                        .fontWeight(.bold)
-                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-                }
-                
-                VStack(spacing: 8) {
-                    Text("Generating Report")
-                        .francoTypography(CyntientOpsDesign.Typography.headline)
-                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-                    
-                    Text(reportGen.currentStep)
-                        .francoTypography(CyntientOpsDesign.Typography.subheadline)
-                        .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
-                        .multilineTextAlignment(.center)
-                }
-                
-                Button("Cancel") {
-                    reportGen.cancelGeneration()
-                    isGenerating = false
-                }
-                .francoTypography(CyntientOpsDesign.Typography.subheadline)
-                .foregroundColor(CyntientOpsDesign.DashboardColors.critical)
-            }
-            .padding(32)
-            .background(
-                RoundedRectangle(cornerRadius: CyntientOpsDesign.CornerRadius.xl)
-                    .fill(CyntientOpsDesign.DashboardColors.cardBackground)
-                    .shadow(radius: 20)
-            )
-        }
-    }
-    
-    // MARK: - Helper Methods
-    
-    private func loadReportData() async {
-        // Initialize mock data
-        mockGeneratedReports = createMockGeneratedReports()
-        mockScheduledReports = createMockScheduledReports()
-        mockReportTemplates = createMockReportTemplates()
-        mockFeaturedTemplates = Array(mockReportTemplates.prefix(4))
-        allReports = await loadReportsFromService()
-        mockFavoriteReports = mockGeneratedReports.filter { $0.isFavorite }
-        mockPendingReports = []
-        mockOverdueReports = []
-        mockMostUsedTemplate = mockReportTemplates.first
-        mockDistributionSettings = DistributionSettings(emailRecipients: [], slackChannels: [], autoSend: false)
-    }
-    
-    private func refreshReportData() async {
-        await loadReportData()
-    }
-    
-    private func createMockGeneratedReports() -> [AdminGeneratedReport] {
-        return [
-            AdminGeneratedReport(title: "Compliance Report - Q4 2024", type: "compliance", generatedDate: Date().addingTimeInterval(-3600), filePath: "/tmp/compliance_q4.pdf", fileSize: 2500000, isFavorite: true, isScheduled: false, isArchived: false),
-            AdminGeneratedReport(title: "Performance Analytics - December", type: "performance", generatedDate: Date().addingTimeInterval(-7200), filePath: "/tmp/performance_dec.pdf", fileSize: 1800000, isFavorite: false, isScheduled: true, isArchived: false),
-            AdminGeneratedReport(title: "Financial Summary - 2024", type: "financial", generatedDate: Date().addingTimeInterval(-10800), filePath: "/tmp/financial_2024.pdf", fileSize: 3200000, isFavorite: true, isScheduled: false, isArchived: false),
-            AdminGeneratedReport(title: "Operations Digest - Weekly", type: "operations", generatedDate: Date().addingTimeInterval(-14400), filePath: "/tmp/ops_weekly.pdf", fileSize: 1500000, isFavorite: false, isScheduled: true, isArchived: false),
-            AdminGeneratedReport(title: "Executive Summary - November", type: "executive", generatedDate: Date().addingTimeInterval(-18000), filePath: "/tmp/exec_nov.pdf", fileSize: 900000, isFavorite: false, isScheduled: false, isArchived: false)
-        ]
-    }
-    
-    private func createMockScheduledReports() -> [ReportSchedule] {
-        return [
-            ReportSchedule(name: "Weekly Operations", type: .operations, frequency: .weekly, nextRun: Date().addingTimeInterval(86400), isEnabled: true),
-            ReportSchedule(name: "Monthly Compliance", type: .compliance, frequency: .monthly, nextRun: Date().addingTimeInterval(172800), isEnabled: true),
-            ReportSchedule(name: "Quarterly Executive", type: .executive, frequency: .quarterly, nextRun: Date().addingTimeInterval(259200), isEnabled: false)
-        ]
-    }
-    
-    private func createMockReportTemplates() -> [ReportTemplate] {
-        return [
-            ReportTemplate(name: "Standard Compliance", type: .compliance, icon: "checkmark.shield.fill", color: .orange, usageCount: 23, description: "Complete compliance overview"),
-            ReportTemplate(name: "Performance Dashboard", type: .performance, icon: "chart.line.uptrend.xyaxis", color: .green, usageCount: 18, description: "Key performance indicators"),
-            ReportTemplate(name: "Financial Overview", type: .financial, icon: "dollarsign.circle.fill", color: .blue, usageCount: 15, description: "Comprehensive financial analysis"),
-            ReportTemplate(name: "Operations Summary", type: .operations, icon: "gear", color: .purple, usageCount: 12, description: "Daily operations report"),
-            ReportTemplate(name: "Executive Brief", type: .executive, icon: "briefcase.fill", color: .red, usageCount: 9, description: "High-level executive summary"),
-            ReportTemplate(name: "Custom Analytics", type: .custom, icon: "slider.horizontal.3", color: .gray, usageCount: 6, description: "Customizable report template")
-        ]
-    }
-    
-    private func getReportingInsights() -> [CoreTypes.IntelligenceInsight] {
-        var insights: [CoreTypes.IntelligenceInsight] = []
-        
-        // Critical: Overdue reports
-        if mockOverdueReports.count > 0 {
-            insights.append(CoreTypes.IntelligenceInsight(
-                id: UUID().uuidString,
-                title: "\(mockOverdueReports.count) overdue reports",
-                description: "Scheduled reports failed to generate",
-                type: .operations,
-                priority: .critical,
-                actionRequired: true,
-                recommendedAction: "Review and regenerate"
-            ))
-        }
-        
-        // High: Report generation spike
-        if reportGen.queueLength > 5 {
-            insights.append(CoreTypes.IntelligenceInsight(
-                id: UUID().uuidString,
-                title: "High report demand",
-                description: "\(reportGen.queueLength) reports in queue",
-                type: .efficiency,
-                priority: .high,
-                actionRequired: false,
-                recommendedAction: "Consider batching"
-            ))
-        }
-        
-        // Medium: Popular report template
-        if let popular = mockMostUsedTemplate {
-            insights.append(CoreTypes.IntelligenceInsight(
-                id: UUID().uuidString,
-                title: "Popular template: \(popular.name)",
-                description: "Used \(popular.usageCount) times this month",
-                type: .efficiency,
-                priority: .medium,
-                actionRequired: false,
-                recommendedAction: "Create variant templates"
-            ))
-        }
-        
-        // Low: Optimization opportunity
-        if mockAvgGenerationTime > 30 {
-            insights.append(CoreTypes.IntelligenceInsight(
-                id: UUID().uuidString,
-                title: "Report optimization available",
-                description: "Average generation time: \(Int(mockAvgGenerationTime))s",
-                type: .efficiency,
-                priority: .low,
-                actionRequired: false,
-                recommendedAction: "Enable caching"
-            ))
-        }
-        
-        // Add Nova AI insights
-        let novaInsights = novaEngine.currentInsights
-        let operationsInsights = novaInsights.filter { $0.type == .operations }
-        let efficiencyInsights = novaInsights.filter { $0.type == .efficiency }
-        let operationalInsights = operationsInsights + efficiencyInsights
-        insights.append(contentsOf: operationalInsights)
-        
-        // Sort by priority (highest first)
-        let sortedInsights = insights.sorted { lhs, rhs in
-            lhs.priority.rawValue > rhs.priority.rawValue
-        }
-        return sortedInsights
-    }
-    
-    private func handleIntelligenceNavigation(_ target: ReportIntelligencePanel.NavigationTarget) {
-        switch target {
-        case .report(let id):
-            if let report = allReports.first(where: { $0.id == id }) {
-                currentReport = report
-                showingReportPreview = true
-            }
-            
-        case .schedule:
-            showingScheduleSetup = true
-            
-        case .templates:
-            showingTemplateLibrary = true
-            
-        case .history:
-            showingReportHistory = true
-            
-        case .generate:
-            showingReportBuilder = true
-            
-        case .distribution:
-            showingDistributionSettings = true
-        }
-    }
-    
-    private func generateQuickReport() {
-        isGenerating = true
-        currentContext = .creating
-        
-        Task {
-            let config = ReportConfiguration(
-                type: selectedReportType,
-                dateRange: selectedDateRange.dateInterval,
-                includePhotos: true,
-                format: .pdf
-            )
-            
-            // Simulate progress updates
-            await MainActor.run {
-                reportGen.isGenerating = true
-                reportGen.generationProgress = 0.1
-                reportGen.currentStep = "Initializing report generation..."
-            }
-            
-            // Use the actual ReportService to generate a real report
-            let report = await generateRealReport(config: config)
-            
-            await MainActor.run {
-                isGenerating = false
-                reportGen.isGenerating = false
-                reportGen.generationProgress = 1.0
-                currentContext = .overview
-                currentReport = report
-                showingReportPreview = true
-            }
-        }
-    }
-    
-    private func generateReport(with config: ReportConfiguration) {
-        isGenerating = true
-        
-        Task {
-            // Simulate progress updates
-            await MainActor.run {
-                reportGen.isGenerating = true
-                reportGen.generationProgress = 0.1
-                reportGen.currentStep = "Preparing report data..."
-            }
-            
-            let report = await generateRealReport(config: config)
-            
-            await MainActor.run {
-                isGenerating = false
-                reportGen.isGenerating = false
-                reportGen.generationProgress = 1.0
-                currentReport = report
-                showingReportBuilder = false
-                showingReportPreview = true
-            }
-        }
-    }
-    
-    private func generateRealReport(config: ReportConfiguration) async -> AdminGeneratedReport {
-        do {
-            // Update progress
-            await MainActor.run {
-                reportGen.generationProgress = 0.3
-                reportGen.currentStep = "Collecting building data..."
-            }
-            
-            // Create report data based on the configuration
-            let portfolioData = ClientPortfolioReportData(
-                generatedAt: Date(),
-                dateRange: mapToReportDateRange(config.dateRange),
-                portfolioHealth: CoreTypes.PortfolioHealth(
-                    overallScore: 0.85,
-                    totalBuildings: adminViewModel.buildings.count,
-                    activeBuildings: adminViewModel.buildings.count,
-                    criticalIssues: 2,
-                    trend: .stable,
-                    lastUpdated: Date()
-                ),
-                buildings: adminViewModel.buildings,
-                buildingMetrics: [:], // Would populate with real data
-                complianceOverview: CoreTypes.ComplianceOverview(
-                    overallScore: 0.92,
-                    criticalViolations: 1,
-                    pendingInspections: 3,
-                    lastUpdated: Date(),
-                    upcomingDeadlines: []
-                ),
-                insights: [
-                    "Overall portfolio performance is strong",
-                    "Two buildings require immediate attention",
-                    "Compliance scores have improved by 15% this month"
-                ]
-            )
-            
-            // Update progress
-            await MainActor.run {
-                reportGen.generationProgress = 0.6
-                reportGen.currentStep = "Generating PDF report..."
-            }
-            
-            // Generate the actual report using ReportService
-            let reportURL = try await reportService.generateClientReport(portfolioData)
-            
-            // Update progress
-            await MainActor.run {
-                reportGen.generationProgress = 0.9
-                reportGen.currentStep = "Finalizing report..."
-            }
-            
-            // Create AdminGeneratedReport from the result
-            let fileAttributes = try FileManager.default.attributesOfItem(atPath: reportURL.path)
-            let fileSize = fileAttributes[FileAttributeKey.size] as? Int ?? 0
-            
-            let report = AdminGeneratedReport(
-                title: "\(config.type.rawValue) Report",
-                type: config.type.rawValue,
-                dateRange: formatDateRange(config.dateRange),
-                generatedDate: Date(),
-                filePath: reportURL.path,
-                fileSize: fileSize,
-                isFavorite: false,
-                isScheduled: false,
-                isArchived: false
-            )
-            
-            // Final progress update
-            await MainActor.run {
-                reportGen.generationProgress = 1.0
-                reportGen.currentStep = "Report generated successfully!"
-            }
-            
-            return report
-            
-        } catch {
-            print("❌ Failed to generate real report: \(error)")
-            
-            // Return a mock report as fallback
-            return AdminGeneratedReport(
-                title: "\(config.type.rawValue) Report",
-                type: config.type.rawValue,
-                dateRange: formatDateRange(config.dateRange),
-                generatedDate: Date(),
-                filePath: "/tmp/mock_report.pdf",
-                fileSize: 2400000,
-                isFavorite: false,
-                isScheduled: false,
-                isArchived: false
-            )
-        }
-    }
-    
-    private func mapToReportDateRange(_ dateInterval: DateInterval) -> ReportDateRange {
-        let daysDiff = Calendar.current.dateComponents([.day], from: dateInterval.start, to: dateInterval.end).day ?? 0
-        
-        switch daysDiff {
-        case 0...1: return .today
-        case 2...7: return .thisWeek
-        case 8...31: return .thisMonth
-        case 32...92: return .thisQuarter
-        case 93...366: return .thisYear
-        default: return .custom
-        }
-    }
-    
-    private func formatDateRange(_ dateInterval: DateInterval) -> String {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        return "\(formatter.string(from: dateInterval.start)) - \(formatter.string(from: dateInterval.end))"
-    }
-    
-    private func scheduleReport(_ schedule: ReportSchedule) {
-        mockScheduledReports.append(schedule)
-        showingScheduleSetup = false
-    }
-    
-    private func exportReport(_ report: AdminGeneratedReport, format: AdminExportFormat, to destination: ExportDestination) {
-        // Mock export functionality
-        showingExportOptions = false
-    }
-    
-    private func applyTemplate(_ template: ReportTemplate) {
-        selectedReportType = template.type
-        showingTemplateLibrary = false
-        showingReportBuilder = true
-    }
-    
-    private func useTemplate(_ template: ReportTemplate) {
-        applyTemplate(template)
-    }
-    
-    private func toggleFavorite(_ report: AdminGeneratedReport) {
-        // Mock toggle favorite functionality
-        if let index = mockGeneratedReports.firstIndex(where: { $0.id == report.id }) {
-            mockGeneratedReports[index].isFavorite.toggle()
-        }
-    }
-    
-    private func editSchedule(_ schedule: ReportSchedule) {
-        // Edit schedule implementation
-    }
-    
-    private func disableSchedule(_ schedule: ReportSchedule) {
-        // Mock disable schedule functionality
-        if let index = mockScheduledReports.firstIndex(where: { $0.id == schedule.id }) {
-            mockScheduledReports.remove(at: index)
-        }
-    }
-    
-    private func updateDistributionSettings(_ settings: DistributionSettings) {
-        // Mock update distribution settings functionality
-        showingDistributionSettings = false
-    }
-    
-    private func loadReportsFromService() async -> [AdminGeneratedReport] {
-        // Load actual reports from ReportService
-        do {
-            return try await reportService.getAllReports()
-        } catch {
-            print("❌ Failed to load reports: \(error)")
-            return []
-        }
-    }
-}
-#endif
-
-// MARK: - Collapsible Reports Hero Wrapper
-
-struct CollapsibleReportsHeroWrapper: View {
-    @Binding var isCollapsed: Bool
-    
-    let totalReports: Int
-    let scheduledReports: Int
-    let lastGenerated: Date?
-    let avgGenerationTime: Double
-    let favoriteReports: [AdminGeneratedReport]
-    
-    let onGenerateNow: () -> Void
-    let onSchedule: () -> Void
-    let onViewHistory: () -> Void
-    let onTemplates: () -> Void
-    
-    var body: some View {
-        VStack(spacing: 0) {
-            if isCollapsed {
-                MinimalReportsHeroCard(
-                    totalReports: totalReports,
-                    scheduledCount: scheduledReports,
-                    lastGenerated: lastGenerated,
-                    onExpand: {
-                        withAnimation(CyntientOpsDesign.Animations.spring) {
-                            isCollapsed = false
+            .navigationTitle("System Reports")
+            .toolbar {
+                ToolbarItemGroup(placement: .navigationBarTrailing) {
+                    if isGenerating {
+                        ProgressView()
+                            .tint(CyntientOpsDesign.DashboardColors.primaryAction)
+                    } else {
+                        Button(action: generatePortfolioReport) {
+                            Image(systemName: "doc.badge.plus")
                         }
                     }
-                )
-            } else {
-                ZStack(alignment: .topTrailing) {
-                    ReportsHeroStatusCard(
-                        totalReports: totalReports,
-                        scheduledReports: scheduledReports,
-                        lastGenerated: lastGenerated,
-                        avgGenerationTime: avgGenerationTime,
-                        favoriteReports: favoriteReports,
-                        onGenerateNow: onGenerateNow,
-                        onSchedule: onSchedule,
-                        onViewHistory: onViewHistory,
-                        onTemplates: onTemplates
-                    )
-                    
-                    // Collapse button
-                    Button(action: {
-                        withAnimation(CyntientOpsDesign.Animations.spring) {
-                            isCollapsed = true
-                        }
-                    }) {
-                        Image(systemName: "chevron.up")
-                            .font(.caption)
-                            .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
-                            .padding(8)
-                            .background(Circle().fill(CyntientOpsDesign.DashboardColors.glassOverlay))
+                    Button(action: loadReports) {
+                        Image(systemName: "arrow.clockwise")
                     }
-                    .padding(8)
+                }
+            }
+            .task { loadReports() }
+            .task { await loadTaxHistory() }
+            .sheet(isPresented: $showShareSheet) {
+                if let url = shareURL {
+                    ActivityView(activityItems: [url])
                 }
             }
         }
     }
-}
 
-// MARK: - Minimal Reports Hero Card
+    // MARK: - UI Components
 
-struct MinimalReportsHeroCard: View {
-    let totalReports: Int
-    let scheduledCount: Int
-    let lastGenerated: Date?
-    let onExpand: () -> Void
-    
-    var body: some View {
-        Button(action: onExpand) {
-            HStack(spacing: 12) {
-                // Status indicator
-                Circle()
-                    .fill(CyntientOpsDesign.DashboardColors.info)
-                    .frame(width: 8, height: 8)
-                
-                // Reports summary
-                HStack(spacing: 16) {
-                    ReportMetricPill(
-                        value: "\(totalReports)",
-                        label: "Reports",
-                        color: CyntientOpsDesign.DashboardColors.primaryAction
-                    )
-                    
-                    ReportMetricPill(
-                        value: "\(scheduledCount)",
-                        label: "Scheduled",
-                        color: CyntientOpsDesign.DashboardColors.info
-                    )
-                    
-                    if let last = lastGenerated {
-                        ReportMetricPill(
-                            value: last.formatted(.relative(presentation: .named)),
-                            label: "Last",
-                            color: CyntientOpsDesign.DashboardColors.secondaryText
-                        )
-                    }
-                }
-                
-                Spacer()
-                
-                // Expand indicator
-                Image(systemName: "chevron.down")
-                    .font(.caption)
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .cyntientOpsDarkCardBackground(cornerRadius: 12)
-        }
-        .buttonStyle(PlainButtonStyle())
-    }
-}
+    private var headerBar: some View {
+        HStack {
+            Text("Reports & Analytics")
+                .francoTypography(CyntientOpsDesign.Typography.dashboardTitle)
+                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
 
-// MARK: - Reports Hero Status Card
+            Spacer()
 
-struct ReportsHeroStatusCard: View {
-    let totalReports: Int
-    let scheduledReports: Int
-    let lastGenerated: Date?
-    let avgGenerationTime: Double
-    let favoriteReports: [AdminGeneratedReport]
-    
-    let onGenerateNow: () -> Void
-    let onSchedule: () -> Void
-    let onViewHistory: () -> Void
-    let onTemplates: () -> Void
-    
-    var body: some View {
-        VStack(spacing: 16) {
-            // Reports overview
-            reportsOverviewSection
-            
-            // Metrics grid
-            reportsMetricsGrid
-            
-            // Quick actions
-            quickActionButtons
-        }
-        .francoCardPadding()
-        .cyntientOpsDarkCardBackground()
-    }
-    
-    private var reportsOverviewSection: some View {
-        VStack(spacing: 12) {
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Reporting Status")
-                        .francoTypography(CyntientOpsDesign.Typography.subheadline)
-                        .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
-                    
-                    HStack(alignment: .bottom, spacing: 8) {
-                        Text("\(totalReports)")
-                            .francoTypography(CyntientOpsDesign.Typography.largeTitle)
-                            .foregroundColor(CyntientOpsDesign.DashboardColors.primaryAction)
-                        
-                        Text("reports generated")
-                            .francoTypography(CyntientOpsDesign.Typography.body)
-                            .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
-                    }
-                }
-                
-                Spacer()
-                
-                VStack {
-                    Image(systemName: "doc.text.fill")
-                        .font(.system(size: 32))
-                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryAction)
-                    
-                    if let last = lastGenerated {
-                        Text("Updated \(last.formatted(.relative(presentation: .named)))")
-                            .francoTypography(CyntientOpsDesign.Typography.caption2)
-                            .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
-                    }
-                }
-            }
-            
-            // Favorites bar
-            if !favoriteReports.isEmpty {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Favorite Reports")
-                        .francoTypography(CyntientOpsDesign.Typography.caption)
-                        .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
-                    
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 8) {
-                            ForEach(favoriteReports.prefix(5)) { report in
-                                FavoriteReportChip(report: report)
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-    
-    private var reportsMetricsGrid: some View {
-        LazyVGrid(columns: [
-            GridItem(.flexible()),
-            GridItem(.flexible())
-        ], spacing: 12) {
-            ReportMetricCard(
-                title: "Scheduled",
-                value: "\(5)",
-                icon: "calendar.badge.clock",
-                color: CyntientOpsDesign.DashboardColors.info
-            )
-            
-            ReportMetricCard(
-                title: "Avg Time",
-                value: "24s",
-                icon: "timer",
-                color: CyntientOpsDesign.DashboardColors.success
-            )
-            
-            ReportMetricCard(
-                title: "This Month", 
-                value: "\(15)",
-                icon: "calendar",
-                color: CyntientOpsDesign.DashboardColors.warning
-            )
-            
-            ReportMetricCard(
-                title: "Templates",
-                value: "8",
-                icon: "doc.on.doc",
-                color: CyntientOpsDesign.DashboardColors.tertiaryAction
-            )
-        }
-    }
-    
-    private var quickActionButtons: some View {
-        HStack(spacing: 12) {
-            Button(action: onGenerateNow) {
+            Button(action: generatePortfolioReport) {
                 Label("Generate", systemImage: "doc.badge.plus")
                     .francoTypography(CyntientOpsDesign.Typography.caption)
-                    .fontWeight(.medium)
             }
             .buttonStyle(ReportActionButtonStyle(color: CyntientOpsDesign.DashboardColors.primaryAction))
-            
-            Button(action: onSchedule) {
-                Label("Schedule", systemImage: "calendar")
-                    .francoTypography(CyntientOpsDesign.Typography.caption)
-                    .fontWeight(.medium)
+
+            Button(action: loadReports) {
+                Image(systemName: "arrow.clockwise")
             }
-            .buttonStyle(ReportActionButtonStyle(color: CyntientOpsDesign.DashboardColors.info))
-            
-            Button(action: onTemplates) {
-                Label("Templates", systemImage: "doc.on.doc")
-                    .francoTypography(CyntientOpsDesign.Typography.caption)
-                    .fontWeight(.medium)
-            }
-            .buttonStyle(ReportActionButtonStyle(color: CyntientOpsDesign.DashboardColors.success))
+            .foregroundColor(CyntientOpsDesign.DashboardColors.primaryAction)
         }
     }
-}
 
-// MARK: - Supporting Components
-
-struct ReportTypeChip: View {
-    let type: AdminReportsDebugView.ReportType
-    let isSelected: Bool
-    let onTap: () -> Void
-    
-    var body: some View {
-        Button(action: onTap) {
-            HStack(spacing: 6) {
-                Image(systemName: type.icon)
-                    .font(.caption)
-                
-                Text(type.rawValue)
-                    .francoTypography(CyntientOpsDesign.Typography.caption)
-                    .fontWeight(.medium)
-            }
-            .foregroundColor(isSelected ? .white : type.color)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .background(
-                isSelected ? type.color : type.color.opacity(0.1)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 20)
-                    .stroke(type.color.opacity(0.3), lineWidth: 1)
-            )
-            .cornerRadius(20)
-        }
-    }
-}
-
-struct ScheduledReportCard: View {
-    let schedule: ReportSchedule
-    let onEdit: () -> Void
-    let onDisable: () -> Void
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Image(systemName: schedule.type.icon)
-                    .font(.title3)
-                    .foregroundColor(schedule.type.color)
-                
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(schedule.name)
-                        .francoTypography(CyntientOpsDesign.Typography.subheadline)
-                        .fontWeight(.medium)
-                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-                    
-                    Text(schedule.frequency.displayText)
-                        .francoTypography(CyntientOpsDesign.Typography.caption)
-                        .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
-                }
-                
-                Spacer()
-                
-                Menu {
-                    Button(action: onEdit) {
-                        Label("Edit", systemImage: "pencil")
-                    }
-                    
-                    Button(action: onDisable) {
-                        Label("Disable", systemImage: "pause.circle")
-                    }
-                } label: {
-                    Image(systemName: "ellipsis")
-                        .font(.caption)
-                        .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
-                }
-            }
-            
-            HStack {
-                Label("Next: \(schedule.nextRun.formatted(.relative(presentation: .named)))",
-                      systemImage: "clock")
-                    .francoTypography(CyntientOpsDesign.Typography.caption2)
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
-                
-                Spacer()
-                
-                if schedule.isEnabled {
-                    Text("ACTIVE")
-                        .francoTypography(CyntientOpsDesign.Typography.caption2)
-                        .fontWeight(.semibold)
-                        .foregroundColor(CyntientOpsDesign.DashboardColors.success)
-                }
-            }
-        }
-        .padding(12)
-        .frame(width: 200)
-        .cyntientOpsDarkCardBackground()
-    }
-}
-
-struct ReportRowCard: View {
-    let report: AdminGeneratedReport
-    let onView: () -> Void
-    let onExport: () -> Void
-    let onFavorite: () -> Void
-    
-    var body: some View {
-        Button(action: onView) {
-            HStack(spacing: 12) {
-                Image(systemName: report.reportType.icon)
-                    .font(.title3)
-                    .foregroundColor(report.reportType.color)
-                    .frame(width: 24)
-                
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(report.name)
-                        .francoTypography(CyntientOpsDesign.Typography.subheadline)
-                        .fontWeight(.medium)
-                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-                        .lineLimit(1)
-                    
-                    HStack(spacing: 8) {
-                        Text(report.generatedDate.formatted(date: .abbreviated, time: .shortened))
-                            .francoTypography(CyntientOpsDesign.Typography.caption)
-                            .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
-                        
-                        Text("•")
-                            .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
-                        
-                        Text(ByteCountFormatter.string(fromByteCount: Int64(report.fileSize), countStyle: .file))
-                            .francoTypography(CyntientOpsDesign.Typography.caption)
-                            .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
-                    }
-                }
-                
-                Spacer()
-                
-                HStack(spacing: 8) {
-                    Button(action: onFavorite) {
-                        Image(systemName: report.isFavorite ? "star.fill" : "star")
-                            .font(.caption)
-                            .foregroundColor(report.isFavorite ? .yellow : CyntientOpsDesign.DashboardColors.tertiaryText)
-                    }
-                    
-                    Button(action: onExport) {
-                        Image(systemName: "square.and.arrow.up")
-                            .font(.caption)
-                            .foregroundColor(CyntientOpsDesign.DashboardColors.primaryAction)
-                    }
-                }
-            }
-            .padding(.vertical, 8)
-        }
-        .buttonStyle(PlainButtonStyle())
-    }
-}
-
-struct TemplateCard: View {
-    let template: ReportTemplate
-    let onUse: () -> Void
-    
-    var body: some View {
-        Button(action: onUse) {
-            VStack(spacing: 12) {
-                Image(systemName: template.icon)
-                    .font(.title2)
-                    .foregroundColor(template.color)
-                
-                VStack(spacing: 4) {
-                    Text(template.name)
-                        .francoTypography(CyntientOpsDesign.Typography.subheadline)
-                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-                        .multilineTextAlignment(.center)
-                        .lineLimit(2)
-                    
-                    Text("\(template.usageCount) uses")
-                        .francoTypography(CyntientOpsDesign.Typography.caption2)
-                        .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
-                }
-            }
-            .frame(maxWidth: .infinity)
-            .frame(height: 100)
-            .cyntientOpsDarkCardBackground()
-        }
-    }
-}
-
-struct EmptyReportsState: View {
-    let category: AdminReportsDebugView.ReportCategory
-    
-    var body: some View {
+    private func glassMessage(icon: String, color: Color, title: String, actionTitle: String, action: @escaping () -> Void) -> some View {
         VStack(spacing: 12) {
-            Image(systemName: "doc.text")
-                .font(.largeTitle)
-                .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
-            
-            Text("No \(category.rawValue.lowercased())")
+            Image(systemName: icon).foregroundColor(color)
+            Text(title)
                 .francoTypography(CyntientOpsDesign.Typography.subheadline)
                 .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 32)
-    }
-}
-
-struct FavoriteReportChip: View {
-    let report: AdminGeneratedReport
-    
-    private func reportType(for typeString: String) -> AdminReportsDebugView.ReportType {
-        switch typeString.lowercased() {
-        case "portfolio", "comprehensive":
-            return .comprehensive
-        case "compliance":
-            return .compliance
-        case "worker", "performance":
-            return .performance
-        case "building", "operations":
-            return .operations
-        case "financial":
-            return .financial
-        case "executive":
-            return .executive
-        case "custom":
-            return .custom
-        default:
-            return .comprehensive
-        }
-    }
-    
-    var body: some View {
-        HStack(spacing: 4) {
-            Image(systemName: reportType(for: report.type).icon)
-                .font(.caption2)
-            
-            Text(report.name)
-                .francoTypography(CyntientOpsDesign.Typography.caption2)
-                .lineLimit(1)
-        }
-        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-        .padding(.horizontal, 8)
-        .padding(.vertical, 4)
-        .background(CyntientOpsDesign.DashboardColors.cardBackground)
-        .cornerRadius(6)
-    }
-}
-
-struct ReportMetricPill: View {
-    let value: String
-    let label: String
-    let color: Color
-    
-    var body: some View {
-        HStack(spacing: 4) {
-            Text(value)
-                .font(.caption)
-                .fontWeight(.semibold)
-                .foregroundColor(color)
-            
-            Text(label)
-                .font(.caption2)
-                .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
-        }
-    }
-}
-
-struct ReportMetricCard: View {
-    let title: String
-    let value: String
-    let icon: String
-    let color: Color
-    
-    var body: some View {
-        VStack(spacing: 8) {
-            Image(systemName: icon)
-                .font(.title3)
-                .foregroundColor(color)
-            
-            Text(value)
-                .francoTypography(CyntientOpsDesign.Typography.headline)
-                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-            
-            Text(title)
-                .francoTypography(CyntientOpsDesign.Typography.caption)
-                .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
                 .multilineTextAlignment(.center)
+            Button(actionTitle, action: action)
+                .francoTypography(CyntientOpsDesign.Typography.caption)
         }
-        .frame(maxWidth: .infinity)
-        .padding()
-        .background(
-            RoundedRectangle(cornerRadius: CyntientOpsDesign.CornerRadius.md)
-                .fill(color.opacity(0.1))
-                .overlay(
-                    RoundedRectangle(cornerRadius: CyntientOpsDesign.CornerRadius.md)
-                        .stroke(color.opacity(0.3), lineWidth: 1)
-                )
+        .francoCardPadding()
+        .cyntientOpsDarkCardBackground()
+    }
+
+    private func reportCard(_ report: AdminGeneratedReport) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon(for: report.type))
+                .foregroundColor(color(for: report.type))
+                .font(.title3)
+                .frame(width: 28)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(report.title)
+                    .francoTypography(CyntientOpsDesign.Typography.subheadline)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                    .lineLimit(1)
+                Text(report.generatedDate.formatted(date: .abbreviated, time: .shortened))
+                    .francoTypography(CyntientOpsDesign.Typography.caption)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+            }
+            Spacer()
+            Button {
+                if let url = URL(string: report.filePath) {
+                    shareURL = url
+                    showShareSheet = true
+                }
+            } label: {
+                Image(systemName: "square.and.arrow.up")
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryAction)
+            }
+        }
+        .francoCardPadding()
+        .cyntientOpsDarkCardBackground()
+    }
+
+    private func loadReports() {
+        isLoading = true
+        errorMessage = nil
+        Task {
+            do {
+                let items = try await reportService.getAllReports()
+                await MainActor.run {
+                    self.reports = items
+                    self.isLoading = false
+                }
+            } catch {
+                await MainActor.run {
+                    self.errorMessage = "Failed to load reports: \(error.localizedDescription)"
+                    self.isLoading = false
+                }
+            }
+        }
+    }
+
+    private func loadTaxHistory() async {
+        // Load recent DOF tax bills/liens for portfolio buildings
+        do {
+            // Fetch buildings
+            let rows = try await container.database.query("SELECT id, name, bbl FROM buildings WHERE bbl IS NOT NULL")
+            var bills: [(String, DOFTaxBill)] = []
+            var liens: [(String, DOFTaxLien)] = []
+            let api = NYCAPIService.shared
+            for row in rows.prefix(8) {
+                let bid = (row["id"] as? String) ?? ""
+                let name = (row["name"] as? String) ?? bid
+                let bbl = (row["bbl"] as? String) ?? ""
+                guard !bbl.isEmpty else { continue }
+                let tb = (try? await api.fetchDOFTaxBills(bbl: bbl)) ?? []
+                let tl = (try? await api.fetchDOFTaxLiens(bbl: bbl)) ?? []
+                bills.append(contentsOf: tb.sorted { ($0.paidDate ?? "") > ($1.paidDate ?? "") }.prefix(2).map { (name, $0) })
+                liens.append(contentsOf: tl.prefix(1).map { (name, $0) })
+                try? await Task.sleep(nanoseconds: 500_000_000)
+            }
+            await MainActor.run {
+                self.taxBills = bills
+                self.taxLiens = liens
+            }
+        } catch {
+            // Non-fatal
+        }
+    }
+
+    private func taxBillRow(_ building: String, _ bill: DOFTaxBill) -> some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Tax Bill • \(building)")
+                    .francoTypography(CyntientOpsDesign.Typography.subheadline)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                Text("Year: \(bill.year)  Paid: $\(Int(bill.propertyTaxPaid ?? 0))  Outstanding: $\(Int(bill.outstandingAmount ?? 0))")
+                    .francoTypography(CyntientOpsDesign.Typography.caption)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+            }
+            Spacer()
+        }
+    }
+
+    private func taxLienRow(_ building: String, _ lien: DOFTaxLien) -> some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Tax Lien • \(building)")
+                    .francoTypography(CyntientOpsDesign.Typography.subheadline)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                Text("Year: \(lien.year)  Amount: $\(Int(lien.lienAmount ?? 0))  Purchaser: \(lien.purchaser ?? "-")")
+                    .francoTypography(CyntientOpsDesign.Typography.caption)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+            }
+            Spacer()
+        }
+    }
+
+    private func generatePortfolioReport() {
+        isGenerating = true
+        errorMessage = nil
+        Task {
+            do {
+                let data = try await buildPortfolioReportData()
+                let url = try await reportService.generateClientReport(data)
+                await MainActor.run {
+                    self.isGenerating = false
+                    self.shareURL = url
+                    self.showShareSheet = true
+                }
+                loadReports()
+            } catch {
+                await MainActor.run {
+                    self.errorMessage = "Failed to generate report: \(error.localizedDescription)"
+                    self.isGenerating = false
+                }
+            }
+        }
+    }
+
+    private func buildPortfolioReportData() async throws -> ClientPortfolioReportData {
+        // 1) Load buildings from real database
+        let all = try await container.buildings.getAllBuildings()
+        let buildings: [CoreTypes.NamedCoordinate] = all.map { b in
+            CoreTypes.NamedCoordinate(
+                id: b.id,
+                name: b.name,
+                address: b.address,
+                latitude: b.latitude,
+                longitude: b.longitude
+            )
+        }
+
+        // 2) Calculate real metrics using BuildingMetricsService
+        let buildingIds = buildings.map { $0.id }
+        let metrics = try await container.metrics.calculateBatchMetrics(for: buildingIds)
+
+        // 3) Get real compliance overview
+        let complianceOverview = try await container.compliance.getComplianceOverview()
+
+        // 4) Compute portfolio health from real metrics
+        let completionAvg = metrics.isEmpty ? 0.0 : metrics.values.reduce(0.0) { $0 + $1.completionRate } / Double(metrics.count)
+        let portfolioHealth = CoreTypes.PortfolioHealth(
+            overallScore: completionAvg,
+            totalBuildings: buildings.count,
+            activeBuildings: buildings.count,
+            criticalIssues: complianceOverview.criticalViolations,
+            trend: .stable,
+            lastUpdated: Date()
+        )
+
+        // 5) Map top intelligence insights (titles only) for the report
+        let insightsRaw = container.intelligence.getInsights(for: .admin)
+        let insights = insightsRaw.prefix(5).map { $0.title }
+
+        return ClientPortfolioReportData(
+            generatedAt: Date(),
+            dateRange: .thisMonth,
+            portfolioHealth: portfolioHealth,
+            buildings: buildings,
+            buildingMetrics: metrics,
+            complianceOverview: complianceOverview,
+            insights: insights
         )
     }
-}
 
-struct ReportGeneratingIndicator: View {
-    @State private var isAnimating = false
-    
-    var body: some View {
-        HStack(spacing: 4) {
-            Circle()
-                .fill(CyntientOpsDesign.DashboardColors.warning)
-                .frame(width: 6, height: 6)
-                .scaleEffect(isAnimating ? 1.2 : 1.0)
-                .animation(.easeInOut(duration: 1).repeatForever(autoreverses: true), value: isAnimating)
-            
-            Text("GENERATING")
-                .francoTypography(CyntientOpsDesign.Typography.caption2)
-                .fontWeight(.semibold)
-                .foregroundColor(CyntientOpsDesign.DashboardColors.warning)
+    private func icon(for type: String) -> String {
+        switch type.lowercased() {
+        case "compliance": return "checkmark.shield.fill"
+        case "performance": return "chart.line.uptrend.xyaxis"
+        case "financial": return "dollarsign.circle.fill"
+        case "operations": return "gear"
+        case "executive": return "briefcase.fill"
+        default: return "doc.text.fill"
         }
-        .onAppear { isAnimating = true }
+    }
+
+    private func color(for type: String) -> Color {
+        switch type.lowercased() {
+        case "compliance": return .orange
+        case "performance": return .green
+        case "financial": return .blue
+        case "operations": return .purple
+        case "executive": return .red
+        default: return .accentColor
+        }
     }
 }
 
-struct ReportActionButtonStyle: ButtonStyle {
+// Minimal UIActivityViewController wrapper for sharing
+private struct ActivityView: UIViewControllerRepresentable {
+    let activityItems: [Any]
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) { }
+}
+
+// MARK: - Styling
+private struct ReportActionButtonStyle: ButtonStyle {
     let color: Color
-    
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .foregroundColor(.white)
-            .padding(.horizontal, 16)
+            .padding(.horizontal, 12)
             .padding(.vertical, 8)
-            .background(
-                RoundedRectangle(cornerRadius: 6)
-                    .fill(color)
-                    .opacity(configuration.isPressed ? 0.8 : 1.0)
-            )
-            .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
-    }
-}
-
-// MARK: - Intelligence Panel
-
-struct ReportIntelligencePanel: View {
-    let insights: [CoreTypes.IntelligenceInsight]
-    let displayMode: AdminReportsDebugView.IntelPanelState
-    let onNavigate: (NavigationTarget) -> Void
-    
-    @EnvironmentObject private var novaEngine: NovaAIManager
-    
-    enum NavigationTarget {
-        case report(String)
-        case schedule
-        case templates
-        case history
-        case generate
-        case distribution
-    }
-    
-    var body: some View {
-        VStack(spacing: 0) {
-            Rectangle()
-                .fill(CyntientOpsDesign.DashboardColors.adminPrimary.opacity(0.3))
-                .frame(height: 1)
-            
-            HStack(spacing: 12) {
-                // Nova AI indicator
-                ZStack {
-                    Circle()
-                        .fill(CyntientOpsDesign.DashboardColors.adminPrimary.opacity(0.2))
-                        .frame(width: 24, height: 24)
-                        .scaleEffect(isProcessing ? 1.2 : 1.0)
-                        .animation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true),
-                                 value: isProcessing)
-                    
-                    Text("AI")
-                        .francoTypography(CyntientOpsDesign.Typography.caption)
-                        .fontWeight(.bold)
-                        .foregroundColor(CyntientOpsDesign.DashboardColors.adminPrimary)
-                }
-                
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 12) {
-                        ForEach(insights.prefix(displayMode == .minimal ? 2 : 3)) { insight in
-                            ReportInsightCard(insight: insight) {
-                                handleInsightAction(insight)
-                            }
-                        }
-                    }
-                }
-                
-                if insights.count > 3 {
-                    Button(action: { onNavigate(.history) }) {
-                        VStack(spacing: 4) {
-                            Image(systemName: "chevron.up")
-                                .font(.caption)
-                            Text("MORE")
-                                .francoTypography(CyntientOpsDesign.Typography.caption2)
-                        }
-                        .foregroundColor(CyntientOpsDesign.DashboardColors.adminPrimary)
-                        .frame(width: 44, height: 60)
-                        .background(
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill(CyntientOpsDesign.DashboardColors.adminPrimary.opacity(0.1))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 8)
-                                        .stroke(CyntientOpsDesign.DashboardColors.adminPrimary.opacity(0.3),
-                                              lineWidth: 1)
-                                )
-                        )
-                    }
-                }
-            }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 12)
-            .background(
-                CyntientOpsDesign.DashboardColors.cardBackground
-                    .overlay(CyntientOpsDesign.DashboardColors.glassOverlay)
-            )
-        }
-    }
-    
-    private var isProcessing: Bool {
-        novaEngine.novaState != NovaState.idle
-    }
-    
-    private func handleInsightAction(_ insight: CoreTypes.IntelligenceInsight) {
-        // Handle navigation based on insight type
-        onNavigate(.generate)
-    }
-}
-
-struct ReportInsightCard: View {
-    let insight: CoreTypes.IntelligenceInsight
-    let onAction: () -> Void
-    
-    var body: some View {
-        Button(action: onAction) {
-            VStack(alignment: .leading, spacing: 8) {
-                HStack(spacing: 6) {
-                    Circle()
-                        .fill(priorityColor)
-                        .frame(width: 6, height: 6)
-                    
-                    Text(insight.priority.rawValue.capitalized)
-                        .francoTypography(CyntientOpsDesign.Typography.caption)
-                        .fontWeight(.semibold)
-                        .foregroundColor(priorityColor)
-                }
-                
-                Text(insight.title)
-                    .francoTypography(CyntientOpsDesign.Typography.subheadline)
-                    .fontWeight(.medium)
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-                    .lineLimit(2)
-                
-                if let action = insight.recommendedAction {
-                    HStack {
-                        Image(systemName: "arrow.right")
-                            .font(.caption2)
-                        Text(action)
-                            .francoTypography(CyntientOpsDesign.Typography.caption2)
-                    }
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryAction)
-                }
-            }
-            .padding(12)
-            .frame(width: 220, height: 95)
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(priorityColor.opacity(0.1))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(priorityColor.opacity(0.3), lineWidth: 1)
-                    )
-            )
-        }
-        .buttonStyle(PlainButtonStyle())
-    }
-    
-    private var priorityColor: Color {
-        CyntientOpsDesign.EnumColors.aiPriority(insight.priority)
-    }
-}
-
-// MARK: - Sheet Views (Placeholder implementations)
-
-struct ReportBuilderSheet: View {
-    let reportType: AdminReportsDebugView.ReportType
-    let dateRange: AdminReportsDebugView.DateRange
-    let buildings: [CoreTypes.NamedCoordinate]
-    let workers: [CoreTypes.WorkerProfile]
-    let onGenerate: (ReportConfiguration) -> Void
-    @Environment(\.dismiss) private var dismiss
-    
-    var body: some View {
-        NavigationStack {
-            Text("Report Builder")
-                .navigationTitle("Generate Report")
-                .toolbar {
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        Button("Generate") {
-                            let config = ReportConfiguration(
-                                type: reportType,
-                                dateRange: dateRange.dateInterval,
-                                includePhotos: true,
-                                format: .pdf
-                            )
-                            onGenerate(config)
-                        }
-                    }
-                }
-        }
-    }
-}
-
-struct ScheduleReportSheet: View {
-    let availableReports: [ReportTemplate]
-    let onSchedule: (ReportSchedule) -> Void
-    @Environment(\.dismiss) private var dismiss
-    
-    var body: some View {
-        NavigationStack {
-            Text("Schedule Report")
-                .navigationTitle("Schedule Report")
-                .toolbar {
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        Button("Schedule") {
-                            // Create schedule
-                            dismiss()
-                        }
-                    }
-                }
-        }
-    }
-}
-
-struct ExportOptionsSheet: View {
-    let report: AdminGeneratedReport
-    let onExport: (AdminExportFormat, ExportDestination) -> Void
-    @Environment(\.dismiss) private var dismiss
-    
-    var body: some View {
-        NavigationStack {
-            Text("Export Options")
-                .navigationTitle("Export Report")
-                .toolbar {
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        Button("Export") {
-                            onExport(.pdf, .email)
-                            dismiss()
-                        }
-                    }
-                }
-        }
-    }
-}
-
-struct ReportHistorySheet: View {
-    let reports: [AdminGeneratedReport]
-    let onSelect: (AdminGeneratedReport) -> Void
-    @Environment(\.dismiss) private var dismiss
-    
-    var body: some View {
-        NavigationStack {
-            Text("Report History")
-                .navigationTitle("Report History")
-                .toolbar {
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        Button("Done") { dismiss() }
-                    }
-                }
-        }
-    }
-}
-
-struct ReportPreviewSheet: View {
-    let report: AdminGeneratedReport
-    let onExport: () -> Void
-    let onDismiss: () -> Void
-    
-    var body: some View {
-        NavigationStack {
-            Text("Report Preview: \(report.name)")
-                .navigationTitle("Preview")
-                .toolbar {
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        Button("Export") { onExport() }
-                    }
-                }
-        }
-    }
-}
-
-struct TemplateLibrarySheet: View {
-    let templates: [ReportTemplate]
-    let onSelect: (ReportTemplate) -> Void
-    @Environment(\.dismiss) private var dismiss
-    
-    var body: some View {
-        NavigationStack {
-            Text("Template Library")
-                .navigationTitle("Report Templates")
-                .toolbar {
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        Button("Done") { dismiss() }
-                    }
-                }
-        }
-    }
-}
-
-struct DistributionSettingsSheet: View {
-    let currentSettings: DistributionSettings?
-    let onSave: (DistributionSettings) -> Void
-    @Environment(\.dismiss) private var dismiss
-    
-    var body: some View {
-        NavigationStack {
-            Text("Distribution Settings")
-                .navigationTitle("Distribution")
-                .toolbar {
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        Button("Save") {
-                            // Save settings
-                            dismiss()
-                        }
-                    }
-                }
-        }
-    }
-}
-
-// MARK: - Supporting Types
-
-public struct AdminGeneratedReport: Identifiable, Codable {
-    public let id: String
-    public let title: String
-    public let type: String
-    public let dateRange: String?
-    public let generatedDate: Date
-    public let filePath: String
-    public let fileSize: Int
-    public var isFavorite: Bool
-    public let isScheduled: Bool
-    public let isArchived: Bool
-    
-    public init(
-        id: String = UUID().uuidString,
-        title: String,
-        type: String,
-        dateRange: String? = nil,
-        generatedDate: Date,
-        filePath: String,
-        fileSize: Int,
-        isFavorite: Bool = false,
-        isScheduled: Bool = false,
-        isArchived: Bool = false
-    ) {
-        self.id = id
-        self.title = title
-        self.type = type
-        self.dateRange = dateRange
-        self.generatedDate = generatedDate
-        self.filePath = filePath
-        self.fileSize = fileSize
-        self.isFavorite = isFavorite
-        self.isScheduled = isScheduled
-        self.isArchived = isArchived
-    }
-    
-    // Computed properties for backward compatibility
-    public var name: String { return title }
-    public var reportType: AdminReportsDebugView.ReportType {
-        return AdminReportsDebugView.ReportType(rawValue: type) ?? .operations
-    }
-    public var displayFileSize: String {
-        let formatter = ByteCountFormatter()
-        formatter.countStyle = .file
-        return formatter.string(fromByteCount: Int64(fileSize))
-    }
-}
-
-enum AdminExportFormat: String, CaseIterable {
-    case pdf = "PDF"
-    case csv = "CSV"
-    case excel = "Excel"
-    case json = "JSON"
-}
-
-struct ReportTemplate: Identifiable {
-    let id = UUID().uuidString
-    let name: String
-    let type: AdminReportsDebugView.ReportType
-    let icon: String
-    let color: Color
-    let usageCount: Int
-    let description: String
-}
-
-struct ReportSchedule: Identifiable {
-    let id = UUID().uuidString
-    let name: String
-    let type: AdminReportsDebugView.ReportType
-    let frequency: Frequency
-    let nextRun: Date
-    var isEnabled: Bool
-    
-    enum Frequency {
-        case daily
-        case weekly
-        case monthly
-        case quarterly
-        
-        var displayText: String {
-            switch self {
-            case .daily: return "Daily"
-            case .weekly: return "Weekly"
-            case .monthly: return "Monthly"
-            case .quarterly: return "Quarterly"
-            }
-        }
-    }
-}
-
-struct ReportConfiguration {
-    let type: AdminReportsDebugView.ReportType
-    let dateRange: DateInterval
-    let includePhotos: Bool
-    let format: AdminExportFormat
-}
-
-struct DistributionSettings {
-    let emailRecipients: [String]
-    let slackChannels: [String]
-    let autoSend: Bool
-}
-
-enum ExportDestination {
-    case email
-    case download
-    case cloudStorage
-    case slack
-}
-
-// MARK: - Mock Services
-
-class ReportGenerator: ObservableObject {
-    static let shared = ReportGenerator()
-    
-    @Published var generationProgress: Double = 0
-    @Published var currentStep: String = ""
-    @Published var isGenerating: Bool = false
-    @Published var queueLength: Int = 0
-    
-    var hasQueuedReports: Bool { queueLength > 0 }
-    
-    func generateReport(config: ReportConfiguration) async -> AdminGeneratedReport {
-        // Implementation
-        return AdminGeneratedReport(
-            title: "Sample Report",
-            type: config.type.rawValue,
-            generatedDate: Date(),
-            filePath: "/tmp/sample_report.pdf",
-            fileSize: 2400000,
-            isFavorite: false,
-            isScheduled: false,
-            isArchived: false
-        )
-    }
-    
-    func cancelGeneration() {
-        isGenerating = false
-        generationProgress = 0
-    }
-}
-
-
-// Extension for calendar
-extension Calendar {
-    func endOfDay(for date: Date) -> Date {
-        var components = dateComponents([.year, .month, .day], from: date)
-        components.hour = 23
-        components.minute = 59
-        components.second = 59
-        return self.date(from: components) ?? date
-    }
-}
-
-// MARK: - Preview
-
-struct AdminReportsView_Previews: PreviewProvider {
-    static var previews: some View {
-        AdminReportsDebugView()
-            // .environmentObject(DashboardSyncService.shared) // TODO: Remove shared pattern
-            .preferredColorScheme(ColorScheme.dark)
+            .background(color.opacity(configuration.isPressed ? 0.8 : 1.0))
+            .foregroundColor(.white)
+            .cornerRadius(8)
+            .shadow(color: color.opacity(0.3), radius: 6, x: 0, y: 2)
     }
 }

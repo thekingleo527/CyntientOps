@@ -113,49 +113,126 @@ public final class ServiceContainer: ObservableObject {
     public let database: GRDBManager
     public let operationalData: OperationalDataManager
     
-    // MARK: - Layer 1: Core Services (NO SINGLETONS)
-    public let auth: NewAuthManager
-    public let workers: WorkerService
-    public let buildings: BuildingService
-    public let tasks: TaskService
-    public let clockIn: ClockInService // ObservableObject wrapper
-    public let photos: PhotoEvidenceService
-    public let client: ClientService
-    public let userProfile: UserProfileServiceTemp
+    // MARK: - Layer 1: Core Services (LAZY INITIALIZATION)
+    public let auth: NewAuthManager // Only service initialized immediately
     
-    // MARK: - Layer 2: Business Logic
-    public let dashboardSync: DashboardSyncService
-    public let metrics: BuildingMetricsService
-    public let compliance: ComplianceService
-    public let dailyOps: DailyOpsReset
-    public let webSocket: WebSocketManager
+    // Lazy services - initialized when first accessed
+    public private(set) lazy var workers: WorkerService = {
+        WorkerService(database: database, dashboardSync: dashboardSync)
+    }()
     
-    // MARK: - Layer 3: Unified Intelligence  
-    public let intelligence: UnifiedIntelligenceService
-    public let novaAPI: NovaAPIService
+    public private(set) lazy var buildings: BuildingService = {
+        BuildingService(database: database, dashboardSync: dashboardSync, metrics: metrics)
+    }()
     
-    // MARK: - Layer 4: Context Engines
-    public let workerContext: WorkerContextEngine
-    public let adminContext: AdminContextEngine
+    public private(set) lazy var tasks: TaskService = {
+        TaskService(database: database, dashboardSync: dashboardSync)
+    }()
     
-    // MARK: - Admin Services
-    public var adminIntelligence: AdminOperationalIntelligenceProtocol?
+    public private(set) lazy var clockIn: ClockInService = {
+        ClockInService()
+    }()
     
-    // MARK: - AI & Intelligence (Owned by Container)
-    public let novaManager: NovaAIManager
-    public lazy var clientContext: ClientContextEngine = ClientContextEngine(container: self)
+    public private(set) lazy var photos: PhotoEvidenceService = {
+        PhotoEvidenceService(database: database, dashboardSync: dashboardSync)
+    }()
     
-    // MARK: - Layer 5: Command Chains  
-    public lazy var commands: CommandChainManager = CommandChainManager(container: self)
+    public private(set) lazy var client: ClientService = {
+        ClientService(database: database)
+    }()
     
-    // MARK: - Layer 6: Offline Support
-    public let offlineQueue: OfflineQueueManager
-    public let cache: CacheManager
+    public private(set) lazy var userProfile: UserProfileServiceTemp = {
+        UserProfileServiceTemp(database: database)
+    }()
     
-    // MARK: - Layer 7: NYC API Integration
-    public let nycIntegration: NYCIntegrationManager
-    public let nycCompliance: NYCComplianceService
+    // MARK: - Layer 2: Business Logic (LAZY)
+    public private(set) lazy var dashboardSync: DashboardSyncService = {
+        DashboardSyncService(database: database, webSocketManager: webSocket)
+    }()
+    
+    public private(set) lazy var metrics: BuildingMetricsService = {
+        BuildingMetricsService(database: database, dashboardSync: dashboardSync)
+    }()
+    
+    public private(set) lazy var compliance: ComplianceService = {
+        ComplianceService(database: database, dashboardSync: dashboardSync)
+    }()
+    
+    public private(set) lazy var dailyOps: DailyOpsReset = {
+        DailyOpsReset(database: database)
+    }()
+    
+    public private(set) lazy var webSocket: WebSocketManager = {
+        WebSocketManager()
+    }()
+    
+    // MARK: - Layer 3: Unified Intelligence (LAZY)
+    public private(set) lazy var intelligence: UnifiedIntelligenceService = {
+        UnifiedIntelligenceService(database: database)
+    }()
+    
+    public private(set) lazy var novaAPI: NovaAPIService = {
+        NovaAPIService(
+            operationalManager: operationalManager,
+            buildingService: buildings,
+            taskService: tasks,
+            workerService: workers,
+            metricsService: metrics,
+            complianceService: compliance
+        )
+    }()
+    
+    // MARK: - Layer 4: Context Engines (LAZY)
+    public private(set) lazy var workerContext: WorkerContextEngine = {
+        WorkerContextEngine()
+    }()
+    
+    public private(set) lazy var adminContext: AdminContextEngine = {
+        AdminContextEngine(container: self)
+    }()
+    
+    // MARK: - Additional Services (LAZY)
+    public private(set) lazy var clientContext: ClientContextEngine = {
+        ClientContextEngine(container: self)
+    }()
+    
+    public private(set) lazy var novaManager: NovaAIManager = {
+        NovaAIManager.shared
+    }()
+    
+    public private(set) lazy var commands: CommandChainManager = {
+        CommandChainManager(container: self)
+    }()
+    
+    public private(set) lazy var offlineQueue: OfflineQueueManager = {
+        OfflineQueueManager()
+    }()
+    
+    public private(set) lazy var cache: CacheManager = {
+        CacheManager.shared
+    }()
+    
+    public private(set) lazy var nycIntegration: NYCIntegrationManager = {
+        NYCIntegrationManager(database: database)
+    }()
+    
+    public private(set) lazy var nycCompliance: NYCComplianceService = {
+        NYCComplianceService.shared
+    }()
     // BBLGenerationService accessed directly as singleton to avoid compilation issues
+    
+    // MARK: - Performance Monitoring
+    public private(set) lazy var queryOptimizer: QueryOptimizer = {
+        QueryOptimizer(database: database)
+    }()
+    
+    public private(set) lazy var taskPoolManager: TaskPoolManager = {
+        TaskPoolManager.shared
+    }()
+    
+    public private(set) lazy var memoryMonitor: MemoryPressureMonitor = {
+        MemoryPressureMonitor.shared
+    }()
     
     // NovaAIManager removed from this section - now properly owned above
     
@@ -165,171 +242,66 @@ public final class ServiceContainer: ObservableObject {
     // MARK: - Initialization Order is CRITICAL
     
     public init() async throws {
-        print("🚀 Initializing ServiceContainer...")
+        print("⚡ Fast ServiceContainer initialization...")
         
-        // Layer 0: Database MUST be first
+        // PRODUCTION: Minimal initialization for immediate UI responsiveness
+        // Layer 0: Database connection only (no seeding)
         self.database = GRDBManager.shared
         self.operationalData = OperationalDataManager.shared
-        print("✅ Layer 0: Database initialized")
+        print("✅ Layer 0: Database connected")
         
-        // Ensure database is initialized
+        // CRITICAL: Check database exists, create if needed, but NO heavy operations
         let dbInitializer = DatabaseInitializer.shared
         if !dbInitializer.isInitialized {
-            print("📊 Initializing database schema...")
-            try await dbInitializer.initializeIfNeeded()
+            print("📊 Ensuring database exists...")
+            // Only create tables, no seeding during init
+            try await dbInitializer.ensureTablesExist()
         }
         
-        // Initialize OperationalDataManager (includes worker routine seeding)
-        print("📊 Initializing operational data...")
-        try await self.operationalData.initializeOperationalData()
-        print("✅ Operational data initialized")
+        print("⚡ Essential services ready - full initialization deferred")
         
-        // Layer 1: Core Services (no circular dependencies)
-        print("🔧 Layer 1: Initializing core services...")
+        // PRODUCTION: Initialize only essential services synchronously
+        self.auth = NewAuthManager.shared // Required for immediate auth state
+        print("✅ Auth ready")
         
-        self.auth = NewAuthManager.shared // Keep for now due to complex initialization
+        // PRODUCTION: All other services lazy-loaded when first accessed
+        print("⚡ ServiceContainer ready - services will load on-demand")
         
-        // Initialize WebSocketManager first (no dependencies)
-        let tempWebSocket = WebSocketManager() // FIXED: No singleton
-        
-        // Initialize DashboardSyncService with WebSocketManager
-        let tempDashboardSync = DashboardSyncService(database: database, webSocketManager: tempWebSocket) // FIXED: No singleton
-        
-        self.workers = WorkerService(database: database, dashboardSync: tempDashboardSync) // FIXED: No singleton
-        self.tasks = TaskService(database: database, dashboardSync: tempDashboardSync) // FIXED: No singleton
-        
-        // Create ClockInService wrapper for the actor-based ClockInManager
-        self.clockIn = ClockInService()
-        
-        self.photos = PhotoEvidenceService(database: database, dashboardSync: tempDashboardSync) // FIXED: No singleton
-        // ClientService will be updated after metrics is available
-        self.client = ClientService(database: database) // FIXED: No singleton - will set services after Layer 2
-        self.userProfile = UserProfileServiceTemp(database: database)
-        
-        print("✅ Layer 1: Core services initialized")
-        
-        // Layer 2: Business Logic (depends on Layer 1)
-        print("📈 Layer 2: Initializing business logic...")
-        
-        self.dashboardSync = tempDashboardSync // FIXED: Use existing instance
-        
-        self.metrics = BuildingMetricsService(database: database, dashboardSync: tempDashboardSync) // FIXED: No singleton
-        
-        // Initialize BuildingService with proper dependencies
-        self.buildings = BuildingService(database: database, dashboardSync: tempDashboardSync, metrics: self.metrics) // FIXED: With dependencies
-        
-        self.compliance = ComplianceService(database: database, dashboardSync: tempDashboardSync) // FIXED: No singleton
-        
-        self.dailyOps = DailyOpsReset(database: database) // FIXED: No singleton
-        
-        self.webSocket = tempWebSocket // FIXED: No singleton - use existing instance
-        
-        // Set up WebSocket -> DashboardSync communication
-        Task {
-            await tempWebSocket.setUpdateHandler { update in
-                await tempDashboardSync.handleRemoteUpdate(update)
-            }
+        // Start background data seeding task - deferred to not block UI
+        Task.detached { [weak self] in
+            await self?.initializeDataInBackground()
         }
         
-        print("✅ Layer 2: Business logic initialized")
-        
-        // Layer 3: Unified Intelligence (depends on Layer 2)
-        print("🧠 Layer 3: Initializing unified intelligence...")
-        
-        self.intelligence = try await UnifiedIntelligenceService(
-            database: database,
-            workers: workers,
-            buildings: buildings,
-            tasks: tasks,
-            metrics: metrics,
-            compliance: compliance
-        )
-        
-        // Initialize NovaAPIService with all dependencies
-        self.novaAPI = NovaAPIService(
-            operationalManager: operationalData,
-            buildingService: buildings,
-            taskService: tasks,
-            workerService: workers,
-            metricsService: metrics,
-            complianceService: compliance
-        )
-        
-        print("✅ Layer 3: Intelligence initialized")
-        
-        // Layer 4: Context Engines (needs reference to container)
-        print("🎯 Layer 4: Initializing context engines...")
-        
-        self.workerContext = WorkerContextEngine.shared
-        self.adminContext = AdminContextEngine() // Initialize without container first
-        
-        print("✅ Layer 4: Context engines initialized")
-        
-        // Admin Services will be initialized later to avoid circular dependencies
-        self.adminIntelligence = nil
-        
-        // Initialize NovaAIManager (owned by ServiceContainer)
-        print("🧠 Initializing Nova AI Manager...")
-        self.novaManager = NovaAIManager(novaAPIService: novaAPI)
-        print("✅ Nova AI Manager initialized")
-        
-        print("⚡ Layer 5: Command chains and client context - lazy initialization on first access")
-        
-        // Layer 6: Offline Support
-        print("💾 Layer 6: Initializing offline support...")
-        
-        self.offlineQueue = OfflineQueueManager()
-        self.cache = CacheManager()
-        
-        print("✅ Layer 6: Offline support initialized")
-        
-        // Layer 7: NYC API Integration
-        print("🏢 Layer 7: Initializing NYC API integration...")
-        
-        self.nycCompliance = NYCComplianceService(database: database)
-        self.nycIntegration = NYCIntegrationManager(database: database)
-        // BBLGenerationService initialized independently as singleton
-        
-        print("✅ Layer 7: NYC API integration initialized")
-        
-        // Start background services
-        await startBackgroundServices()
-        
-        // Initialize AdminContextEngine after container is fully created
-        await initializeAdminContext()
-        
-        // Initialize AdminOperationalIntelligence after container is ready
-        await initializeAdminIntelligence()
-        
-        // Connect Nova to services after everything is initialized
-        connectNovaToServices()
-        
-        // Configure singleton managers with services
-        await configureSystemManagers()
-        
-        print("✅ ServiceContainer initialization complete!")
+        print("✅ ServiceContainer initialization complete! (<100ms target)")
     }
     
-    // MARK: - AdminContext Initialization
+    // MARK: - Background Initialization
     
-    /// Initialize AdminContextEngine after container is fully created (solves circular dependency)
-    private func initializeAdminContext() async {
-        print("🎯 Initializing AdminContextEngine...")
-        
-        // Now that container is fully initialized, set the container reference
-        adminContext.setContainer(self)
+    /// Initialize heavy operations in background after UI is responsive
+    private func initializeDataInBackground() async {
+        print("🔄 Starting background data initialization...")
         
         do {
-            // Connect Nova AI Manager to admin context
-            adminContext.setNovaManager(novaManager)
+            // Complete database initialization with seeding
+            let dbInitializer = DatabaseInitializer.shared
+            if !dbInitializer.isInitialized {
+                try await dbInitializer.initializeIfNeeded()
+            }
             
-            // Trigger initial context refresh to load all admin data
-            await adminContext.refreshContext()
+            // Initialize operational data if needed
+            try await operationalData.initializeOperationalData()
             
-            print("✅ AdminContextEngine successfully initialized and refreshed")
+            print("✅ Background data initialization complete")
         } catch {
-            print("❌ AdminContextEngine initialization failed: \(error)")
+            print("❌ Background initialization failed: \(error)")
         }
+    }
+    
+    // MARK: - Service Access (All services are lazy-loaded)
+    
+    /// Provides access to admin intelligence with lazy initialization
+    public func getAdminIntelligence() -> AdminOperationalIntelligence {
+        return AdminOperationalIntelligence(container: self, dashboardSync: dashboardSync)
     }
     
     // MARK: - Nova AI Integration
@@ -357,10 +329,10 @@ public final class ServiceContainer: ObservableObject {
             // Use runtime creation if available
             print("✅ AdminOperationalIntelligence class found, but deferred initialization")
             // Set to nil for now - will be initialized when first accessed
-            self.adminIntelligence = nil
+            // self.adminIntelligence = nil // Commented out - property doesn't exist
         } else {
             print("⚠️ AdminOperationalIntelligence class not found - using placeholder")
-            self.adminIntelligence = nil
+            // self.adminIntelligence = nil // Commented out - property doesn't exist
         }
     }
     

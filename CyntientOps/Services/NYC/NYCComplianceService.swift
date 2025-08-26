@@ -210,6 +210,126 @@ public final class NYCComplianceService: ObservableObject {
         
         await syncBuildingCompliance(building: building)
     }
+
+    // MARK: - LL11 / FISP Facade Helpers
+    
+    /// Get facade filings (FISP/LL11) from DOB permits for a building
+    public func getFacadeHistory(buildingId: String) async -> [FacadeFiling] {
+        guard let building = try? await getBuildingsFromDatabase().first(where: { $0.id == buildingId }) else { return [] }
+        let bin = extractBIN(from: building)
+        do {
+            let permits = try await nycAPI.fetchDOBPermits(bin: bin)
+            let df = DateFormatter(); df.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSS"
+            let filings = permits.filter { p in
+                let t = (p.workType + " " + (p.description ?? "")).uppercased()
+                return t.contains("FACADE") || t.contains("FAÇADE") || t.contains("FISP") || t.contains("LOCAL LAW 11") || t.contains("LL11")
+            }.map { p in
+                FacadeFiling(
+                    id: p.jobNumber,
+                    filingDate: df.date(from: p.filingDate),
+                    issuanceDate: p.issuanceDate.flatMap { df.date(from: $0) },
+                    expirationDate: p.expirationDate.flatMap { df.date(from: $0) },
+                    workType: p.workType,
+                    description: p.description,
+                    status: p.permitStatus
+                )
+            }
+            return filings.sorted { (a, b) in
+                let da = a.issuanceDate ?? a.filingDate ?? Date.distantPast
+                let db = b.issuanceDate ?? b.filingDate ?? Date.distantPast
+                return da > db
+            }
+        } catch {
+            return []
+        }
+    }
+    
+    /// Approximate next LL11 due date based on most recent facade filing (5-year cycles)
+    public func getLL11NextDueDate(buildingId: String) async -> Date? {
+        let history = await getFacadeHistory(buildingId: buildingId)
+        guard let mostRecent = history.first else { return nil }
+        let base = mostRecent.issuanceDate ?? mostRecent.filingDate
+        if let baseDate = base {
+            return Calendar.current.date(byAdding: .year, value: 5, to: baseDate)
+        } else {
+            return nil
+        }
+    }
+    
+    /// Fetch HPD violations for last year for a building using NYC API
+    public func fetchHPDViolationsLastYear(buildingId: String) async -> [HPDViolation] {
+        guard let building = try? await getBuildingsFromDatabase().first(where: { $0.id == buildingId }) else { return [] }
+        let bin = extractBIN(from: building)
+        do {
+            let all = try await nycAPI.fetchHPDViolations(bin: bin)
+            let df = DateFormatter(); df.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSS"
+            let alt = DateFormatter(); alt.dateFormat = "yyyy-MM-dd"
+            let cutoff = Date().addingTimeInterval(-365*86400)
+            return all.filter { v in
+                let issued = df.date(from: v.novIssued) ?? alt.date(from: v.novIssued) ?? Date.distantPast
+                return issued >= cutoff
+            }
+        } catch {
+            return []
+        }
+    }
+    
+    /// Fetch DSNY violations for last year for a building using NYC API
+    public func fetchDSNYViolationsLastYear(buildingId: String) async -> [DSNYViolation] {
+        guard let building = try? await getBuildingsFromDatabase().first(where: { $0.id == buildingId }) else { return [] }
+        let bin = extractBIN(from: building)
+        do {
+            let all = try await nycAPI.fetchDSNYViolations(bin: bin)
+            let df = DateFormatter(); df.dateFormat = "yyyy-MM-dd"
+            let cutoff = Date().addingTimeInterval(-365*86400)
+            return all.filter { v in
+                let issued = df.date(from: v.issueDate) ?? Date.distantPast
+                return issued >= cutoff
+            }
+        } catch {
+            return []
+        }
+    }
+    
+    /// Get recent violations across all buildings since a cutoff
+    /// Aggregates HPD and DSNY violations updated after the given date
+    public func getRecentViolations(since cutoff: Date) async -> [RecentNYCViolation] {
+        var results: [RecentNYCViolation] = []
+        let calendar = Calendar.current
+        
+        for (buildingId, data) in complianceData {
+            // HPD
+            for v in data.hpdViolations {
+                let issued = parseDate(v.novIssued) ?? Date.distantPast
+                if issued >= cutoff {
+                    results.append(RecentNYCViolation(
+                        id: v.violationId,
+                        buildingId: buildingId,
+                        source: "HPD",
+                        description: v.novDescription,
+                        severity: v.severity,
+                        reportedDate: issued
+                    ))
+                }
+            }
+            // DSNY
+            for v in data.dsnyViolations {
+                let formatter = DateFormatter(); formatter.dateFormat = "yyyy-MM-dd"
+                let issued = formatter.date(from: v.issueDate) ?? Date.distantPast
+                if issued >= cutoff {
+                    results.append(RecentNYCViolation(
+                        id: v.violationId,
+                        buildingId: buildingId,
+                        source: "DSNY",
+                        description: v.violationDetails ?? v.violationType,
+                        severity: .medium,
+                        reportedDate: issued
+                    ))
+                }
+            }
+        }
+        return results.sorted { $0.reportedDate > $1.reportedDate }
+    }
     
     // MARK: - Private Methods
     
@@ -334,7 +454,7 @@ public final class NYCComplianceService: ObservableObject {
         
         let params: [Any] = [
             issue.id,
-            issue.buildingId,
+            issue.buildingId ?? NSNull(),
             issue.title,
             issue.description,
             issue.severity.rawValue,
@@ -404,6 +524,27 @@ public final class NYCComplianceService: ObservableObject {
     deinit {
         refreshTimer?.invalidate()
     }
+}
+
+// MARK: - Recent Violation Model
+public struct RecentNYCViolation: Identifiable {
+    public let id: String
+    public let buildingId: String
+    public let source: String // HPD, DSNY, etc.
+    public let description: String
+    public let severity: CoreTypes.ComplianceSeverity
+    public let reportedDate: Date
+}
+
+// MARK: - Facade (LL11/FISP) Models
+public struct FacadeFiling: Identifiable {
+    public let id: String
+    public let filingDate: Date?
+    public let issuanceDate: Date?
+    public let expirationDate: Date?
+    public let workType: String?
+    public let description: String?
+    public let status: String?
 }
 
 // MARK: - Extensions

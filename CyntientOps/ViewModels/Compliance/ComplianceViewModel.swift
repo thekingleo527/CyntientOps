@@ -452,19 +452,17 @@ public final class HPDViolationsViewModel: ObservableObject {
     /// Load HPD violations data
     public func loadViolations() async {
         isLoading = true
-        
-        // Load client buildings
+        errorMessage = nil
+        // Ensure NYC integration caches are up to date
+        await container.nycIntegration.performFullSync()
+        // Load buildings
         await loadBuildings()
-        
-        // Generate HPD violations data
-        await generateViolationsData()
-        
-        // Load analytics data
+        // Load real HPD violations
+        await loadRealHPDViolations()
+        // Compute analytics and metrics from real data
         await loadAnalyticsData()
-        
-        // Calculate metrics
         await calculateMetrics()
-        
+        lastUpdateTime = Date()
         isLoading = false
     }
     
@@ -523,58 +521,45 @@ public final class HPDViolationsViewModel: ObservableObject {
         }
     }
     
-    private func generateViolationsData() async {
-        var generatedViolations: [HPDViolation] = []
-        
-        let violationTypes = [
-            "Peeling Paint", "Broken Window", "Heating Issues", "Plumbing Problems",
-            "Electrical Hazards", "Rodent Infestation", "Water Damage", "Structural Issues"
-        ]
-        
-        let violationClasses = ["Class A", "Class B", "Class C"]
-        let statuses = ["Open", "In Progress", "Resolved"]
-        
+    private func loadRealHPDViolations() async {
+        var collected: [HPDViolation] = []
+        let dfISO = DateFormatter(); dfISO.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSS"
+        let dfAlt = DateFormatter(); dfAlt.dateFormat = "yyyy-MM-dd"
         for building in buildings {
-            // Generate 0-5 violations per building
-            let violationCount = Int.random(in: 0...5)
-            
-            for i in 0..<violationCount {
-                let violationType = violationTypes.randomElement() ?? "General Violation"
-                let violationClass = violationClasses.randomElement() ?? "Class A"
-                let status = statuses.randomElement() ?? "Open"
-                let dateIssued = Date().addingTimeInterval(-Double.random(in: 0...(86400 * 180))) // 0-180 days ago
-                let dateCertified = status == "Resolved" ? Date().addingTimeInterval(-Double.random(in: 0...(86400 * 30))) : nil
-                
-                generatedViolations.append(HPDViolation(
-                    id: UUID().uuidString,
+            let raw = container.nycCompliance.getHPDViolations(for: building.id)
+            for v in raw {
+                // Map service model to UI model
+                let issued = dfISO.date(from: v.novIssued) ?? dfAlt.date(from: v.novIssued) ?? Date()
+                let certified = v.certifiedDate.flatMap { dfISO.date(from: $0) ?? dfAlt.date(from: $0) }
+                let violationClass = v.novDescription.uppercased().contains("CLASS C") ? "Class C" : (v.novDescription.uppercased().contains("CLASS B") ? "Class B" : "Class A")
+                let status = v.currentStatus.capitalized
+                let priority = violationClass == "Class C" ? 3 : (violationClass == "Class B" ? 2 : 1)
+                collected.append(HPDViolation(
+                    id: v.violationId,
                     buildingId: building.id,
                     buildingAddress: building.address,
-                    violationType: violationType,
+                    violationType: v.novDescription.components(separatedBy: " - ").first ?? "HPD Violation",
                     violationClass: violationClass,
-                    description: "HPD violation: \(violationType) reported at \(building.name)",
+                    description: v.novDescription,
                     status: status,
-                    dateIssued: dateIssued,
-                    dateCertified: dateCertified,
-                    priority: violationClass == "Class C" ? 3 : (violationClass == "Class B" ? 2 : 1)
+                    dateIssued: issued,
+                    dateCertified: certified,
+                    priority: priority
                 ))
             }
         }
-        
-        violations = generatedViolations
+        violations = collected.sorted { $0.dateIssued > $1.dateIssued }
     }
     
     private func loadAnalyticsData() async {
-        // Generate trend data
-        violationTrends = generateTrendData()
-        
-        // Generate resolution time data
-        resolutionTimes = generateResolutionTimeData()
-        
-        // Generate building performance data
-        buildingPerformance = generateBuildingPerformanceData()
-        
-        // Generate predictive insights
-        predictiveInsights = generatePredictiveInsights()
+        // Trends: monthly counts from real violations
+        violationTrends = computeTrendData(from: violations)
+        // Resolution: avg days to resolution per recent months
+        resolutionTimes = computeResolutionTimeData(from: violations)
+        // Building performance: totals per building
+        buildingPerformance = computeBuildingPerformance(from: violations)
+        // Predictive insights: simple heuristic from severity counts
+        predictiveInsights = computePredictiveInsights(from: violations)
     }
     
     private func calculateMetrics() async {
@@ -588,69 +573,70 @@ public final class HPDViolationsViewModel: ObservableObject {
         }.count
     }
     
-    private func generateTrendData() -> [ViolationTrendData] {
-        var trends: [ViolationTrendData] = []
+    private func computeTrendData(from items: [HPDViolation]) -> [ViolationTrendData] {
         let calendar = Calendar.current
-        
-        for i in 0..<12 {
-            let date = calendar.date(byAdding: .month, value: -i, to: Date()) ?? Date()
-            trends.append(ViolationTrendData(
-                date: date,
-                count: Int.random(in: 5...25),
-                violationClass: ["Class A", "Class B", "Class C"].randomElement() ?? "Class A"
-            ))
+        var monthly: [String: Int] = [:]
+        for v in items {
+            let comps = calendar.dateComponents([.year, .month], from: v.dateIssued)
+            let key = String(format: "%04d-%02d", comps.year ?? 0, comps.month ?? 0)
+            monthly[key, default: 0] += 1
         }
-        
-        return trends.reversed()
+        // Build last 12 months
+        var trends: [ViolationTrendData] = []
+        for i in (0..<12).reversed() {
+            if let date = calendar.date(byAdding: .month, value: -i, to: Date()) {
+                let comps = calendar.dateComponents([.year, .month], from: date)
+                let key = String(format: "%04d-%02d", comps.year ?? 0, comps.month ?? 0)
+                let count = monthly[key] ?? 0
+                trends.append(ViolationTrendData(date: date, count: count, violationClass: "All"))
+            }
+        }
+        return trends
     }
     
-    private func generateResolutionTimeData() -> [ResolutionTimeData] {
-        let months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"]
-        return months.map { month in
-            ResolutionTimeData(
-                month: month,
-                averageDays: Double.random(in: 15...45),
-                violationClass: ["Class A", "Class B", "Class C"].randomElement() ?? "Class A"
-            )
+    private func computeResolutionTimeData(from items: [HPDViolation]) -> [ResolutionTimeData] {
+        // Average resolution days per recent 6 months
+        let calendar = Calendar.current
+        var buckets: [String: [Double]] = [:]
+        for v in items {
+            guard let certified = v.dateCertified else { continue }
+            let days = certified.timeIntervalSince(v.dateIssued) / 86400.0
+            let comps = calendar.dateComponents([.year, .month], from: v.dateIssued)
+            let key = String(format: "%04d-%02d", comps.year ?? 0, comps.month ?? 0)
+            buckets[key, default: []].append(days)
         }
+        var result: [ResolutionTimeData] = []
+        for i in (0..<6).reversed() {
+            if let date = calendar.date(byAdding: .month, value: -i, to: Date()) {
+                let comps = calendar.dateComponents([.year, .month], from: date)
+                let key = String(format: "%04d-%02d", comps.year ?? 0, comps.month ?? 0)
+                let avg = (buckets[key]?.reduce(0,+) ?? 0) / max(1, Double(buckets[key]?.count ?? 0))
+                let monthStr = DateFormatter().monthSymbols[(comps.month ?? 1) - 1]
+                result.append(ResolutionTimeData(month: monthStr, averageDays: avg.isNaN ? 0 : avg, violationClass: "All"))
+            }
+        }
+        return result
     }
     
-    private func generateBuildingPerformanceData() -> [BuildingPerformanceData] {
-        return buildings.map { building in
-            let totalViolations = Int.random(in: 0...10)
-            let resolvedViolations = Int.random(in: 0...totalViolations)
-            
-            return BuildingPerformanceData(
-                buildingId: building.id,
-                buildingName: building.name,
-                totalViolations: totalViolations,
-                resolvedViolations: resolvedViolations,
-                averageResolutionDays: Double.random(in: 15...60)
-            )
-        }
+    private func computeBuildingPerformance(from items: [HPDViolation]) -> [BuildingPerformanceData] {
+        var grouped: [String: [HPDViolation]] = [:]
+        for v in items { grouped[v.buildingId, default: []].append(v) }
+        return grouped.map { (bid, arr) in
+            let resolved = arr.filter { $0.dateCertified != nil }
+            let avgDays = resolved.isEmpty ? 0.0 : resolved.reduce(0.0) { $0 + $1.dateCertified!.timeIntervalSince($1.dateIssued)/86400.0 } / Double(resolved.count)
+            let name = buildings.first(where: { $0.id == bid })?.name ?? bid
+            return BuildingPerformanceData(buildingId: bid, buildingName: name, totalViolations: arr.count, resolvedViolations: resolved.count, averageResolutionDays: avgDays)
+        }.sorted { $0.totalViolations > $1.totalViolations }
     }
     
-    private func generatePredictiveInsights() -> [HPDPredictiveInsight] {
-        return [
-            HPDPredictiveInsight(
-                id: UUID().uuidString,
-                title: "Heating Season Violations Likely",
-                description: "Historical data suggests increased heating violations in next 30 days",
-                riskScore: 0.75,
-                confidence: 0.82,
-                buildingId: buildings.first?.id,
-                category: "Heating"
-            ),
-            HPDPredictiveInsight(
-                id: UUID().uuidString,
-                title: "Paint Violation Risk",
-                description: "Buildings over 15 years old show elevated paint violation probability",
-                riskScore: 0.60,
-                confidence: 0.71,
-                buildingId: nil,
-                category: "Paint/Plaster"
-            )
-        ]
+    private func computePredictiveInsights(from items: [HPDViolation]) -> [HPDPredictiveInsight] {
+        // Simple heuristic: high risk for buildings with >=3 Class C in last 60 days
+        let recent = items.filter { $0.dateIssued > Date().addingTimeInterval(-60*86400) }
+        var counts: [String: Int] = [:]
+        for v in recent where v.violationClass == "Class C" { counts[v.buildingId, default: 0] += 1 }
+        return counts.filter { $0.value >= 3 }.map { (bid, _) in
+            HPDPredictiveInsight(id: UUID().uuidString, title: "High Risk: Class C Violations", description: "Multiple Class C violations in last 60 days", riskScore: 0.85, confidence: 0.7, buildingId: bid, category: "HPD")
+        }
     }
     
     private func setupSubscriptions() {

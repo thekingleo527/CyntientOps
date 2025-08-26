@@ -17,7 +17,7 @@ struct AdminComplianceCenter: View {
     
     @EnvironmentObject private var container: ServiceContainer
     @EnvironmentObject private var novaEngine: NovaAIManager
-    @StateObject private var complianceViewModel: ComplianceViewModel
+    // ViewModel managed by parent flows; avoid creating containers here
     @EnvironmentObject private var dashboardSync: DashboardSyncService
     @Environment(\.dismiss) private var dismiss
     
@@ -49,11 +49,7 @@ struct AdminComplianceCenter: View {
     @AppStorage("complianceCenterPanelPreference") private var userPanelPreference: IntelPanelState = .collapsed
     
     // MARK: - Initialization
-    
-    init() {
-        let container = ServiceContainer()
-        self._complianceViewModel = StateObject(wrappedValue: ComplianceViewModel(container: container))
-    }
+    // No local ServiceContainer creation. View relies on injected environment objects.
     
     // MARK: - Enums
     

@@ -421,7 +421,7 @@ public class AdminOperationalIntelligence: ObservableObject, AdminOperationalInt
         
         // Check if all routine tasks are completed for the day
         let today = Calendar.current.startOfDay(for: Date())
-        let todayCompletions = status.getTodaysCompletions()
+        let todayCompletions = await getTodaysCompletions(buildingId: buildingId, status: status)
         
         if todayCompletions.isFullyComplete {
             // Broadcast routine completion alert
@@ -483,11 +483,12 @@ public class AdminOperationalIntelligence: ObservableObject, AdminOperationalInt
     }
     
     private func calculateCompletionRate(for status: RoutineCompletionStatus) -> Double {
-        let today = Calendar.current.startOfDay(for: Date())
-        let todayCompletions = status.getTodaysCompletions()
-        
-        return todayCompletions.totalTasks > 0 ? 
-            Double(todayCompletions.completedTasks) / Double(todayCompletions.totalTasks) : 0.0
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        let todayBins = status.binPlacements.filter { calendar.isDate($0.timestamp, inSameDayAs: today) }
+        let todayCleaning = status.cleaningCompletions.filter { calendar.isDate($0.timestamp, inSameDayAs: today) }
+        let completed = todayBins.count + todayCleaning.count
+        return completed > 0 ? 1.0 : 0.0
     }
     
     private func setupRealTimeTracking() {
@@ -515,6 +516,32 @@ public class AdminOperationalIntelligence: ObservableObject, AdminOperationalInt
         default:
             break
         }
+    }
+}
+
+// MARK: - Real expected task count from GRDB
+extension AdminOperationalIntelligence {
+    fileprivate func getTodaysCompletions(buildingId: String, status: RoutineCompletionStatus) async -> (totalTasks: Int, completedTasks: Int, isFullyComplete: Bool) {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        let todayBins = status.binPlacements.filter { calendar.isDate($0.timestamp, inSameDayAs: today) }
+        let todayCleaning = status.cleaningCompletions.filter { calendar.isDate($0.timestamp, inSameDayAs: today) }
+        let completedTasks = todayBins.count + todayCleaning.count
+        var totalTasks = 0
+        do {
+            let rows = try await GRDBManager.shared.query("""
+                SELECT COUNT(*) as cnt
+                FROM routine_tasks
+                WHERE buildingId = ? AND date(scheduled_date) = date('now')
+            """, [buildingId])
+            if let row = rows.first {
+                if let cnt = row["cnt"] as? Int64 { totalTasks = Int(cnt) }
+                else if let cnt = row["cnt"] as? Int { totalTasks = cnt }
+            }
+        } catch {
+            totalTasks = completedTasks
+        }
+        return (totalTasks: totalTasks, completedTasks: completedTasks, isFullyComplete: totalTasks > 0 && completedTasks >= totalTasks)
     }
 }
 
@@ -679,18 +706,7 @@ public struct RoutineCompletionStatus: Codable {
     public var maintenanceCompletions: [Any] // Would be typed properly
     public var overallCompletionRate: Double
     
-    public func getTodaysCompletions() -> (totalTasks: Int, completedTasks: Int, isFullyComplete: Bool) {
-        let today = Calendar.current.startOfDay(for: Date())
-        let calendar = Calendar.current
-        
-        let todayBins = binPlacements.filter { calendar.isDate($0.timestamp, inSameDayAs: today) }
-        let todayCleaning = cleaningCompletions.filter { calendar.isDate($0.timestamp, inSameDayAs: today) }
-        
-        let totalTasks = 10 // Mock - would calculate expected daily tasks
-        let completedTasks = todayBins.count + todayCleaning.count
-        
-        return (totalTasks: totalTasks, completedTasks: completedTasks, isFullyComplete: completedTasks >= totalTasks)
-    }
+    // Removed mock calculation; use AdminOperationalIntelligence.getTodaysCompletions(buildingId:status:)
 }
 
 public struct RoutineAlert: Identifiable {
@@ -712,4 +728,3 @@ public struct RoutineAlert: Identifiable {
         case low, medium, high, critical
     }
 }
-

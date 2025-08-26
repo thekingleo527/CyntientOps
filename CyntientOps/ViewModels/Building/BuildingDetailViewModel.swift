@@ -365,6 +365,8 @@ public class BuildingDetailViewModel: ObservableObject {
     @Published var rawDSNYSchedule: [DSNYRoute] = []
     @Published var rawDSNYViolations: [DSNYViolation] = []
     @Published var rawLL97Data: [LL97Emission] = []
+    @Published var facadeFilings: [FacadeFiling] = []
+    @Published var facadeNextDueDate: Date? = nil
     
     // Activity
     @Published var recentActivities: [BDBuildingDetailActivity] = []
@@ -1027,6 +1029,8 @@ public class BuildingDetailViewModel: ObservableObject {
             let dsnyViolations = complianceService.getDSNYViolations(for: buildingId)
             let dsnySchedule = complianceService.getDSNYSchedule(for: buildingId)
             let ll97Data = complianceService.getLL97Emissions(for: buildingId)
+            let facadeHistory = await complianceService.getFacadeHistory(buildingId: buildingId)
+            let ll11NextDue = await complianceService.getLL11NextDueDate(buildingId: buildingId)
             
             await MainActor.run {
                 // Set DSNY compliance based on real DSNY violations
@@ -1090,6 +1094,9 @@ public class BuildingDetailViewModel: ObservableObject {
                 self.rawDSNYSchedule = dsnySchedule
                 self.rawDSNYViolations = dsnyViolations
                 self.rawLL97Data = ll97Data
+                // Facade compliance data
+                self.facadeFilings = facadeHistory
+                self.facadeNextDueDate = ll11NextDue
             }
         } catch {
             print("⚠️ Error loading compliance: \(error)")

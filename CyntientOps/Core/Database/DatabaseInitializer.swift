@@ -38,6 +38,8 @@ public class DatabaseInitializer: ObservableObject {
     // MARK: - Private State
     private var hasVerifiedData = false
     private var cancellables = Set<AnyCancellable>()
+    // Coalesce concurrent initialization attempts across multiple callers
+    private var initializationTask: Task<Void, Error>?
     
     
     public enum DataStatus: Equatable {
@@ -115,37 +117,77 @@ public class DatabaseInitializer: ObservableObject {
     
     /// Initialize the database and app data if needed
     public func initializeIfNeeded() async throws {
-        guard !isInitialized else {
+        // Fast path
+        if isInitialized {
             print("✅ Database already initialized")
             return
         }
+
+        // If an initialization is already running, await it
+        if let task = initializationTask {
+            try await task.value
+            return
+        }
+
+        // Start a new initialization task and coalesce concurrent callers
+        let task = Task { @MainActor in
+            try await self.runInitialization()
+        }
+        initializationTask = task
+        do {
+            try await task.value
+        } catch {
+            // Reset the task on failure so future attempts can retry
+            initializationTask = nil
+            throw error
+        }
+        // Clear when successful
+        initializationTask = nil
+    }
+    
+    /// PRODUCTION: Fast table creation without seeding for immediate app responsiveness
+    public func ensureTablesExist() async throws {
+        print("⚡ Fast table creation for immediate UI responsiveness...")
         
+        guard await grdbManager.isDatabaseReady() else {
+            throw InitializationError.databaseNotReady
+        }
+        
+        // Create only essential tables, no seeding
+        try await createBasicSchema()
+        try await createAdditionalTables()
+        
+        print("✅ Tables ready - seeding deferred for background")
+    }
+
+    // The actual initialization workflow (previous body of initializeIfNeeded)
+    private func runInitialization() async throws {
         print("🚀 Starting consolidated database initialization...")
         error = nil
         dataStatus = .syncing
-        
+
         do {
             // Phase 1: Database Setup (0-40%)
             try await performDatabaseSetup()
-            
+
             // Phase 2: Data Import (40-70%)
             try await performDataImport()
-            
+
             // Phase 3: Verification (70-90%)
             try await performVerification()
-            
+
             // Phase 4: Start Services (90-100%)
             await startBackgroundServices()
-            
+
             // Complete
             dataStatus = .complete
             isInitialized = true
             lastSyncTime = Date()
             currentStep = "Ready"
             initializationProgress = 1.0
-            
+
             print("✅ Database initialization complete")
-            
+
         } catch {
             self.error = error
             self.dataStatus = .error(error.localizedDescription)
@@ -539,8 +581,8 @@ public class DatabaseInitializer: ObservableObject {
         for (name, category, currentStock, minStock, buildingId) in inventoryItems {
             try await grdbManager.execute("""
                 INSERT OR IGNORE INTO inventory_items
-                (name, category, currentStock, minimumStock, maxStock, unit, 
-                 buildingId, lastRestocked, created_at, updated_at)
+                (name, category, current_stock, minimum_stock, maximum_stock, unit, 
+                 building_id, last_restocked, created_at, updated_at)
                 VALUES (?, ?, ?, ?, ?, 'units', ?, date('now', '-7 days'), 
                         datetime('now'), datetime('now'))
             """, [name, category, currentStock, minStock, currentStock * 2, buildingId])
@@ -711,15 +753,15 @@ public class DatabaseInitializer: ObservableObject {
                 id TEXT PRIMARY KEY,
                 name TEXT NOT NULL,
                 category TEXT NOT NULL,
-                currentStock INTEGER DEFAULT 0,
-                minimumStock INTEGER DEFAULT 0,
-                maxStock INTEGER DEFAULT 100,
+                current_stock INTEGER DEFAULT 0,
+                minimum_stock INTEGER DEFAULT 0,
+                maximum_stock INTEGER DEFAULT 100,
                 unit TEXT DEFAULT 'units',
-                buildingId TEXT,
-                lastRestocked TEXT,
+                building_id TEXT,
+                last_restocked TEXT,
                 created_at TEXT DEFAULT CURRENT_TIMESTAMP,
                 updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (buildingId) REFERENCES buildings(id)
+                FOREIGN KEY (building_id) REFERENCES buildings(id)
             )
         """)
         

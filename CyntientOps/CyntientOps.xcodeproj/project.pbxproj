@@ -254,6 +254,7 @@
 		2319344A2E42ED3900640977 /* CyntientOpsApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231934492E42ED3900640977 /* CyntientOpsApp.swift */; };
 		234B500D2E5D440B00F57B6A /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = 234B500C2E5D440B00F57B6A /* GRDB */; };
 		234B50102E5D456F00F57B6A /* Sentry in Frameworks */ = {isa = PBXBuildFile; productRef = 234B500F2E5D456F00F57B6A /* Sentry */; };
+		234B50122E5DE64200F57B6A /* QuickLoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 234B50112E5DE64200F57B6A /* QuickLoginView.swift */; };
 		23B211692E52D8A500481C3C /* ClientBuildingCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23B211672E52D8A500481C3C /* ClientBuildingCard.swift */; };
 		23B2116A2E52D8A500481C3C /* ClientBuildingGridSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23B211682E52D8A500481C3C /* ClientBuildingGridSection.swift */; };
 		23B2116C2E52FCEB00481C3C /* ClientDashboardPortfolioHeroCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23B2116B2E52FCEB00481C3C /* ClientDashboardPortfolioHeroCard.swift */; };
@@ -265,6 +266,7 @@
 		23FAE4AD2E51376E008AD66F /* ClientScheduleManagerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23FAE4A42E51376E008AD66F /* ClientScheduleManagerSheet.swift */; };
 		23FAE4AE2E51376E008AD66F /* ClientShiftPlannerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23FAE4A52E51376E008AD66F /* ClientShiftPlannerSheet.swift */; };
 		23FAE4AF2E51376E008AD66F /* PortfolioOverviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23FAE4A72E51376E008AD66F /* PortfolioOverviewView.swift */; };
+		23FFF0022E5F999900640977 /* AdminReportsTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23FFF0012E5F999900640977 /* AdminReportsTypes.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -531,6 +533,7 @@
 		231934462E42ECF300640977 /* CyntientOpsTests-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "CyntientOpsTests-Bridging-Header.h"; sourceTree = "<group>"; };
 		231934472E42ED2600640977 /* CyntientOps-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "CyntientOps-Info.plist"; sourceTree = "<group>"; };
 		231934492E42ED3900640977 /* CyntientOpsApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CyntientOpsApp.swift; sourceTree = "<group>"; };
+		234B50112E5DE64200F57B6A /* QuickLoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickLoginView.swift; sourceTree = "<group>"; };
 		23B211672E52D8A500481C3C /* ClientBuildingCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClientBuildingCard.swift; sourceTree = "<group>"; };
 		23B211682E52D8A500481C3C /* ClientBuildingGridSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClientBuildingGridSection.swift; sourceTree = "<group>"; };
 		23B2116B2E52FCEB00481C3C /* ClientDashboardPortfolioHeroCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClientDashboardPortfolioHeroCard.swift; sourceTree = "<group>"; };
@@ -545,6 +548,7 @@
 		23FAE4A52E51376E008AD66F /* ClientShiftPlannerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClientShiftPlannerSheet.swift; sourceTree = "<group>"; };
 		23FAE4A62E51376E008AD66F /* ClientWorkerDetailSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClientWorkerDetailSheet.swift; sourceTree = "<group>"; };
 		23FAE4A72E51376E008AD66F /* PortfolioOverviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PortfolioOverviewView.swift; sourceTree = "<group>"; };
+		23FFF0012E5F999900640977 /* AdminReportsTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdminReportsTypes.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -577,6 +581,7 @@
 		231931EA2E42E91200640977 /* Auth */ = {
 			isa = PBXGroup;
 			children = (
+				234B50112E5DE64200F57B6A /* QuickLoginView.swift */,
 				231931E62E42E91200640977 /* ForgotPasswordView.swift */,
 				231931E72E42E91200640977 /* LoginView.swift */,
 				231931E82E42E91200640977 /* OnboardingView.swift */,
@@ -1173,6 +1178,7 @@
 			isa = PBXGroup;
 			children = (
 				2319339E2E42EC3200640977 /* CoreTypes.swift */,
+				23FFF0012E5F999900640977 /* AdminReportsTypes.swift */,
 			);
 			path = Types;
 			sourceTree = "<group>";
@@ -1559,6 +1565,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				23FFF0022E5F999900640977 /* AdminReportsTypes.swift in Sources */,
 				2319321D2E42E91200640977 /* InventoryView.swift in Sources */,
 				2319321E2E42E91200640977 /* WorkerDashboardView.swift in Sources */,
 				2319321F2E42E91200640977 /* QuickActionMenu.swift in Sources */,
@@ -1782,6 +1789,7 @@
 				231932FA2E42E9CD00640977 /* InventoryService.swift in Sources */,
 				231932FB2E42E9CD00640977 /* CommandSteps.swift in Sources */,
 				231932FC2E42E9CD00640977 /* DailyOpsReset.swift in Sources */,
+				234B50122E5DE64200F57B6A /* QuickLoginView.swift in Sources */,
 				231932FD2E42E9CD00640977 /* NYCAPIService.swift in Sources */,
 				231932FE2E42E9CD00640977 /* WeatherDataAdapter.swift in Sources */,
 				231932FF2E42E9CD00640977 /* NYCComplianceService.swift in Sources */,

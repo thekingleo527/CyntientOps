@@ -250,9 +250,13 @@ public final class ProductionCredentialsManager: ObservableObject {
     
     // MARK: - Development Helper
     
+    #if DEBUG
     /// Enable demo mode for development/testing
     public func enableDemoMode() {
         print("🧪 Enabling demo mode - using mock credentials")
+        // Development helper only; not available in production builds
+    }
+    #endif
         
         let demoCredentials = [
             "QUICKBOOKS_CLIENT_ID": "demo_client_id",

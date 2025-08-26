@@ -50,62 +50,143 @@ public final class GRDBManager {
     // MARK: - Database Initialization
     
     private func initializeDatabase() {
+        let documentsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+        let dbURL = documentsURL.appendingPathComponent("CyntientOps.sqlite")
+        let dbPath = dbURL.path
+
+        // Ensure directory exists and exclude from backups
         do {
-            let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
-            let databasePath = documentsPath.appendingPathComponent("CyntientOps.sqlite").path
-            
+            try FileManager.default.createDirectory(at: documentsURL, withIntermediateDirectories: true)
+            var resourceValues = URLResourceValues()
+            resourceValues.isExcludedFromBackup = true
+            var mutableURL = documentsURL
+            try mutableURL.setResourceValues(resourceValues)
+        } catch {
+            print("⚠️ Failed to prepare database directory: \(error)")
+        }
+
+        // Debug diagnostics prior to open
+        let fileExists = FileManager.default.fileExists(atPath: dbPath)
+        let size = (try? FileManager.default.attributesOfItem(atPath: dbPath)[.size] as? Int64) ?? 0
+        let freeSpace = Self.getFreeDiskSpace()
+        print("📂 DB path: \(dbPath)")
+        print("📦 DB exists: \(fileExists), size: \(size) bytes")
+        print("💽 Free disk: \(freeSpace) bytes available")
+
+        func openDatabase() throws {
             var config = Configuration()
             config.prepareDatabase { db in
-                // ✅ FOREIGN KEYS ENABLED HERE!
                 try db.execute(sql: "PRAGMA foreign_keys = ON")
-                // ✅ Enable WAL mode for better concurrency
                 try db.execute(sql: "PRAGMA journal_mode = WAL")
             }
-            
-            dbPool = try DatabasePool(path: databasePath, configuration: config)
-            
-            // Create or update all tables
+            dbPool = try DatabasePool(path: dbPath, configuration: config)
+            // Smoke test: read schema_version
+            let schemaVersion = try dbPool.read { db in
+                try Int.fetchOne(db, sql: "PRAGMA schema_version") ?? -1
+            }
+            print("🔢 PRAGMA schema_version = \(schemaVersion)")
+            // Ensure base schema exists
             try dbPool.write { db in
                 try self.createTables(db)
             }
-            
-            print("✅ GRDB Database initialized successfully at: \(databasePath)")
+        }
+
+        do {
+            try openDatabase()
+            print("✅ GRDB Database initialized successfully at: \(dbPath)")
             print("✅ Foreign keys are ENABLED for data integrity")
         } catch {
             print("❌ GRDB Database initialization failed: \(error)")
-            
-            // Instead of crashing, attempt recovery
-            do {
-                // Try to create database directory if it doesn't exist
-                let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
-                try FileManager.default.createDirectory(at: documentsPath, withIntermediateDirectories: true, attributes: nil)
-                
-                // Try to initialize with minimal configuration
-                var config = Configuration()
-                config.readonly = false
-                
-                let databasePath = documentsPath.appendingPathComponent("CyntientOps.sqlite").path
-                dbPool = try DatabasePool(path: databasePath, configuration: config)
-                
-                print("✅ Database recovery successful")
-                
-                // Try to create tables
-                try? dbPool.write { db in
-                    try self.createTables(db)
+            let message = String(describing: error).lowercased()
+            let likelyIOOrCorruption = message.contains("ioerr") || message.contains("disk i/o") || message.contains("schema_version")
+
+            // Attempt recovery path if likely I/O or corruption
+            if fileExists && (likelyIOOrCorruption || size == 0) {
+                do {
+                    let stamp = Self.timestamp()
+                    let backupMain = dbURL.deletingPathExtension().appendingPathExtension("sqlite.corrupt-\(stamp)")
+                    let walURL = dbURL.deletingPathExtension().appendingPathExtension("sqlite-wal")
+                    let shmURL = dbURL.deletingPathExtension().appendingPathExtension("sqlite-shm")
+                    let backupWAL = dbURL.deletingPathExtension().appendingPathExtension("sqlite-wal.corrupt-\(stamp)")
+                    let backupSHM = dbURL.deletingPathExtension().appendingPathExtension("sqlite-shm.corrupt-\(stamp)")
+
+                    print("🧯 Attempting DB recovery. Backing up corrupt files…")
+                    try? FileManager.default.moveItem(at: dbURL, to: backupMain)
+                    if FileManager.default.fileExists(atPath: walURL.path) { try? FileManager.default.moveItem(at: walURL, to: backupWAL) }
+                    if FileManager.default.fileExists(atPath: shmURL.path) { try? FileManager.default.moveItem(at: shmURL, to: backupSHM) }
+                    print("📦 Moved corrupt DB to: \(backupMain.path)")
+
+                    // Re-open fresh database
+                    try openDatabase()
+                    print("✅ Database rebuilt after corruption/IO error")
+                    print("ℹ️ If this is a dev build, seeding will occur via DatabaseInitializer on next run.")
+                } catch let recoveryError {
+                    print("❌ Database recovery failed: \(recoveryError)")
+                    // Last resort: in-memory to keep app responsive
+                    do {
+                        dbPool = try DatabasePool(path: ":memory:")
+                        try dbPool.write { db in try self.createTables(db) }
+                        print("⚠️ Using in-memory database - non-persistent")
+                    } catch {
+                        print("💥 Fatal: Unable to create in-memory database: \(error)")
+                    }
                 }
-                
-            } catch let recoveryError {
-                print("❌ Database recovery failed: \(recoveryError)")
-                
-                // Last resort: Create in-memory database for graceful degradation
-                dbPool = try! DatabasePool(path: ":memory:")
-                print("⚠️ Using in-memory database - data will not persist")
-                
-                try? dbPool.write { db in
-                    try self.createTables(db)
+            } else {
+                // Fallback: try simple recovery/open without PRAGMAs
+                do {
+                    var config = Configuration()
+                    config.readonly = false
+                    dbPool = try DatabasePool(path: dbPath, configuration: config)
+                    try dbPool.write { db in try self.createTables(db) }
+                    print("✅ Database recovery (simple) successful")
+                } catch let recoveryError {
+                    print("❌ Database recovery (simple) failed: \(recoveryError)")
+                    do {
+                        dbPool = try DatabasePool(path: ":memory:")
+                        try dbPool.write { db in try self.createTables(db) }
+                        print("⚠️ Using in-memory database - non-persistent")
+                    } catch {
+                        print("💥 Fatal: Unable to create in-memory database: \(error)")
+                    }
                 }
             }
         }
+    }
+
+    // MARK: - Diagnostics
+    public func dumpHealth() async -> String {
+        let path = databaseURL.path
+        let exists = FileManager.default.fileExists(atPath: path)
+        let size = getDatabaseSize()
+        let free = Self.getFreeDiskSpace()
+        var schemaVer: Int = -1
+        var buildingCount: Int = -1
+        var userCount: Int = -1
+        do {
+            schemaVer = try await dbPool.read { db in
+                try Int.fetchOne(db, sql: "PRAGMA schema_version") ?? -1
+            }
+            let bc = try await query("SELECT COUNT(*) AS c FROM buildings")
+            let uc = try await query("SELECT COUNT(*) AS c FROM workers WHERE isActive = 1")
+            buildingCount = Int((bc.first?["c"] as? Int64) ?? -1)
+            userCount = Int((uc.first?["c"] as? Int64) ?? -1)
+        } catch {
+            // ignore and return partial
+        }
+        return "Path: \(path)\nExists: \(exists)\nSize: \(size) bytes\nFree: \(free) bytes\nSchema: \(schemaVer)\nBuildings: \(buildingCount)\nActive Users: \(userCount)"
+    }
+
+    private static func timestamp() -> String {
+        let f = DateFormatter()
+        f.dateFormat = "yyyyMMdd-HHmmss"
+        return f.string(from: Date())
+    }
+
+    private static func getFreeDiskSpace() -> Int64 {
+        do {
+            let attrs = try FileManager.default.attributesOfFileSystem(forPath: NSHomeDirectory())
+            return attrs[.systemFreeSize] as? Int64 ?? 0
+        } catch { return 0 }
     }
     
     public func createTables(_ db: Database) throws {

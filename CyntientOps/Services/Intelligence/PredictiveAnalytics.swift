@@ -213,19 +213,13 @@ public final class PredictiveAnalytics {
     }
     
     private func getHistoricalMaintenanceData(buildingId: String) async throws -> [MaintenanceHistoryData] {
-        // This would query historical maintenance records
-        // For now, return sample data based on building characteristics
-        return [
-            MaintenanceHistoryData(issueType: "HVAC Filter Replacement", lastOccurrence: Date().addingTimeInterval(-45 * 86400), frequency: 30),
-            MaintenanceHistoryData(issueType: "Plumbing Inspection", lastOccurrence: Date().addingTimeInterval(-75 * 86400), frequency: 90),
-            MaintenanceHistoryData(issueType: "Electrical Check", lastOccurrence: Date().addingTimeInterval(-180 * 86400), frequency: 180)
-        ]
+        // Production: return empty if no real maintenance data source is available
+        return []
     }
     
     private func getBuildingAge(building: CoreTypes.NamedCoordinate) -> Int {
-        // This would typically come from building metadata
-        // For now, return a reasonable estimate
-        return 15 // 15 years old
+        // Production: unknown without metadata; return 0
+        return 0
     }
     
     private func analyzeMaintenancePatterns(_ data: [MaintenanceHistoryData]) -> [MaintenancePattern] {

@@ -1406,108 +1406,7 @@ public final class ClientDashboardViewModel: ObservableObject {
         }.count
     }
     
-    // MARK: - Property Data Generation Methods
-    
-    /// Generate realistic NYC property data for buildings
-    private func generatePropertyDataForBuilding(_ building: CoreTypes.NamedCoordinate, coordinate: CLLocationCoordinate2D) async -> CoreTypes.NYCPropertyData? {
-        print("🔢 Generating property data for: \(building.name)")
-        
-        // Generate BBL based on coordinate (simplified approach)
-        let bbl = generateBBLFromCoordinate(coordinate)
-        
-        // Generate realistic financial data based on building location and size
-        let financialData = generateFinancialData(for: building)
-        
-        // Generate compliance data
-        let complianceData = generateComplianceData(for: building)
-        
-        // Generate violations data (realistic but generated)
-        let violations = await generateViolationsData(for: building)
-        
-        let propertyData = CoreTypes.NYCPropertyData(
-            bbl: bbl,
-            buildingId: building.id,
-            financialData: financialData,
-            complianceData: complianceData,
-            violations: violations
-        )
-        
-        print("✅ Generated property data for \(building.name): BBL \(bbl), Value $\(Int(financialData.marketValue).formatted(.number))")
-        return propertyData
-    }
-    
-    private func generateBBLFromCoordinate(_ coordinate: CLLocationCoordinate2D) -> String {
-        // Manhattan (most of our buildings)
-        if coordinate.latitude > 40.7000 && coordinate.latitude < 40.8000 &&
-           coordinate.longitude > -74.0200 && coordinate.longitude < -73.9000 {
-            let block = Int((coordinate.latitude - 40.7000) * 10000) % 2000 + 1000
-            let lot = Int((coordinate.longitude + 74.0000) * 10000) % 100 + 1
-            return "1\(String(format: "%05d", block))\(String(format: "%04d", lot))"
-        }
-        
-        // Brooklyn
-        if coordinate.latitude > 40.5700 && coordinate.latitude < 40.7400 &&
-           coordinate.longitude > -74.0400 && coordinate.longitude < -73.8000 {
-            let block = Int((coordinate.latitude - 40.5700) * 10000) % 5000 + 1000
-            let lot = Int((coordinate.longitude + 74.0000) * 10000) % 100 + 1
-            return "3\(String(format: "%05d", block))\(String(format: "%04d", lot))"
-        }
-        
-        // Default: Queens
-        let block = Int((coordinate.latitude - 40.6000) * 10000) % 3000 + 1000
-        let lot = Int((coordinate.longitude + 73.9000) * 10000) % 100 + 1
-        return "4\(String(format: "%05d", block))\(String(format: "%04d", lot))"
-    }
-    
-    private func generateFinancialData(for building: CoreTypes.NamedCoordinate) -> CoreTypes.PropertyFinancialData {
-        // Generate realistic values based on NYC property market
-        let baseValue = building.name.contains("Museum") ? 15_000_000.0 : 
-                       building.name.contains("17th") ? 8_000_000.0 : 5_000_000.0
-        
-        let marketValue = baseValue + Double.random(in: -1_000_000...3_000_000)
-        let assessedValue = marketValue * 0.6 // NYC assessment ratio
-        
-        // Generate recent tax payments
-        let recentPayments = [
-            CoreTypes.TaxPayment(amount: assessedValue * 0.012, paymentDate: Date().addingTimeInterval(-90 * 24 * 60 * 60), taxYear: "2024"),
-            CoreTypes.TaxPayment(amount: assessedValue * 0.012, paymentDate: Date().addingTimeInterval(-180 * 24 * 60 * 60), taxYear: "2023")
-        ]
-        
-        return CoreTypes.PropertyFinancialData(
-            assessedValue: assessedValue,
-            marketValue: marketValue,
-            recentTaxPayments: recentPayments,
-            activeLiens: [],
-            exemptions: []
-        )
-    }
-    
-    private func generateComplianceData(for building: CoreTypes.NamedCoordinate) -> CoreTypes.LocalLawComplianceData {
-        // Generate realistic compliance status
-        let ll97Status: CoreTypes.ComplianceStatus = building.name.contains("Museum") ? .compliant : .pending
-        let ll11Status: CoreTypes.ComplianceStatus = .compliant
-        let ll87Status: CoreTypes.ComplianceStatus = .compliant
-        
-        return CoreTypes.LocalLawComplianceData(
-            ll97Status: ll97Status,
-            ll11Status: ll11Status,
-            ll87Status: ll87Status,
-            ll97NextDue: Date().addingTimeInterval(365 * 24 * 60 * 60),
-            ll11NextDue: nil
-        )
-    }
-    
-    private func generateViolationsData(for building: CoreTypes.NamedCoordinate) async -> [CoreTypes.PropertyViolation] {
-        // Get real violations for this building from database
-        do {
-            let realViolations = try await container.operationalData.getViolationsForBuilding(buildingId: building.id)
-            return realViolations
-        } catch {
-            // If no real violations, return empty array
-            print("⚠️ No real violations found for \(building.name)")
-            return []
-        }
-    }
+    // MARK: - Property Data Generation Methods (removed for production integrity)
     
     // MARK: - Real NYC API Data Integration
     
@@ -1534,9 +1433,7 @@ public final class ClientDashboardViewModel: ObservableObject {
             dsnyScheduleData[bid] = container.nycCompliance.getDSNYSchedule(for: bid)
             let dsny = container.nycCompliance.getDSNYViolations(for: bid)
             dsnyViolationsData[bid] = dsny
-            // Persist to history
-            let history = await ComplianceHistoryService(database: container.database)
-            await history.persistDSNYViolations(buildingId: bid, violations: dsny)
+            // Persistence handled by NYC integration/DB layer; avoid direct service here
             ll97EmissionsData[bid] = container.nycCompliance.getLL97Emissions(for: bid)
         }
 
@@ -1557,7 +1454,7 @@ public final class ClientDashboardViewModel: ObservableObject {
         let api = NYCAPIService.shared
 
         for building in clientBuildingsWithImages {
-            let bbl = generateBBLFromCoordinate(building.coordinate.coordinate)
+            let bbl = await getBBLForBuilding(building.id)
             do {
                 let assessments = try await api.fetchDOFPropertyAssessment(bbl: bbl)
                 // Sum latest record if available
@@ -1576,219 +1473,7 @@ public final class ClientDashboardViewModel: ObservableObject {
         }
     }
     
-    // MARK: - NYC API Data Loading Methods
-    
-    private func loadHPDViolations(bin: String, buildingName: String) async throws -> [HPDViolation] {
-        // In a real implementation, this would call the actual NYC HPD API
-        // For now, return simulated realistic violations based on building characteristics
-        
-        let violationCount = Int.random(in: 0...5)
-        var violations: [HPDViolation] = []
-        
-        let commonViolations = [
-            "PAINT - PEELING/DEFECTIVE",
-            "WINDOW - DEFECTIVE/BROKEN",
-            "HEAT - INADEQUATE",
-            "HOT WATER - INADEQUATE",
-            "DOOR - DEFECTIVE/MISSING",
-            "WATER LEAK"
-        ]
-        
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyy-MM-dd"
-        
-        for i in 0..<violationCount {
-            let inspectionDate = Date().addingTimeInterval(-TimeInterval.random(in: 0...31536000))
-            let novIssueDate = Date().addingTimeInterval(-TimeInterval.random(in: 0...31536000))
-            
-            let violation = HPDViolation(
-                violationId: "HPD_\(bin)_\(i)",
-                buildingId: bin,
-                bin: bin,
-                apartmentNumber: Int.random(in: 1...20) > 15 ? "\(Int.random(in: 1...5))A" : nil,
-                story: nil,
-                inspectionDate: dateFormatter.string(from: inspectionDate),
-                approvedDate: nil,
-                originalCertifyByDate: nil,
-                originalCorrectByDate: nil,
-                newCertifyByDate: nil,
-                newCorrectByDate: nil,
-                certifiedDate: nil,
-                currentStatusId: String(Int.random(in: 1...3)),
-                currentStatus: ["OPEN", "COMPLIANCE", "CLOSED"].randomElement()!,
-                currentStatusDate: nil,
-                novDescription: commonViolations.randomElement() ?? "Violation found during routine inspection",
-                novIssued: dateFormatter.string(from: novIssueDate),
-                orderNumber: "HPD\(String(format: "%06d", Int.random(in: 100000...999999)))",
-                violationStatus: ["OPEN", "CLOSED"].randomElement()!
-            )
-            violations.append(violation)
-        }
-        
-        return violations
-    }
-    
-    private func loadDOBPermits(bin: String, buildingName: String) async throws -> [DOBPermit] {
-        // Simulate DOB permits - in real implementation would call NYC DOB API
-        let permitCount = Int.random(in: 0...3)
-        var permits: [DOBPermit] = []
-        
-        let permitTypes = [
-            "ALTERATION",
-            "RENEWAL",
-            "DEMOLITION",
-            "NEW BUILDING",
-            "EQUIPMENT"
-        ]
-        
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyy-MM-dd"
-        
-        for i in 0..<permitCount {
-            let filingDate = Date().addingTimeInterval(-TimeInterval.random(in: 0...15552000))
-            let issuedDate = Date().addingTimeInterval(-TimeInterval.random(in: 0...7776000))
-            
-            let permit = DOBPermit(
-                bin: bin,
-                jobNumber: "DOB_\(bin)_\(String(format: "%03d", i))",
-                docNumber: nil,
-                borough: "MANHATTAN",
-                jobType: permitTypes.randomElement()!,
-                workType: "GENERAL CONSTRUCTION",
-                permitStatus: ["APPROVED", "PENDING", "ISSUED"].randomElement()!,
-                filingDate: dateFormatter.string(from: filingDate),
-                issuanceDate: dateFormatter.string(from: issuedDate),
-                expirationDate: nil,
-                jobStartDate: nil,
-                permitType: nil,
-                workOnFloor: nil,
-                description: "Building maintenance and improvement work",
-                ownerName: "PROPERTY MANAGEMENT",
-                ownerPhone: nil,
-                fees: nil
-            )
-            permits.append(permit)
-        }
-        
-        return permits
-    }
-    
-    private func loadDSNYScheduleData(building: CoreTypes.BuildingWithImage) async throws -> [DSNYRoute] {
-        // This is the key DSNY integration - load actual schedule data
-        print("   🗑️ Loading DSNY schedule data for: \(building.name)")
-        
-        // Determine community district from coordinate (simplified mapping)
-        let communityDistrict = determineCommunityDistrict(coordinate: building.coordinate.coordinate)
-        
-        // Generate realistic DSNY routes for Manhattan buildings using NYC data model
-        var routes: [DSNYRoute] = []
-        
-        // Typical Manhattan collection schedule
-        let collections = [
-            DSNYRoute(
-                communityDistrict: "MN\(communityDistrict)",
-                section: "A",
-                route: "MN\(communityDistrict)A",
-                dayOfWeek: "MONDAY", 
-                time: "6:00 AM",
-                serviceType: "REFUSE",
-                borough: "MANHATTAN"
-            ),
-            DSNYRoute(
-                communityDistrict: "MN\(communityDistrict)",
-                section: "B",
-                route: "MN\(communityDistrict)B",
-                dayOfWeek: "THURSDAY",
-                time: "7:00 AM", 
-                serviceType: "RECYCLING",
-                borough: "MANHATTAN"
-            ),
-            DSNYRoute(
-                communityDistrict: "MN\(communityDistrict)",
-                section: "C",
-                route: "MN\(communityDistrict)C", 
-                dayOfWeek: "TUESDAY",
-                time: "8:00 AM",
-                serviceType: "ORGANICS",
-                borough: "MANHATTAN"
-            )
-        ]
-        
-        routes.append(contentsOf: collections)
-        
-        print("   ✅ Generated \(routes.count) DSNY routes for community district \(communityDistrict)")
-        return routes
-    }
-    
-    private func loadDSNYViolations(bin: String, buildingName: String) async throws -> [DSNYViolation] {
-        // Load real DSNY violations - in production would call actual DSNY violations API
-        let violationCount = Int.random(in: 0...2) // DSNY violations are less common
-        var violations: [DSNYViolation] = []
-        
-        let commonDSNYViolations = [
-            "DIRTY SIDEWALK",
-            "FAILURE TO CLEAN EIGHTEEN INCHES INTO STREET",
-            "LITTER BASKET VIOLATION", 
-            "IMPROPER WASTE CONTAINMENT",
-            "FAILURE TO MAINTAIN CLEAN AREA"
-        ]
-        
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyy-MM-dd"
-        
-        for i in 0..<violationCount {
-            let issueDate = Date().addingTimeInterval(-TimeInterval.random(in: 0...15552000))
-            let hearingDate = Date().addingTimeInterval(TimeInterval.random(in: 0...2592000))
-            
-            let violation = DSNYViolation(
-                violationId: "DSNY\(bin)\(String(format: "%04d", i))",
-                bin: bin,
-                issueDate: dateFormatter.string(from: issueDate),
-                hearingDate: dateFormatter.string(from: hearingDate),
-                violationType: commonDSNYViolations.randomElement()!,
-                fineAmount: Double.random(in: 50...350),
-                status: ["PENDING", "PAID", "DISMISSED"].randomElement()!,
-                borough: "MANHATTAN",
-                address: buildingName,
-                violationDetails: "Sanitation violation requiring immediate attention",
-                dispositionCode: nil,
-                dispositionDate: nil
-            )
-            violations.append(violation)
-        }
-        
-        return violations
-    }
-    
-    private func loadLL97EmissionsData(bbl: String, buildingName: String) async throws -> [LL97Emission] {
-        // Load LL97 emissions data - in production would call actual LL97 API
-        // LL97 applies to buildings over 25,000 sq ft, so not all buildings will have data
-        
-        let hasLL97Data = Int.random(in: 1...100) > 70 // 30% chance building is subject to LL97
-        
-        guard hasLL97Data else { return [] }
-        
-        let totalEmissions = Double.random(in: 100...2000)
-        let emissionsLimit = Double.random(in: 150...2200)
-        let overLimit = max(0, totalEmissions - emissionsLimit)
-        
-        let emission = LL97Emission(
-            bbl: bbl,
-            propertyName: buildingName,
-            primaryPropertyType: "RESIDENTIAL",
-            reportedAddress: buildingName,
-            borough: "MANHATTAN",
-            reportingYear: "2023",
-            totalGHGEmissions: totalEmissions,
-            totalGHGEmissionsIntensity: totalEmissions / 25000.0, // Assume 25k sq ft
-            emissionsLimit: emissionsLimit,
-            emissionsOverLimit: overLimit > 0 ? overLimit : nil,
-            potentialFine: overLimit > 0 ? overLimit * 268 : nil, // $268 per ton over limit
-            energyUseIntensity: Double.random(in: 50...200)
-        )
-        
-        return [emission]
-    }
+    // MARK: - NYC API Data Loading Methods (removed simulated loaders)
     
     // MARK: - Helper Methods for NYC API Integration
     
@@ -1870,6 +1555,25 @@ public final class ClientDashboardViewModel: ObservableObject {
                     department: "DSNY"
                 )
                 issues.append(issue)
+            }
+        }
+        
+        // Add upcoming LL11 (facade) deadlines as issues
+        for building in buildingsList {
+            if let nextDue = await container.nycCompliance.getLL11NextDueDate(buildingId: building.id) {
+                let days = nextDue.timeIntervalSinceNow / 86400
+                let severity: CoreTypes.ComplianceSeverity = days < 30 ? .critical : (days < 90 ? .high : .medium)
+                issues.append(CoreTypes.ComplianceIssue(
+                    id: "LL11_\(building.id)",
+                    title: "LL11 Facade Filing Due",
+                    description: "Upcoming LL11 (FISP) filing due for \(building.name)",
+                    severity: severity,
+                    buildingId: building.id,
+                    status: .open,
+                    dueDate: nextDue,
+                    type: .safety,
+                    department: "DOB"
+                ))
             }
         }
         

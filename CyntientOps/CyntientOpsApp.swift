@@ -28,6 +28,7 @@ struct CyntientOpsApp: App {
     @StateObject private var authManager = NewAuthManager.shared
     @ObservedObject private var session = CoreTypes.Session.shared
     @StateObject private var notificationManager = NotificationManager.shared
+    @StateObject private var memoryMonitor = MemoryPressureMonitor.shared
     @StateObject private var contextEngine = WorkerContextEngine.shared
     private let locationManager = LocationManager.shared
     @StateObject private var languageManager = LanguageManager.shared
@@ -35,9 +36,7 @@ struct CyntientOpsApp: App {
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     @State private var showingSplash = true
     @State private var containerError: Error?
-    #if DEBUG
-    @State private var showingQuickLogin = false
-    #endif
+    // PRODUCTION: No QuickLogin in production-ready builds
     
     init() {
         // Initialize Sentry as the very first step of the app's lifecycle.
@@ -122,19 +121,7 @@ struct CyntientOpsApp: App {
                             .environmentObject(authManager)
                             .environmentObject(languageManager) // Always English for login
                             .transition(.opacity)
-// DEBUG: QuickLoginView temporarily disabled - file not in Xcode project
-// TODO: Add QuickLoginView.swift to Xcode project to re-enable
-#if DEBUG && false
-                            .toolbar {
-                                ToolbarItem(placement: .topBarTrailing) {
-                                    Button("QuickLogin") { showingQuickLogin = true }
-                                }
-                            }
-                            .sheet(isPresented: $showingQuickLogin) {
-                                QuickLoginView()
-                                    .environmentObject(authManager)
-                            }
-#endif
+                            // PRODUCTION: No debug toolbar in field deployment
                     } else {
                         // Data not ready - show initialization
                         VStack(spacing: 12) {
@@ -163,59 +150,46 @@ struct CyntientOpsApp: App {
     
     private func createServiceContainer() async {
         guard serviceContainer == nil else { return }
-        
+
         do {
-            // Use coordinator for initialization
-            if !coordinator.isReady {
-                try await coordinator.startInitialization()
+            // Drive all init via the coordinator
+            try await coordinator.startInitialization()
+
+            // Use container created by coordinator
+            if let container = coordinator.serviceContainer {
+                await MainActor.run {
+                    self.serviceContainer = container
+                }
+                print("✅ Service container acquired from coordinator")
+            } else {
+                throw StartupError.servicesInitializationFailed("Coordinator did not provide ServiceContainer")
             }
-            
-            // Create service container
-            let container = try await ServiceContainer()
-            
-            // Set container
-            await MainActor.run {
-                self.serviceContainer = container
-            }
-            
-            print("✅ Service container created successfully")
-            
         } catch {
-            await MainActor.run {
-                self.containerError = error
-            }
+            await MainActor.run { self.containerError = error }
             SentrySDK.capture(error: error) { scope in
                 scope.setLevel(.error)
                 scope.setTag(value: "service_container", key: "initialization")
             }
-            print("❌ Failed to create service container: \(error)")
+            print("❌ Failed to acquire service container: \(error)")
         }
     }
     
     // MARK: - Sentry Initialization (PRESERVED)
     
     private func initializeSentry() {
-        let dsn = ProcessInfo.processInfo.environment["SENTRY_DSN"] ?? ""
-        guard !dsn.isEmpty else {
-            print("⚠️ Sentry DSN not configured")
-            return
-        }
+        // PRODUCTION-READY: Always use production Sentry DSN for field deployment readiness
+        let productionDSN = "https://c77b2dddf9eca868ead5142d23a438cf@o4509764891901952.ingest.us.sentry.io/4509764893081600"
         
         SentrySDK.start { options in
-            options.dsn = dsn
+            options.dsn = productionDSN
             
-            #if DEBUG
-            options.debug = true
-            options.environment = "debug"
-            #else
+            // PRODUCTION SETTINGS: Simulator identical to iPhone in field
             options.debug = false
-            options.environment = ProductionConfiguration.environment.rawValue
-            #endif
+            options.environment = "production"
             
-            options.tracesSampleRate = 0.2
-            
-            // Configure profiling rate - using direct property based on current Sentry SDK
-            options.profilesSampleRate = 0.2 // Profile 20% of sessions
+            // Reduced sampling to improve performance during initialization
+            options.tracesSampleRate = 0.05   // 5% sampling
+            options.profilesSampleRate = 0.02 // 2% profiling - critical reduction
             
             if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String,
                let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String {

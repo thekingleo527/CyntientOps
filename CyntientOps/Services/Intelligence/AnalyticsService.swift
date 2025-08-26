@@ -69,11 +69,7 @@ public final class AnalyticsService: ObservableObject {
     private var analyticsBackend: AnalyticsBackend
     
     private init() {
-        #if DEBUG
-        analyticsBackend = MockAnalyticsBackend()
-        #else
         analyticsBackend = ProductionAnalyticsBackend()
-        #endif
         setupSession()
     }
     
@@ -230,27 +226,7 @@ protocol AnalyticsBackend {
     func clearUser()
 }
 
-// MARK: - Mock Backend for Development
-
-#if DEBUG
-class MockAnalyticsBackend: AnalyticsBackend {
-    func track(event: String, properties: [String: Any]) {
-        print("🔵 Mock Analytics: \(event)")
-    }
-    
-    func setUserId(_ id: String) {
-        print("🔵 Mock Analytics: User ID set to \(id)")
-    }
-    
-    func setUserProperty(key: String, value: String) {
-        print("🔵 Mock Analytics: User property \(key) = \(value)")
-    }
-    
-    func clearUser() {
-        print("🔵 Mock Analytics: User cleared")
-    }
-}
-#endif
+// (Development mock backend removed for production-only code path)
 
 // MARK: - Production Backend
 

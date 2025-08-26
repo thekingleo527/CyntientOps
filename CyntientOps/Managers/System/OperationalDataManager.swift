@@ -2080,6 +2080,16 @@ public class OperationalDataManager: ObservableObject {
     }
     
     public func initializeOperationalData() async throws {
+        // Check memory pressure before initialization
+        let memoryMonitor = MemoryPressureMonitor.shared
+        if memoryMonitor.shouldDisableFeature(.backgroundTasks) {
+            print("⚠️ Deferring operational data initialization due to memory pressure")
+            await MainActor.run {
+                currentStatus = "Initialization deferred due to memory pressure"
+            }
+            return
+        }
+        
         guard !hasImported else {
             print("✅ Operational data already initialized")
             // Seed worker routines even if already initialized

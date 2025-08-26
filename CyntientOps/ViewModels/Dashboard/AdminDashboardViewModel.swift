@@ -19,13 +19,13 @@ import MapKit
 class AdminDashboardViewModel: ObservableObject {
     
     // MARK: - Published Properties for Admin UI
-    @Published var buildings: [CoreTypes.NamedCoordinate] = []
-    @Published var workers: [CoreTypes.WorkerProfile] = []
+    @BatchedPublished var buildings: [CoreTypes.NamedCoordinate] = []
+    @BatchedPublished var workers: [CoreTypes.WorkerProfile] = []
     @Published var activeWorkers: [CoreTypes.WorkerProfile] = []
-    @Published var tasks: [CoreTypes.ContextualTask] = []
+    @BatchedPublished var tasks: [CoreTypes.ContextualTask] = []
     @Published var ongoingTasks: [CoreTypes.ContextualTask] = []
-    @Published var buildingMetrics: [String: CoreTypes.BuildingMetrics] = [:]
-    @Published var portfolioInsights: [CoreTypes.IntelligenceInsight] = []
+    @BatchedPublished var buildingMetrics: [String: CoreTypes.BuildingMetrics] = [:]
+    @BatchedPublished var portfolioInsights: [CoreTypes.IntelligenceInsight] = []
     
     // MARK: - Portfolio & Admin Properties  
     @Published var portfolioMetrics: CoreTypes.PortfolioMetrics = CoreTypes.PortfolioMetrics(
@@ -319,32 +319,51 @@ class AdminDashboardViewModel: ObservableObject {
     // MARK: - Property Data Generation Methods
     // Note: Placed early in class to avoid Swift compiler resolution issues
     
-    /// Generate realistic NYC property data for buildings
+    /// Build NYCPropertyData for a building using NYC APIs and GRDB (production)
     func generatePropertyDataForBuilding(_ building: CoreTypes.NamedCoordinate, coordinate: CLLocationCoordinate2D) async -> CoreTypes.NYCPropertyData? {
-        print("🔢 Generating property data for: \(building.name)")
-        
-        // Generate BBL based on coordinate (simplified approach)
-        let bbl = self.generateBBLFromCoordinate(coordinate)
-        
-        // Generate realistic financial data based on building location and size
-        let financialData = self.generateFinancialData(for: building)
-        
-        // Generate compliance data
-        let complianceData = self.generateComplianceData(for: building)
-        
-        // Generate violations data (realistic but generated)
-        let violations = await self.generateViolationsData(for: building)
-        
-        let propertyData = CoreTypes.NYCPropertyData(
-            bbl: bbl,
-            buildingId: building.id,
-            financialData: financialData,
-            complianceData: complianceData,
-            violations: violations
+        // Fetch BBL from DB
+        var bbl = ""
+        do {
+            let rows = try await container.database.query("SELECT bbl FROM buildings WHERE id = ?", [building.id])
+            if let row = rows.first, let value = row["bbl"] as? String { bbl = value }
+        } catch {}
+        guard !bbl.isEmpty else { return nil }
+
+        // DOF assessments, tax bills/liens
+        let dof = NYCAPIService.shared
+        let assessments = (try? await dof.fetchDOFPropertyAssessment(bbl: bbl)) ?? []
+        let latest = assessments.sorted { ($0.year ?? 0) > ($1.year ?? 0) }.first
+        let assessedValue = latest?.assessedValueTotal ?? 0
+        let marketValue = latest?.marketValue ?? assessedValue
+
+        let taxBills = (try? await dof.fetchDOFTaxBills(bbl: bbl)) ?? []
+        let taxLiens = (try? await dof.fetchDOFTaxLiens(bbl: bbl)) ?? []
+        let df = DateFormatter(); df.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSS"
+        let recentPayments: [CoreTypes.TaxPayment] = taxBills.compactMap { bill in
+            guard let paid = bill.paidDate else { return nil }
+            return CoreTypes.TaxPayment(amount: bill.propertyTaxPaid ?? 0, paymentDate: df.date(from: paid) ?? Date(), taxYear: bill.year)
+        }
+        let liens: [CoreTypes.TaxLien] = taxLiens.map { lien in
+            let date = df.date(from: lien.saleDate ?? "") ?? Date()
+            return CoreTypes.TaxLien(amount: lien.lienAmount ?? 0, lienDate: date, status: "Active")
+        }
+        let financial = CoreTypes.PropertyFinancialData(
+            assessedValue: assessedValue,
+            marketValue: marketValue,
+            recentTaxPayments: recentPayments,
+            activeLiens: liens,
+            exemptions: []
         )
-        
-        print("✅ Generated property data for \(building.name): BBL \(bbl), Value $\(Int(financialData.marketValue).formatted(.number))")
-        return propertyData
+
+        // LL97/LL11
+        let ll97 = container.nycCompliance.getLL97Emissions(for: building.id)
+        let ll97Status: CoreTypes.ComplianceStatus = ll97.contains { !$0.isCompliant } ? .pending : .compliant
+        let ll11NextDue = await container.nycCompliance.getLL11NextDueDate(buildingId: building.id)
+        let compliance = CoreTypes.LocalLawComplianceData(ll97Status: ll97Status, ll11Status: ll11NextDue == nil ? .pending : .compliant, ll87Status: .compliant, ll97NextDue: nil, ll11NextDue: ll11NextDue)
+
+        // Violations from DB
+        let violations = (try? await container.operationalData.getViolationsForBuilding(buildingId: building.id)) ?? []
+        return CoreTypes.NYCPropertyData(bbl: bbl, buildingId: building.id, financialData: financial, complianceData: compliance, violations: violations)
     }
     
     func generateBBLFromCoordinate(_ coordinate: CLLocationCoordinate2D) -> String {
@@ -930,14 +949,14 @@ class AdminDashboardViewModel: ObservableObject {
                 ))
             }
             
-            // LL11 deadlines
-            if let ll11Date = property.complianceData.ll11NextDue {
+            // LL11 deadlines (use real DOB-derived next due date)
+            if let nextDue = await container.nycCompliance.getLL11NextDueDate(buildingId: property.buildingId) {
                 deadlines.append(ComplianceDeadline(
                     buildingId: property.buildingId,
                     buildingName: buildingName,
                     deadlineType: "Local Law 11 - Facade",
-                    dueDate: ll11Date,
-                    severity: ll11Date.timeIntervalSinceNow < 90 * 24 * 60 * 60 ? .critical : .medium,
+                    dueDate: nextDue,
+                    severity: nextDue.timeIntervalSinceNow < 90 * 24 * 60 * 60 ? .critical : .medium,
                     estimatedCost: 25000
                 ))
             }

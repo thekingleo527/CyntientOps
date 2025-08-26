@@ -30,6 +30,7 @@ public final class AppStartupCoordinator: ObservableObject {
     
     // MARK: - Service Container
     @Published public private(set) var serviceContainer: ServiceContainer?
+    private var containerCreationTask: Task<ServiceContainer, Error>?
     
     // MARK: - Initialization
     private init() {}
@@ -78,17 +79,34 @@ public final class AppStartupCoordinator: ObservableObject {
     // MARK: - Private Methods
     
     private func createServiceContainer() async throws {
-        // Create ServiceContainer with all dependencies
-        serviceContainer = try await ServiceContainer()
-        
-        // Verify container is properly initialized
-        guard let container = serviceContainer else {
-            throw StartupError.servicesInitializationFailed("ServiceContainer creation failed")
+        // Return if already created
+        if let existing = serviceContainer {
+            print("✅ ServiceContainer already created")
+            _ = existing // noop
+            return
         }
-        
-        // Nova AI manager is already created and owned by ServiceContainer
-        
-        print("✅ ServiceContainer created and configured")
+
+        // Coalesce concurrent creation attempts
+        if let task = containerCreationTask {
+            let container = try await task.value
+            serviceContainer = container
+            print("✅ Reused in-flight ServiceContainer creation task")
+            return
+        }
+
+        let task = Task { @MainActor in
+            try await ServiceContainer()
+        }
+        containerCreationTask = task
+        do {
+            let container = try await task.value
+            serviceContainer = container
+            print("✅ ServiceContainer created and configured")
+        } catch {
+            containerCreationTask = nil
+            throw error
+        }
+        containerCreationTask = nil
     }
     
     private func configureNetworkMonitoring() {

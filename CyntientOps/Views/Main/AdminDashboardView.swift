@@ -428,7 +428,7 @@ struct AdminUrgentItem: View {
                 .navigationTitle("Portfolio Analytics")
                 
         case .reports:
-            AdminReportsView()
+            AdminReportsView(container: container)
                 .navigationTitle("System Reports")
                 
         case .emergencies:

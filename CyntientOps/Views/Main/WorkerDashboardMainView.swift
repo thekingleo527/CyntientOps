@@ -141,10 +141,10 @@ struct WorkerDashboardMainView: View {
                     if viewModel.insights.isEmpty {
                         Text("No insights yet").font(.caption).foregroundColor(.gray)
                     } else {
-                        ForEach(viewModel.insights) { insight in
+                        ForEach(viewModel.insights, id: \.id) { insight in
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(insight.title).font(.subheadline).foregroundColor(.white)
-                                if let message = insight.message, !message.isEmpty {
+                                if let message = insight.description as String?, !message.isEmpty {
                                     Text(message).font(.caption).foregroundColor(.gray)
                                 }
                             }
@@ -481,4 +481,3 @@ struct WorkerDashboardMainView: View {
         }
     }
 }
-
