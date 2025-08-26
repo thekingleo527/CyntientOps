@@ -1535,7 +1535,7 @@ public final class ClientDashboardViewModel: ObservableObject {
             let dsny = container.nycCompliance.getDSNYViolations(for: bid)
             dsnyViolationsData[bid] = dsny
             // Persist to history
-            let history = ComplianceHistoryService(database: container.database)
+            let history = await ComplianceHistoryService(database: container.database)
             await history.persistDSNYViolations(buildingId: bid, violations: dsny)
             ll97EmissionsData[bid] = container.nycCompliance.getLL97Emissions(for: bid)
         }

@@ -862,8 +862,8 @@ public class WorkerDashboardViewModel: ObservableObject {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] insights in
                 guard let self = self else { return }
-                let role = self.session.user?.role ?? CoreTypes.UserRole.worker
-                self.currentInsights = self.container.intelligence.getInsights(for: role as CoreTypes.UserRole)
+                let userRole: CoreTypes.UserRole = self.session.user?.role ?? CoreTypes.UserRole.worker
+                self.currentInsights = self.container.intelligence.getInsights(for: userRole)
             }
             .store(in: &cancellables)
         
