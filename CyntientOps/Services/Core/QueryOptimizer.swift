@@ -8,8 +8,7 @@
 
 import Foundation
 
-@MainActor
-public final class QueryOptimizer: ObservableObject {
+public actor QueryOptimizer {
     private var queryCache: [String: (result: Any, timestamp: Date)] = [:]
     private let cacheTimeout: TimeInterval = 300 // 5 minutes
     private let database: GRDBManager

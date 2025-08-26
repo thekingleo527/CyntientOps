@@ -188,7 +188,7 @@ public final class ServiceContainer: ObservableObject {
     
     public private(set) lazy var novaAPI: NovaAPIService = {
         NovaAPIService(
-            operationalManager: operationalManager,
+            operationalManager: operationalData,
             buildingService: buildings,
             taskService: tasks,
             workerService: workers,
@@ -232,7 +232,7 @@ public final class ServiceContainer: ObservableObject {
     }()
     
     public private(set) lazy var nycCompliance: NYCComplianceService = {
-        NYCComplianceService.shared
+        NYCComplianceService(database: database)
     }()
     // BBLGenerationService accessed directly as singleton to avoid compilation issues
     
@@ -315,15 +315,23 @@ public final class ServiceContainer: ObservableObject {
     // MARK: - Service Access (All services are lazy-loaded)
     
     /// Provides access to admin intelligence with lazy initialization
+    // TODO: Add AdminOperationalIntelligence.swift to Xcode project target
+    /*
     public func getAdminIntelligence() -> AdminOperationalIntelligence {
         return AdminOperationalIntelligence(container: self, dashboardSync: dashboardSync)
     }
+    */
     
     // MARK: - Nova AI Integration
     
     /// Connect Nova AI Manager to intelligence services (called during initialization)
-    private func connectNovaToServices() {
-        self.intelligence.setNovaManager(novaManager)
+    private func connectNovaToServices() async {
+        do {
+            let intelligence = try await self.intelligence
+            await intelligence.setNovaManager(novaManager)
+        } catch {
+            print("❌ Failed to connect Nova to intelligence services: \(error)")
+        }
         
         // Also connect to context engines if they need Nova
         // Context engines now connected to Nova via intelligence service
