@@ -1617,7 +1617,7 @@ public final class ClientDashboardViewModel: ObservableObject {
                 currentStatusId: String(Int.random(in: 1...3)),
                 currentStatus: ["OPEN", "COMPLIANCE", "CLOSED"].randomElement()!,
                 currentStatusDate: nil,
-                novDescription: "Violation found during routine inspection",
+                novDescription: commonViolations.randomElement() ?? "Violation found during routine inspection",
                 novIssued: dateFormatter.string(from: novIssueDate),
                 orderNumber: "HPD\(String(format: "%06d", Int.random(in: 100000...999999)))",
                 violationStatus: ["OPEN", "CLOSED"].randomElement()!

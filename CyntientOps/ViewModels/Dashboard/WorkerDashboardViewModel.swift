@@ -716,7 +716,7 @@ public class WorkerDashboardViewModel: ObservableObject {
                     RouteStop(
                         id: wp.building.id,
                         building: wp.building,
-                        estimatedArrival: wp.estimatedArrival ?? Date(),
+                        estimatedArrival: wp.estimatedArrival,
                         status: (isClockedIn && currentBuilding?.id == wp.building.id) ? .current : .pending,
                         distance: wp.estimatedDistance ?? 0.0
                     )
@@ -863,7 +863,7 @@ public class WorkerDashboardViewModel: ObservableObject {
             .sink { [weak self] insights in
                 guard let self = self else { return }
                 let role = self.session.user?.role ?? CoreTypes.UserRole.worker
-                self.currentInsights = self.container.intelligence.getInsights(for: role)
+                self.currentInsights = self.container.intelligence.getInsights(for: role as CoreTypes.UserRole)
             }
             .store(in: &cancellables)
         
@@ -1548,7 +1548,7 @@ public class WorkerDashboardViewModel: ObservableObject {
             let routineTasks = workerScheduleItems.map { scheduleItem in
                 let mustPhotoByCategory = scheduleItem.category.lowercased().contains("sanitation")
                 let mustPhotoByWorker = (self.workerCapabilities?.requiresPhotoForSanitation ?? true) && mustPhotoByCategory
-                TaskItem(
+                return TaskItem(
                     id: scheduleItem.id,
                     title: scheduleItem.title,
                     description: scheduleItem.description,

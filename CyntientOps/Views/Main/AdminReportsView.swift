@@ -2124,7 +2124,7 @@ extension Calendar {
 
 struct AdminReportsView_Previews: PreviewProvider {
     static var previews: some View {
-        AdminReportsView()
+        AdminReportsDebugView()
             // .environmentObject(DashboardSyncService.shared) // TODO: Remove shared pattern
             .preferredColorScheme(ColorScheme.dark)
     }
