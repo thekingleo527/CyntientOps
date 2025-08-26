@@ -529,6 +529,7 @@ public class WorkerDashboardViewModel: ObservableObject {
     @Published public var novaTab: NovaTab = .priorities
     @Published public var ui: WorkerDashboardUIState = WorkerDashboardUIState()
     @Published public var intelligencePanelExpanded: Bool = false
+    @Published public private(set) var currentInsights: [CoreTypes.IntelligenceInsight] = []
     
     // Legacy properties for compatibility
     @Published public private(set) var isLoading = false
@@ -662,65 +663,55 @@ public class WorkerDashboardViewModel: ObservableObject {
     
     /// Intelligence insights (de-duplicated vs hero)
     public var insights: [CoreTypes.IntelligenceInsight] {
-        // Return contextual insights, avoiding duplication with hero stats
-        []
+        currentInsights
     }
     
-    /// Today's route ordered by schedule
+    /// Today's route (optimized; falls back to assigned order until computed)
     public var routeForToday: [RouteStop] {
-        // Get real worker assignments and create optimized route
-        guard let _ = currentWorkerId,
-              let worker = workerProfile else {
-            return []
-        }
-        
-        // Get real tasks from operational data for route planning
-        let workerTasks = container.operationalData.getRealWorldTasks(for: worker.name)
-        let uniqueBuildings = Set(workerTasks.map { $0.building })
-        
-        // Convert to buildings and calculate route
-        let buildings = uniqueBuildings.compactMap { buildingName -> CoreTypes.NamedCoordinate? in
-            // Map building name to assigned buildings
-            guard let matchedBuilding = assignedBuildings.first(where: { building in
-                building.name.lowercased().contains(buildingName.lowercased()) ||
-                buildingName.lowercased().contains(building.name.lowercased())
-            }) else {
-                return nil
-            }
-            
-            // Convert BuildingSummary to CoreTypes.NamedCoordinate
-            return CoreTypes.NamedCoordinate(
-                id: matchedBuilding.id,
-                name: matchedBuilding.name,
-                address: matchedBuilding.address,
-                latitude: matchedBuilding.coordinate.latitude,
-                longitude: matchedBuilding.coordinate.longitude
+        if let cached = optimizedStops, !cached.isEmpty { return cached }
+        return assignedBuildings.map { b in
+            RouteStop(
+                id: b.id,
+                building: CoreTypes.NamedCoordinate(id: b.id, name: b.name, address: b.address, latitude: b.coordinate.latitude, longitude: b.coordinate.longitude),
+                estimatedArrival: Date(),
+                status: .pending,
+                distance: 0.0
             )
         }
-        
-        return buildings.enumerated().map { index, building in
-            let baseTime = Calendar.current.startOfDay(for: Date())
-            let startHour = 8 + (index * 2) // Start at 8am, 2 hours per building
-            let estimatedTime = Calendar.current.date(byAdding: .hour, value: startHour, to: baseTime) ?? Date()
-            
-            // Determine status based on current time and clock-in status
-            let now = Date()
-            let status: RouteStop.RouteStatus
-            if isClockedIn && currentBuilding?.id == building.id {
-                status = .current
-            } else if estimatedTime < now {
-                status = .completed
-            } else {
-                status = .pending
+    }
+
+    @Published private var optimizedStops: [RouteStop]? = nil
+
+    private func computeOptimizedRouteIfNeeded() {
+        guard let workerName = workerProfile?.name else { return }
+        let tasksForWorker = container.operationalData.getRealWorldTasks(for: workerName)
+        // Map to NamedCoordinates limited to assigned buildings
+        let uniqueBuildingIds: [String] = Array(Set(tasksForWorker.compactMap { task in
+            assignedBuildings.first { ab in
+                ab.name.lowercased().contains(task.building.lowercased()) || task.building.lowercased().contains(ab.name.lowercased())
+            }?.id
+        }))
+        let buildings: [CoreTypes.NamedCoordinate] = uniqueBuildingIds.compactMap { id in
+            assignedBuildings.first { $0.id == id }.map { b in
+                CoreTypes.NamedCoordinate(id: b.id, name: b.name, address: b.address, latitude: b.coordinate.latitude, longitude: b.coordinate.longitude)
             }
-            
-            return RouteStop(
-                id: building.id,
-                building: building,
-                estimatedArrival: estimatedTime,
-                status: status,
-                distance: Double(index) * 0.8 + 0.3 // Realistic NYC distances
-            )
+        }
+        let contextTasks: [CoreTypes.ContextualTask] = todaysTasks.map { convertToContextualTask($0) }
+        let start = locationManager.location
+
+        Task { @MainActor in
+            if let route = try? await RouteOptimizer.shared.optimizeRoute(buildings: buildings, tasks: contextTasks, startLocation: start) {
+                let stops = route.waypoints.map { wp in
+                    RouteStop(
+                        id: wp.building.id,
+                        building: wp.building,
+                        estimatedArrival: wp.estimatedArrival ?? Date(),
+                        status: (isClockedIn && currentBuilding?.id == wp.building.id) ? .current : .pending,
+                        distance: wp.estimatedDistance ?? 0.0
+                    )
+                }
+                self.optimizedStops = stops
+            }
         }
     }
     
@@ -855,6 +846,15 @@ public class WorkerDashboardViewModel: ObservableObject {
         setupSubscriptions()
         setupTimers()
         setupLocationTracking()
+        // Subscribe to intelligence updates
+        container.intelligence.insightUpdates
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] insights in
+                guard let self = self else { return }
+                let role = self.session.user?.role ?? .worker
+                self.currentInsights = self.container.intelligence.getInsights(for: role)
+            }
+            .store(in: &cancellables)
         
         // Subscribe to session user changes
         CoreTypes.Session.shared.$user
@@ -869,6 +869,8 @@ public class WorkerDashboardViewModel: ObservableObject {
                 }
             }
             .store(in: &cancellables)
+        // Kick off initial route optimization
+        computeOptimizedRouteIfNeeded()
     }
     
     deinit {
@@ -1453,6 +1455,8 @@ public class WorkerDashboardViewModel: ObservableObject {
             updateMapRegion()
             
             print("✅ Loaded \(uniqueBuildings.count) assigned buildings for worker \(workerId) from real operational data")
+            // Recompute optimized route when assigned buildings are known
+            computeOptimizedRouteIfNeeded()
         } catch {
             print("❌ Failed to load assigned buildings: \(error)")
             assignedBuildings = []
@@ -1531,6 +1535,8 @@ public class WorkerDashboardViewModel: ObservableObject {
             
             // Convert WorkerScheduleItem to TaskItem format
             let routineTasks = workerScheduleItems.map { scheduleItem in
+                let mustPhotoByCategory = scheduleItem.category.lowercased().contains("sanitation")
+                let mustPhotoByWorker = (self.workerCapabilities?.requiresPhotoForSanitation ?? true) && mustPhotoByCategory
                 TaskItem(
                     id: scheduleItem.id,
                     title: scheduleItem.title,
@@ -1540,7 +1546,7 @@ public class WorkerDashboardViewModel: ObservableObject {
                     urgency: .normal, // Default urgency for routine tasks
                     isCompleted: false,
                     category: scheduleItem.category,
-                    requiresPhoto: scheduleItem.category.lowercased().contains("sanitation")
+                    requiresPhoto: scheduleItem.requiresPhoto || mustPhotoByWorker
                 )
             }
             
@@ -2402,7 +2408,18 @@ public class WorkerDashboardViewModel: ObservableObject {
         locationManager.$location
             .receive(on: DispatchQueue.main)
             .sink { [weak self] location in
-                self?.clockInLocation = location
+                guard let self = self else { return }
+                self.clockInLocation = location
+                if let resolved = self.resolveCurrentBuilding() {
+                    self.currentBuilding = BuildingSummary(
+                        id: resolved.id,
+                        name: resolved.name,
+                        address: resolved.address,
+                        coordinate: CLLocationCoordinate2D(latitude: resolved.latitude, longitude: resolved.longitude),
+                        status: .current,
+                        todayTaskCount: self.todaysTasks.filter { $0.buildingId == resolved.id }.count
+                    )
+                }
             }
             .store(in: &cancellables)
     }
@@ -2426,7 +2443,13 @@ public class WorkerDashboardViewModel: ObservableObject {
             if assignedBuildings.contains(where: { $0.id == update.buildingId }) {
                 Task { await refreshData() }
             }
-            
+        case .taskCompleted where update.workerId == currentWorkerId:
+            Task { await refreshData() }
+        case .criticalUpdate where update.workerId == currentWorkerId:
+            Task { await refreshData() }
+        case .workerPhotoUploaded where update.workerId == currentWorkerId:
+            Task { await refreshData() }
+        
         default:
             break
         }

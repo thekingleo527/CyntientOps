@@ -232,6 +232,7 @@ public class PhotoEvidenceService: ObservableObject {
     }
     
     private func savePhotoToDatabase(_ photo: CoreTypes.ProcessedPhoto) async throws {
+        // Insert into compatibility table used by dashboard UIs
         try await database.execute("""
             INSERT INTO photos (id, building_id, category, worker_id, timestamp, file_path, thumbnail_path, file_size, notes, retention_days)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -240,12 +241,26 @@ public class PhotoEvidenceService: ObservableObject {
             photo.buildingId,
             photo.category,
             photo.workerId,
-            photo.timestamp,
+            ISO8601DateFormatter().string(from: photo.timestamp),
             photo.filePath,
             photo.thumbnailPath,
             photo.fileSize,
             photo.notes,
             photo.retentionDays
+        ])
+
+        // Also insert into canonical photo_evidence for compliance/history
+        try await database.execute("""
+            INSERT OR IGNORE INTO photo_evidence (
+                id, completion_id, task_id, worker_id, local_path, thumbnail_path, remote_url, file_size, mime_type, metadata, uploaded_at, created_at
+            ) VALUES (?, NULL, NULL, ?, ?, ?, NULL, ?, 'image/jpeg', NULL, ?, datetime('now'))
+        """, [
+            photo.id,
+            photo.workerId,
+            photo.filePath,
+            photo.thumbnailPath,
+            photo.fileSize,
+            ISO8601DateFormatter().string(from: photo.timestamp)
         ])
     }
     

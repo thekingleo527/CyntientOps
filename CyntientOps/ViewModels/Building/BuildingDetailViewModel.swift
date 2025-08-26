@@ -362,7 +362,7 @@ public class BuildingDetailViewModel: ObservableObject {
     // Raw NYC API compliance data for building detail cards
     @Published var rawHPDViolations: [HPDViolation] = []
     @Published var rawDOBPermits: [DOBPermit] = []
-    @Published var rawDSNYSchedule: [DSNYSchedule] = []
+    @Published var rawDSNYSchedule: [DSNYRoute] = []
     @Published var rawDSNYViolations: [DSNYViolation] = []
     @Published var rawLL97Data: [LL97Emission] = []
     
@@ -375,6 +375,9 @@ public class BuildingDetailViewModel: ObservableObject {
     // Context data
     @Published var buildingTasks: [CoreTypes.ContextualTask] = []
     @Published var workerProfiles: [CoreTypes.WorkerProfile] = []
+    
+    // Building coordinate information
+    @Published var coordinate: CLLocationCoordinate2D = CLLocationCoordinate2D(latitude: 40.7589, longitude: -73.9851)
     
     // MARK: - Private Properties
     
@@ -1010,36 +1013,20 @@ public class BuildingDetailViewModel: ObservableObject {
     
     private func loadComplianceStatus() async {
         do {
-            // Get real NYC API compliance data
-            // Note: NYCAPIService should be accessed through container if available
+            // Use integration cache + compliance service accessors
             let complianceService = NYCComplianceService(database: container.database)
-            
-            // Sync compliance data for this building
             await complianceService.syncBuildingCompliance(building: CoreTypes.NamedCoordinate(
                 id: buildingId,
                 name: buildingName,
                 address: buildingAddress,
-                latitude: 0, // Will be populated from building service
-                longitude: 0 // Will be populated from building service
+                latitude: coordinate.latitude,
+                longitude: coordinate.longitude
             ))
-            
-            // Get NYC API service (uses NYC Open Data - production ready)
-            let nycAPI = NYCAPIService.shared
-            
-            // Get real HPD violations data
-            let hpdViolations = try await nycAPI.fetchHPDViolations(bin: buildingId)
-            
-            // Get real DOB permits data  
-            let dobPermits = try await nycAPI.fetchDOBPermits(bin: buildingId)
-            
-            // Get real DSNY violations data  
-            let dsnyViolations = try await nycAPI.fetchDSNYViolations(bin: buildingId)
-            
-            // Get real DSNY schedule data
-            let dsnySchedule = try await nycAPI.fetchDSNYSchedule(district: buildingId)
-            
-            // Get real LL97 emissions data
-            let ll97Data = try await nycAPI.fetchLL97Compliance(bbl: buildingId)
+            let hpdViolations = complianceService.getHPDViolations(for: buildingId)
+            let dobPermits = complianceService.getDOBPermits(for: buildingId)
+            let dsnyViolations = complianceService.getDSNYViolations(for: buildingId)
+            let dsnySchedule = complianceService.getDSNYSchedule(for: buildingId)
+            let ll97Data = complianceService.getLL97Emissions(for: buildingId)
             
             await MainActor.run {
                 // Set DSNY compliance based on real DSNY violations
@@ -1100,7 +1087,7 @@ public class BuildingDetailViewModel: ObservableObject {
                 // Store raw compliance data for building detail cards
                 self.rawHPDViolations = hpdViolations
                 self.rawDOBPermits = dobPermits
-                self.rawDSNYSchedule = [] // Will be loaded separately if needed
+                self.rawDSNYSchedule = dsnySchedule
                 self.rawDSNYViolations = dsnyViolations
                 self.rawLL97Data = ll97Data
             }

@@ -134,13 +134,24 @@ struct WorkerDashboardMainView: View {
             
             // Worker Intelligence Panel
             if isIntelligencePanelExpanded {
-                VStack {
-                    Text("Intelligence Panel")
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Intelligence")
                         .font(.headline)
                         .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-                    Text("AI insights and task recommendations")
-                        .font(.caption)
-                        .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                    if viewModel.insights.isEmpty {
+                        Text("No insights yet").font(.caption).foregroundColor(.gray)
+                    } else {
+                        ForEach(viewModel.insights) { insight in
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(insight.title).font(.subheadline).foregroundColor(.white)
+                                if let message = insight.message, !message.isEmpty {
+                                    Text(message).font(.caption).foregroundColor(.gray)
+                                }
+                            }
+                            .padding(.vertical, 4)
+                            Divider().background(Color.white.opacity(0.1))
+                        }
+                    }
                 }
                 .padding()
                 .cyntientOpsDarkCardBackground()
@@ -470,5 +481,4 @@ struct WorkerDashboardMainView: View {
         }
     }
 }
-
 

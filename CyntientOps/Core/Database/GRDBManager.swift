@@ -311,6 +311,24 @@ public final class GRDBManager {
                 FOREIGN KEY (worker_id) REFERENCES workers(id)
             )
         """)
+
+        // Compatibility: Photos table used by PhotoEvidenceService for building-level documentation
+        try db.execute(sql: """
+            CREATE TABLE IF NOT EXISTS photos (
+                id TEXT PRIMARY KEY,
+                building_id TEXT,
+                category TEXT,
+                worker_id TEXT,
+                timestamp TEXT,
+                file_path TEXT NOT NULL,
+                thumbnail_path TEXT,
+                file_size INTEGER,
+                notes TEXT,
+                retention_days INTEGER DEFAULT 30,
+                FOREIGN KEY (building_id) REFERENCES buildings(id),
+                FOREIGN KEY (worker_id) REFERENCES workers(id)
+            )
+        """)
         
         // Site departure logs (from paste.txt)
         try db.execute(sql: """
@@ -740,6 +758,11 @@ public final class GRDBManager {
         try db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_photo_evidence_completion ON photo_evidence(completion_id)")
         try db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_photo_evidence_task ON photo_evidence(task_id)")
         try db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_photo_evidence_upload ON photo_evidence(uploaded_at)")
+
+        // Photos table indexes
+        try db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_photos_building ON photos(building_id)")
+        try db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_photos_worker ON photos(worker_id)")
+        try db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_photos_timestamp ON photos(timestamp)")
         
         // Site departure log indexes
         try db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_departure_logs_worker_building ON site_departure_logs(worker_id, building_id, departed_at)")

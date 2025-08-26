@@ -13,174 +13,7 @@ import Sentry
 import GRDB
 import Combine
 
-// MARK: - DirectDataInitializer (Production Ready)
-
-@MainActor
-class DirectDataInitializer: ObservableObject {
-    // MARK: - Published Properties
-    @Published var isInitialized = false
-    @Published var isInitializing = false
-    @Published var progress: Double = 0.0
-    @Published var statusMessage = "Starting initialization..."
-    @Published var error: Error?
-    
-    // MARK: - Core Services  
-    private let database: GRDBManager
-    private let operationalDataManager: OperationalDataManager
-    
-    init() {
-        self.database = GRDBManager.shared  // Keep these two for now due to initialization complexity
-        self.operationalDataManager = OperationalDataManager.shared
-    }
-    
-    // MARK: - Initialization Steps
-    private let initializationSteps = [
-        "Creating database schema...",
-        "Loading building data from OperationalDataManager...",
-        "Loading worker assignments...",
-        "Loading task templates...",
-        "Setting up user accounts...",
-        "Validating data integrity...",
-        "Initialization complete!"
-    ]
-    
-    private var currentStepIndex = 0
-    
-    // MARK: - Public Interface
-    func initializeIfNeeded() async throws {
-        guard !isInitialized && !isInitializing else { return }
-        
-        isInitializing = true
-        error = nil
-        currentStepIndex = 0
-        
-        defer { isInitializing = false }
-        
-        do {
-            // Step 1: Create database schema
-            await updateProgress(step: 0)
-            try await createDatabaseSchema()
-            
-            // Step 2: Load buildings from OperationalDataManager
-            await updateProgress(step: 1)
-            try await loadBuildingsFromOperationalData()
-            
-            // Step 3: Load worker assignments
-            await updateProgress(step: 2)
-            try await loadWorkerAssignments()
-            
-            // Step 4: Load task templates
-            await updateProgress(step: 3)
-            try await loadTaskTemplates()
-            
-            // Step 5: Set up user accounts
-            await updateProgress(step: 4)
-            try await setupUserAccounts()
-            
-            // Step 6: Validate data integrity
-            await updateProgress(step: 5)
-            try await validateDataIntegrity()
-            
-            // Step 7: Complete
-            await updateProgress(step: 6)
-            isInitialized = true
-            
-        } catch {
-            self.error = error
-            throw error
-        }
-    }
-    
-    // MARK: - Private Implementation
-    private func updateProgress(step: Int) async {
-        currentStepIndex = step
-        progress = Double(step) / Double(initializationSteps.count - 1)
-        statusMessage = initializationSteps[step]
-    }
-    
-    private func createDatabaseSchema() async throws {
-        // Essential tables only - simplified for production
-        try await database.execute("""
-                CREATE TABLE IF NOT EXISTS buildings (
-                    id TEXT PRIMARY KEY,
-                    name TEXT NOT NULL,
-                    address TEXT NOT NULL,
-                    latitude REAL,
-                    longitude REAL,
-                    created_at TEXT DEFAULT CURRENT_TIMESTAMP
-                )
-            """)
-            
-        try await database.execute("""
-                CREATE TABLE IF NOT EXISTS workers (
-                    id TEXT PRIMARY KEY,
-                    name TEXT NOT NULL,
-                    email TEXT,
-                    role TEXT NOT NULL,
-                    created_at TEXT DEFAULT CURRENT_TIMESTAMP
-                )
-            """)
-    }
-    
-    private func loadBuildingsFromOperationalData() async throws {
-        let canonicalBuildings = [
-            ("1", "112 West 18th Street", "112 West 18th Street, New York, NY", 40.7398, -73.9972),
-            ("14", "Rubin Museum", "150 West 17th Street, New York, NY", 40.7388, -73.9970),
-            ("6", "68 Perry Street", "68 Perry Street, New York, NY", 40.7355, -74.0045)
-        ]
-        
-        for (id, name, address, lat, lng) in canonicalBuildings {
-            try await database.execute("""
-                INSERT OR REPLACE INTO buildings (id, name, address, latitude, longitude)
-                VALUES (?, ?, ?, ?, ?)
-            """, [id, name, address, lat, lng])
-        }
-    }
-    
-    private func loadWorkerAssignments() async throws {
-        let workers = [
-            ("kevin.dutan", "Kevin Dutan", "kevin@franco.com", "worker"),
-            ("admin.user", "Admin User", "admin@franco.com", "admin"),
-            ("client.user", "Client User", "client@example.com", "client")
-        ]
-        
-        for (id, name, email, role) in workers {
-            try await database.execute("""
-                INSERT OR REPLACE INTO workers (id, name, email, role)
-                VALUES (?, ?, ?, ?)
-            """, [id, name, email, role])
-        }
-    }
-    
-    private func loadTaskTemplates() async throws {
-        // Simplified for production
-    }
-    
-    private func setupUserAccounts() async throws {
-        // Simplified for production
-    }
-    
-    private func validateDataIntegrity() async throws {
-        let buildingCount = try await database.query("SELECT COUNT(*) as count FROM buildings")
-        let workerCount = try await database.query("SELECT COUNT(*) as count FROM workers")
-        
-        guard let buildings = buildingCount.first?["count"] as? Int64, buildings > 0,
-              let workers = workerCount.first?["count"] as? Int64, workers > 0 else {
-            throw DirectDataInitializerError.dataIntegrityFailed("Missing data")
-        }
-    }
-}
-
-enum DirectDataInitializerError: LocalizedError {
-    case dataIntegrityFailed(String)
-    
-    var errorDescription: String? {
-        switch self {
-        case .dataIntegrityFailed(let message):
-            return "Data integrity failed: \(message)"
-        }
-    }
-}
+// Removed legacy DirectDataInitializer. DatabaseInitializer.shared is the single source of initialization.
 
 @main
 struct CyntientOpsApp: App {
@@ -191,7 +24,7 @@ struct CyntientOpsApp: App {
     @State private var serviceContainer: ServiceContainer?
     
     // Core Services (simplified)
-    @StateObject private var directDataInitializer = DirectDataInitializer()
+    @ObservedObject private var dbInitializer = DatabaseInitializer.shared
     @StateObject private var authManager = NewAuthManager.shared
     @ObservedObject private var session = CoreTypes.Session.shared
     @StateObject private var notificationManager = NotificationManager.shared
@@ -202,6 +35,9 @@ struct CyntientOpsApp: App {
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     @State private var showingSplash = true
     @State private var containerError: Error?
+    #if DEBUG
+    @State private var showingQuickLogin = false
+    #endif
     
     init() {
         // Initialize Sentry as the very first step of the app's lifecycle.
@@ -226,21 +62,22 @@ struct CyntientOpsApp: App {
                                 showingSplash = false
                             }
                         }
-                } else if !directDataInitializer.isInitialized {
-                    // Step 1: Handle the initial database creation and real data loading.
-                    DirectInitializationView()
-                        .environmentObject(directDataInitializer)
-                        .transition(.opacity)
-                        .onAppear {
-                            // Automatically start the initialization if it hasn't begun.
-                            if !directDataInitializer.isInitializing {
-                                Task {
-                                    try await directDataInitializer.initializeIfNeeded()
-                                    // After data init, create service container
-                                    await createServiceContainer()
-                                }
-                            }
+                } else if !dbInitializer.isInitialized {
+                    // Initialize database and services via DatabaseInitializer
+                    VStack(spacing: 12) {
+                        ProgressView("Initializing database…")
+                        Text(dbInitializer.currentStep)
+                            .foregroundColor(.secondary)
+                            .font(.caption)
+                    }
+                    .task {
+                        do {
+                            try await DatabaseInitializer.shared.initializeIfNeeded()
+                            await createServiceContainer()
+                        } catch {
+                            containerError = error
                         }
+                    }
                 } else if !hasCompletedOnboarding {
                     // Step 3: Show the onboarding flow for first-time users.
                     OnboardingView(onComplete: {
@@ -256,7 +93,7 @@ struct CyntientOpsApp: App {
                             .environmentObject(notificationManager)
                             .environmentObject(locationManager)
                             .environmentObject(contextEngine)
-                            .environmentObject(directDataInitializer)
+                            .environmentObject(dbInitializer)
                             .environmentObject(languageManager) // Language management
                             .environmentObject(container) // Phase 2: Service Container
                             .environmentObject(container.novaManager) // Nova AI from Container
@@ -279,30 +116,39 @@ struct CyntientOpsApp: App {
                     }
                 } else {
                     // Step 5: Ensure data is properly initialized before showing login
-                    if directDataInitializer.isInitialized {
+                    if dbInitializer.isInitialized {
                         // Data ready - show login (always English)
                         LoginView()
                             .environmentObject(authManager)
                             .environmentObject(languageManager) // Always English for login
                             .transition(.opacity)
-                    } else {
-                        // Data not ready - show initialization
-                        DirectInitializationView()
-                            .environmentObject(directDataInitializer)
-                            .transition(.opacity)
-                            .onAppear {
-                                if !directDataInitializer.isInitializing {
-                                    Task {
-                                        try await directDataInitializer.initializeIfNeeded()
-                                    }
+// DEBUG: QuickLoginView temporarily disabled - file not in Xcode project
+// TODO: Add QuickLoginView.swift to Xcode project to re-enable
+#if DEBUG && false
+                            .toolbar {
+                                ToolbarItem(placement: .topBarTrailing) {
+                                    Button("QuickLogin") { showingQuickLogin = true }
                                 }
                             }
+                            .sheet(isPresented: $showingQuickLogin) {
+                                QuickLoginView()
+                                    .environmentObject(authManager)
+                            }
+#endif
+                    } else {
+                        // Data not ready - show initialization
+                        VStack(spacing: 12) {
+                            ProgressView("Preparing data…")
+                            if let error = containerError {
+                                Text(error.localizedDescription).foregroundColor(.red)
+                            }
+                        }
                     }
                 }
             }
             // Animate transitions between the major app states for a smoother experience.
             .animation(.easeInOut(duration: 0.3), value: showingSplash)
-            .animation(.easeInOut(duration: 0.3), value: directDataInitializer.isInitialized)
+            .animation(.easeInOut(duration: 0.3), value: dbInitializer.isInitialized)
             .animation(.easeInOut(duration: 0.3), value: hasCompletedOnboarding)
             .animation(.easeInOut(duration: 0.3), value: authManager.isAuthenticated)
             .animation(.easeInOut(duration: 0.3), value: serviceContainer != nil)
@@ -403,7 +249,7 @@ struct CyntientOpsApp: App {
             scope.setTag(value: UIDevice.current.model, key: "device.model")
             scope.setTag(value: UIDevice.current.systemVersion, key: "ios.version")
             scope.setContext(value: [
-                "initialized": directDataInitializer.isInitialized,
+                "initialized": dbInitializer.isInitialized,
                 "onboardingCompleted": hasCompletedOnboarding,
                 "environment": "production"
             ], key: "app_state")
@@ -538,7 +384,7 @@ enum CrashReporter {
 // MARK: - DirectInitializationView (Moved here to resolve scope issues)
 
 struct DirectInitializationView: View {
-    @EnvironmentObject private var initializer: DirectDataInitializer
+    @EnvironmentObject private var initializer: DatabaseInitializer
     @State private var animateIcon = false
     
     var body: some View {
@@ -578,21 +424,21 @@ struct DirectInitializationView: View {
                     .foregroundColor(.white)
                 
                 // Status Message
-                Text(initializer.statusMessage)
+                Text(initializer.currentStep)
                     .font(.system(size: 18, weight: .medium))
                     .foregroundColor(.white.opacity(0.8))
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 40)
-                    .animation(.easeInOut(duration: 0.3), value: initializer.statusMessage)
+                    .animation(.easeInOut(duration: 0.3), value: initializer.currentStep)
                 
                 // Progress
                 VStack(spacing: 16) {
-                    ProgressView(value: initializer.progress, total: 1.0)
+                    ProgressView(value: initializer.initializationProgress, total: 1.0)
                         .progressViewStyle(LinearProgressViewStyle(tint: .cyan))
                         .scaleEffect(y: 2.0)
                         .padding(.horizontal, 60)
                     
-                    Text("\(Int(initializer.progress * 100))%")
+                    Text("\(Int(initializer.initializationProgress * 100))%")
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundColor(.cyan)
                 }

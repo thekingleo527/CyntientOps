@@ -252,9 +252,8 @@
 		231934452E42ECD600640977 /* TestRealDataIntegration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231934432E42ECD600640977 /* TestRealDataIntegration.swift */; };
 		231934482E42ED2600640977 /* CyntientOps-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 231934472E42ED2600640977 /* CyntientOps-Info.plist */; };
 		2319344A2E42ED3900640977 /* CyntientOpsApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231934492E42ED3900640977 /* CyntientOpsApp.swift */; };
-		236D4C852E568A4400AE9461 /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = 236D4C842E568A4400AE9461 /* GRDB */; };
-		236D4C882E568A5600AE9461 /* OpenMeteoSdk in Frameworks */ = {isa = PBXBuildFile; productRef = 236D4C872E568A5600AE9461 /* OpenMeteoSdk */; };
-		236D4C8B2E568ACF00AE9461 /* Sentry in Frameworks */ = {isa = PBXBuildFile; productRef = 236D4C8A2E568ACF00AE9461 /* Sentry */; };
+		234B500D2E5D440B00F57B6A /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = 234B500C2E5D440B00F57B6A /* GRDB */; };
+		234B50102E5D456F00F57B6A /* Sentry in Frameworks */ = {isa = PBXBuildFile; productRef = 234B500F2E5D456F00F57B6A /* Sentry */; };
 		23B211692E52D8A500481C3C /* ClientBuildingCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23B211672E52D8A500481C3C /* ClientBuildingCard.swift */; };
 		23B2116A2E52D8A500481C3C /* ClientBuildingGridSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23B211682E52D8A500481C3C /* ClientBuildingGridSection.swift */; };
 		23B2116C2E52FCEB00481C3C /* ClientDashboardPortfolioHeroCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23B2116B2E52FCEB00481C3C /* ClientDashboardPortfolioHeroCard.swift */; };
@@ -553,9 +552,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				236D4C852E568A4400AE9461 /* GRDB in Frameworks */,
-				236D4C882E568A5600AE9461 /* OpenMeteoSdk in Frameworks */,
-				236D4C8B2E568ACF00AE9461 /* Sentry in Frameworks */,
+				234B500D2E5D440B00F57B6A /* GRDB in Frameworks */,
+				234B50102E5D456F00F57B6A /* Sentry in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1411,9 +1409,8 @@
 			);
 			name = CyntientOps;
 			packageProductDependencies = (
-				236D4C842E568A4400AE9461 /* GRDB */,
-				236D4C872E568A5600AE9461 /* OpenMeteoSdk */,
-				236D4C8A2E568ACF00AE9461 /* Sentry */,
+				234B500C2E5D440B00F57B6A /* GRDB */,
+				234B500F2E5D456F00F57B6A /* Sentry */,
 			);
 			productName = CyntientOps;
 			productReference = 23E8FB0B2E42F96400F8771C /* CyntientOps.app */;
@@ -1494,9 +1491,9 @@
 			mainGroup = 232736DA2E2B8564004A52C6;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				236D4C832E568A4400AE9461 /* XCRemoteSwiftPackageReference "GRDB" */,
-				236D4C862E568A5600AE9461 /* XCRemoteSwiftPackageReference "sdk" */,
-				236D4C892E568ACF00AE9461 /* XCRemoteSwiftPackageReference "sentry-cocoa" */,
+				238F3A462E5D3DB90060F065 /* XCRemoteSwiftPackageReference "sdk" */,
+				234B500B2E5D440B00F57B6A /* XCRemoteSwiftPackageReference "GRDB" */,
+				234B500E2E5D456F00F57B6A /* XCRemoteSwiftPackageReference "sentry-cocoa" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 232736DA2E2B8564004A52C6;
@@ -2151,7 +2148,7 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		236D4C832E568A4400AE9461 /* XCRemoteSwiftPackageReference "GRDB" */ = {
+		234B500B2E5D440B00F57B6A /* XCRemoteSwiftPackageReference "GRDB" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/groue/GRDB.swift";
 			requirement = {
@@ -2159,15 +2156,7 @@
 				kind = branch;
 			};
 		};
-		236D4C862E568A5600AE9461 /* XCRemoteSwiftPackageReference "sdk" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/open-meteo/sdk";
-			requirement = {
-				branch = main;
-				kind = branch;
-			};
-		};
-		236D4C892E568ACF00AE9461 /* XCRemoteSwiftPackageReference "sentry-cocoa" */ = {
+		234B500E2E5D456F00F57B6A /* XCRemoteSwiftPackageReference "sentry-cocoa" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/getsentry/sentry-cocoa.git";
 			requirement = {
@@ -2175,22 +2164,25 @@
 				minimumVersion = 8.55.0;
 			};
 		};
+		238F3A462E5D3DB90060F065 /* XCRemoteSwiftPackageReference "sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/open-meteo/sdk";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		236D4C842E568A4400AE9461 /* GRDB */ = {
+		234B500C2E5D440B00F57B6A /* GRDB */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 236D4C832E568A4400AE9461 /* XCRemoteSwiftPackageReference "GRDB" */;
+			package = 234B500B2E5D440B00F57B6A /* XCRemoteSwiftPackageReference "GRDB" */;
 			productName = GRDB;
 		};
-		236D4C872E568A5600AE9461 /* OpenMeteoSdk */ = {
+		234B500F2E5D456F00F57B6A /* Sentry */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 236D4C862E568A5600AE9461 /* XCRemoteSwiftPackageReference "sdk" */;
-			productName = OpenMeteoSdk;
-		};
-		236D4C8A2E568ACF00AE9461 /* Sentry */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 236D4C892E568ACF00AE9461 /* XCRemoteSwiftPackageReference "sentry-cocoa" */;
+			package = 234B500E2E5D456F00F57B6A /* XCRemoteSwiftPackageReference "sentry-cocoa" */;
 			productName = Sentry;
 		};
 /* End XCSwiftPackageProductDependency section */

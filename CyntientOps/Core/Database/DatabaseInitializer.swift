@@ -362,12 +362,10 @@ public class DatabaseInitializer: ObservableObject {
         }
         
         if workerCount == 0 {
-            print("📝 Creating user accounts directly...")
-            
-            // Direct database insertion with SHA256 hashed passwords
-            try await createUserAccounts()
-            
-            print("✅ User accounts created successfully")
+            print("📝 Seeding user accounts via UserAccountSeeder...")
+            let seeder = UserAccountSeeder()
+            try await seeder.seedAccounts()
+            print("✅ User accounts created successfully (hashed + salted)")
         } else {
             print("✅ Workers already exist (\(workerCount) workers)")
         }

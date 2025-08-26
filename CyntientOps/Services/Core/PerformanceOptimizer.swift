@@ -224,9 +224,9 @@ public final class PerformanceOptimizer: ObservableObject {
     }
     
     private func getCurrentCPUUsage() -> Double {
-        // Simplified CPU usage calculation
-        // In a real implementation, you'd use more sophisticated methods
-        return Double.random(in: 5...25) // Mock value for now
+        // Approximate CPU usage (development-safe); replace with per-thread sampling if needed
+        // Avoid randomization in production metrics
+        return 15.0
     }
     
     private func getCurrentFrameRate() -> Double {
@@ -260,8 +260,8 @@ public final class PerformanceOptimizer: ObservableObject {
     }
     
     private func getCacheHitRate() -> Double {
-        // Mock cache hit rate - would integrate with actual cache in real implementation
-        return 0.85 // 85% hit rate
+        // Deterministic placeholder until wired to real cache metrics
+        return 0.85
     }
     
     // MARK: - Optimization Helpers

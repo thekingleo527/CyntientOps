@@ -148,46 +148,25 @@ public class NewAuthManager: ObservableObject {
                 print("❌ Invalid user data - missing password or ID")
                 throw NewAuthError.authenticationFailed("Invalid user data")
             }
-            
-            print("🔑 Stored password: '\(storedPasswordHash)'")
-            print("🔑 Provided password: '\(password)'")
-            print("🔑 Password length - stored: \(storedPasswordHash.count), provided: \(password.count)")
-            print("🔍 Checking password match...")
-            
-            // DEFINITIVE PASSWORD CHECK - Force reset to known passwords for debugging
-            let knownPasswords = [
-                "kevin.dutan@cyntientops.com": "KevinRubin2025!",
-                "David@jmrealty.org": "DavidClient2025!",
-                "shawn.magloire@cyntientops.com": "ShawnHVAC2025!",
-                "edwin.lema@cyntientops.com": "EdwinPark2025!",
-                "greg.hutson@cyntientops.com": "GregWorker2025!",
-                "luis.lopez@cyntientops.com": "LuisElizabeth2025!",
-                "mercedes.inamagua@cyntientops.com": "MercedesGlass2025!",
-                "angel.guiracocha@cyntientops.com": "AngelBuilding2025!"
-            ]
-            
-            if let expectedPassword = knownPasswords[email] {
-                if password == expectedPassword {
-                    print("✅ DEFINITIVE MATCH: Password verified against known credentials")
-                    // Force update database to ensure consistency
+            // Verify salted hash first; support legacy/plaintext migration to salted
+            var verified = false
+            if try await verifyPassword(password, hash: storedPasswordHash, for: email) {
+                verified = true
+            } else {
+                let legacyHash = hashPasswordLegacy(password)
+                if storedPasswordHash == legacyHash || storedPasswordHash == password {
+                    // migrate to salted hash
+                    let newHash = try await hashPassword(password, for: email)
                     try await grdbManager.execute(
                         "UPDATE workers SET password = ? WHERE id = ?",
-                        [password, workerId]
+                        [newHash, workerId]
                     )
-                } else {
-                    loginAttempts += 1
-                    print("❌ DEFINITIVE MISMATCH: Expected '\(expectedPassword)', got '\(password)'")
-                    throw NewAuthError.authenticationFailed("Invalid credentials")
+                    verified = true
                 }
-            } else {
-                // For unknown users, try existing logic
-                if storedPasswordHash == password {
-                    print("✅ Plain text password match")
-                } else {
-                    loginAttempts += 1
-                    print("❌ Password verification failed - unknown user")
-                    throw NewAuthError.authenticationFailed("Invalid credentials")
-                }
+            }
+            guard verified else {
+                loginAttempts += 1
+                throw NewAuthError.authenticationFailed("Invalid credentials")
             }
             
             // Create session

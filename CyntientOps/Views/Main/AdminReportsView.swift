@@ -17,10 +17,11 @@
 //  ✅ DARK ELEGANCE: Consistent theme
 //
 
+#if DEBUG
 import SwiftUI
 import Combine
 
-public struct AdminReportsView: View {
+public struct AdminReportsDebugView: View {
     // MARK: - Properties
     
     @StateObject private var reportGen = ReportGenerator.shared
@@ -903,7 +904,7 @@ public struct AdminReportsView: View {
                     reportGen.currentStep = "Preparing report data..."
                 }
                 
-                let report = await generateRealReport(config: config)
+                let report = try await generateRealReport(config: config)
                 
                 await MainActor.run {
                     isGenerating = false
@@ -924,7 +925,7 @@ public struct AdminReportsView: View {
         }
     }
     
-    private func generateRealReport(config: ReportConfiguration) async -> AdminGeneratedReport {
+    private func generateRealReport(config: ReportConfiguration) async throws -> AdminGeneratedReport {
         do {
             // Update progress
             await MainActor.run {
@@ -1089,6 +1090,7 @@ public struct AdminReportsView: View {
         }
     }
 }
+#endif
 
 // MARK: - Collapsible Reports Hero Wrapper
 
@@ -1352,7 +1354,7 @@ struct ReportsHeroStatusCard: View {
 // MARK: - Supporting Components
 
 struct ReportTypeChip: View {
-    let type: AdminReportsView.ReportType
+    let type: AdminReportsDebugView.ReportType
     let isSelected: Bool
     let onTap: () -> Void
     
@@ -1531,7 +1533,7 @@ struct TemplateCard: View {
 }
 
 struct EmptyReportsState: View {
-    let category: AdminReportsView.ReportCategory
+    let category: AdminReportsDebugView.ReportCategory
     
     var body: some View {
         VStack(spacing: 12) {
@@ -1551,7 +1553,7 @@ struct EmptyReportsState: View {
 struct FavoriteReportChip: View {
     let report: AdminGeneratedReport
     
-    private func reportType(for typeString: String) -> AdminReportsView.ReportType {
+    private func reportType(for typeString: String) -> AdminReportsDebugView.ReportType {
         switch typeString.lowercased() {
         case "portfolio", "comprehensive":
             return .comprehensive
@@ -1683,7 +1685,7 @@ struct ReportActionButtonStyle: ButtonStyle {
 
 struct ReportIntelligencePanel: View {
     let insights: [CoreTypes.IntelligenceInsight]
-    let displayMode: AdminReportsView.IntelPanelState
+    let displayMode: AdminReportsDebugView.IntelPanelState
     let onNavigate: (NavigationTarget) -> Void
     
     @EnvironmentObject private var novaEngine: NovaAIManager
@@ -1826,8 +1828,8 @@ struct ReportInsightCard: View {
 // MARK: - Sheet Views (Placeholder implementations)
 
 struct ReportBuilderSheet: View {
-    let reportType: AdminReportsView.ReportType
-    let dateRange: AdminReportsView.DateRange
+    let reportType: AdminReportsDebugView.ReportType
+    let dateRange: AdminReportsDebugView.DateRange
     let buildings: [CoreTypes.NamedCoordinate]
     let workers: [CoreTypes.WorkerProfile]
     let onGenerate: (ReportConfiguration) -> Void
@@ -2011,8 +2013,8 @@ public struct AdminGeneratedReport: Identifiable, Codable {
     
     // Computed properties for backward compatibility
     public var name: String { return title }
-    public var reportType: AdminReportsView.ReportType {
-        return AdminReportsView.ReportType(rawValue: type) ?? .operations
+    public var reportType: AdminReportsDebugView.ReportType {
+        return AdminReportsDebugView.ReportType(rawValue: type) ?? .operations
     }
     public var displayFileSize: String {
         let formatter = ByteCountFormatter()
@@ -2031,7 +2033,7 @@ enum AdminExportFormat: String, CaseIterable {
 struct ReportTemplate: Identifiable {
     let id = UUID().uuidString
     let name: String
-    let type: AdminReportsView.ReportType
+    let type: AdminReportsDebugView.ReportType
     let icon: String
     let color: Color
     let usageCount: Int
@@ -2041,7 +2043,7 @@ struct ReportTemplate: Identifiable {
 struct ReportSchedule: Identifiable {
     let id = UUID().uuidString
     let name: String
-    let type: AdminReportsView.ReportType
+    let type: AdminReportsDebugView.ReportType
     let frequency: Frequency
     let nextRun: Date
     var isEnabled: Bool
@@ -2064,7 +2066,7 @@ struct ReportSchedule: Identifiable {
 }
 
 struct ReportConfiguration {
-    let type: AdminReportsView.ReportType
+    let type: AdminReportsDebugView.ReportType
     let dateRange: DateInterval
     let includePhotos: Bool
     let format: AdminExportFormat
@@ -2133,6 +2135,6 @@ struct AdminReportsView_Previews: PreviewProvider {
     static var previews: some View {
         AdminReportsView()
             // .environmentObject(DashboardSyncService.shared) // TODO: Remove shared pattern
-            .preferredColorScheme(.dark)
+            .preferredColorScheme(ColorScheme.dark)
     }
 }

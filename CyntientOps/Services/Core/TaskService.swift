@@ -118,6 +118,38 @@ public actor TaskService {
                 ]
             )
             
+            // Persist completion record and link any provided photos
+            let completionId = UUID().uuidString
+            try await grdbManager.execute("""
+                INSERT INTO task_completions (
+                    id, task_id, worker_id, building_id, completion_time, notes, location_lat, location_lon, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, NULL, NULL, datetime('now'))
+            """, [
+                completionId,
+                taskId,
+                workerId,
+                await getBuildingIdForTask(taskId),
+                ISO8601DateFormatter().string(from: Date()),
+                evidence.description ?? ""
+            ])
+
+            if let urls = evidence.photoURLs, !urls.isEmpty {
+                for url in urls {
+                    try await grdbManager.execute("""
+                        INSERT OR IGNORE INTO photo_evidence (
+                            id, completion_id, task_id, worker_id, local_path, thumbnail_path, remote_url, file_size, mime_type, metadata, uploaded_at, created_at
+                        ) VALUES (?, ?, ?, ?, ?, NULL, NULL, 0, 'image/jpeg', NULL, ?, datetime('now'))
+                    """, [
+                        UUID().uuidString,
+                        completionId,
+                        taskId,
+                        workerId,
+                        URL(string: url)?.lastPathComponent ?? url,
+                        ISO8601DateFormatter().string(from: Date())
+                    ])
+                }
+            }
+
             // FIXED: Use single parameter call
             if let dashboardSync = dashboardSync {
                 await dashboardSync.broadcastWorkerUpdate(update)

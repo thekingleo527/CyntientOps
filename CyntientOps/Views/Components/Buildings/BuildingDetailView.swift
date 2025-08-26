@@ -35,6 +35,7 @@ struct BuildingDetailView: View {
     let buildingId: String
     let buildingName: String
     let buildingAddress: String
+    let container: ServiceContainer
     @StateObject private var viewModel: BuildingDetailViewModel
     @EnvironmentObject private var authManager: NewAuthManager
     @EnvironmentObject private var dashboardSync: DashboardSyncService
@@ -57,6 +58,7 @@ struct BuildingDetailView: View {
         self.buildingId = buildingId
         self.buildingName = buildingName
         self.buildingAddress = buildingAddress
+        self.container = container
         self._viewModel = StateObject(wrappedValue: BuildingDetailViewModel(
             container: container,
             buildingId: buildingId,
@@ -436,6 +438,7 @@ struct BuildingDetailView: View {
                     BuildingTasksTab(
                         buildingId: buildingId,
                         buildingName: buildingName,
+                        container: container,
                         viewModel: viewModel
                     )
                     
@@ -842,10 +845,10 @@ struct MaintenanceTaskRow: View {
     
     private func colorForTaskStatus(_ status: CoreTypes.TaskStatus) -> Color {
         switch status {
-        case .pending: return CyntientOpsDesign.DashboardColors.warning
-        case .inProgress: return CyntientOpsDesign.DashboardColors.info
+        case .pending, .waiting: return CyntientOpsDesign.DashboardColors.warning
+        case .inProgress, .paused: return CyntientOpsDesign.DashboardColors.info
         case .completed: return CyntientOpsDesign.DashboardColors.success
-        case .cancelled: return CyntientOpsDesign.DashboardColors.critical
+        case .cancelled, .overdue: return CyntientOpsDesign.DashboardColors.critical
         }
     }
 }
@@ -1657,9 +1660,9 @@ struct BuildingOverviewTab: View {
                 if let primaryContact = viewModel.primaryContact {
                     BuildingContactRow(
                         name: primaryContact.name,
-                        role: primaryContact.role ?? "Building Contact",
+                        role: primaryContact.role,
                         phone: primaryContact.phone,
-                        isEmergency: primaryContact.isEmergencyContact
+                        email: primaryContact.email
                     )
                 }
                 
@@ -1667,7 +1670,7 @@ struct BuildingOverviewTab: View {
                     name: "24/7 Emergency",
                     role: "Franco Response",
                     phone: "(212) 555-0911",
-                    isEmergency: true
+                    email: nil
                 )
             }
         }
@@ -1676,10 +1679,37 @@ struct BuildingOverviewTab: View {
     }
 }
 
+// MARK: - Supporting Sheet Views
+
+struct MaintenanceTaskDetailSheet: View {
+    let task: CoreTypes.MaintenanceTask
+    let buildingName: String
+    let container: ServiceContainer
+    @Environment(\.dismiss) private var dismiss
+    
+    var body: some View {
+        NavigationView {
+            MaintenanceTaskView(
+                task: task,
+                container: container
+            )
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Close") { dismiss() }
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryAction)
+                }
+            }
+        }
+        .preferredColorScheme(.dark)
+    }
+}
+
 // Tasks Tab
 struct BuildingTasksTab: View {
     let buildingId: String
     let buildingName: String
+    let container: ServiceContainer
     @ObservedObject var viewModel: BuildingDetailViewModel
     @State private var selectedTaskFilter: TaskFilter = .today
     @State private var selectedTask: CoreTypes.MaintenanceTask?
@@ -1719,7 +1749,7 @@ struct BuildingTasksTab: View {
                 .animatedGlassAppear(delay: 0.4)
         }
         .sheet(item: $selectedTask) { task in
-            MaintenanceTaskDetailSheet(task: task, buildingName: buildingName)
+            MaintenanceTaskDetailSheet(task: task, buildingName: buildingName, container: container)
         }
     }
     
@@ -1729,7 +1759,6 @@ struct BuildingTasksTab: View {
                 ForEach(TaskFilter.allCases, id: \.self) { filter in
                     BuildingFilterPill(
                         title: filter.rawValue,
-                        icon: filter.icon,
                         isSelected: selectedTaskFilter == filter,
                         action: { selectedTaskFilter = filter }
                     )
@@ -1802,9 +1831,7 @@ struct BuildingTasksTab: View {
             } else {
                 VStack(spacing: 12) {
                     ForEach(viewModel.maintenanceTasks) { task in
-                        MaintenanceTaskRow(task: task) {
-                            selectedTask = task
-                        }
+                        MaintenanceTaskRow(maintenanceTask: task)
                     }
                 }
             }
@@ -1832,19 +1859,19 @@ struct BuildingTasksTab: View {
                 ComplianceRow(
                     title: "DSNY Requirements",
                     status: viewModel.dsnyCompliance,
-                    nextAction: viewModel.nextDSNYAction
+                    action: viewModel.nextDSNYAction ?? "No action required"
                 )
                 
                 ComplianceRow(
                     title: "Fire Safety",
                     status: viewModel.fireSafetyCompliance,
-                    nextAction: viewModel.nextFireSafetyAction
+                    action: viewModel.nextFireSafetyAction ?? "No action required"
                 )
                 
                 ComplianceRow(
                     title: "Health Inspections",
                     status: viewModel.healthCompliance,
-                    nextAction: viewModel.nextHealthAction
+                    action: viewModel.nextHealthAction ?? "No action required"
                 )
             }
         }
@@ -1876,21 +1903,21 @@ struct BuildingWorkersTab: View {
             SummaryStatCard(
                 title: "Total Assigned",
                 value: "\(viewModel.assignedWorkers.count)",
-                icon: "person.3",
+                systemImage: "person.3",
                 color: CyntientOpsDesign.DashboardColors.info
             )
             
             SummaryStatCard(
                 title: "On-Site Now",
                 value: "\(viewModel.workersOnSite)",
-                icon: "location.fill",
+                systemImage: "location.fill",
                 color: CyntientOpsDesign.DashboardColors.success
             )
             
             SummaryStatCard(
                 title: "Avg Hours",
                 value: "\(viewModel.averageWorkerHours)h",
-                icon: "clock",
+                systemImage: "clock",
                 color: CyntientOpsDesign.DashboardColors.primaryAction
             )
         }
@@ -2032,7 +2059,6 @@ struct BuildingMaintenanceTab: View {
                     ForEach(MaintenanceFilter.allCases, id: \.self) { filter in
                         BuildingFilterPill(
                             title: filter.rawValue,
-                            icon: filter.icon,
                             isSelected: filterOption == filter,
                             action: { filterOption = filter }
                         )
@@ -2154,21 +2180,21 @@ struct BuildingInventoryTab: View {
             InventoryStatCard(
                 title: "Total Items",
                 value: "\(viewModel.totalInventoryItems)",
-                icon: "cube.box.fill",
+                change: "+12",
                 color: CyntientOpsDesign.DashboardColors.info
             )
             
             InventoryStatCard(
                 title: "Low Stock",
                 value: "\(viewModel.lowStockCount)",
-                icon: "exclamationmark.triangle.fill",
+                change: "-3",
                 color: CyntientOpsDesign.DashboardColors.warning
             )
             
             InventoryStatCard(
                 title: "Total Value",
                 value: viewModel.totalInventoryValue.formatted(.currency(code: "USD")),
-                icon: "dollarsign.circle.fill",
+                change: "+$2.5K",
                 color: CyntientOpsDesign.DashboardColors.success
             )
         }
@@ -2180,6 +2206,7 @@ struct BuildingInventoryTab: View {
                 ForEach(CoreTypes.InventoryCategory.allCases, id: \.self) { category in
                     BuildingInventoryCategoryButton(
                         category: category,
+                        count: viewModel.inventoryItems.filter { $0.category == category }.count,
                         isSelected: selectedCategory == category,
                         action: { selectedCategory = category }
                     )
@@ -2270,7 +2297,7 @@ struct BuildingSpacesTab: View {
     @ObservedObject var viewModel: BuildingDetailViewModel
     let onPhotoCapture: () -> Void
     @State private var searchText = ""
-    @State private var selectedSpace: SpaceAccess?
+    @State private var selectedSpace: BDSpaceAccess?
     
     var body: some View {
         VStack(spacing: 20) {
@@ -2291,7 +2318,6 @@ struct BuildingSpacesTab: View {
         .sheet(item: $selectedSpace) { space in
             SpaceDetailSheet(
                 space: space,
-                buildingName: buildingName,
                 onUpdate: { updatedSpace in
                     viewModel.updateSpace(updatedSpace)
                 }
@@ -2418,29 +2444,35 @@ struct BuildingEmergencyTab: View {
             
             VStack(spacing: 12) {
                 BuildingEmergencyContactRow(
-                    name: "24/7 Emergency Line",
-                    role: "Franco Response Team",
-                    phone: "(212) 555-0911",
-                    isPrimary: true,
-                    onCall: onCall
+                    contact: BuildingContact(
+                        name: "24/7 Emergency Line",
+                        role: "Franco Response Team",
+                        email: "emergency@cyntientops.com",
+                        phone: "(212) 555-0911",
+                        isEmergencyContact: true
+                    )
                 )
                 
                 if let buildingEmergency = viewModel.emergencyContact {
                     BuildingEmergencyContactRow(
-                        name: buildingEmergency.name,
-                        role: buildingEmergency.role,
-                        phone: buildingEmergency.phone ?? "N/A",
-                        isPrimary: false,
-                        onCall: onCall
+                        contact: BuildingContact(
+                            name: buildingEmergency.name,
+                            role: buildingEmergency.role,
+                            email: buildingEmergency.email,
+                            phone: buildingEmergency.phone,
+                            isEmergencyContact: buildingEmergency.isEmergencyContact
+                        )
                     )
                 }
                 
                 BuildingEmergencyContactRow(
-                    name: "Operations Manager",
-                    role: "David Rodriguez",
-                    phone: "(212) 555-0123",
-                    isPrimary: false,
-                    onCall: onCall
+                    contact: BuildingContact(
+                        name: "David Rodriguez",
+                        role: "Operations Manager",
+                        email: "david@cyntientops.com",
+                        phone: "(212) 555-0123",
+                        isEmergencyContact: true
+                    )
                 )
             }
         }
@@ -2476,38 +2508,17 @@ struct BuildingEmergencyTab: View {
             VStack(spacing: 12) {
                 BuildingProcedureRow(
                     title: "Fire Emergency",
-                    icon: "flame.fill",
-                    color: Color.red,
-                    steps: [
-                        "Pull fire alarm",
-                        "Evacuate via nearest exit",
-                        "Call 911",
-                        "Alert Franco Emergency Line"
-                    ]
+                    description: "Emergency evacuation procedures for fire incidents"
                 )
                 
                 BuildingProcedureRow(
                     title: "Medical Emergency",
-                    icon: "cross.circle.fill",
-                    color: .red,
-                    steps: [
-                        "Call 911 immediately",
-                        "Do not move injured person",
-                        "Alert building management",
-                        "Contact Franco Emergency"
-                    ]
+                    description: "Immediate response procedures for medical incidents"
                 )
                 
                 BuildingProcedureRow(
                     title: "Building Security",
-                    icon: "lock.shield.fill",
-                    color: .orange,
-                    steps: [
-                        "Report suspicious activity",
-                        "Contact building security",
-                        "Alert Franco Operations",
-                        "Document incident"
-                    ]
+                    description: "Security protocols and incident reporting procedures"
                 )
             }
         }
@@ -3655,30 +3666,6 @@ struct BuildingProcedureRow: View {
 
 // MARK: - Sheet Views
 
-struct MaintenanceTaskDetailSheet: View {
-    let task: CoreTypes.MaintenanceTask
-    let buildingName: String
-    let container: ServiceContainer
-    @Environment(\.dismiss) private var dismiss
-    
-    var body: some View {
-        NavigationView {
-            MaintenanceTaskView(
-                task: task,
-                container: container
-            )
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Close") { dismiss() }
-                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryAction)
-                }
-            }
-        }
-        .preferredColorScheme(.dark)
-    }
-}
-
 struct BuildingAddInventoryItemSheet: View {
     let buildingId: String
     let onComplete: (Bool) -> Void
@@ -3881,6 +3868,7 @@ typealias BDDailyRoutine = LocalDailyRoutine
 typealias BDAssignedWorker = AssignedWorker
 typealias BDSpaceAccess = SpaceAccess
 typealias BDAccessCode = AccessCode
+typealias BuildingContact = BDBuildingContact
 
 struct BuildingSanitationTab: View {
     let buildingId: String
@@ -4058,7 +4046,13 @@ struct BuildingSanitationTab: View {
             } else {
                 VStack(spacing: 12) {
                     ForEach(sanitationTasks) { routine in
-                        BDSanitationTaskRow(routine: routine) {
+                        BDSanitationTaskRow(routine: BDDailyRoutine(
+                            id: routine.id,
+                            title: routine.title,
+                            scheduledTime: routine.scheduledTime,
+                            isCompleted: routine.isCompleted,
+                            assignedWorker: routine.assignedWorker
+                        )) {
                             viewModel.toggleRoutineCompletion(routine)
                         }
                     }
@@ -4102,16 +4096,16 @@ struct BuildingSanitationTab: View {
                                         .font(.caption)
                                         .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                                     
-                                    Text("Issued: \(violation.issueDate.formatted(date: .abbreviated, time: .omitted))")
+                                    Text("Issued: \(violation.issueDate)")
                                         .font(.caption2)
                                         .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
                                 }
                                 
                                 Spacer()
                                 
-                                Text(violation.fineAmount > 0 ? "$\(Int(violation.fineAmount))" : "Pending")
+                                Text((violation.fineAmount ?? 0) > 0 ? "$\(Int(violation.fineAmount ?? 0))" : "Pending")
                                     .font(.caption)
-                                    .foregroundColor(violation.fineAmount > 0 ? CyntientOpsDesign.DashboardColors.critical : CyntientOpsDesign.DashboardColors.warning)
+                                    .foregroundColor((violation.fineAmount ?? 0) > 0 ? CyntientOpsDesign.DashboardColors.critical : CyntientOpsDesign.DashboardColors.warning)
                             }
                         }
                     }

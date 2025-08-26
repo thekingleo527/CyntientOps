@@ -396,7 +396,8 @@ public actor RouteOptimizer {
                 estimatedDeparture: departureTime,
                 taskDuration: taskDuration,
                 priority: taskAnalysis.priorities[building.id] ?? 3,
-                timeWindow: taskAnalysis.timeWindows[building.id]
+                timeWindow: taskAnalysis.timeWindows[building.id],
+                estimatedDistance: segmentDistance
             )
             
             waypoints.append(waypoint)
@@ -664,6 +665,7 @@ public struct RouteWaypoint {
     public let priority: Int
     // ✅ FIXED: The type `TimeWindow` is now public.
     public let timeWindow: TimeWindow?
+    public let estimatedDistance: Double?
     
     public var formattedArrival: String { DateFormatter.localizedString(from: estimatedArrival, dateStyle: .none, timeStyle: .short) }
 }

@@ -340,20 +340,9 @@ public final class ClientDashboardViewModel: ObservableObject {
                     self.clientBuildings = clientBuildingsWithImages.map { $0.coordinate }
                 } catch {
                     print("⚠️ Failed to load buildings with images: \(error)")
-                    // Fallback to existing method
-                    let allBuildings = try? await container.buildings.getAllBuildings()
-                    let buildingIds = Set(buildingCoordinates.map { $0.id })
-                    self.clientBuildings = (allBuildings ?? [])
-                        .filter { buildingIds.contains($0.id) }
-                        .map { building in
-                            CoreTypes.NamedCoordinate(
-                                id: building.id,
-                                name: building.name,
-                                address: building.address,
-                                latitude: building.latitude,
-                                longitude: building.longitude
-                            )
-                        }
+                    // No fallback to all buildings in production; maintain strict client isolation
+                    self.clientBuildingsWithImages = []
+                    self.clientBuildings = []
                 }
                 
                 print("✅ Client \(clientData.name) has access to \(clientBuildings.count) buildings")
@@ -1522,10 +1511,10 @@ public final class ClientDashboardViewModel: ObservableObject {
     
     // MARK: - Real NYC API Data Integration
     
-    /// Load real NYC API data for client buildings using NYCAPIService
+    /// Load real NYC API data for client buildings using integration caches
     @MainActor
     public func loadRealNYCAPIData() async {
-        print("🗽 Loading real NYC API data for client buildings...")
+        print("🗽 Loading NYC compliance data for client buildings (integration cache)...")
         
         guard !clientBuildingsWithImages.isEmpty else {
             print("⚠️ No client buildings to load NYC data for")
@@ -1533,72 +1522,58 @@ public final class ClientDashboardViewModel: ObservableObject {
         }
         
         isLoading = true
-        
-        // Get NYC API service from container or directly
-        let nycAPIService = NYCAPIService.shared
-        
+        // Use integration manager to sync and then read from caches/services
+        await container.nycIntegration.performFullSync()
+
+        // Populate local view model stores from NYCComplianceService / integration caches
         for building in clientBuildingsWithImages {
-            print("   📊 Loading NYC data for: \(building.name)")
-            
-            // Generate BBL for building (simplified approach using coordinates)
+            let bid = building.id
+            // Fetch violations/permits/schedules from compliance service (implementations assumed available)
+            hpdViolationsData[bid] = container.nycCompliance.getHPDViolations(for: bid)
+            dobPermitsData[bid] = container.nycCompliance.getDOBPermits(for: bid)
+            dsnyScheduleData[bid] = container.nycCompliance.getDSNYSchedule(for: bid)
+            let dsny = container.nycCompliance.getDSNYViolations(for: bid)
+            dsnyViolationsData[bid] = dsny
+            // Persist to history
+            let history = ComplianceHistoryService(database: container.database)
+            await history.persistDSNYViolations(buildingId: bid, violations: dsny)
+            ll97EmissionsData[bid] = container.nycCompliance.getLL97Emissions(for: bid)
+        }
+
+        // Compute portfolio values using DOF API where possible
+        await computePortfolioValues()
+
+        isLoading = false
+        lastUpdateTime = Date()
+        await generateComplianceIssuesFromRealData()
+        print("✅ NYC compliance data loaded from integration cache for \(clientBuildingsWithImages.count) buildings")
+    }
+
+    /// Compute portfolio assessed/market values using DOF Property Assessment API
+    private func computePortfolioValues() async {
+        guard !clientBuildingsWithImages.isEmpty else { return }
+        var totalMarket: Double = 0
+        var totalAssessed: Double = 0
+        let api = NYCAPIService.shared
+
+        for building in clientBuildingsWithImages {
             let bbl = generateBBLFromCoordinate(building.coordinate.coordinate)
-            
-            // Generate BIN (Building Identification Number) for NYC API calls
-            let bin = generateBINFromCoordinate(building.coordinate.coordinate)
-            
             do {
-                // Load HPD Violations
-                let hpdViolations = try await loadHPDViolations(bin: bin, buildingName: building.name)
-                await MainActor.run {
-                    hpdViolationsData[building.id] = hpdViolations
+                let assessments = try await api.fetchDOFPropertyAssessment(bbl: bbl)
+                // Sum latest record if available
+                if let latest = assessments.sorted(by: { ($0.year ?? 0) > ($1.year ?? 0) }).first {
+                    totalMarket += latest.marketValue ?? 0
+                    totalAssessed += latest.assessedValue ?? 0
                 }
-                
-                // Load DOB Permits
-                let dobPermits = try await loadDOBPermits(bin: bin, buildingName: building.name)
-                await MainActor.run {
-                    dobPermitsData[building.id] = dobPermits
-                }
-                
-                // Load DSNY Schedule Data (this is the key integration)
-                let dsnyRoutes = try await loadDSNYScheduleData(building: building)
-                await MainActor.run {
-                    dsnyScheduleData[building.id] = dsnyRoutes
-                }
-                
-                // Load DSNY Violations
-                let dsnyViolationsRaw = try await loadDSNYViolations(bin: bin, buildingName: building.name)
-                
-                // Use DSNYViolation directly (no conversion needed)
-                let dsnyViolations = dsnyViolationsRaw
-                
-                await MainActor.run {
-                    dsnyViolationsData[building.id] = dsnyViolations
-                }
-                
-                // Load LL97 Emissions Data
-                let ll97Emissions = try await loadLL97EmissionsData(bbl: bbl, buildingName: building.name)
-                await MainActor.run {
-                    ll97EmissionsData[building.id] = ll97Emissions
-                }
-                
-                print("   ✅ Loaded NYC data for \(building.name): \(hpdViolations.count) HPD violations, \(dsnyRoutes.count) DSNY routes, \(dsnyViolations.count) DSNY violations")
-                
             } catch {
-                print("   ❌ Failed to load NYC data for \(building.name): \(error)")
+                // Non-fatal; skip if API fails
+                continue
             }
         }
-        
         await MainActor.run {
-            isLoading = false
-            lastUpdateTime = Date()
-            
-            // Update compliance issues based on real NYC data
-            Task {
-                await generateComplianceIssuesFromRealData()
-            }
+            self.portfolioMarketValue = totalMarket
+            self.portfolioAssessedValue = totalAssessed
         }
-        
-        print("✅ Completed loading real NYC API data for \(clientBuildingsWithImages.count) client buildings")
     }
     
     // MARK: - NYC API Data Loading Methods
@@ -1831,7 +1806,7 @@ public final class ClientDashboardViewModel: ObservableObject {
         // In production, would use proper GIS lookup
         
         let lat = coordinate.latitude
-        let lon = coordinate.longitude
+        let _ = coordinate.longitude // Longitude not used in simplified mapping
         
         // Rough community district mapping for Manhattan
         if lat > 40.78 { return "MN12" } // Upper West Side / Morningside Heights

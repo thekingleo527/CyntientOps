@@ -374,6 +374,7 @@ public struct DOFPropertyAssessment: Codable, Identifiable {
     public let assessedValueTotal: Double?
     public let exemptionValue: Double?
     public let marketValue: Double?
+    public let assessmentYear: Int?
     
     private enum CodingKeys: String, CodingKey {
         case bbl = "bbl"
@@ -395,10 +396,15 @@ public struct DOFPropertyAssessment: Codable, Identifiable {
         case assessedValueTotal = "assessed_value_total"
         case exemptionValue = "exemption_value"
         case marketValue = "market_value"
+        case assessmentYear = "assessment_year"
     }
     
     public var estimatedValue: Double {
         return marketValue ?? assessedValueTotal ?? 0
+    }
+    
+    public var year: Int? {
+        return assessmentYear
     }
     
     public var propertyType: String {
@@ -426,6 +432,8 @@ public struct NYCBuildingCompliance: Codable {
     public let ll97Data: [LL97Emission]
     public let complaints311: [Complaint311]
     public let depWaterData: [DEPWaterUsage]
+    public let dsnySchedule: [DSNYRoute]
+    public let dsnyViolations: [DSNYViolation]
     
     // Computed Properties
     public var totalActiveViolations: Int {

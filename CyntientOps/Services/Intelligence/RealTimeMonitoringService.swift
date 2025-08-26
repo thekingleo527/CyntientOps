@@ -754,14 +754,14 @@ extension NovaAIManager {
     }
 }
 
-// Mock NYC Compliance Service extension for real-time data
+#if DEBUG
+// Mock NYC Compliance Service extension for development-only dashboards
 extension NYCComplianceService {
     func getRecentViolations(since: Date) async -> [MockViolation] {
-        // Mock implementation - in production this would be a real API call
         return [
             MockViolation(
                 id: UUID().uuidString,
-                buildingId: "14", // Rubin Museum
+                buildingId: "14",
                 source: "HPD",
                 description: "Heating system maintenance required",
                 severity: .medium,
@@ -771,7 +771,6 @@ extension NYCComplianceService {
     }
 }
 
-// Mock violation structure
 struct MockViolation {
     let id: String
     let buildingId: String
@@ -780,3 +779,4 @@ struct MockViolation {
     let severity: CoreTypes.ComplianceSeverity
     let reportedDate: Date
 }
+#endif

@@ -448,8 +448,19 @@ public class TaskDetailViewModel: ObservableObject {
     
     private func saveCompletionRecord(notes: String?, location: CLLocationCoordinate2D?) async {
         do {
+            // Avoid duplicate completion if TaskService already inserted one
+            let rows = try await grdbManager.query(
+                """
+                SELECT id, completion_time FROM task_completions
+                WHERE task_id = ? AND worker_id = ?
+                ORDER BY datetime(completion_time) DESC
+                LIMIT 1
+                """,
+                [taskId, taskWorkerId ?? ""]
+            )
+            if rows.first != nil { return }
+
             let completionId = UUID().uuidString
-            
             try await grdbManager.execute("""
                 INSERT INTO task_completions (id, task_id, worker_id, building_id, completion_time, notes, location_lat, location_lon, created_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -464,9 +475,7 @@ public class TaskDetailViewModel: ObservableObject {
                 location?.longitude as Any,
                 ISO8601DateFormatter().string(from: Date())
             ])
-            
             print("✅ Task completion recorded: \(completionId)")
-            
         } catch {
             print("❌ Failed to save completion record: \(error)")
         }
