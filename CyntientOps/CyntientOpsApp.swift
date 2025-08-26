@@ -28,7 +28,7 @@ struct CyntientOpsApp: App {
     @StateObject private var authManager = NewAuthManager.shared
     @ObservedObject private var session = CoreTypes.Session.shared
     @StateObject private var notificationManager = NotificationManager.shared
-    @StateObject private var memoryMonitor = MemoryPressureMonitor.shared
+    // @StateObject private var memoryMonitor = MemoryPressureMonitor.shared // Commented until added to Xcode project
     @StateObject private var contextEngine = WorkerContextEngine.shared
     private let locationManager = LocationManager.shared
     @StateObject private var languageManager = LanguageManager.shared
@@ -189,7 +189,7 @@ struct CyntientOpsApp: App {
             
             // Reduced sampling to improve performance during initialization
             options.tracesSampleRate = 0.05   // 5% sampling
-            options.profilesSampleRate = 0.02 // 2% profiling - critical reduction
+            options.profileOptions.sessionSampleRate = 0.02 // 2% profiling - updated API
             
             if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String,
                let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String {

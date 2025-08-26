@@ -166,10 +166,25 @@ public final class ServiceContainer: ObservableObject {
         WebSocketManager()
     }()
     
-    // MARK: - Layer 3: Unified Intelligence (LAZY)
-    public private(set) lazy var intelligence: UnifiedIntelligenceService = {
-        UnifiedIntelligenceService(database: database)
-    }()
+    // MARK: - Layer 3: Unified Intelligence (ASYNC INIT)
+    private var _intelligence: UnifiedIntelligenceService?
+    public var intelligence: UnifiedIntelligenceService {
+        get async throws {
+            if let existing = _intelligence {
+                return existing
+            }
+            let service = try await UnifiedIntelligenceService(
+                database: database,
+                workers: workers,
+                buildings: buildings,
+                tasks: tasks,
+                metrics: metrics,
+                compliance: compliance
+            )
+            _intelligence = service
+            return service
+        }
+    }
     
     public private(set) lazy var novaAPI: NovaAPIService = {
         NovaAPIService(
@@ -184,7 +199,7 @@ public final class ServiceContainer: ObservableObject {
     
     // MARK: - Layer 4: Context Engines (LAZY)
     public private(set) lazy var workerContext: WorkerContextEngine = {
-        WorkerContextEngine()
+        WorkerContextEngine.shared
     }()
     
     public private(set) lazy var adminContext: AdminContextEngine = {
@@ -209,7 +224,7 @@ public final class ServiceContainer: ObservableObject {
     }()
     
     public private(set) lazy var cache: CacheManager = {
-        CacheManager.shared
+        CacheManager()
     }()
     
     public private(set) lazy var nycIntegration: NYCIntegrationManager = {
@@ -221,7 +236,8 @@ public final class ServiceContainer: ObservableObject {
     }()
     // BBLGenerationService accessed directly as singleton to avoid compilation issues
     
-    // MARK: - Performance Monitoring
+    // MARK: - Performance Monitoring (Files need to be added to Xcode project)
+    /*
     public private(set) lazy var queryOptimizer: QueryOptimizer = {
         QueryOptimizer(database: database)
     }()
@@ -233,6 +249,7 @@ public final class ServiceContainer: ObservableObject {
     public private(set) lazy var memoryMonitor: MemoryPressureMonitor = {
         MemoryPressureMonitor.shared
     }()
+    */
     
     // NovaAIManager removed from this section - now properly owned above
     

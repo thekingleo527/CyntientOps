@@ -2080,6 +2080,8 @@ public class OperationalDataManager: ObservableObject {
     }
     
     public func initializeOperationalData() async throws {
+        // TODO: Re-enable memory pressure monitoring when utilities are added to Xcode project
+        /*
         // Check memory pressure before initialization
         let memoryMonitor = MemoryPressureMonitor.shared
         if memoryMonitor.shouldDisableFeature(.backgroundTasks) {
@@ -2089,6 +2091,7 @@ public class OperationalDataManager: ObservableObject {
             }
             return
         }
+        */
         
         guard !hasImported else {
             print("✅ Operational data already initialized")

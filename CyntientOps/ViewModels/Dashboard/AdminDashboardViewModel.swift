@@ -19,13 +19,13 @@ import MapKit
 class AdminDashboardViewModel: ObservableObject {
     
     // MARK: - Published Properties for Admin UI
-    @BatchedPublished var buildings: [CoreTypes.NamedCoordinate] = []
-    @BatchedPublished var workers: [CoreTypes.WorkerProfile] = []
+    @Published var buildings: [CoreTypes.NamedCoordinate] = []
+    @Published var workers: [CoreTypes.WorkerProfile] = []
     @Published var activeWorkers: [CoreTypes.WorkerProfile] = []
-    @BatchedPublished var tasks: [CoreTypes.ContextualTask] = []
+    @Published var tasks: [CoreTypes.ContextualTask] = []
     @Published var ongoingTasks: [CoreTypes.ContextualTask] = []
-    @BatchedPublished var buildingMetrics: [String: CoreTypes.BuildingMetrics] = [:]
-    @BatchedPublished var portfolioInsights: [CoreTypes.IntelligenceInsight] = []
+    @Published var buildingMetrics: [String: CoreTypes.BuildingMetrics] = [:]
+    @Published var portfolioInsights: [CoreTypes.IntelligenceInsight] = []
     
     // MARK: - Portfolio & Admin Properties  
     @Published var portfolioMetrics: CoreTypes.PortfolioMetrics = CoreTypes.PortfolioMetrics(

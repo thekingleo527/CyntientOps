@@ -15,7 +15,7 @@ struct BuildingDetailTabContainer: View {
     
     @State private var selectedTab = 0
     @State private var loadedTabs: Set<Int> = []
-    @StateObject private var memoryMonitor = MemoryPressureMonitor.shared
+    // @StateObject private var memoryMonitor = MemoryPressureMonitor.shared // Commented until added to Xcode project
     
     var body: some View {
         TabView(selection: $selectedTab) {
@@ -101,14 +101,17 @@ struct BuildingDetailTabContainer: View {
     private func loadTab(_ tabIndex: Int) {
         guard !loadedTabs.contains(tabIndex) else { return }
         
+        // TODO: Re-enable memory pressure monitoring when utilities are added to Xcode project
+        /*
         // Check memory pressure before loading heavy tabs
         if memoryMonitor.shouldDisableFeature(.heavyComputation) && tabIndex > 1 {
             print("⚠️ Skipping tab \(tabIndex) load due to memory pressure")
             return
         }
+        */
         
-        // Use TaskPoolManager for controlled loading
-        Task.pooled(priority: .userInitiated) {
+        // Small delay to ensure smooth animation
+        Task {
             try? await Task.sleep(for: .milliseconds(100))
             await MainActor.run {
                 self.loadedTabs.insert(tabIndex)
