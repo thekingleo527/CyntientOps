@@ -22,12 +22,6 @@ import Combine
 import GRDB
 import CoreLocation
 
-// MARK: - Admin Operational Intelligence Protocol
-public protocol AdminOperationalIntelligenceProtocol: ObservableObject {
-    func addWorkerNote(workerId: String, buildingId: String, noteText: String, category: String, photoEvidence: String?, location: String?) async
-    func logSupplyRequest(workerId: String, buildingId: String, requestNumber: String, items: String, priority: String, notes: String) async
-}
-
 // MARK: - Temporary alias until UserProfileService is properly added to Xcode project
 typealias UserProfileService = UserProfileServiceTemp
 
@@ -212,7 +206,7 @@ public final class ServiceContainer: ObservableObject {
     }()
     
     public private(set) lazy var novaManager: NovaAIManager = {
-        NovaAIManager.shared
+        NovaAIManager(novaAPIService: novaAPI)
     }()
     
     public private(set) lazy var commands: CommandChainManager = {
@@ -315,12 +309,9 @@ public final class ServiceContainer: ObservableObject {
     // MARK: - Service Access (All services are lazy-loaded)
     
     /// Provides access to admin intelligence with lazy initialization
-    // TODO: Add AdminOperationalIntelligence.swift to Xcode project target
-    /*
     public func getAdminIntelligence() -> AdminOperationalIntelligence {
         return AdminOperationalIntelligence(container: self, dashboardSync: dashboardSync)
     }
-    */
     
     // MARK: - Nova AI Integration
     
@@ -328,7 +319,7 @@ public final class ServiceContainer: ObservableObject {
     private func connectNovaToServices() async {
         do {
             let intelligence = try await self.intelligence
-            await intelligence.setNovaManager(novaManager)
+            intelligence.setNovaManager(novaManager)
         } catch {
             print("❌ Failed to connect Nova to intelligence services: \(error)")
         }
