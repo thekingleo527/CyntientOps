@@ -236,8 +236,7 @@ public final class ServiceContainer: ObservableObject {
     }()
     // BBLGenerationService accessed directly as singleton to avoid compilation issues
     
-    // MARK: - Performance Monitoring (Files need to be added to Xcode project)
-    /*
+    // MARK: - Performance Monitoring
     public private(set) lazy var queryOptimizer: QueryOptimizer = {
         QueryOptimizer(database: database)
     }()
@@ -249,7 +248,6 @@ public final class ServiceContainer: ObservableObject {
     public private(set) lazy var memoryMonitor: MemoryPressureMonitor = {
         MemoryPressureMonitor.shared
     }()
-    */
     
     // NovaAIManager removed from this section - now properly owned above
     

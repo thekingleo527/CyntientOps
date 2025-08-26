@@ -528,19 +528,19 @@ public class WorkerDashboardViewModel: ObservableObject {
     // Core User State
     @Published public private(set) var worker: CoreTypes.User?
     @Published public private(set) var currentBuilding: BuildingSummary?
-    @Published public private(set) var assignedBuildings: [BuildingSummary] = []
+    @BatchedPublished public private(set) var assignedBuildings: [BuildingSummary] = []
     @Published public private(set) var allBuildings: [BuildingSummary] = [] // For coverage purposes
-    @Published public private(set) var todaysTasks: [TaskItem] = []
-    @Published public private(set) var urgentTaskItems: [TaskItem] = []
+    @BatchedPublished public private(set) var todaysTasks: [TaskItem] = []
+    @BatchedPublished public private(set) var urgentTaskItems: [TaskItem] = []
     @Published public private(set) var scheduleWeek: [DaySchedule] = []
-    @Published public private(set) var performance: WorkerPerformance = WorkerPerformance()
+    @BatchedPublished public private(set) var performance: WorkerPerformance = WorkerPerformance()
     @Published public private(set) var weather: WeatherSnapshot?
     @Published public private(set) var isClockedIn: Bool = false
     @Published public var heroExpanded: Bool = true
     @Published public var novaTab: NovaTab = .priorities
     @Published public var ui: WorkerDashboardUIState = WorkerDashboardUIState()
     @Published public var intelligencePanelExpanded: Bool = false
-    @Published public private(set) var currentInsights: [CoreTypes.IntelligenceInsight] = []
+    @BatchedPublished public private(set) var currentInsights: [CoreTypes.IntelligenceInsight] = []
     
     // Legacy properties for compatibility
     @Published public private(set) var isLoading = false
@@ -2446,21 +2446,21 @@ public class WorkerDashboardViewModel: ObservableObject {
         
         switch update.type {
         case .taskStarted where update.workerId == currentWorkerId:
-            Task { await refreshData() }
+            Task.pooled { await self.refreshData() }
             
         case .buildingMetricsChanged:
-            Task { await loadBuildingMetrics() }
+            Task.pooled { await self.loadBuildingMetrics() }
             
         case .complianceStatusChanged:
             if assignedBuildings.contains(where: { $0.id == update.buildingId }) {
-                Task { await refreshData() }
+                Task.pooled { await self.refreshData() }
             }
         case .taskCompleted where update.workerId == currentWorkerId:
-            Task { await refreshData() }
+            Task.pooled { await self.refreshData() }
         case .criticalUpdate where update.workerId == currentWorkerId:
-            Task { await refreshData() }
+            Task.pooled { await self.refreshData() }
         case .workerPhotoUploaded where update.workerId == currentWorkerId:
-            Task { await refreshData() }
+            Task.pooled { await self.refreshData() }
         
         default:
             break
@@ -2479,7 +2479,7 @@ public class WorkerDashboardViewModel: ObservableObject {
         if update.type == .complianceStatusChanged,
            !update.buildingId.isEmpty,
            assignedBuildings.contains(where: { $0.id == update.buildingId }) {
-            Task { await refreshData() }
+            Task.pooled { await self.refreshData() }
         }
     }
     

@@ -259,6 +259,10 @@
 		23B2116A2E52D8A500481C3C /* ClientBuildingGridSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23B211682E52D8A500481C3C /* ClientBuildingGridSection.swift */; };
 		23B2116C2E52FCEB00481C3C /* ClientDashboardPortfolioHeroCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23B2116B2E52FCEB00481C3C /* ClientDashboardPortfolioHeroCard.swift */; };
 		23E8FB0F2E43436300F8771C /* AdminContextEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23E8FB0E2E43436300F8771C /* AdminContextEngine.swift */; };
+		23F82D522E5E4CB30097E7B1 /* MemoryPressureMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23F82D4F2E5E4CB30097E7B1 /* MemoryPressureMonitor.swift */; };
+		23F82D532E5E4CB30097E7B1 /* BatchedUIUpdater.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23F82D4E2E5E4CB30097E7B1 /* BatchedUIUpdater.swift */; };
+		23F82D542E5E4CB30097E7B1 /* TaskPoolManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23F82D512E5E4CB30097E7B1 /* TaskPoolManager.swift */; };
+		23F82D552E5E4CB30097E7B1 /* QueryOptimizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23F82D502E5E4CB30097E7B1 /* QueryOptimizer.swift */; };
 		23FAE4A92E51376E008AD66F /* ClientBulkAssignmentSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23FAE4A22E51376E008AD66F /* ClientBulkAssignmentSheet.swift */; };
 		23FAE4AA2E51376E008AD66F /* ClientCriticalAlertsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23FAE4A32E51376E008AD66F /* ClientCriticalAlertsSheet.swift */; };
 		23FAE4AB2E51376E008AD66F /* ClientWorkerDetailSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23FAE4A62E51376E008AD66F /* ClientWorkerDetailSheet.swift */; };
@@ -541,6 +545,10 @@
 		23E8FB0C2E42F96400F8771C /* CyntientOpsTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CyntientOpsTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		23E8FB0D2E42F96400F8771C /* CyntientOpsUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CyntientOpsUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		23E8FB0E2E43436300F8771C /* AdminContextEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdminContextEngine.swift; sourceTree = "<group>"; };
+		23F82D4E2E5E4CB30097E7B1 /* BatchedUIUpdater.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatchedUIUpdater.swift; sourceTree = "<group>"; };
+		23F82D4F2E5E4CB30097E7B1 /* MemoryPressureMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoryPressureMonitor.swift; sourceTree = "<group>"; };
+		23F82D502E5E4CB30097E7B1 /* QueryOptimizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QueryOptimizer.swift; sourceTree = "<group>"; };
+		23F82D512E5E4CB30097E7B1 /* TaskPoolManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskPoolManager.swift; sourceTree = "<group>"; };
 		23FAE4A12E51376E008AD66F /* ClientAISuggestionsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClientAISuggestionsSheet.swift; sourceTree = "<group>"; };
 		23FAE4A22E51376E008AD66F /* ClientBulkAssignmentSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClientBulkAssignmentSheet.swift; sourceTree = "<group>"; };
 		23FAE4A32E51376E008AD66F /* ClientCriticalAlertsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClientCriticalAlertsSheet.swift; sourceTree = "<group>"; };
@@ -808,6 +816,10 @@
 		2319328E2E42E9CD00640977 /* Core */ = {
 			isa = PBXGroup;
 			children = (
+				23F82D4E2E5E4CB30097E7B1 /* BatchedUIUpdater.swift */,
+				23F82D4F2E5E4CB30097E7B1 /* MemoryPressureMonitor.swift */,
+				23F82D502E5E4CB30097E7B1 /* QueryOptimizer.swift */,
+				23F82D512E5E4CB30097E7B1 /* TaskPoolManager.swift */,
 				2319327E2E42E9CD00640977 /* AuthenticationService.swift */,
 				2319327F2E42E9CD00640977 /* BuildingService.swift */,
 				231932802E42E9CD00640977 /* ClockInService.swift */,
@@ -1725,6 +1737,10 @@
 				23B2116C2E52FCEB00481C3C /* ClientDashboardPortfolioHeroCard.swift in Sources */,
 				231932492E42E91200640977 /* MaintenanceHistoryView.swift in Sources */,
 				2319324A2E42E91200640977 /* BuildingPhotoComponents.swift in Sources */,
+				23F82D522E5E4CB30097E7B1 /* MemoryPressureMonitor.swift in Sources */,
+				23F82D532E5E4CB30097E7B1 /* BatchedUIUpdater.swift in Sources */,
+				23F82D542E5E4CB30097E7B1 /* TaskPoolManager.swift in Sources */,
+				23F82D552E5E4CB30097E7B1 /* QueryOptimizer.swift in Sources */,
 				2319324B2E42E91200640977 /* ForgotPasswordView.swift in Sources */,
 				231932C52E42E9CD00640977 /* QuickBooksPayrollExporter.swift in Sources */,
 				231932C62E42E9CD00640977 /* DSNYMigrationOneShot.swift in Sources */,

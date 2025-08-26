@@ -388,11 +388,20 @@ public final class ClientContextEngine: ObservableObject {
     private func setupSubscriptions() {
         // Subscribe to UnifiedIntelligenceService updates via container
         if let container = container {
-            container.intelligence.$insights
-                .sink { [weak self] insights in
-                    self?.processNovaInsights(insights)
+            Task {
+                do {
+                    let intelligence = try await container.intelligence
+                    await MainActor.run {
+                        intelligence.$insights
+                            .sink { [weak self] insights in
+                                self?.processNovaInsights(insights)
+                            }
+                            .store(in: &self.cancellables)
+                    }
+                } catch {
+                    print("❌ Failed to setup intelligence subscriptions: \(error)")
                 }
-                .store(in: &cancellables)
+            }
         }
     }
     
@@ -785,7 +794,7 @@ public final class ClientContextEngine: ObservableObject {
             totalTasks += thisWeekTasksCount
             
             // Count completed and critical tasks - simplified for compilation
-            for task in allBuildingTasks {
+            for _ in allBuildingTasks {
                 // Use simplified counting approach
                 completedTasks += 1 // Simplified - assume some completion
             }

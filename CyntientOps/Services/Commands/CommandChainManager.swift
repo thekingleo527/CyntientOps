@@ -310,12 +310,14 @@ public final class CommandChainManager: ObservableObject {
         $chainHistory
             .debounce(for: .seconds(1), scheduler: DispatchQueue.main)
             .sink { [weak self] history in
-                self?.analyzeChainPerformance(history)
+                Task {
+                    await self?.analyzeChainPerformance(history)
+                }
             }
             .store(in: &cancellables)
     }
     
-    private func analyzeChainPerformance(_ history: [ChainExecution]) {
+    private func analyzeChainPerformance(_ history: [ChainExecution]) async {
         let recentExecutions = history.suffix(20)
         let successRate = Double(recentExecutions.filter { $0.status == .success }.count) / Double(recentExecutions.count)
         
@@ -324,7 +326,12 @@ public final class CommandChainManager: ObservableObject {
         }
         
         // Report to Nova AI for insights
-        container.intelligence.reportChainMetrics(successRate: successRate, recentExecutions: recentExecutions.count)
+        do {
+            let intelligence = try await container.intelligence
+            await intelligence.reportChainMetrics(successRate: successRate, recentExecutions: recentExecutions.count)
+        } catch {
+            print("❌ Failed to report chain metrics: \(error)")
+        }
     }
 }
 

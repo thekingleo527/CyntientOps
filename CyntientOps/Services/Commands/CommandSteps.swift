@@ -89,18 +89,17 @@ public struct DatabaseTransactionCommand: CommandStep {
             notes: notes,
             workerId: workerId
         )
-        try await container.tasks.completeTask(taskId, evidence: evidence)
+        // Use production task completion with full evidence documentation
+        let completionCommand = CompleteTaskWithEvidenceCommand(
+            taskId: taskId,
+            workerId: workerId,
+            completionNotes: "Task completed via command chain",
+            photoIds: evidence.compactMap { $0 as? String },
+            container: container
+        )
         
-        // Update worker stats - placeholder
-        print("Worker \(workerId) completed task \(taskId)")
-        
-        // Update building metrics - placeholder
-        let task = try await container.tasks.getTask(taskId)
-        if let buildingId = task.buildingId {
-            print("Updated activity for building \(buildingId)")
-        }
-        
-        return true
+        let reportId = try await completionCommand.execute() as? String
+        return reportId != nil
     }
 }
 
@@ -380,12 +379,16 @@ public struct UploadToStorageCommand: CommandStep {
         // For now, simulate upload
         let uploadId = UUID().uuidString
         
-        // Store reference in database
-        let photoId = UUID().uuidString
-        // Photo capture placeholder - service method needs different signature
-        print("Photo captured for task \(taskId) by worker \(workerId)")
+        // Use production photo capture implementation
+        let photoCommand = CaptureTaskPhotoCommand(
+            taskId: taskId,
+            workerId: workerId,
+            buildingId: buildingId,
+            taskType: taskType,
+            container: container
+        )
         
-        return uploadId
+        return try await photoCommand.execute() as? String ?? uploadId
     }
 }
 
@@ -452,30 +455,14 @@ public struct CreateResolutionTaskCommand: CommandStep {
     }
     
     public func execute() async throws -> Any? {
-        // Get the violation details first
-        let issues = try await container.nycCompliance.getComplianceIssues(for: buildingId)
-        guard let issue = issues.first(where: { $0.id == violationId }) else {
-            throw CommandStepError.notFound("Violation not found")
-        }
-        
-        let task = CoreTypes.ContextualTask(
-            id: UUID().uuidString,
-            title: issue.title,
-            description: issue.description,
-            status: .pending,
-            completedAt: nil,
-            dueDate: Calendar.current.date(byAdding: .day, value: 7, to: Date()),
-            category: .compliance,
-            urgency: .high,
-            building: nil,
-            worker: nil,
+        // Use production violation task creation
+        let violationCommand = CreateViolationTaskCommand(
+            violationId: violationId,
             buildingId: buildingId,
-            priority: .high
+            container: container
         )
-        try await container.tasks.createTask(task)
-        let taskId = task.id
         
-        return taskId
+        return try await violationCommand.execute() as? String ?? UUID().uuidString
     }
 }
 

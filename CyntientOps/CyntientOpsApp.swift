@@ -28,7 +28,7 @@ struct CyntientOpsApp: App {
     @StateObject private var authManager = NewAuthManager.shared
     @ObservedObject private var session = CoreTypes.Session.shared
     @StateObject private var notificationManager = NotificationManager.shared
-    // @StateObject private var memoryMonitor = MemoryPressureMonitor.shared // Commented until added to Xcode project
+    @StateObject private var memoryMonitor = MemoryPressureMonitor.shared
     @StateObject private var contextEngine = WorkerContextEngine.shared
     private let locationManager = LocationManager.shared
     @StateObject private var languageManager = LanguageManager.shared

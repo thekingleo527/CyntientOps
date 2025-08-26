@@ -16,24 +16,29 @@ import CoreLocation // Added for CLLocationCoordinate2D
 public actor TaskService {
     internal let grdbManager: GRDBManager
     private let dashboardSync: DashboardSyncService?
-    // private let queryOptimizer: QueryOptimizer // Commented until added to Xcode project
+    private let queryOptimizer: QueryOptimizer
     
     public init(database: GRDBManager, dashboardSync: DashboardSyncService? = nil) {
         self.grdbManager = database
         self.dashboardSync = dashboardSync
-        // self.queryOptimizer = QueryOptimizer(database: database) // Commented until added to Xcode project
+        self.queryOptimizer = QueryOptimizer(database: database)
     }
     
     // MARK: - Public API Methods
     
     func getAllTasks() async throws -> [ContextualTask] {
-        let rows = try await grdbManager.query("""
-            SELECT t.*, w.name as worker_name, b.name as building_name
+        let rows = try await queryOptimizer.executeOptimized(
+            """
+            SELECT t.id, t.title, t.description, t.status, t.urgency,
+                   t.dueDate, t.scheduledDate, t.buildingId, t.workerId,
+                   w.name as worker_name, b.name as building_name
             FROM routine_tasks t
             LEFT JOIN workers w ON t.workerId = w.id
             LEFT JOIN buildings b ON t.buildingId = b.id
             ORDER BY t.scheduledDate
-        """)
+            """,
+            cacheKey: "all_tasks"
+        ) { row in row }
         
         return rows.compactMap { row in
             convertRowToContextualTask(row)
