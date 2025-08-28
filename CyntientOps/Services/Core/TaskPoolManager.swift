@@ -161,7 +161,7 @@ public final class TaskPoolManager {
 
 // MARK: - Convenience Extensions
 
-extension Task where Success == Void, Failure == Error {
+public enum TaskPool {
     /// Create a pooled task that respects concurrency limits
     public static func pooled(
         priority: Task.Priority = .medium,
@@ -171,9 +171,7 @@ extension Task where Success == Void, Failure == Error {
             await TaskPoolManager.shared.executeVoid(priority: priority, operation: operation)
         }
     }
-}
 
-extension Task where Failure == Error {
     /// Create a pooled task with return value
     public static func pooled<T>(
         priority: Task.Priority = .medium,
