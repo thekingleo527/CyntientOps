@@ -189,6 +189,17 @@ public final class NYCComplianceService: ObservableObject {
         complianceData[buildingId]?.ll97Data ?? []
     }
     
+    /// Approximate next LL97 reporting due date based on latest reporting year (due May 1 next year)
+    public func getLL97NextDueDate(buildingId: String) -> Date? {
+        let emissions = getLL97Emissions(for: buildingId)
+        guard let latestYearString = emissions.compactMap({ Int($0.reportingYear) }).max() else { return nil }
+        var comps = DateComponents()
+        comps.year = latestYearString + 1
+        comps.month = 5
+        comps.day = 1
+        return Calendar.current.date(from: comps)
+    }
+    
     /// Get compliance score for a building
     public func getComplianceScore(for buildingId: String) -> Double {
         guard let nycData = complianceData[buildingId] else { return 1.0 }

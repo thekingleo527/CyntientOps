@@ -819,6 +819,8 @@ class AdminDashboardViewModel: ObservableObject {
 
             // LL11 next due
             let ll11 = await container.nycCompliance.getLL11NextDueDate(buildingId: bid)
+            // LL97 next due (approx May 1 next year of latest reporting year)
+            let ll97Next = container.nycCompliance.getLL97NextDueDate(buildingId: bid)
 
             // LL97 status
             let ll97 = ll97EmissionsData[bid] ?? []
@@ -829,7 +831,7 @@ class AdminDashboardViewModel: ObservableObject {
             section.append("   Assessed: $\(Int(assessed).formatted()) | Market: $\(Int(market).formatted())")
             section.append("   DSNY Violations: \(dsny.count) total (\(dsnyActive) active)")
             section.append("   HPD Violations: \(hpd.count) \(nextCure != nil ? "| Next cure: \(nextCure!.formatted(date: .abbreviated, time: .omitted))" : "")")
-            section.append("   LL97 Non-Comp: \(ll97NonCompliant) | LL11 Next: \(ll11?.formatted(date: .abbreviated, time: .omitted) ?? "n/a")")
+            section.append("   LL97 Non-Comp: \(ll97NonCompliant) | LL97 Next: \(ll97Next?.formatted(date: .abbreviated, time: .omitted) ?? "n/a") | LL11 Next: \(ll11?.formatted(date: .abbreviated, time: .omitted) ?? "n/a")")
             lines.append(section.joined(separator: "\n"))
         }
         return lines.joined(separator: "\n\n")

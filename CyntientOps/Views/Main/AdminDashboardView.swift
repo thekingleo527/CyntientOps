@@ -32,6 +32,7 @@ public struct AdminDashboardView: View {
         case profile, buildings, buildingDetail(String), workers, compliance, analytics, reports, emergencies, settings
         case workerDetail(String), chat, map
         case exampleReport(String)
+        case verificationSummary
         
         var id: String {
             switch self {
@@ -48,6 +49,7 @@ public struct AdminDashboardView: View {
             case .chat: return "chat"
             case .map: return "map"
             case .exampleReport(let id): return "example-report-\(id)"
+            case .verificationSummary: return "verification-summary"
         }
     }
     }
@@ -471,7 +473,71 @@ struct AdminUrgentItem: View {
                 .padding()
             }
             .navigationTitle("Example Report")
+
+        case .verificationSummary:
+            VerificationSummarySheet(viewModel: viewModel)
+                .navigationTitle("Verification Summary")
         }
+    }
+}
+
+// MARK: - Verification Summary Sheet + Export
+
+import UniformTypeIdentifiers
+
+struct VerificationSummarySheet: View {
+    @ObservedObject var viewModel: AdminDashboardViewModel
+    @State private var summaryText: String = ""
+    @State private var isExporting = false
+    @State private var document: TextDocument = TextDocument(text: "")
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            ScrollView {
+                Text(summaryText)
+                    .font(.system(.body, design: .monospaced))
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                    .padding()
+                    .cyntientOpsDarkCardBackground(cornerRadius: 12)
+            }
+            HStack {
+                Button {
+                    UIPasteboard.general.string = summaryText
+                } label: {
+                    Label("Copy", systemImage: "doc.on.doc")
+                }
+                .buttonStyle(.bordered)
+
+                Button {
+                    document = TextDocument(text: summaryText)
+                    isExporting = true
+                } label: {
+                    Label("Export CSV", systemImage: "square.and.arrow.up")
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(CyntientOpsDesign.DashboardColors.adminAccent)
+            }
+        }
+        .padding()
+        .task {
+            summaryText = await viewModel.getPortfolioVerificationSummary(limit: 50)
+        }
+        .fileExporter(isPresented: , document: document, contentType: .commaSeparatedText, defaultFilename: "verification_summary") { _ in }
+    }
+}
+
+struct TextDocument: FileDocument {
+    static var readableContentTypes: [UTType] { [.plainText, .commaSeparatedText] }
+    var text: String
+    init(text: String) { self.text = text }
+    init(configuration: ReadConfiguration) throws {
+        if let data = configuration.file.regularFileContents, let s = String(data: data, encoding: .utf8) {
+            text = s
+        } else { text = "" }
+    }
+    func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
+        let data = Data(text.utf8)
+        return .init(regularFileWithContents: data)
     }
 }
 
@@ -1483,17 +1549,10 @@ struct AdminAnalyticsContent: View {
                 .buttonStyle(.bordered)
                 .tint(CyntientOpsDesign.DashboardColors.adminAccent)
                 
-                Button(action: {
-                    Task {
-                        // Build verification summary and present as a sheet
-                        if let first = try? await viewModel.getPortfolioVerificationSummary(limit: 8) {
-                            UIPasteboard.general.string = first
-                        }
-                    }
-                }) {
+                Button(action: { sheet = .verificationSummary }) {
                     HStack(spacing: 6) {
                         Image(systemName: "checkmark.seal")
-                        Text("Verification Summary → Pasteboard")
+                        Text("Verification Summary")
                     }
                 }
                 .buttonStyle(.bordered)
