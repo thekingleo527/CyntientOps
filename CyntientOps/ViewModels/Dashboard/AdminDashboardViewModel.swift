@@ -789,6 +789,51 @@ class AdminDashboardViewModel: ObservableObject {
             complianceTrendText = "flat vs prev \(daysWindow)d"
         }
     }
+
+    // MARK: - Verification Summary (Admin)
+    public func getPortfolioVerificationSummary(limit: Int = 5) async -> String {
+        var lines: [String] = []
+        lines.append("PORTFOLIO VERIFICATION SUMMARY (\(Date().formatted()))\n")
+        for building in buildings.prefix(limit) {
+            let bid = building.id
+
+            // Financials from property data (assessed value is what we need to confirm)
+            let assessed = propertyData[bid]?.financialData.assessedValue ?? 0
+            let market = propertyData[bid]?.financialData.marketValue ?? 0
+
+            // DSNY violations
+            let dsny = dsnyViolationsByBuilding[bid] ?? []
+            let dsnyActive = dsny.filter { $0.isActive }.count
+
+            // HPD cure dates (correct-by)
+            let hpd = hpdViolationsData[bid] ?? []
+            let dfISO = ISO8601DateFormatter()
+            let dfAlt = DateFormatter(); dfAlt.dateFormat = "yyyy-MM-dd"
+            let upcomingCures = hpd.compactMap { v -> Date? in
+                // Prefer newCorrectByDate then originalCorrectByDate
+                if let s = v.newCorrectByDate, let d = dfISO.date(from: s) ?? dfAlt.date(from: s) { return d }
+                if let s = v.originalCorrectByDate, let d = dfISO.date(from: s) ?? dfAlt.date(from: s) { return d }
+                return nil
+            }.filter { $0 >= Date() }.sorted()
+            let nextCure = upcomingCures.first
+
+            // LL11 next due
+            let ll11 = await container.nycCompliance.getLL11NextDueDate(buildingId: bid)
+
+            // LL97 status
+            let ll97 = ll97EmissionsData[bid] ?? []
+            let ll97NonCompliant = ll97.filter { !$0.isCompliant }.count
+
+            var section: [String] = []
+            section.append("🏢 \(building.name) — \(building.address)")
+            section.append("   Assessed: $\(Int(assessed).formatted()) | Market: $\(Int(market).formatted())")
+            section.append("   DSNY Violations: \(dsny.count) total (\(dsnyActive) active)")
+            section.append("   HPD Violations: \(hpd.count) \(nextCure != nil ? "| Next cure: \(nextCure!.formatted(date: .abbreviated, time: .omitted))" : "")")
+            section.append("   LL97 Non-Comp: \(ll97NonCompliant) | LL11 Next: \(ll11?.formatted(date: .abbreviated, time: .omitted) ?? "n/a")")
+            lines.append(section.joined(separator: "\n"))
+        }
+        return lines.joined(separator: "\n\n")
+    }
     
     
     /// Load all dashboard data including building info from NYC APIs

@@ -1482,6 +1482,22 @@ struct AdminAnalyticsContent: View {
                 }
                 .buttonStyle(.bordered)
                 .tint(CyntientOpsDesign.DashboardColors.adminAccent)
+                
+                Button(action: {
+                    Task {
+                        // Build verification summary and present as a sheet
+                        if let first = try? await viewModel.getPortfolioVerificationSummary(limit: 8) {
+                            UIPasteboard.general.string = first
+                        }
+                    }
+                }) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "checkmark.seal")
+                        Text("Verification Summary → Pasteboard")
+                    }
+                }
+                .buttonStyle(.bordered)
+                .tint(CyntientOpsDesign.DashboardColors.success)
             }
         }
     }

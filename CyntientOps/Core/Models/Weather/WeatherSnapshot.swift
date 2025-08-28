@@ -78,27 +78,22 @@ public extension WeatherSnapshot {
     private static func precipitationProbability(from condition: CoreTypes.WeatherCondition) -> Double {
         switch condition {
         case .sunny, .clear: return 0.0
-        case .cloudy, .partlyCloudy: return 0.1
+        case .cloudy: return 0.1
         case .overcast: return 0.2
-        case .lightRain: return 0.6
-        case .moderateRain: return 0.8
-        case .heavyRain: return 0.95
-        case .thunderstorm: return 0.9
-        case .snow: return 0.85
-        case .hail: return 0.7
-        case .fog: return 0.3
+        case .rain: return 0.8
+        case .storm: return 0.9
+        case .snow, .snowy: return 0.85
+        case .fog, .foggy: return 0.3
         case .windy: return 0.1
+        case .hot, .cold: return 0.0
         }
     }
     
     private static func precipitationIntensity(from condition: CoreTypes.WeatherCondition) -> Double? {
         switch condition {
-        case .lightRain: return 0.3
-        case .moderateRain: return 0.6
-        case .heavyRain: return 0.9
-        case .thunderstorm: return 0.8
-        case .snow: return 0.5
-        case .hail: return 0.4
+        case .rain: return 0.6
+        case .storm: return 0.9
+        case .snow, .snowy: return 0.5
         default: return nil
         }
     }
