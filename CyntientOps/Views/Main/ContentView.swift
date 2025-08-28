@@ -24,7 +24,7 @@ struct ContentView: View {
             // Main content with role-based routing
             Group {
                 switch authManager.userRole {
-                case .admin, .manager:
+                case .admin, .manager, .superAdmin:
                     // Admin and Manager share the same dashboard experience
                     AdminDashboardContainerView()
                         .transition(roleTransition)

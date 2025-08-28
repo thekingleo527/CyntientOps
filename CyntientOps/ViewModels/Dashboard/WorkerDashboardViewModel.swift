@@ -125,7 +125,7 @@ public class WorkerDashboardViewModel: ObservableObject {
         }
     }
     
-    public struct WeatherSnapshot {
+    public struct WorkerWeatherSnapshot {
         public let temperature: Int
         public let condition: String
         public let guidance: String
@@ -550,6 +550,7 @@ public class WorkerDashboardViewModel: ObservableObject {
     }
     @BatchedPublished public private(set) var performance: WorkerPerformance = WorkerPerformance()
     @Published public private(set) var weather: WeatherSnapshot?
+    @Published public private(set) var weatherBanner: WorkerWeatherSnapshot?
     @Published public private(set) var upcoming: [TaskRowVM] = []
     
     // MARK: - Route-Based Properties
@@ -1766,7 +1767,7 @@ public class WorkerDashboardViewModel: ObservableObject {
                     condition: condition
                 )
                 
-                weather = WeatherSnapshot(
+                weatherBanner = WorkerWeatherSnapshot(
                     temperature: Int(currentWeather.temperature),
                     condition: currentWeather.condition.rawValue.capitalized,
                     guidance: generateGeneralWeatherGuidance(condition: condition),
@@ -1790,7 +1791,7 @@ public class WorkerDashboardViewModel: ObservableObject {
             condition: .clear
         )
         
-        weather = WeatherSnapshot(
+        weatherBanner = WorkerWeatherSnapshot(
             temperature: 72,
             condition: "Clear",
             guidance: "Good conditions for outdoor work",
@@ -2668,8 +2669,8 @@ public class WorkerDashboardViewModel: ObservableObject {
                     buildingContext: sequence.buildingName,
                     weatherContext: operation.isWeatherSensitive ? 
                         "Weather-sensitive: \(operation.location.rawValue)" : nil,
-                    urgencyLevel: .normal,
-                    estimatedDuration: Int(operation.estimatedDuration / 60)
+                    urgency: .normal,
+                    estimatedDuration: operation.estimatedDuration
                 )
                 
                 contextualTasks.append(contextualTask)
@@ -2684,7 +2685,7 @@ public class WorkerDashboardViewModel: ObservableObject {
         case .sweeping, .hosing, .vacuuming, .mopping, .posterRemoval, .treepitCleaning:
             return .cleaning
         case .trashCollection, .binManagement, .dsnySetout:
-            return .operations
+            return .sanitation
         case .maintenance:
             return .maintenance
         case .buildingInspection:
@@ -2752,21 +2753,21 @@ public class WorkerDashboardViewModel: ObservableObject {
         
         switch update.type {
         case .taskStarted where update.workerId == currentWorkerId:
-            Task.pooled { await self.refreshData() }
+            TaskPool.pooled { await self.refreshData() }
             
         case .buildingMetricsChanged:
-            Task.pooled { await self.loadBuildingMetrics() }
+            TaskPool.pooled { await self.loadBuildingMetrics() }
             
         case .complianceStatusChanged:
             if assignedBuildings.contains(where: { $0.id == update.buildingId }) {
-                Task.pooled { await self.refreshData() }
+                TaskPool.pooled { await self.refreshData() }
             }
         case .taskCompleted where update.workerId == currentWorkerId:
-            Task.pooled { await self.refreshData() }
+            TaskPool.pooled { await self.refreshData() }
         case .criticalUpdate where update.workerId == currentWorkerId:
-            Task.pooled { await self.refreshData() }
+            TaskPool.pooled { await self.refreshData() }
         case .workerPhotoUploaded where update.workerId == currentWorkerId:
-            Task.pooled { await self.refreshData() }
+            TaskPool.pooled { await self.refreshData() }
         
         default:
             break

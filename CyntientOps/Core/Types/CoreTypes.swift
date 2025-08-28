@@ -3562,6 +3562,15 @@ public struct WorkerPerformance: Codable, Identifiable {
                 CoreTypes.DateUtils.window(hours: hours)
             }
         }
+
+        // MARK: - Bridged Helpers (to Core/Utils/DateUtils)
+        public static func weekday(for date: Date) -> Int {
+            DateUtils.weekday(for: date)
+        }
+        public static func toLocal(_ utcDate: Date) -> Date {
+            DateUtils.toLocal(utcDate)
+        }
+        public static var tomorrowRange: ClosedRange<Date> { DateUtils.tomorrowRange }
     }
 
 } // END of CoreTypes namespace

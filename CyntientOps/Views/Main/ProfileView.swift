@@ -27,7 +27,7 @@ struct ProfileView: View {
     // Determine user's dashboard role for theming
     private var dashboardRole: DashboardRole {
         switch authManager.userRole {
-        case .admin, .manager: return .admin
+        case .admin, .manager, .superAdmin: return .admin
         case .client: return .client
         case .worker, .none: return .worker
         }
