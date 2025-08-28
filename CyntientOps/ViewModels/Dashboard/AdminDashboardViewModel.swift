@@ -55,6 +55,8 @@ class AdminDashboardViewModel: ObservableObject {
     
     // Computed property for sync status - using CoreTypes.DashboardSyncStatus
     @Published var dashboardSyncStatus: CoreTypes.DashboardSyncStatus = .synced
+    @Published var historicalLoadMonths: Int = 6
+    @Published var historicalLoadedAt: Date?
     
     // MARK: - Convenience Data Properties
     @Published var hpdViolationsData: [String: [HPDViolation]] = [:]
@@ -715,11 +717,23 @@ class AdminDashboardViewModel: ObservableObject {
     /// Initialize the AdminDashboardViewModel
     func initialize() async {
         await loadDashboardData()
+        // Load 1-6 months of historical data for analytics/reporting
+        await loadHistoricalPortfolioData(months: historicalLoadMonths)
     }
     
     /// Refresh dashboard data (for pull-to-refresh)
     func refreshDashboardData() async {
         await loadDashboardData()
+        await loadHistoricalPortfolioData(months: historicalLoadMonths)
+    }
+
+    // MARK: - Historical Data Loading
+    @MainActor
+    private func loadHistoricalPortfolioData(months: Int) async {
+        print("🕰️ Loading \(months) months of historical data for analytics...")
+        await container.nycHistoricalData.loadHistoricalDataForAllBuildings(months: months)
+        historicalLoadedAt = Date()
+        print("✅ Historical data load complete for \(months) months")
     }
     
     

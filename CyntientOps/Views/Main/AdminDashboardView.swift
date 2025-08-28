@@ -31,6 +31,7 @@ public struct AdminDashboardView: View {
     enum AdminRoute: Identifiable {
         case profile, buildings, buildingDetail(String), workers, compliance, analytics, reports, emergencies, settings
         case workerDetail(String), chat, map
+        case exampleReport(String)
         
         var id: String {
             switch self {
@@ -46,8 +47,9 @@ public struct AdminDashboardView: View {
             case .workerDetail(let id): return "worker-\(id)"
             case .chat: return "chat"
             case .map: return "map"
-            }
+            case .exampleReport(let id): return "example-report-\(id)"
         }
+    }
     }
     
     // MARK: - Nova Intelligence Tabs (mirroring client)
@@ -73,6 +75,7 @@ public struct AdminDashboardView: View {
     @State private var sheet: AdminRoute?
     @State private var isPortfolioMapRevealed = false
     @State private var intelligencePanelExpanded = false
+    @State private var exampleReportText: String? = nil
     
     // MARK: - Body
     public var body: some View {
@@ -450,6 +453,24 @@ struct AdminUrgentItem: View {
         case .map:
             AdminPortfolioMapView(buildings: viewModel.buildings, workers: viewModel.workers)
                 .navigationTitle("Portfolio Map")
+        
+        case .exampleReport(let buildingId):
+            ScrollView {
+                VStack(alignment: .leading, spacing: 12) {
+                    if let report = viewModel.getDetailedPropertyReport(buildingId: buildingId) {
+                        Text(report)
+                            .font(.system(.body, design: .monospaced))
+                            .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                            .padding()
+                            .cyntientOpsDarkCardBackground(cornerRadius: 12)
+                    } else {
+                        Text("No report available")
+                            .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                    }
+                }
+                .padding()
+            }
+            .navigationTitle("Example Report")
         }
     }
 }
@@ -965,7 +986,14 @@ struct AdminNovaIntelligenceBar: View {
                             dobActive: viewModel.dobPermitsData.values.flatMap { $0 }.filter { !$0.isExpired }.count,
                             ll97NonCompliant: viewModel.ll97EmissionsData.values.flatMap { $0 }.filter { !$0.isCompliant }.count,
                             workersActive: viewModel.workersActive,
-                            workersTotal: viewModel.workersTotal
+                            workersTotal: viewModel.workersTotal,
+                            onExampleReport: {
+                                if let first = buildings.first,
+                                   let report = viewModel.getDetailedPropertyReport(buildingId: first.id) {
+                                    exampleReportText = report
+                                    sheet = .exampleReport(first.id)
+                                }
+                            }
                         )
                     }
                 }
@@ -1375,6 +1403,7 @@ struct AdminAnalyticsContent: View {
     let ll97NonCompliant: Int
     let workersActive: Int
     let workersTotal: Int
+    let onExampleReport: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -1438,6 +1467,19 @@ struct AdminAnalyticsContent: View {
                     trend: "",
                     color: workersActive > 0 ? CyntientOpsDesign.DashboardColors.success : CyntientOpsDesign.DashboardColors.warning
                 )
+            }
+
+            // Example report generator (first building)
+            HStack {
+                Spacer()
+                Button(action: onExampleReport) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "doc.text.magnifyingglass")
+                        Text("Example Building Report")
+                    }
+                }
+                .buttonStyle(.bordered)
+                .tint(CyntientOpsDesign.DashboardColors.adminAccent)
             }
         }
     }

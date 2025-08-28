@@ -49,8 +49,9 @@ public final class NYCHistoricalDataService: ObservableObject {
     
     // MARK: - Main Loading Method
     
-    /// Load one year of historical NYC data for all buildings in the portfolio
-    public func loadHistoricalDataForAllBuildings() async {
+    /// Load historical NYC data for all buildings in the portfolio
+    /// - Parameter months: number of months of history to load (default 12)
+    public func loadHistoricalDataForAllBuildings(months: Int = 12) async {
         print("🏛️ Starting comprehensive historical data load for all buildings...")
         
         isLoading = true
@@ -65,7 +66,7 @@ public final class NYCHistoricalDataService: ObservableObject {
         
         // Load data for each building with rate limiting
         for (index, building) in buildings.enumerated() {
-            await loadHistoricalDataForBuilding(building)
+            await loadHistoricalDataForBuilding(building, months: months)
             
             loadedBuildingsCount = index + 1
             loadingProgress = Double(loadedBuildingsCount) / Double(totalBuildingsCount)
@@ -82,11 +83,11 @@ public final class NYCHistoricalDataService: ObservableObject {
         print("✅ Historical data loading complete! Loaded data for \(loadedBuildingsCount) buildings")
     }
     
-    /// Load one year of historical data for a specific building
-    public func loadHistoricalDataForBuilding(_ building: NYCBuildingInfo) async {
+    /// Load historical data for a specific building
+    public func loadHistoricalDataForBuilding(_ building: NYCBuildingInfo, months: Int = 12) async {
         print("🏢 Loading historical data for: \(building.name)")
         
-        let startDate = Calendar.current.date(byAdding: .year, value: -1, to: Date()) ?? Date()
+        let startDate = Calendar.current.date(byAdding: .month, value: -months, to: Date()) ?? Date()
         let endDate = Date()
         
         var historicalData = BuildingHistoricalData(
