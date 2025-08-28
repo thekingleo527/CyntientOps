@@ -14,6 +14,7 @@ import MapKit
 
 enum WorkerIntelTab: String, CaseIterable {
     case operations = "Operations"
+    case tasks = "Tasks"
     case compliance = "Compliance"
     case performance = "Performance"
     case portfolio = "Portfolio"
@@ -53,6 +54,8 @@ struct WorkerIntelligencePanel: View {
                 switch selectedTab {
                 case .operations:
                     OperationsPanel(container: container, dashboardVM: dashboardVM)
+                case .tasks:
+                    TasksHistoryPanel(container: container)
                 case .compliance:
                     CompliancePanel(container: container, dashboardVM: dashboardVM)
                 case .performance:
@@ -106,6 +109,66 @@ struct WorkerIntelligencePanel: View {
             currentBuildingId = nil
         }
         showingPortfolioMap = true
+    }
+}
+
+private struct TasksHistoryPanel: View {
+    let container: ServiceContainer
+    @EnvironmentObject private var auth: NewAuthManager
+    @State private var recentTasks: [CoreTypes.ContextualTask] = []
+    @State private var isLoading = true
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Tasks & Maintenance History").font(.headline).foregroundColor(.white)
+            if isLoading {
+                ProgressView().tint(.white)
+            } else if recentTasks.isEmpty {
+                Text("No recent tasks").font(.caption).foregroundColor(.gray)
+            } else {
+                ForEach(recentTasks, id: \.id) { task in
+                    HStack(alignment: .top, spacing: 8) {
+                        Circle().fill(color(for: task.urgency)).frame(width: 8, height: 8)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(task.title).foregroundColor(.white).font(.subheadline)
+                            if let when = task.dueDate { Text(when, style: .date).font(.caption2).foregroundColor(.gray) }
+                            if let building = task.buildingName { Text(building).font(.caption2).foregroundColor(.gray) }
+                        }
+                        Spacer()
+                        if task.isCompleted { Image(systemName: "checkmark.circle.fill").foregroundColor(.green) }
+                    }
+                    .padding(.vertical, 4)
+                }
+            }
+        }
+        .task { await loadTasks() }
+    }
+
+    private func loadTasks() async {
+        guard let wid = auth.workerId else { isLoading = false; return }
+        do {
+            // Pull worker tasks; consider time filtering client-side for now
+            let tasks = try await container.tasks.getTasksForWorker(wid)
+            // Sort: most recent due/completed first
+            let sorted = tasks.sorted { (a, b) in
+                (a.dueDate ?? Date.distantPast) > (b.dueDate ?? Date.distantPast)
+            }
+            await MainActor.run {
+                self.recentTasks = Array(sorted.prefix(20))
+                self.isLoading = false
+            }
+        } catch {
+            await MainActor.run { self.isLoading = false }
+        }
+    }
+
+    private func color(for urgency: CoreTypes.TaskUrgency?) -> Color {
+        switch urgency ?? .normal {
+        case .low: return .green
+        case .medium, .normal: return .blue
+        case .high: return .orange
+        case .urgent, .critical, .emergency: return .red
+        }
     }
 }
 

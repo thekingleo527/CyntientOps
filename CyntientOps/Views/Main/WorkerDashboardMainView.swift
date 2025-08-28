@@ -154,6 +154,12 @@ struct WorkerDashboardMainView: View {
                     }
                 }
 
+                // Broadcast strip (thin, urgent-first)
+                BroadcastStrip()
+                    .environmentObject(dashboardSync)
+                    .padding(.horizontal)
+                    .padding(.bottom, 4)
+
                 // DSNY Bin Tasks (if any)
                 if !dsnyTasks.isEmpty {
                     VStack(alignment: .leading, spacing: 8) {
