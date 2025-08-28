@@ -33,7 +33,7 @@ public final class WeatherTriggeredTaskManager: ObservableObject {
     // MARK: - Weather Trigger Definitions
     
     public struct WeatherTrigger: Identifiable, Codable {
-        public let id = UUID()
+        public let id: UUID
         public let condition: WeatherCondition
         public let threshold: Double
         public let timeFrame: TimeFrame
@@ -65,8 +65,9 @@ public final class WeatherTriggeredTaskManager: ObservableObject {
             case low = "Low"
         }
         
-        public init(condition: WeatherCondition, threshold: Double, timeFrame: TimeFrame, 
+        public init(id: UUID = UUID(), condition: WeatherCondition, threshold: Double, timeFrame: TimeFrame, 
                     priority: Priority, triggeredTasks: [TaskTemplate]) {
+            self.id = id
             self.condition = condition
             self.threshold = threshold
             self.timeFrame = timeFrame
@@ -76,7 +77,7 @@ public final class WeatherTriggeredTaskManager: ObservableObject {
     }
     
     public struct TaskTemplate: Identifiable, Codable {
-        public let id = UUID()
+        public let id: UUID
         public let name: String
         public let assignedWorkerId: String
         public let buildingIds: [String]
@@ -87,10 +88,11 @@ public final class WeatherTriggeredTaskManager: ObservableObject {
         public let requiredEquipment: [String]
         public let mustCompleteWithin: TimeInterval // seconds from trigger
         
-        public init(name: String, assignedWorkerId: String, buildingIds: [String],
+        public init(id: UUID = UUID(), name: String, assignedWorkerId: String, buildingIds: [String],
                     category: OperationTask.TaskCategory, location: OperationTask.TaskLocation,
                     estimatedDuration: TimeInterval, instructions: String, 
                     requiredEquipment: [String] = [], mustCompleteWithin: TimeInterval) {
+            self.id = id
             self.name = name
             self.assignedWorkerId = assignedWorkerId
             self.buildingIds = buildingIds
@@ -104,7 +106,7 @@ public final class WeatherTriggeredTaskManager: ObservableObject {
     }
     
     public struct TriggeredTask: Identifiable, Codable {
-        public let id = UUID()
+        public let id: UUID
         public let template: TaskTemplate
         public let triggeredBy: WeatherTrigger.WeatherCondition
         public let triggeredAt: Date
@@ -122,9 +124,10 @@ public final class WeatherTriggeredTaskManager: ObservableObject {
             case cancelled = "Cancelled"
         }
         
-        public init(template: TaskTemplate, triggeredBy: WeatherTrigger.WeatherCondition,
+        public init(id: UUID = UUID(), template: TaskTemplate, triggeredBy: WeatherTrigger.WeatherCondition,
                     triggeredAt: Date, status: TaskStatus = .pending, 
                     completedAt: Date? = nil, notes: String? = nil) {
+            self.id = id
             self.template = template
             self.triggeredBy = triggeredBy
             self.triggeredAt = triggeredAt
@@ -164,10 +167,12 @@ public final class WeatherTriggeredTaskManager: ObservableObject {
             weatherAdapter.$currentWeather,
             weatherAdapter.$forecast
         )
-        .compactMap { current, forecast in
+        .compactMap { current, forecast -> (CoreTypes.WeatherData, [CoreTypes.WeatherData])? in
+            guard let current = current else { return nil }
             return (current, forecast)
         }
-        .sink { [weak self] current, forecast in
+        .sink { [weak self] value in
+            let (current, forecast) = value
             self?.evaluateWeatherTriggers(current: current, forecast: forecast)
         }
         .store(in: &cancellables)
@@ -358,16 +363,14 @@ public final class WeatherTriggeredTaskManager: ObservableObject {
     private func precipitationProbability(for condition: CoreTypes.WeatherCondition) -> Double {
         switch condition {
         case .sunny, .clear: return 0.0
-        case .cloudy, .partlyCloudy: return 0.1
+        case .cloudy: return 0.1
         case .overcast: return 0.2
-        case .lightRain: return 0.6
-        case .moderateRain: return 0.8
-        case .heavyRain: return 0.95
-        case .thunderstorm: return 0.9
-        case .snow: return 0.85
-        case .hail: return 0.7
-        case .fog: return 0.3
+        case .rain: return 0.8
+        case .storm: return 0.9
+        case .snow, .snowy: return 0.85
+        case .fog, .foggy: return 0.3
         case .windy: return 0.1
+        case .hot, .cold: return 0.0
         }
     }
     

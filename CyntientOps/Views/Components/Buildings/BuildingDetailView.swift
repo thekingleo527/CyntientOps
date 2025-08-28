@@ -4654,7 +4654,7 @@ struct RouteSequenceCard: View {
                         HStack(spacing: 12) {
                             Image(systemName: operationIcon(for: operation.category))
                                 .font(.system(size: 14))
-                                .foregroundColor(CyntientOpsDesign.DashboardColors.accentColor)
+                                .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryAction)
                                 .frame(width: 20)
                             
                             VStack(alignment: .leading, spacing: 2) {
@@ -4709,8 +4709,10 @@ struct RouteSequenceCard: View {
             return ("wrench.and.screwdriver.fill", .purple)
         case .inspection:
             return ("magnifyingglass", .cyan)
-        case .specialProject:
-            return ("hammer.fill", .red)
+        case .sanitation:
+            return ("trash.circle.fill", .orange)
+        case .operations:
+            return ("gearshape.fill", .gray)
         }
     }
     
