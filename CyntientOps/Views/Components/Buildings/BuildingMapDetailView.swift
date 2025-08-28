@@ -259,7 +259,7 @@ struct BuildingMapDetailView: View {
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                 }
-                .glassButton(style: .warning, size: .large)
+                .glassButton(style: .danger, size: .large)
                 .sheet(isPresented: $showClockOut) {
                     if let wid2 = NewAuthManager.shared.workerId {
                         NavigationView {
