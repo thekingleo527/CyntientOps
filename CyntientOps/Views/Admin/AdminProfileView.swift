@@ -76,33 +76,53 @@ public struct AdminProfileView: View {
                     .foregroundColor(.white)
             }
             
-            VStack(spacing: 4) {
-                Text("Shawn Magloire")
-                    .font(.title2)
-                    .fontWeight(.semibold)
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-                
-                Text("CyntientOps Administrator")
+        VStack(spacing: 4) {
+            Text("Shawn Magloire")
+                .font(.title2)
+                .fontWeight(.semibold)
+                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+
+            Text("CyntientOps Administrator")
+                .font(.caption)
+                .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+
+            // Admin Status Badge
+            HStack(spacing: 6) {
+                Circle()
+                    .fill(CyntientOpsDesign.DashboardColors.success)
+                    .frame(width: 8, height: 8)
+
+                Text("Administrator Active")
                     .font(.caption)
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
-                
-                // Admin Status Badge
+                    .fontWeight(.medium)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.success)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 4)
+            .background(CyntientOpsDesign.DashboardColors.success.opacity(0.1))
+            .cornerRadius(8)
+
+            // Contact details
+            VStack(spacing: 2) {
                 HStack(spacing: 6) {
-                    Circle()
-                        .fill(CyntientOpsDesign.DashboardColors.success)
-                        .frame(width: 8, height: 8)
-                    
-                    Text("Administrator Active")
+                    Image(systemName: "envelope.fill")
+                        .font(.caption2)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+                    Text(NewAuthManager.shared.currentUser?.email ?? "shawn@fme-llc.com")
                         .font(.caption)
-                        .fontWeight(.medium)
-                        .foregroundColor(CyntientOpsDesign.DashboardColors.success)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
                 }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 4)
-                .background(CyntientOpsDesign.DashboardColors.success.opacity(0.1))
-                .cornerRadius(8)
+                HStack(spacing: 6) {
+                    Image(systemName: "phone.fill")
+                        .font(.caption2)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+                    Text("917-731-1764")
+                        .font(.caption)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                }
             }
         }
+    }
     }
     
     private var adminStatsSection: some View {
@@ -203,12 +223,14 @@ public struct AdminProfileView: View {
                 .font(.headline)
                 .fontWeight(.semibold)
                 .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-            
+
             VStack(spacing: 8) {
                 AdminInfoRow(label: "App Version", value: "CyntientOps v6.0")
                 AdminInfoRow(label: "Database Status", value: viewModel.isSynced ? "Connected" : "Offline")
                 AdminInfoRow(label: "Last Sync", value: viewModel.lastSyncAt.formatted(date: .abbreviated, time: .shortened))
                 AdminInfoRow(label: "Admin Session", value: "Active since login")
+                AdminInfoRow(label: "Admin Email", value: NewAuthManager.shared.currentUser?.email ?? "shawn@fme-llc.com")
+                AdminInfoRow(label: "Admin Phone", value: "917-731-1764")
             }
         }
         .padding()

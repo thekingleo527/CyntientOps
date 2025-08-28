@@ -959,7 +959,13 @@ struct AdminNovaIntelligenceBar: View {
                     case .analytics:
                         AdminAnalyticsContent(
                             portfolioMetrics: portfolioMetrics,
-                            buildingCount: buildings.count
+                            buildingCount: buildings.count,
+                            hpdOpen: viewModel.hpdViolationsData.values.flatMap { $0 }.filter { $0.isActive }.count,
+                            dsnyOpen: viewModel.dsnyViolationsByBuilding.values.flatMap { $0 }.filter { $0.isActive }.count,
+                            dobActive: viewModel.dobPermitsData.values.flatMap { $0 }.filter { !$0.isExpired }.count,
+                            ll97NonCompliant: viewModel.ll97EmissionsData.values.flatMap { $0 }.filter { !$0.isCompliant }.count,
+                            workersActive: viewModel.workersActive,
+                            workersTotal: viewModel.workersTotal
                         )
                     }
                 }
@@ -1363,30 +1369,91 @@ struct AdminBuildingStatusTile: View {
 struct AdminAnalyticsContent: View {
     let portfolioMetrics: CoreTypes.PortfolioMetrics
     let buildingCount: Int
-    
+    let hpdOpen: Int
+    let dsnyOpen: Int
+    let dobActive: Int
+    let ll97NonCompliant: Int
+    let workersActive: Int
+    let workersTotal: Int
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Portfolio Performance")
                 .font(.caption)
                 .fontWeight(.semibold)
                 .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
-            
+
+            // Top KPIs
             HStack(spacing: 12) {
                 AdminAnalyticTile(
                     title: "Efficiency",
                     value: "\(Int(portfolioMetrics.overallCompletionRate * 100))%",
-                    trend: "+5%",
+                    trend: trendText(portfolioMetrics.overallCompletionRate),
                     color: CyntientOpsDesign.DashboardColors.success
                 )
-                
+
                 AdminAnalyticTile(
                     title: "Compliance",
-                    value: "\(Int(portfolioMetrics.complianceScore * 100))%",
-                    trend: "+2%",
+                    value: complianceValue,
+                    trend: "",
                     color: CyntientOpsDesign.DashboardColors.info
                 )
             }
+
+            // Compliance + Activity snapshots
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                AdminAnalyticTile(
+                    title: "HPD Open",
+                    value: String(hpdOpen),
+                    trend: "",
+                    color: hpdOpen > 0 ? CyntientOpsDesign.DashboardColors.warning : CyntientOpsDesign.DashboardColors.success
+                )
+                AdminAnalyticTile(
+                    title: "DSNY Open",
+                    value: String(dsnyOpen),
+                    trend: "",
+                    color: dsnyOpen > 0 ? CyntientOpsDesign.DashboardColors.warning : CyntientOpsDesign.DashboardColors.success
+                )
+                AdminAnalyticTile(
+                    title: "DOB Active",
+                    value: String(dobActive),
+                    trend: "",
+                    color: dobActive > 0 ? CyntientOpsDesign.DashboardColors.info : CyntientOpsDesign.DashboardColors.success
+                )
+                AdminAnalyticTile(
+                    title: "LL97 Non-Comp",
+                    value: String(ll97NonCompliant),
+                    trend: "",
+                    color: ll97NonCompliant > 0 ? CyntientOpsDesign.DashboardColors.warning : CyntientOpsDesign.DashboardColors.success
+                )
+                AdminAnalyticTile(
+                    title: "Buildings",
+                    value: String(buildingCount),
+                    trend: "",
+                    color: CyntientOpsDesign.DashboardColors.adminAccent
+                )
+                AdminAnalyticTile(
+                    title: "Workers Active",
+                    value: "\(workersActive)/\(workersTotal)",
+                    trend: "",
+                    color: workersActive > 0 ? CyntientOpsDesign.DashboardColors.success : CyntientOpsDesign.DashboardColors.warning
+                )
+            }
         }
+    }
+
+    private var complianceValue: String {
+        // portfolioMetrics.complianceScore may be 0-1 or 0-100 depending on source; normalize
+        if portfolioMetrics.complianceScore <= 1.0 {
+            return "\(Int(portfolioMetrics.complianceScore * 100))%"
+        } else {
+            return "\(Int(portfolioMetrics.complianceScore))%"
+        }
+    }
+
+    private func trendText(_ rate: Double) -> String {
+        // Placeholder for now; compute week-over-week deltas when available
+        return ""
     }
 }
 
