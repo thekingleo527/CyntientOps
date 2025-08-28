@@ -38,6 +38,7 @@ struct WorkerDashboardMainView: View {
     @State private var isIntelligencePanelExpanded = false
     @State private var showingVendorAccessSheet = false
     @State private var showingQuickNoteSheet = false
+    @State private var showingClockInSheet = false
     @State private var weatherSnapshot: WeatherSnapshot?
     @State private var dsnyTasks: [DSNYTask] = []
 
@@ -211,6 +212,16 @@ struct WorkerDashboardMainView: View {
         // Quick Actions (floating button)
         .overlay(alignment: .bottomTrailing) {
             Menu {
+                if container.clockIn.getClockInStatus(for: authManager.workerId ?? "") == nil {
+                    Button(action: { showingClockInSheet = true }) {
+                        Label("Clock In", systemImage: "clock.fill")
+                    }
+                } else {
+                    Button(role: .destructive, action: { Task { await handleQuickClockOut() } }) {
+                        Label("Clock Out", systemImage: "clock")
+                    }
+                }
+
                 Button(action: { showingVendorAccessSheet = true }) {
                     Label("Log Vendor Access", systemImage: "person.badge.key.fill")
                 }
@@ -263,6 +274,12 @@ struct WorkerDashboardMainView: View {
         .sheet(isPresented: $showingQuickNoteSheet) {
             QuickNoteSheet(viewModel: viewModel)
                 .presentationDetents([.medium, .large])
+        }
+        .sheet(isPresented: $showingClockInSheet) {
+            if let wid = authManager.workerId {
+                ClockInSheet(container: container, workerId: wid)
+                    .presentationDetents([.large])
+            }
         }
         .sheet(isPresented: $showingTaskDetail) {
             if let task = selectedTask {
@@ -482,7 +499,17 @@ struct WorkerDashboardMainView: View {
             )
         }
     }
-    
+
+    private func handleQuickClockOut() async {
+        guard let wid = authManager.workerId else { return }
+        do {
+            try await container.clockIn.clockOut(workerId: wid)
+        } catch {
+            // Show a lightweight error; can enhance with toast later
+            viewModel.errorMessage = error.localizedDescription
+        }
+    }
+
     // MARK: - Action Handlers
     
     private func handleClockIn() {
