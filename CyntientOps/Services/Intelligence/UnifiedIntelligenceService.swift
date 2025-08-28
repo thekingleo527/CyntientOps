@@ -137,7 +137,7 @@ public final class UnifiedIntelligenceService: ObservableObject {
                 $0.category == .weather ||
                 $0.category == .safety
             }
-        case .admin, .manager:
+        case .admin, .manager, .superAdmin:
             return insights // Admin/Manager sees all
         case .client:
             return insights.filter {
@@ -145,6 +145,8 @@ public final class UnifiedIntelligenceService: ObservableObject {
                 $0.category == .cost ||
                 $0.category == .performance
             }
+        @unknown default:
+            return insights
         }
     }
     
@@ -745,10 +747,12 @@ private class FeatureEngine {
         switch role {
         case .worker:
             return [.taskManagement, .clockInOut, .photoEvidence]
-        case .manager, .admin:
+        case .manager, .admin, .superAdmin:
             return NovaAIFeature.allCases
         case .client:
             return [.analytics]
+        @unknown default:
+            return []
         }
     }
 }

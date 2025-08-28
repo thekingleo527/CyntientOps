@@ -54,6 +54,8 @@ struct WorkerHeaderV3B: View {
     let isNovaProcessing: Bool
     let onRoute: (WorkerHeaderRoute) -> Void
     
+    @EnvironmentObject private var container: ServiceContainer
+    @EnvironmentObject private var authManager: NewAuthManager
     @StateObject private var contextAdapter = WorkerContextEngineAdapter.shared
     @State private var clockedDuration = ""
     
@@ -203,7 +205,8 @@ struct WorkerHeaderV3B: View {
     }
     
     private var isClocked: Bool {
-        contextAdapter.workerContext?.currentBuilding != nil
+        guard let workerId = authManager.workerId else { return false }
+        return container.clockIn.getClockInStatus(for: workerId) != nil
     }
     
     private var clockStatusColor: Color {
@@ -260,6 +263,8 @@ struct WorkerHeaderV3B: View {
         case .admin: return CyntientOpsDesign.DashboardColors.success
         case .manager: return CyntientOpsDesign.DashboardColors.warning
         case .client: return CyntientOpsDesign.DashboardColors.workerAccent
+        case .superAdmin: return CyntientOpsDesign.DashboardColors.success
+        @unknown default: return CyntientOpsDesign.DashboardColors.workerPrimary
         }
     }
     
@@ -271,8 +276,14 @@ struct WorkerHeaderV3B: View {
             return
         }
         
-        // Simplified duration calculation
-        let duration = TimeInterval(Int.random(in: 60...28800)) // Placeholder
+        // Real duration based on ClockInService status
+        let duration: TimeInterval
+        if let workerId = authManager.workerId, let status = container.clockIn.getClockInStatus(for: workerId) {
+            duration = status.duration
+        } else {
+            clockedDuration = ""
+            return
+        }
         let hours = Int(duration) / 3600
         let minutes = (Int(duration) % 3600) / 60
         

@@ -18,6 +18,7 @@ struct WorkerDashboardMainView: View {
     
     // MARK: - ViewModels
     @StateObject private var viewModel: WorkerDashboardViewModel
+    @StateObject private var profileVM: WorkerProfileViewModel
     @StateObject private var locationManager = LocationManager.shared
     
     // MARK: - Environment Objects
@@ -35,6 +36,10 @@ struct WorkerDashboardMainView: View {
     @State private var showingErrorAlert = false
     @State private var isHeroCardExpanded = true
     @State private var isIntelligencePanelExpanded = false
+    @State private var showingVendorAccessSheet = false
+    @State private var showingQuickNoteSheet = false
+    @State private var weatherSnapshot: WeatherSnapshot?
+    @State private var dsnyTasks: [DSNYTask] = []
 
     // MARK: - App Storage
     @AppStorage("workerPreferredLanguage") private var preferredLanguage = "en"
@@ -45,6 +50,7 @@ struct WorkerDashboardMainView: View {
     init(container: ServiceContainer) {
         self.container = container
         self._viewModel = StateObject(wrappedValue: WorkerDashboardViewModel(container: container))
+        self._profileVM = StateObject(wrappedValue: WorkerProfileViewModel(serviceContainer: container))
     }
     
     var body: some View {
@@ -128,7 +134,51 @@ struct WorkerDashboardMainView: View {
                 }
                 .padding()
                 .cyntientOpsDarkCardBackground()
-                
+
+                // Weather + Upcoming
+                if let snapshot = weatherSnapshot {
+                    WeatherRibbonView(snapshot: snapshot)
+                        .padding(.horizontal)
+                        .padding(.top, 8)
+                }
+
+                if !viewModel.upcoming.isEmpty {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Upcoming Tasks")
+                            .font(.headline)
+                            .foregroundColor(.white)
+                            .padding(.horizontal)
+                        UpcomingTaskListView(rows: viewModel.upcoming)
+                            .padding(.horizontal)
+                    }
+                }
+
+                // DSNY Bin Tasks (if any)
+                if !dsnyTasks.isEmpty {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Sanitation Tasks")
+                            .font(.headline)
+                            .foregroundColor(.white)
+                            .padding(.horizontal)
+                        DSNYBinTaskCard(tasks: dsnyTasks) { _ in }
+                            .padding(.horizontal)
+                    }
+                }
+
+                // Performance + Assigned Buildings
+                VStack(spacing: 16) {
+                    PerformanceMetricsView(viewModel: profileVM)
+                        .background(Color(.systemBackground))
+                        .cornerRadius(12)
+                        .padding(.horizontal)
+
+                    ProfileAssignedBuildingsView(viewModel: profileVM)
+                        .background(Color(.systemBackground))
+                        .cornerRadius(12)
+                        .padding(.horizontal)
+                        .padding(.bottom)
+                }
+
                 Spacer()
             }
             
@@ -158,8 +208,43 @@ struct WorkerDashboardMainView: View {
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
+        // Quick Actions (floating button)
+        .overlay(alignment: .bottomTrailing) {
+            Menu {
+                Button(action: { showingVendorAccessSheet = true }) {
+                    Label("Log Vendor Access", systemImage: "person.badge.key.fill")
+                }
+                Button(action: { showingCamera = true }) {
+                    Label("Quick Photo/Note", systemImage: "camera.fill")
+                }
+                Button(action: { showingQuickNoteSheet = true }) {
+                    Label("Quick Note", systemImage: "note.text")
+                }
+            } label: {
+                ZStack {
+                    Circle()
+                        .fill(CyntientOpsDesign.DashboardColors.secondaryAction)
+                        .frame(width: 56, height: 56)
+                        .shadow(color: .black.opacity(0.3), radius: 8, x: 0, y: 4)
+                    Image(systemName: "plus")
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundColor(.white)
+                }
+                .padding(20)
+            }
+        }
         .task {
             await viewModel.loadInitialData()
+            // Load profile data for current worker
+            if let workerId = authManager.workerId {
+                await profileVM.loadWorkerProfile(workerId: workerId)
+                // DSNY tasks for this worker
+                dsnyTasks = container.dsnyTaskManager.getBinTasks(for: workerId)
+            }
+            // Weather snapshot conversion
+            if let snap = WeatherSnapshot.from(current: container.weather.currentWeather, hourly: container.weather.forecast) {
+                weatherSnapshot = snap
+            }
         }
         .alert("Error", isPresented: .constant(viewModel.errorMessage != nil)) {
             Button("OK") {
@@ -170,6 +255,14 @@ struct WorkerDashboardMainView: View {
             }
         } message: {
             Text(viewModel.errorMessage ?? "")
+        }
+        .sheet(isPresented: $showingVendorAccessSheet) {
+            VendorAccessLogSheet(viewModel: viewModel)
+                .presentationDetents([.large])
+        }
+        .sheet(isPresented: $showingQuickNoteSheet) {
+            QuickNoteSheet(viewModel: viewModel)
+                .presentationDetents([.medium, .large])
         }
         .sheet(isPresented: $showingTaskDetail) {
             if let task = selectedTask {
