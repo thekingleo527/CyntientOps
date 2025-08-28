@@ -27,6 +27,8 @@ struct WorkerIntelligencePanel: View {
 
     @State private var selectedTab: WorkerIntelTab = .operations
     @State private var showingPortfolioMap = false
+    @State private var portfolioBuildings: [NamedCoordinate] = []
+    @State private var currentBuildingId: String? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -65,7 +67,7 @@ struct WorkerIntelligencePanel: View {
                         Text("View all buildings and navigate quickly to details.")
                             .font(.caption)
                             .foregroundColor(.gray)
-                        Button(action: { showingPortfolioMap = true }) {
+                        Button(action: { Task { await openPortfolio() } }) {
                             Label("Open Portfolio Map", systemImage: "map")
                                 .font(.subheadline)
                         }
@@ -79,8 +81,31 @@ struct WorkerIntelligencePanel: View {
             .cornerRadius(12)
         }
         .sheet(isPresented: $showingPortfolioMap) {
-            PortfolioMapSheet(container: container)
+            WorkerPortfolioMapRevealSheet(
+                container: container,
+                buildings: portfolioBuildings,
+                currentBuildingId: currentBuildingId
+            ) { tapped in
+                // Navigate to Building Detail
+                // For now, dismiss and rely on parent navigation via dashboard VM
+                showingPortfolioMap = false
+            }
         }
+    }
+
+    private func openPortfolio() async {
+        // Load all buildings; set current building if clocked in
+        if let list = try? await container.buildings.getAllBuildings() {
+            portfolioBuildings = list
+        } else {
+            portfolioBuildings = []
+        }
+        if let wid = auth.workerId, let status = container.clockIn.getClockInStatus(for: wid) {
+            currentBuildingId = status.buildingId
+        } else {
+            currentBuildingId = nil
+        }
+        showingPortfolioMap = true
     }
 }
 
@@ -156,4 +181,3 @@ private struct CompliancePanel: View {
         }
     }
 }
-
