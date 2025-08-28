@@ -166,16 +166,10 @@ struct WorkerDashboardMainView: View {
                     }
                 }
 
-                // Performance + Assigned Buildings
+                // Intelligence Panel (Operations, Compliance, Performance, Portfolio)
                 VStack(spacing: 16) {
-                    PerformanceMetricsView(viewModel: profileVM)
-                        .background(Color(.systemBackground))
-                        .cornerRadius(12)
-                        .padding(.horizontal)
-
-                    ProfileAssignedBuildingsView(viewModel: profileVM)
-                        .background(Color(.systemBackground))
-                        .cornerRadius(12)
+                    WorkerIntelligencePanel(container: container, dashboardVM: viewModel, profileVM: profileVM)
+                        .environmentObject(authManager)
                         .padding(.horizontal)
                         .padding(.bottom)
                 }
