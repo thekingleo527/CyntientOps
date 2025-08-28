@@ -210,7 +210,7 @@ public final class WorkerProfileViewModel: ObservableObject {
             capabilities: nil,
             createdAt: Date(),
             updatedAt: Date(),
-            status: .active,
+            status: .available,
             isClockedIn: false,
             currentBuildingId: nil,
             clockStatus: .clockedOut
@@ -266,7 +266,9 @@ public final class WorkerProfileViewModel: ObservableObject {
                 CoreTypes.NamedCoordinate(
                     id: assignment.buildingId,
                     name: assignment.buildingName,
-                    coordinate: assignment.coordinate
+                    address: "",
+                    latitude: assignment.coordinate.latitude,
+                    longitude: assignment.coordinate.longitude
                 )
             }
         }

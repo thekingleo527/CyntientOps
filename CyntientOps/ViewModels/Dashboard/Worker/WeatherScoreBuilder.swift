@@ -115,10 +115,10 @@ public enum WeatherScoreBuilder {
         // Category importance (some categories are inherently higher priority)
         let categoryBonus: Int
         switch task.category {
-        case .operations: categoryBonus = -2  // DSNY operations are critical
-        case .maintenance: categoryBonus = -1 // Maintenance is important
-        case .cleaning: categoryBonus = 0     // Standard priority
-        case .inspection: categoryBonus = 1   // Can be delayed
+        case .some(.sanitation): categoryBonus = -2  // DSNY sanitation tasks are critical
+        case .some(.maintenance): categoryBonus = -1 // Maintenance is important
+        case .some(.cleaning): categoryBonus = 0     // Standard priority
+        case .some(.inspection): categoryBonus = 1   // Can be delayed
         default: categoryBonus = 0
         }
         

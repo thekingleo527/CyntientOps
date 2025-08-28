@@ -178,11 +178,22 @@ struct ClientDashboardView: View {
                         )
 
                         // Broadcast Strip (urgent-first portfolio status)
-                        ClientBroadcastStrip(
-                            criticalViolations: viewModel.complianceOverview.criticalViolations,
-                            behindScheduleCount: viewModel.realtimeRoutineMetrics.behindScheduleCount,
-                            budgetOverrun: viewModel.monthlyMetrics.budgetUtilization > 1.0
-                        )
+                        // Inline broadcast banner (avoids external component dependency)
+                        HStack(spacing: 8) {
+                            let isCritical = viewModel.complianceOverview.criticalViolations > 0
+                            let isBudgetHot = viewModel.monthlyMetrics.budgetUtilization > 1.0
+                            let isBehind = viewModel.realtimeRoutineMetrics.behindScheduleCount > 0
+                            let color = isCritical ? CyntientOpsDesign.DashboardColors.critical : (isBudgetHot ? CyntientOpsDesign.DashboardColors.warning : (isBehind ? CyntientOpsDesign.DashboardColors.info : CyntientOpsDesign.DashboardColors.success))
+                            Circle().fill(color).frame(width: 8, height: 8)
+                            Text(isCritical ? "\(viewModel.complianceOverview.criticalViolations) critical compliance issues need attention" : (isBudgetHot ? "Budget running hot — review utilization" : (isBehind ? "\(viewModel.realtimeRoutineMetrics.behindScheduleCount) tasks behind schedule" : "All systems nominal — portfolio steady")))
+                                .font(.caption)
+                                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                                .lineLimit(1)
+                            Spacer()
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(color.opacity(0.12), in: RoundedRectangle(cornerRadius: 8))
                         
                         // Buildings Grid (when hero expanded and client has properties)
                         if heroExpanded && !viewModel.clientBuildingsWithImages.isEmpty {
@@ -1374,13 +1385,8 @@ struct ClientNovaIntelligenceBar: View {
         }
     }
     
-    // MARK: - Portfolio Map Sheet
-    @ViewBuilder
-    private var portfolioMapSheet: some View {
-        if showingPortfolioMap {
-            ClientPortfolioMapRevealSheet(container: container, buildings: viewModel.clientBuildings) { _ in
-                showingPortfolioMap = false
-            }
+    // Legacy portfolioMapSheet removed; using reveal toggle instead
+
         } else {
             EmptyView()
         }

@@ -522,7 +522,7 @@ struct VerificationSummarySheet: View {
         .task {
             summaryText = await viewModel.getPortfolioVerificationSummary(limit: 50)
         }
-        .fileExporter(isPresented: , document: document, contentType: .commaSeparatedText, defaultFilename: "verification_summary") { _ in }
+        .fileExporter(isPresented: $isExporting, document: document, contentType: .commaSeparatedText, defaultFilename: "verification_summary") { _ in }
     }
 }
 
