@@ -270,6 +270,7 @@
 		23486D972E5FED770040DA52 /* RoutineWeatherProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23486D932E5FED770040DA52 /* RoutineWeatherProfile.swift */; };
 		23486D992E5FF5390040DA52 /* View+GlassCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23486D982E5FF5390040DA52 /* View+GlassCard.swift */; };
 		23486D9B2E5FF82A0040DA52 /* BuildingRoutesTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23486D9A2E5FF82A0040DA52 /* BuildingRoutesTab.swift */; };
+		23486D9D2E601B7B0040DA52 /* RouteSequenceCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23486D9C2E601B7B0040DA52 /* RouteSequenceCard.swift */; };
 		234B500D2E5D440B00F57B6A /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = 234B500C2E5D440B00F57B6A /* GRDB */; };
 		234B50102E5D456F00F57B6A /* Sentry in Frameworks */ = {isa = PBXBuildFile; productRef = 234B500F2E5D456F00F57B6A /* Sentry */; };
 		234B50122E5DE64200F57B6A /* QuickLoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 234B50112E5DE64200F57B6A /* QuickLoginView.swift */; };
@@ -578,6 +579,7 @@
 		23486D942E5FED770040DA52 /* WeatherSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherSnapshot.swift; sourceTree = "<group>"; };
 		23486D982E5FF5390040DA52 /* View+GlassCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "View+GlassCard.swift"; sourceTree = "<group>"; };
 		23486D9A2E5FF82A0040DA52 /* BuildingRoutesTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuildingRoutesTab.swift; sourceTree = "<group>"; };
+		23486D9C2E601B7B0040DA52 /* RouteSequenceCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteSequenceCard.swift; sourceTree = "<group>"; };
 		234B50112E5DE64200F57B6A /* QuickLoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickLoginView.swift; sourceTree = "<group>"; };
 		238FAF582E5E53C500187318 /* UserProfileService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserProfileService.swift; sourceTree = "<group>"; };
 		238FAF5A2E5E766100187318 /* NYCDataCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NYCDataCoordinator.swift; sourceTree = "<group>"; };
@@ -662,6 +664,7 @@
 		231931FE2E42E91200640977 /* Buildings */ = {
 			isa = PBXGroup;
 			children = (
+				23486D9C2E601B7B0040DA52 /* RouteSequenceCard.swift */,
 				23486D9A2E5FF82A0040DA52 /* BuildingRoutesTab.swift */,
 				231931F32E42E91200640977 /* Supporting */,
 				231931F42E42E91200640977 /* AssignedBuildingsView.swift */,
@@ -1946,6 +1949,7 @@
 				231932E42E42E9CD00640977 /* WorkerContextEngine.swift in Sources */,
 				231932E52E42E9CD00640977 /* TimeBasedTaskFilter.swift in Sources */,
 				231932E72E42E9CD00640977 /* TaskService+OperationalFallback.swift in Sources */,
+				23486D9D2E601B7B0040DA52 /* RouteSequenceCard.swift in Sources */,
 				231932E92E42E9CD00640977 /* UnifiedDataService.swift in Sources */,
 				231932EA2E42E9CD00640977 /* ViolationPredictor.swift in Sources */,
 				231932EB2E42E9CD00640977 /* KeychainManager.swift in Sources */,

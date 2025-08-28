@@ -1060,6 +1060,9 @@ struct AdminNovaIntelligenceBar: View {
                                     exampleReportText = report
                                     sheet = .exampleReport(first.id)
                                 }
+                            },
+                            onVerificationSummary: {
+                                sheet = .verificationSummary
                             }
                         )
                     }
@@ -1472,6 +1475,7 @@ struct AdminAnalyticsContent: View {
     let workersTotal: Int
     let complianceTrend: String
     let onExampleReport: () -> Void
+    let onVerificationSummary: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -1549,7 +1553,7 @@ struct AdminAnalyticsContent: View {
                 .buttonStyle(.bordered)
                 .tint(CyntientOpsDesign.DashboardColors.adminAccent)
                 
-                Button(action: { sheet = .verificationSummary }) {
+                Button(action: onVerificationSummary) {
                     HStack(spacing: 6) {
                         Image(systemName: "checkmark.seal")
                         Text("Verification Summary")

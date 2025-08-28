@@ -169,6 +169,7 @@ struct SignUpView: View {
         case .admin: return "person.badge.key.fill"
         case .manager: return "person.3.fill"
         case .client: return "building.2.fill"
+        case .superAdmin: return "crown.fill"
         }
     }
     
