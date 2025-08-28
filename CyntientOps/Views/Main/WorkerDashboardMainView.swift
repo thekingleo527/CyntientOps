@@ -87,6 +87,9 @@ struct WorkerDashboardMainView: View {
                 
                 // Worker Hero Card (simplified for MainView)
                 VStack(spacing: 16) {
+                    // Hero: Now / Next cards
+                    WorkerHeroNowNext(viewModel: viewModel)
+                        .padding(.horizontal)
                     HStack {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Good Morning, \(viewModel.workerProfile?.name ?? "Worker")")

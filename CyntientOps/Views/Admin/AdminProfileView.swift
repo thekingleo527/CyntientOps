@@ -70,19 +70,19 @@ public struct AdminProfileView: View {
                     )
                     .frame(width: 80, height: 80)
                 
-                Text("SA")
+                Text("SM")
                     .font(.title)
                     .fontWeight(.bold)
                     .foregroundColor(.white)
             }
             
             VStack(spacing: 4) {
-                Text("System Administrator")
+                Text("Shawn Magloire")
                     .font(.title2)
                     .fontWeight(.semibold)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                 
-                Text("CyntientOps Admin Console")
+                Text("CyntientOps Administrator")
                     .font(.caption)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
                 
@@ -183,6 +183,13 @@ public struct AdminProfileView: View {
                     title: "System Configuration",
                     subtitle: "Advanced admin settings",
                     action: { /* System settings */ }
+                )
+                
+                AdminSettingRow(
+                    icon: "antenna.radiowaves.left.and.right",
+                    title: "Broadcast Message",
+                    subtitle: "Send update to all dashboards",
+                    action: { /* Broadcast tool */ }
                 )
             }
         }

@@ -219,6 +219,30 @@ struct BuildingMapDetailView: View {
             }
             .glassButton(style: .success, size: .large)
             .pulsingGlow(color: .green)
+            .sheet(isPresented: $showClockIn) {
+                if let wid = NewAuthManager.shared.workerId {
+                    NavigationView {
+                        VStack(spacing: 16) {
+                            Text("Clock in at \(building.name)?")
+                                .font(.headline)
+                            Text(building.address)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            HStack(spacing: 12) {
+                                Button("Cancel", role: .cancel) { showClockIn = false }
+                                Button("Clock In") {
+                                    Task { try? await container.clockIn.clockIn(workerId: wid, buildingId: building.id); showClockIn = false }
+                                }
+                                .buttonStyle(.borderedProminent)
+                                .tint(.blue)
+                            }
+                        }
+                        .padding()
+                        .navigationTitle("Clock In")
+                        .navigationBarTitleDisplayMode(.inline)
+                    }
+                }
+            }
             
             Button(action: { showDetails = true }) {
                 HStack {
