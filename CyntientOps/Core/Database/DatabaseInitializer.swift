@@ -130,8 +130,12 @@ public class DatabaseInitializer: ObservableObject {
         }
 
         // Start a new initialization task and coalesce concurrent callers
-        let task = Task { @MainActor in
-            try await self.runInitialization()
+        // Move heavy DB operations off main actor for performance
+        let task = Task.detached { 
+            try await self.runInitializationOffMainActor()
+            await MainActor.run {
+                self.updateInitializationState()
+            }
         }
         initializationTask = task
         do {
@@ -197,11 +201,31 @@ public class DatabaseInitializer: ObservableObject {
         }
     }
     
+    /// Heavy database operations moved off main actor for performance
+    private func runInitializationOffMainActor() async throws {
+        try await performDatabaseSetup()
+        try await performDataImport()
+        try await performVerification()
+        try await startBackgroundServices()
+    }
+    
+    /// Update UI state on main actor after heavy operations complete
+    @MainActor
+    private func updateInitializationState() {
+        isInitialized = true
+        currentStep = "Ready"
+        initializationProgress = 1.0
+        dataStatus = .complete
+        print("✅ Database initialization complete")
+    }
+    
     // MARK: - Phase 1: Database Setup
     
     private func performDatabaseSetup() async throws {
-        currentStep = "Setting up database..."
-        initializationProgress = 0.05
+        await MainActor.run {
+            currentStep = "Setting up database..."
+            initializationProgress = 0.05
+        }
         
         // Ensure database is ready
         guard await grdbManager.isDatabaseReady() else {
@@ -499,6 +523,7 @@ public class DatabaseInitializer: ObservableObject {
             ("1", "12 West 18th Street", "12 W 18th St, New York, NY 10011", 40.7391, -73.9929, "building_12w18"),
             ("2", "29-31 East 20th Street", "29-31 E 20th St, New York, NY 10003", 40.7380, -73.9890, "building_29e20"),
             ("3", "133 East 15th Street", "133 E 15th St, New York, NY 10003", 40.7343, -73.9859, "building_133e15"),
+            ("21", "148 Chambers Street", "148 Chambers St, New York, NY 10007", 40.7152, -74.0075, "building_148chambers"),
             ("4", "104 Franklin Street", "104 Franklin St, New York, NY 10013", 40.7190, -74.0089, "building_104franklin"),
             ("5", "36 Walker Street", "36 Walker St, New York, NY 10013", 40.7173, -74.0027, "building_36walker"),
             ("6", "68 Perry Street", "68 Perry St, New York, NY 10014", 40.7355, -74.0067, "building_68perry"),

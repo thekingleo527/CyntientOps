@@ -232,7 +232,12 @@ struct NovaClientIntelligenceBar: View {
                         .fill(Color.green)
                         .frame(width: 6, height: 6)
                         .opacity(1)
-                        .animation(.easeInOut(duration: 2).repeatForever(autoreverses: true), value: UUID())
+                        .animation(.easeInOut(duration: 2).repeatForever(autoreverses: true), value: animationPhase)
+                        .onAppear {
+                            Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { _ in
+                                animationPhase += 1
+                            }
+                        }
                     
                     Text("LIVE")
                         .font(.caption2)

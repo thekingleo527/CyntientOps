@@ -96,22 +96,12 @@ struct MapRevealContainer<Content: View>: View {
     }
     
     var body: some View {
-        ZStack {
-            // Ambient mode: Blurred map background
-            if !isRevealed {
-                ambientMapBackground
-            }
+        ZStack(alignment: .topLeading) {
+            // Base map layer (always present)
+            mapLayer
+                .zIndex(0)
             
-            // Interactive mode: Full map
-            if isRevealed {
-                interactiveMap
-                    .transition(.asymmetric(
-                        insertion: .move(edge: .bottom).combined(with: .opacity),
-                        removal: .move(edge: .bottom).combined(with: .opacity)
-                    ))
-            }
-            
-            // Main content overlay with proper safe area coordination
+            // Main content overlay
             content()
                 .offset(y: dragOffset)
                 .safeAreaInset(edge: .bottom) {
@@ -122,21 +112,26 @@ struct MapRevealContainer<Content: View>: View {
                 }
                 .gesture(swipeGesture)
                 .animation(.spring(response: 0.6, dampingFraction: 0.8), value: isRevealed)
+                .zIndex(1)
+                .allowsHitTesting(!isRevealed) // Allow touches when map is not revealed
             
             // Map controls when revealed
             if isRevealed {
                 mapControls
+                    .zIndex(2)
                     .transition(.opacity)
             }
             
             // Intelligence popover
             if let building = selectedBuildingForPreview {
                 intelligencePopover(for: building)
+                    .zIndex(3)
             }
             
             // Swipe hint
             if showHint && !isRevealed {
                 MapInteractionHint.automatic(showHint: $showHint)
+                    .zIndex(4)
             }
         }
         .ignoresSafeArea(.all, edges: .bottom)
@@ -145,12 +140,12 @@ struct MapRevealContainer<Content: View>: View {
         }
     }
     
-    // MARK: - Ambient Map Background
+    // MARK: - Unified Map Layer
     
-    private var ambientMapBackground: some View {
+    private var mapLayer: some View {
         ZStack {
-            // Map with minimal interaction
-            Map(position: .constant(position)) {
+            // The actual map (always present, but conditionally styled)
+            Map(position: isRevealed ? $position : .constant(position)) {
                 ForEach(buildings, id: \.id) { building in
                     Annotation(
                         building.name,
@@ -159,62 +154,47 @@ struct MapRevealContainer<Content: View>: View {
                         MapBuildingBubble(
                             building: building,
                             isSelected: building.id == currentBuildingId,
-                            isFocused: false,
-                            isInteractive: false,
-                            metrics: buildingMetrics[building.id]
+                            isFocused: isRevealed && (building.id == focusBuildingId || building.id == hoveredBuildingId),
+                            isInteractive: isRevealed,
+                            metrics: buildingMetrics[building.id],
+                            onTap: isRevealed ? {
+                                handleBuildingTap(building)
+                            } : nil,
+                            onHover: isRevealed ? { isHovering in
+                                withAnimation(.easeInOut(duration: 0.2)) {
+                                    hoveredBuildingId = isHovering ? building.id : nil
+                                }
+                            } : nil
                         )
                     }
                 }
             }
             .mapStyle(.standard(elevation: .realistic))
-            .allowsHitTesting(false)
-            .blur(radius: 15)
-            .opacity(0.4)
-            
-            // Dark overlay for better contrast
-            LinearGradient(
-                colors: [
-                    Color.black.opacity(0.7),
-                    Color.black.opacity(0.5),
-                    Color.black.opacity(0.7)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-        }
-    }
-    
-    // MARK: - Interactive Map
-    
-    private var interactiveMap: some View {
-        Map(position: $position) {
-            ForEach(buildings, id: \.id) { building in
-                Annotation(
-                    building.name,
-                    coordinate: building.coordinate
-                ) {
-                    MapBuildingBubble(
-                        building: building,
-                        isSelected: building.id == currentBuildingId,
-                        isFocused: building.id == focusBuildingId || building.id == hoveredBuildingId,
-                        isInteractive: true,
-                        metrics: buildingMetrics[building.id],
-                        onTap: {
-                            handleBuildingTap(building)
-                        },
-                        onHover: { isHovering in
-                            withAnimation(.easeInOut(duration: 0.2)) {
-                                hoveredBuildingId = isHovering ? building.id : nil
-                            }
-                        }
-                    )
+            .mapControls {
+                if isRevealed {
+                    MapCompass()
+                    MapScaleView()
                 }
             }
-        }
-        .mapStyle(.standard(elevation: .realistic))
-        .mapControls {
-            MapCompass()
-            MapScaleView()
+            .allowsHitTesting(isRevealed) // Only allow map interaction when revealed
+            .blur(radius: isRevealed ? 0 : 15)
+            .opacity(isRevealed ? 1.0 : 0.4)
+            .animation(.easeInOut(duration: 0.3), value: isRevealed)
+            
+            // Overlay for ambient mode
+            if !isRevealed {
+                LinearGradient(
+                    colors: [
+                        Color.black.opacity(0.7),
+                        Color.black.opacity(0.5),
+                        Color.black.opacity(0.7)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .allowsHitTesting(false)
+                .animation(.easeInOut(duration: 0.3), value: isRevealed)
+            }
         }
     }
     
@@ -347,30 +327,37 @@ struct MapRevealContainer<Content: View>: View {
     // MARK: - Gesture Handling
     
     private var swipeGesture: some Gesture {
-        DragGesture()
+        DragGesture(minimumDistance: 10, coordinateSpace: .global)
             .onChanged { value in
                 let translation = value.translation.height
+                let velocity = value.predictedEndTranslation.height - value.translation.height
                 
                 if !isRevealed && translation < 0 {
-                    // Swiping up to reveal map
-                    dragOffset = max(translation, -UIScreen.main.bounds.height * 0.75)
+                    // Swiping up to reveal map - add resistance
+                    let resistance: CGFloat = 2.5
+                    dragOffset = max(translation / resistance, -UIScreen.main.bounds.height * 0.4)
                 } else if isRevealed && translation > 0 {
-                    // Swiping down to hide map
-                    dragOffset = min(translation, UIScreen.main.bounds.height * 0.75)
+                    // Swiping down to hide map - smoother tracking
+                    dragOffset = min(translation * 0.8, UIScreen.main.bounds.height * 0.5)
                 }
             }
             .onEnded { value in
-                withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
-                    let threshold: CGFloat = 100
+                withAnimation(.spring(response: 0.5, dampingFraction: 0.85)) {
+                    let translation = value.translation.height
+                    let velocity = value.predictedEndTranslation.height
+                    let threshold: CGFloat = 80
+                    let velocityThreshold: CGFloat = 200
                     
-                    if !isRevealed && value.translation.height < -threshold {
+                    // Consider both distance and velocity for better UX
+                    if !isRevealed && (translation < -threshold || velocity < -velocityThreshold) {
                         // Reveal map
                         isRevealed = true
                         showHint = false
-                    } else if isRevealed && value.translation.height > threshold {
+                    } else if isRevealed && (translation > threshold || velocity > velocityThreshold) {
                         // Hide map
                         isRevealed = false
                         selectedBuildingForPreview = nil
+                        hoveredBuildingId = nil
                     }
                     
                     dragOffset = 0

@@ -103,11 +103,15 @@ public final class CommandChainManager: ObservableObject {
         
         let chainId = "photo_capture_\(taskId)_\(UUID().uuidString.prefix(8))"
         
+        // Get buildingId for the task
+        let task = try await container.tasks.getTask(taskId)
+        let buildingId = task.buildingId ?? "unknown"
+        
         let steps: [CommandStep] = [
             CaptureImageCommand(imageData: imageData, taskId: taskId),
             EncryptImageCommand(imageData: imageData, ttlHours: 72), // 72-hour TTL
             GenerateThumbnailCommand(imageData: imageData),
-            UploadToStorageCommand(taskId: taskId, workerId: workerId, container: container),
+            UploadToStorageCommand(taskId: taskId, workerId: workerId, buildingId: buildingId, container: container),
             LinkToTaskCommand(taskId: taskId, container: container)
         ]
         

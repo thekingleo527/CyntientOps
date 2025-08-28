@@ -154,12 +154,13 @@ public final class TaskPoolManager {
 
 extension Task where Success == Void, Failure == Error {
     /// Create a pooled task that respects concurrency limits
-    @discardableResult
     public static func pooled(
         priority: TaskPriority = .medium,
         operation: @escaping () async throws -> Void
-    ) -> Void {
-        TaskPoolManager.shared.executeVoid(priority: priority, operation: operation)
+    ) {
+        Task {
+            await TaskPoolManager.shared.executeVoid(priority: priority, operation: operation)
+        }
     }
 }
 

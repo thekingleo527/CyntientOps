@@ -238,7 +238,7 @@ public class AdminTaskSchedulingService: ObservableObject {
     }
     
     /// Get all scheduled tasks for a specific building
-    public func getScheduledTasks(for buildingId: String, dateRange: DateInterval? = nil) -> [CoreTypes.AdminTaskSchedule] {
+    public func getScheduledTasksForBuilding(_ buildingId: String, dateRange: DateInterval? = nil) -> [CoreTypes.AdminTaskSchedule] {
         let buildingTasks = scheduledTasks.filter { $0.buildingId == buildingId }
         
         if let dateRange = dateRange {

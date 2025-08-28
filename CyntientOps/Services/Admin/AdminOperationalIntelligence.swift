@@ -55,7 +55,7 @@ public class AdminOperationalIntelligence: ObservableObject, AdminOperationalInt
         buildingId: String,
         binType: BinType,
         action: BinAction,
-        location: BinLocation,
+        location: String,
         timestamp: Date = Date(),
         photoEvidence: String? = nil
     ) async {
@@ -83,7 +83,7 @@ public class AdminOperationalIntelligence: ObservableObject, AdminOperationalInt
                 "completionType": "bin_placement",
                 "binType": binType.rawValue,
                 "action": action.rawValue,
-                "location": location.rawValue,
+                "location": location,
                 "timestamp": ISO8601DateFormatter().string(from: timestamp),
                 "hasPhotoEvidence": photoEvidence != nil ? "true" : "false"
             ]
@@ -282,7 +282,7 @@ public class AdminOperationalIntelligence: ObservableObject, AdminOperationalInt
             data: [
                 "noteText": noteText,
                 "category": category,
-                "location": location ?? "",
+                "location": location ?? "Unknown",
                 "hasPhoto": photoEvidence != nil ? "true" : "false"
             ]
         )
@@ -509,8 +509,8 @@ public class AdminOperationalIntelligence: ObservableObject, AdminOperationalInt
             break
         case .taskCompleted:
             // Check if task completion affects routine status
-            if let buildingId = update.buildingId {
-                await checkRoutineFullCompletion(buildingId: buildingId, workerId: update.workerId ?? "")
+            if !update.buildingId.isEmpty {
+                await checkRoutineFullCompletion(buildingId: update.buildingId, workerId: update.workerId ?? "unknown")
             }
             break
         default:
@@ -561,12 +561,7 @@ public enum BinAction: String, CaseIterable, Codable {
     case cleaned = "cleaned"
 }
 
-public enum BinLocation: String, CaseIterable, Codable {
-    case curbside = "curbside"
-    case trashRoom = "trash_room"
-    case basement = "basement"
-    case courtyard = "courtyard"
-}
+// BinLocation is now defined in CoreTypes.swift
 
 public enum CleaningType: String, CaseIterable, Codable {
     case daily = "daily"
@@ -607,7 +602,7 @@ public struct BinPlacementCompletion: Identifiable, Codable {
     public let buildingId: String
     public let binType: BinType
     public let action: BinAction
-    public let location: BinLocation
+    public let location: String
     public let timestamp: Date
     public let photoEvidence: String?
 }
@@ -698,12 +693,21 @@ public struct RecurringTaskReminder: Identifiable, Codable {
     }
 }
 
+public struct MaintenanceCompletion: Codable {
+    public let taskId: String
+    public let workerId: String
+    public let buildingId: String
+    public let timestamp: Date
+    public let taskType: String
+    public let notes: String?
+}
+
 public struct RoutineCompletionStatus: Codable {
     public let buildingId: String
     public var lastUpdated: Date
     public var binPlacements: [BinPlacementCompletion]
     public var cleaningCompletions: [CleaningRoutineCompletion]
-    public var maintenanceCompletions: [Any] // Would be typed properly
+    public var maintenanceCompletions: [MaintenanceCompletion]
     public var overallCompletionRate: Double
     
     // Removed mock calculation; use AdminOperationalIntelligence.getTodaysCompletions(buildingId:status:)

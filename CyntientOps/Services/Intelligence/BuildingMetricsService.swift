@@ -104,13 +104,21 @@ public actor BuildingMetricsService {
         
         print("📊 Calculating metrics for \(buildingIds.count) buildings concurrently")
         
-        // Use TaskGroup for concurrent GRDB queries
-        await withTaskGroup(of: (String, CoreTypes.BuildingMetrics?).self) { group in
+        // Use TaskGroup for concurrent GRDB queries with proper cancellation handling
+        try await withThrowingTaskGroup(of: (String, CoreTypes.BuildingMetrics?).self) { group in
             for buildingId in buildingIds {
+                // Check for cancellation before adding task
+                try Task.checkCancellation()
+                
                 group.addTask {
                     do {
+                        // Check for cancellation at start of task
+                        try Task.checkCancellation()
                         let metrics = try await self.calculateMetrics(for: buildingId)
                         return (buildingId, metrics)
+                    } catch is CancellationError {
+                        print("🚫 Metrics calculation cancelled for building \(buildingId)")
+                        throw CancellationError()
                     } catch {
                         print("⚠️ Failed to calculate metrics for building \(buildingId): \(error)")
                         return (buildingId, nil)
@@ -118,9 +126,19 @@ public actor BuildingMetricsService {
                 }
             }
             
-            for await (buildingId, metrics) in group {
-                if let metrics = metrics {
-                    results[buildingId] = metrics
+            // Collect results with cancellation checking
+            while !group.isEmpty {
+                do {
+                    try Task.checkCancellation()
+                    if let (buildingId, metrics) = try await group.next() {
+                        if let metrics = metrics {
+                            results[buildingId] = metrics
+                        }
+                    }
+                } catch is CancellationError {
+                    print("🚫 Batch metrics calculation cancelled")
+                    group.cancelAll()
+                    throw CancellationError()
                 }
             }
         }
@@ -361,30 +379,38 @@ public actor BuildingMetricsService {
     private func setupRealTimeObservations() {
         print("🔄 Setting up GRDB real-time observations for building metrics")
         
-        // ✅ FIXED: Use standard Task syntax for periodic refresh
+        // ✅ FIXED: Use proper cancellation checking in periodic refresh
         Task { [weak self] in
-            while true {
+            while !Task.isCancelled {
                 do {
                     try await Task.sleep(nanoseconds: 30_000_000_000) // 30 seconds
-                    guard let self = self else { break }
+                    guard let self = self, !Task.isCancelled else { break }
                     await self.invalidateAllCaches()
                     print("🔄 Periodic cache invalidation completed")
+                } catch is CancellationError {
+                    print("🚫 Periodic cache invalidation cancelled")
+                    break
                 } catch {
-                    break // Exit if task is cancelled
+                    print("⚠️ Error in periodic cache invalidation: \(error)")
+                    break
                 }
             }
         }
         
-        // ✅ FIXED: Set up additional periodic refresh for building metrics
+        // ✅ FIXED: Set up additional periodic refresh for building metrics with proper cancellation
         Task { [weak self] in
-            while true {
+            while !Task.isCancelled {
                 do {
                     try await Task.sleep(nanoseconds: 60_000_000_000) // 60 seconds
-                    guard let self = self else { break }
+                    guard let self = self, !Task.isCancelled else { break }
                     await self.invalidateAllCaches()
                     print("🔄 Periodic building metrics refresh")
+                } catch is CancellationError {
+                    print("🚫 Periodic building metrics refresh cancelled")
+                    break
                 } catch {
-                    break // Exit if task is cancelled
+                    print("⚠️ Error in periodic building metrics refresh: \(error)")
+                    break
                 }
             }
         }

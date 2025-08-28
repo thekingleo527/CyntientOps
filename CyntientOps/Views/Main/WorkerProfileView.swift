@@ -11,7 +11,7 @@
 import SwiftUI
 
 struct WorkerProfileView: View {
-    @StateObject private var viewModel = WorkerProfileViewModel()
+    @StateObject private var viewModel = WorkerProfileLocalViewModel()
     let workerId: String
     let container: ServiceContainer
     
@@ -611,7 +611,7 @@ struct FlowLayout: Layout {
 // MARK: - ViewModel (unchanged)
 
 @MainActor
-class WorkerProfileViewModel: ObservableObject {
+class WorkerProfileLocalViewModel: ObservableObject {
     @Published var worker: WorkerProfile?
     @Published var performanceMetrics: CoreTypes.PerformanceMetrics?
     @Published var recentTasks: [ContextualTask] = []
@@ -1148,4 +1148,3 @@ struct BuildingSummary {
     let address: String
     let todayTaskCount: Int
 }
-

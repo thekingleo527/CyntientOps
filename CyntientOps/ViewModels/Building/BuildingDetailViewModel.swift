@@ -583,7 +583,10 @@ public class BuildingDetailViewModel: ObservableObject {
                 
                 self.buildingSize = Int((building["squareFootage"] as? Double ?? 25000).rounded())
                 self.floors = building["floors"] as? Int ?? 5
-                self.units = building["numberOfUnits"] as? Int ?? 20
+                
+                // REAL DATA: Use verified residential unit counts from BuildingUnitValidator
+                self.units = BuildingUnitValidator.verifiedUnitCounts[buildingId] ?? (building["numberOfUnits"] as? Int ?? 20)
+                
                 self.yearBuilt = building["yearBuilt"] as? Int ?? 1985
                 self.contractType = "Management Agreement"
                 
@@ -749,26 +752,35 @@ public class BuildingDetailViewModel: ObservableObject {
                 }
                 allRoutines.append(contentsOf: recurringRoutines)
                 
-                // Add DSNY schedules for today
-                let dsnyTasks = dsnyData.compactMap { dsnySchedule -> BDDailyRoutine? in
-                    guard let collectionDays = dsnySchedule["collection_days"] as? String,
-                          let routeId = dsnySchedule["route_id"] as? String else { return nil }
+                // REAL DATA: Add DSNY schedules using DSNYCollectionSchedule
+                var dsnyTasks: [BDDailyRoutine] = []
+                if let schedule = DSNYCollectionSchedule.buildingCollectionSchedules[buildingId] {
+                    let today = CollectionDay.from(weekday: Calendar.current.component(.weekday, from: Date()))
                     
-                    // Check if today is a collection day
-                    let todayDay = Calendar.current.component(.weekday, from: Date())
-                    let dayName = Calendar.current.weekdaySymbols[todayDay - 1].uppercased().prefix(3)
-                    
-                    if collectionDays.contains(String(dayName)) {
-                        return BDDailyRoutine(
-                            id: "dsny_\(routeId)",
-                            title: "DSNY: Set Out Trash & Recycling",
-                            scheduledTime: "8:00 PM", // Standard DSNY set-out time
+                    // Check if bins need to be set out today (evening before collection)
+                    let tomorrow = today.nextDay()
+                    if schedule.collectionDays.contains(tomorrow) {
+                        dsnyTasks.append(BDDailyRoutine(
+                            id: "dsny_setout_\(buildingId)",
+                            title: "DSNY: Set Out Bins",
+                            scheduledTime: schedule.binSetOutTime.timeString,
                             isCompleted: false,
                             assignedWorker: "Building Staff",
                             requiredInventory: ["Trash bins", "Recycling bins"]
-                        )
+                        ))
                     }
-                    return nil
+                    
+                    // Check if bins need to be retrieved today (morning after collection)
+                    if schedule.collectionDays.contains(today) {
+                        dsnyTasks.append(BDDailyRoutine(
+                            id: "dsny_retrieve_\(buildingId)",
+                            title: "DSNY: Retrieve Bins",
+                            scheduledTime: schedule.binRetrievalTime.timeString,
+                            isCompleted: false,
+                            assignedWorker: "Building Staff", // Would check EdwinLemaRoutes.handlesBuilding in real implementation
+                            requiredInventory: ["None"]
+                        ))
+                    }
                 }
                 allRoutines.append(contentsOf: dsnyTasks)
                 
@@ -1033,14 +1045,20 @@ public class BuildingDetailViewModel: ObservableObject {
             let ll11NextDue = await complianceService.getLL11NextDueDate(buildingId: buildingId)
             
             await MainActor.run {
-                // Set DSNY compliance based on real DSNY violations
+                // REAL DATA: Set DSNY compliance based on actual unit counts and requirements
+                let requiresBins = BuildingUnitValidator.requiresIndividualBins(buildingId: buildingId)
+                let hasScheduleData = DSNYCollectionSchedule.buildingCollectionSchedules[buildingId] != nil
                 let activeDSNYViolations = dsnyViolations.filter { $0.isActive }
+                
                 if !activeDSNYViolations.isEmpty {
                     self.dsnyCompliance = .violation
-                } else if !dsnySchedule.isEmpty {
+                } else if requiresBins && hasScheduleData {
                     self.dsnyCompliance = .compliant
-                } else {
+                } else if requiresBins && !hasScheduleData {
                     self.dsnyCompliance = .pending
+                } else {
+                    // Building uses Empire containers or other collection method
+                    self.dsnyCompliance = .compliant
                 }
                 
                 // Set fire safety compliance based on DOB permits and violations
@@ -1080,12 +1098,17 @@ public class BuildingDetailViewModel: ObservableObject {
                     self.nextFireSafetyAction = "Next inspection due \(Date().addingTimeInterval(2592000).formatted(date: .abbreviated, time: .omitted))"
                 }
                 
-                // Update next actions based on violations
+                // REAL DATA: Update next actions based on actual DSNY requirements
                 if !activeDSNYViolations.isEmpty {
                     let oldestViolation = activeDSNYViolations.sorted { $0.issueDate < $1.issueDate }.first!
                     self.nextDSNYAction = "Resolve \(activeDSNYViolations.count) violation(s) - oldest from \(oldestViolation.issueDate)"
+                } else if let schedule = DSNYCollectionSchedule.buildingCollectionSchedules[buildingId] {
+                    let nextCollection = schedule.collectionDays.first?.rawValue ?? "scheduled day"
+                    self.nextDSNYAction = "Next collection: \(nextCollection) at \(schedule.binSetOutTime.timeString)"
+                } else if requiresBins {
+                    self.nextDSNYAction = "Setup bin collection schedule - \(self.units) residential units require individual bins"
                 } else {
-                    self.nextDSNYAction = "Maintain compliance - next collection Monday 6AM"
+                    self.nextDSNYAction = "Monitor black bag collection or consider Empire containers (optional)"
                 }
                 
                 // Store raw compliance data for building detail cards
@@ -1141,11 +1164,14 @@ public class BuildingDetailViewModel: ObservableObject {
                 
                 self.recentActivities = activities.sorted { $0.timestamp > $1.timestamp }
                 
-                // Create simplified maintenance history (placeholder since no service method exists)
+                // PLACEHOLDER: Maintenance history until data aggregation complete
                 self.maintenanceHistory = []
+                self.maintenanceThisWeek = 0
+                self.repairCount = 0
+                self.totalMaintenanceCost = 0
                 
-                // Set basic maintenance stats
-                self.lastMaintenanceDate = Date().addingTimeInterval(-30 * 24 * 60 * 60) // 30 days ago
+                // Set placeholder dates
+                self.lastMaintenanceDate = nil // No historical data available yet
                 self.nextScheduledMaintenance = Date().addingTimeInterval(30 * 24 * 60 * 60) // 30 days from now
                 
                 // Use the workers directly since they're already WorkerProfile objects

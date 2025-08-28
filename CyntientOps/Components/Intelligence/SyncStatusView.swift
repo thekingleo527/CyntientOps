@@ -57,8 +57,8 @@ struct SyncStatusView: View {
         .padding()
         .background(.ultraThinMaterial)
         .cornerRadius(12)
-        .animation(.easeInOut, value: isOnline)
-        .animation(.easeInOut, value: pendingUpdatesCount)
+        .animation(.easeInOut(duration: 0.3), value: isOnline)
+        .animation(.easeInOut(duration: 0.3), value: pendingUpdatesCount)
     }
     
     // MARK: - Computed Properties

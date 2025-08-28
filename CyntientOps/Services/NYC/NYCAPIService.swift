@@ -27,7 +27,7 @@ public final class NYCAPIService: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     
     // API Configuration
-    private struct APIConfig {
+    internal struct APIConfig {
         static let baseURL = "https://data.cityofnewyork.us/resource/"
         static let hpdURL = "https://data.cityofnewyork.us/resource/wvxf-dwi5.json" // HPD Violations
         static let dobURL = "https://data.cityofnewyork.us/resource/ipu4-2q9a.json" // DOB Permits

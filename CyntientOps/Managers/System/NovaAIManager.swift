@@ -345,16 +345,23 @@ public final class NovaAIManager: ObservableObject {
     
     public func setServiceContainer(_ container: ServiceContainer) {
         self.serviceContainer = container
-        setupIntelligenceIntegration()
+        Task {
+            await setupIntelligenceIntegration()
+        }
     }
     
-    private func setupIntelligenceIntegration() {
+    private func setupIntelligenceIntegration() async {
         // Subscribe to intelligence updates
         guard let container = serviceContainer else { return }
         
-        container.intelligence.$insights
-            .assign(to: \.currentInsights, on: self)
-            .store(in: &cancellables)
+        do {
+            let intelligence = try await container.intelligence
+            intelligence.$insights
+                .assign(to: \.currentInsights, on: self)
+                .store(in: &cancellables)
+        } catch {
+            print("❌ Failed to setup intelligence integration: \(error)")
+        }
     }
     
     // MARK: - Holographic Mode Management

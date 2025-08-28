@@ -79,7 +79,7 @@ public class LanguageManager: ObservableObject {
     /// Get user capabilities from database
     private func getUserCapabilities(for userId: String) async throws -> UserLanguageCapabilities {
         let results = try await GRDBManager.shared.query(
-            "SELECT language, requires_photo_for_sanitation FROM worker_capabilities WHERE worker_id = ?",
+            "SELECT preferred_language as language, requires_photo_for_sanitation FROM worker_capabilities WHERE worker_id = ?",
             [userId]
         )
         

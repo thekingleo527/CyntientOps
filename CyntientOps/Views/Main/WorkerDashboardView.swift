@@ -44,6 +44,7 @@ struct WorkerDashboardView: View {
     @State private var heroExpanded = true
     @State private var intelligencePanelExpanded = false
     @State private var selectedNovaTab: IntelligenceTab = .routines
+    @State private var showingFullScreenTab: IntelligenceTab? = nil
     
     // MARK: - Intelligence Tabs
     enum IntelligenceTab: String, CaseIterable {
@@ -93,7 +94,7 @@ struct WorkerDashboardView: View {
                         name: getWorkerName(),
                         initials: getWorkerInitials(),
                         photoURL: nil,
-                        nextTaskName: getNextTaskTitle(),
+                        nextTaskName: viewModel.nextPriorityTitle,
                         showClockPill: true,
                         isNovaProcessing: false, // novaManager.isProcessing not available
                         onRoute: handleHeaderRoute
@@ -106,20 +107,18 @@ struct WorkerDashboardView: View {
                             // Hero Section: Two Glass Cards
                             heroSection
                             
-                            // Weather-Based Task Bar (thin, location intelligent)
-                            if let currentBuilding = getCurrentBuildingCoordinate(),
-                               let weather = viewModel.weatherData {
-                                WeatherDashboardComponent(
-                                    building: currentBuilding,
-                                    weather: weather,
-                                    tasks: getWeatherAffectedTasks(),
-                                    onTaskTap: { task in
-                                        if let taskId = findTaskId(for: task) {
-                                            sheet = .taskDetail(taskId)
-                                        }
-                                    }
-                                )
-                                .padding(.horizontal, CyntientOpsDesign.Spacing.md)
+                            // Weather Ribbon (compact, expandable)
+                            if let weatherSnapshot = viewModel.weather {
+                                WeatherRibbonView(snapshot: weatherSnapshot)
+                                    .padding(.horizontal, CyntientOpsDesign.Spacing.md)
+                                    .animatedGlassAppear(delay: 0.3)
+                            }
+                            
+                            // Upcoming Tasks (weather-aware, intelligent ordering)
+                            if !viewModel.upcoming.isEmpty {
+                                UpcomingTaskListView(rows: viewModel.upcoming)
+                                    .padding(.horizontal, CyntientOpsDesign.Spacing.md)
+                                    .animatedGlassAppear(delay: 0.4)
                             }
                         }
                         .padding(.top, CyntientOpsDesign.Spacing.md)
@@ -139,7 +138,7 @@ struct WorkerDashboardView: View {
                     ForEach(IntelligenceTab.allCases, id: \.rawValue) { tab in
                         Button(action: {
                             selectedNovaTab = tab
-                            handleTabNavigation(tab)
+                            handleIntelligenceTabNavigation(tab)
                         }) {
                             VStack(spacing: 4) {
                                 Image(systemName: tab.icon)
@@ -176,6 +175,16 @@ struct WorkerDashboardView: View {
         .task {
             await viewModel.refreshData()
         }
+        .overlay(
+            // Full-screen tab content overlay
+            Group {
+                if let fullScreenTab = showingFullScreenTab {
+                    fullScreenTabContent(for: fullScreenTab)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                        .zIndex(10)
+                }
+            }
+        )
     }
     
     // MARK: - Hero Section with Two Glass Cards
@@ -186,22 +195,36 @@ struct WorkerDashboardView: View {
             VStack(spacing: CyntientOpsDesign.Spacing.md) {
                 HStack(spacing: CyntientOpsDesign.Spacing.md) {
                     // Card 1: Immediate Routine/Tasks for Assigned Building
-                    GlassCard(
-                        intensity: .regular,
-                        cornerRadius: CyntientOpsDesign.CornerRadius.glassCard,
-                        padding: CyntientOpsDesign.Spacing.cardPadding
-                    ) {
-                        immediateRoutineCard
+                    Button(action: {
+                        if let buildingId = viewModel.currentBuilding?.id {
+                            sheet = .buildingDetail(buildingId)
+                        }
+                    }) {
+                        GlassCard(
+                            intensity: .regular,
+                            cornerRadius: CyntientOpsDesign.CornerRadius.glassCard,
+                            padding: CyntientOpsDesign.Spacing.cardPadding
+                        ) {
+                            immediateRoutineCard
+                        }
                     }
+                    .buttonStyle(PlainButtonStyle())
                     
                     // Card 2: Immediate Next Tasks
-                    GlassCard(
-                        intensity: .regular,
-                        cornerRadius: CyntientOpsDesign.CornerRadius.glassCard,
-                        padding: CyntientOpsDesign.Spacing.cardPadding
-                    ) {
-                        immediateNextTasksCard
+                    Button(action: {
+                        if let nextTask = getNextTask() {
+                            sheet = .taskDetail(nextTask.id)
+                        }
+                    }) {
+                        GlassCard(
+                            intensity: .regular,
+                            cornerRadius: CyntientOpsDesign.CornerRadius.glassCard,
+                            padding: CyntientOpsDesign.Spacing.cardPadding
+                        ) {
+                            immediateNextTasksCard
+                        }
                     }
+                    .buttonStyle(PlainButtonStyle())
                 }
                 .frame(height: 200)
                 
@@ -258,7 +281,7 @@ struct WorkerDashboardView: View {
                         .font(.caption)
                         .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
                     
-                    Text(viewModel.currentBuilding?.name ?? "Not Assigned")
+                    Text(viewModel.currentBuildingName)
                         .font(.headline)
                         .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                         .lineLimit(1)
@@ -276,7 +299,7 @@ struct WorkerDashboardView: View {
             
             // Today's routine count from OperationalDataManager
             VStack(alignment: .leading, spacing: 4) {
-                Text("\(getImmediateTasksCount())")
+                Text("\(viewModel.immediateCount)")
                     .font(.title)
                     .fontWeight(.bold)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
@@ -306,7 +329,7 @@ struct WorkerDashboardView: View {
                         .font(.caption)
                         .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
                     
-                    Text(getNextTaskTitle())
+                    Text(viewModel.nextPriorityTitle)
                         .font(.headline)
                         .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                         .lineLimit(1)
@@ -325,9 +348,9 @@ struct WorkerDashboardView: View {
             Spacer()
             
             // Next task details
-            if let nextTask = getNextTask() {
+            if let nextTime = viewModel.nextPriorityTime {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(nextTask.dueDate?.formatted(.dateTime.hour().minute()) ?? "No time")
+                    Text(CoreTypes.DateUtils.timeFormatter.string(from: nextTime))
                         .font(.title2)
                         .fontWeight(.semibold)
                         .foregroundColor(.orange)
@@ -365,7 +388,7 @@ struct WorkerDashboardView: View {
                     .fontWeight(.medium)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                 
-                Text("\(getImmediateTasksCount()) immediate tasks")
+                Text("\(viewModel.immediateCount) immediate tasks")
                     .font(.caption)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
             }
@@ -608,17 +631,458 @@ struct WorkerDashboardView: View {
             estimatedDuration: 30
         )
     }
-}
-
-    // MARK: - Helper for Urgency Sorting
     
-    private func getUrgencyOrder(_ urgency: WorkerDashboardViewModel.TaskItem.TaskUrgency) -> Int {
-        switch urgency {
-        case .emergency: return 0
-        case .critical: return 1
-        case .urgent: return 2
-        case .high: return 3
-        case .normal: return 4
-        case .low: return 5
+    // MARK: - Enhanced Intelligence Panel Navigation
+    
+    /// Handle tab navigation - opens full-screen views while maintaining panel
+    private func handleIntelligenceTabNavigation(_ tab: IntelligenceTab) {
+        withAnimation(.easeInOut(duration: 0.3)) {
+            if showingFullScreenTab == tab {
+                // If same tab clicked, close full-screen view
+                showingFullScreenTab = nil
+                
+                // Special handling for portfolio tab
+                if tab == .portfolio {
+                    isPortfolioMapRevealed = false
+                }
+            } else {
+                // Open new full-screen view
+                showingFullScreenTab = tab
+                
+                // Special handling for portfolio tab - reveal map
+                if tab == .portfolio {
+                    isPortfolioMapRevealed = true
+                }
+            }
         }
     }
+    
+    /// Full-screen content for each intelligence tab
+    @ViewBuilder
+    private func fullScreenTabContent(for tab: IntelligenceTab) -> some View {
+        ZStack {
+            // Semi-transparent background
+            Color.black.opacity(0.3)
+                .ignoresSafeArea()
+                .onTapGesture {
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        showingFullScreenTab = nil
+                        if tab == .portfolio {
+                            isPortfolioMapRevealed = false
+                        }
+                    }
+                }
+            
+            VStack(spacing: 0) {
+                // Full-screen content area
+                switch tab {
+                case .routines:
+                    routinesFullScreenView
+                case .portfolio:
+                    portfolioFullScreenView
+                case .analytics:
+                    analyticsFullScreenView
+                case .siteDeparture:
+                    siteDepartureFullScreenView
+                case .schedule:
+                    scheduleFullScreenView
+                }
+                
+                // Keep space for intelligence panel at bottom
+                Spacer()
+                    .frame(height: 80) // Height of intelligence panel
+            }
+        }
+    }
+    
+    // MARK: - Full-Screen Tab Views
+    
+    @ViewBuilder
+    private var routinesFullScreenView: some View {
+        VStack {
+            // Header with close button
+            HStack {
+                Text("Today's Routines")
+                    .font(.largeTitle)
+                    .fontWeight(.bold)
+                    .foregroundColor(.white)
+                
+                Spacer()
+                
+                Button(action: {
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        showingFullScreenTab = nil
+                    }
+                }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.title2)
+                        .foregroundColor(.white)
+                }
+            }
+            .padding()
+            .background(.ultraThinMaterial)
+            
+            // Tasks list
+            ScrollView {
+                LazyVStack(spacing: 12) {
+                    ForEach(viewModel.todaysTasks, id: \.id) { task in
+                        WorkerTaskRowView(task: task, onTap: {
+                            sheet = .taskDetail(task.id)
+                        })
+                    }
+                }
+                .padding()
+            }
+            .background(.ultraThinMaterial)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .padding(.horizontal)
+        .padding(.top, 60) // Below status bar
+    }
+    
+    @ViewBuilder
+    private var portfolioFullScreenView: some View {
+        VStack {
+            // Header
+            HStack {
+                Text("Building Portfolio")
+                    .font(.largeTitle)
+                    .fontWeight(.bold)
+                    .foregroundColor(.white)
+                
+                Spacer()
+                
+                Button(action: {
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        showingFullScreenTab = nil
+                        isPortfolioMapRevealed = false
+                    }
+                }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.title2)
+                        .foregroundColor(.white)
+                }
+            }
+            .padding()
+            .background(.ultraThinMaterial)
+            
+            // Map is handled by MapRevealContainer - this just provides the overlay UI
+            Text("Map is now full-screen")
+                .font(.title3)
+                .foregroundColor(.white)
+                .padding()
+                .background(.ultraThinMaterial)
+        }
+        .padding(.horizontal)
+        .padding(.top, 60)
+    }
+    
+    @ViewBuilder
+    private var analyticsFullScreenView: some View {
+        VStack {
+            HStack {
+                Text("Performance Analytics")
+                    .font(.largeTitle)
+                    .fontWeight(.bold)
+                    .foregroundColor(.white)
+                
+                Spacer()
+                
+                Button(action: {
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        showingFullScreenTab = nil
+                    }
+                }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.title2)
+                        .foregroundColor(.white)
+                }
+            }
+            .padding()
+            .background(.ultraThinMaterial)
+            
+            // Analytics content
+            ScrollView {
+                VStack(spacing: 20) {
+                    // Real NYC Compliance Metrics
+                    HStack(spacing: 15) {
+                        WorkerDashboardMetricCard(title: "Active Violations", value: "\(viewModel.getTotalActiveViolations())", icon: "exclamationmark.triangle.fill")
+                        WorkerDashboardMetricCard(title: "Buildings Served", value: "\(viewModel.assignedBuildings.count)", icon: "building.2.fill")
+                        WorkerDashboardMetricCard(title: "Tasks Today", value: "\(viewModel.todaysTasks.count)", icon: "list.bullet")
+                    }
+                    
+                    // Task Completion Status
+                    HStack(spacing: 20) {
+                        WorkerDashboardMetricCard(title: "Completed", value: "\(viewModel.completedTasksCount)", icon: "checkmark.circle.fill")
+                        WorkerDashboardMetricCard(title: "Remaining", value: "\(viewModel.todaysTasks.count - viewModel.completedTasksCount)", icon: "clock.fill")
+                    }
+                    
+                    // Real Building Compliance Status
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Building Compliance Status")
+                            .font(.headline)
+                            .foregroundColor(.white)
+                        
+                        ForEach(viewModel.assignedBuildings.prefix(5), id: \.id) { building in
+                            HStack {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(building.name)
+                                        .font(.subheadline)
+                                        .fontWeight(.medium)
+                                        .foregroundColor(.white)
+                                    
+                                    Text(viewModel.getBuildingComplianceStatus(building))
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                                
+                                Spacer()
+                                
+                                VStack(alignment: .trailing, spacing: 2) {
+                                    Text("\(viewModel.getBuildingViolationCount(building))")
+                                        .font(.title2)
+                                        .fontWeight(.bold)
+                                        .foregroundColor(viewModel.getBuildingViolationCount(building) > 5 ? .red : .green)
+                                    
+                                    Text("violations")
+                                        .font(.caption2)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                            .padding()
+                            .background(.ultraThinMaterial)
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                        }
+                    }
+                }
+                .padding()
+            }
+            .background(.ultraThinMaterial)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .padding(.horizontal)
+        .padding(.top, 60)
+    }
+    
+    @ViewBuilder
+    private var siteDepartureFullScreenView: some View {
+        VStack {
+            HStack {
+                Text("Site Departure")
+                    .font(.largeTitle)
+                    .fontWeight(.bold)
+                    .foregroundColor(.white)
+                
+                Spacer()
+                
+                Button(action: {
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        showingFullScreenTab = nil
+                    }
+                }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.title2)
+                        .foregroundColor(.white)
+                }
+            }
+            .padding()
+            .background(.ultraThinMaterial)
+            
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    Text("Departure Checklist")
+                        .font(.title2)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.white)
+                    
+                    WorkerChecklistItem(title: "All tasks completed", isCompleted: viewModel.todaysTasks.allSatisfy { $0.isCompleted })
+                    WorkerChecklistItem(title: "Equipment secured", isCompleted: false)
+                    WorkerChecklistItem(title: "Site cleaned", isCompleted: false)
+                    WorkerChecklistItem(title: "Photos uploaded", isCompleted: false)
+                    WorkerChecklistItem(title: "Next day prepared", isCompleted: false)
+                }
+                .padding()
+            }
+            .background(.ultraThinMaterial)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .padding(.horizontal)
+        .padding(.top, 60)
+    }
+    
+    @ViewBuilder
+    private var scheduleFullScreenView: some View {
+        VStack {
+            HStack {
+                Text("Weekly Schedule")
+                    .font(.largeTitle)
+                    .fontWeight(.bold)
+                    .foregroundColor(.white)
+                
+                Spacer()
+                
+                Button(action: {
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        showingFullScreenTab = nil
+                    }
+                }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.title2)
+                        .foregroundColor(.white)
+                }
+            }
+            .padding()
+            .background(.ultraThinMaterial)
+            
+            ScrollView {
+                LazyVStack(spacing: 12) {
+                    ForEach(viewModel.scheduleForToday, id: \.id) { item in
+                        WorkerScheduleRowView(item: item)
+                    }
+                }
+                .padding()
+            }
+            .background(.ultraThinMaterial)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .padding(.horizontal)
+        .padding(.top, 60)
+    }
+}
+
+// MARK: - Helper Views for Full-Screen Tabs
+
+struct WorkerTaskRowView: View {
+    let task: WorkerDashboardViewModel.TaskItem
+    let onTap: () -> Void
+    
+    var body: some View {
+        Button(action: onTap) {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(task.title)
+                        .font(.headline)
+                        .foregroundColor(.primary)
+                    
+                    Text(task.category)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                
+                Spacer()
+                
+                if task.requiresPhoto {
+                    Image(systemName: "camera.fill")
+                        .foregroundColor(.blue)
+                }
+                
+                Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle")
+                    .foregroundColor(task.isCompleted ? .green : .secondary)
+            }
+            .padding()
+            .background(.regularMaterial)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+struct WorkerDashboardMetricCard: View {
+    let title: String
+    let value: String
+    let icon: String
+    
+    var body: some View {
+        VStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.title2)
+                .foregroundColor(.blue)
+            
+            Text(value)
+                .font(.title)
+                .fontWeight(.bold)
+                .foregroundColor(.white)
+            
+            Text(title)
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+        .padding()
+        .frame(maxWidth: .infinity)
+        .background(.regularMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+}
+
+struct WorkerChecklistItem: View {
+    let title: String
+    let isCompleted: Bool
+    
+    var body: some View {
+        HStack {
+            Image(systemName: isCompleted ? "checkmark.circle.fill" : "circle")
+                .foregroundColor(isCompleted ? .green : .secondary)
+            
+            Text(title)
+                .foregroundColor(.white)
+                .strikethrough(isCompleted)
+            
+            Spacer()
+        }
+        .padding()
+        .background(.regularMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+}
+
+struct WorkerScheduleRowView: View {
+    let item: WorkerDashboardViewModel.ScheduledItem
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text(item.title)
+                    .font(.headline)
+                    .foregroundColor(.white)
+                
+                Spacer()
+                
+                Text(CoreTypes.DateUtils.timeFormatter.string(from: item.startTime))
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+            }
+            
+            Text(item.location.name)
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+            
+            HStack {
+                Text("\(item.taskCount) tasks")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                
+                Spacer()
+                
+                Text("\(item.duration) min")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+        }
+        .padding()
+        .background(.regularMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+}
+
+// MARK: - Helper for Urgency Sorting
+
+private func getUrgencyOrder(_ urgency: WorkerDashboardViewModel.TaskItem.TaskUrgency) -> Int {
+    switch urgency {
+    case .emergency: return 0
+    case .critical: return 1
+    case .urgent: return 2
+    case .high: return 3
+    case .normal: return 4
+    case .low: return 5
+    }
+}

@@ -1,71 +1,46 @@
-# Files to Add to Xcode Project Target
+# Files to Add to Xcode Project
 
-## 🎯 Required Manual Addition
+The following files were created programmatically and need to be manually added to the Xcode project target:
 
-The following files exist in the filesystem but are not yet added to the Xcode project target and need to be manually added:
+## Core Utilities
+- `CyntientOps/Core/Utils/DateUtils.swift` - Timezone-aware date utilities and formatters
 
-### 1. AdminOperationalIntelligence.swift
-**Location:** `CyntientOps/Services/Admin/AdminOperationalIntelligence.swift`  
-**Status:** ❌ Not in project.pbxproj  
-**Impact:** ServiceContainer getAdminIntelligence() method is commented out until this is added
+## Route-Based Architecture (NEW)
+- `CyntientOps/Core/Models/Routes/WorkerRoute.swift` - Route-based operational data structures
+- `CyntientOps/Core/Models/Routes/OperationalCalendar.swift` - Comprehensive operational calendar system
+- `CyntientOps/Core/Models/Routes/KevinDutanRoutes.swift` - Kevin's precise operational routes
+- `CyntientOps/Core/Models/Routes/KevinDutanCompleteSchedule.swift` - Kevin's complete weekly schedule
+- `CyntientOps/Core/Models/Routes/EdwinLemaRoutes.swift` - Edwin's operational routes and schedules
+- `CyntientOps/Managers/Routes/RouteManager.swift` - Route management system
+- `CyntientOps/Services/Integration/RouteOperationalBridge.swift` - Integration bridge for compatibility
+- `CyntientOps/Services/Weather/WeatherTriggeredTaskManager.swift` - Weather-triggered task management
 
-**To Add:**
+## DSNY Task Management (NEW)
+- `CyntientOps/Services/NYC/DSNYTaskManager.swift` - DSNY task scheduling and compliance automation
+
+## Weather-Aware System (NEW)
+- `CyntientOps/Models/Weather/WeatherSnapshot.swift` - Weather domain model for UI
+- `CyntientOps/Models/Weather/RoutineWeatherProfile.swift` - Weather sensitivity profiles
+- `CyntientOps/ViewModels/Dashboard/Worker/WeatherScoreBuilder.swift` - Weather-aware task scoring
+- `CyntientOps/Views/Worker/WeatherRibbonView.swift` - Weather ribbon component
+- `CyntientOps/Views/Worker/UpcomingTaskListView.swift` - Weather-aware upcoming tasks
+- `CyntientOps/Services/Integration/WeatherDataAdapter.swift` - Weather data integration service
+- `CyntientOps/Services/Weather/WeatherTriggeredTaskManager.swift` - Weather-triggered task automation
+
+## Views/Components  
+- `CyntientOps/Views/Components/ExpandableCard.swift` - Accordion-style expandable card component
+- `CyntientOps/Views/Intelligence/IntelligencePanel.swift` - Intelligence panel with mini/expanded/full states
+
+## ViewModels
+- `CyntientOps/ViewModels/Intelligence/IntelligencePanelModel.swift` - State management for intelligence panel modes
+
+## Instructions
 1. Open CyntientOps.xcodeproj in Xcode
-2. Right-click on `Services/Admin` folder
-3. Choose "Add Files to 'CyntientOps'"
-4. Select `AdminOperationalIntelligence.swift`
-5. Ensure it's added to the CyntientOps target
+2. Right-click on the appropriate group in the Project Navigator
+3. Choose "Add Files to 'CyntientOps'"  
+4. Navigate to each file path and add it to the target
+5. Verify each file appears in the target membership panel
 
-**After Adding:** Uncomment the getAdminIntelligence() method in ServiceContainer.swift:
-```swift
-public func getAdminIntelligence() -> AdminOperationalIntelligence {
-    return AdminOperationalIntelligence(container: self, dashboardSync: dashboardSync)
-}
-```
-
-### 2. Performance Utilities (Already Added ✅)
-The following files were successfully added to the project:
-- ✅ `BatchedUIUpdater.swift` - In Services/Core/
-- ✅ `MemoryPressureMonitor.swift` - In Services/Core/
-- ✅ `QueryOptimizer.swift` - In Services/Core/
-- ✅ `TaskPoolManager.swift` - In Services/Core/
-
-### 3. Production Command Steps (Already Added ✅)
-- ✅ `CommandSteps_Production.swift` - In Services/Commands/
-
-## 📋 Files Already in Project
-These files are confirmed to be in the Xcode project target:
-- ✅ OperationalDataManager.swift
-- ✅ NYCComplianceService.swift  
-- ✅ NYCIntegrationManager.swift
-- ✅ ServiceContainer.swift
-- ✅ All ViewModels and Core files
-
-## 🔧 After Adding AdminOperationalIntelligence.swift
-
-Once the file is added to the Xcode project, you'll need to:
-
-1. **Uncomment ServiceContainer method:**
-   ```swift
-   // In ServiceContainer.swift, uncomment:
-   public func getAdminIntelligence() -> AdminOperationalIntelligence {
-       return AdminOperationalIntelligence(container: self, dashboardSync: dashboardSync)
-   }
-   ```
-
-2. **Test compilation:**
-   - Build the project in Xcode
-   - All ServiceContainer errors should be resolved
-
-## 🚀 Current Status
-
-**✅ Fixed Issues:**
-- ServiceContainer operationalManager scope → Fixed (operationalData)
-- NYCComplianceService.shared → Fixed (proper initialization)
-- ServiceContainer async property access → Fixed (try/await pattern)
-- TaskService QueryOptimizer main actor isolation → Fixed (actor pattern)
-
-**⏳ Pending:**
-- AdminOperationalIntelligence type not found → Requires manual Xcode project addition
-
-The system is 99% ready - only the manual file addition step remains.
+## Priority
+- **High Priority**: DateUtils.swift (compilation errors without it)
+- **Medium Priority**: Other files for new features

@@ -54,11 +54,11 @@ public final class BatchedUIUpdater: ObservableObject {
     }
 }
 
-/// Property wrapper for batched UI updates
+/// Property wrapper for batched UI updates  
 @propertyWrapper
-public struct BatchedPublished<Value> {
+public final class BatchedPublished<Value>: ObservableObject {
     private let key: String
-    @Published private var value: Value
+    @Published public var value: Value
     
     public init(wrappedValue: Value, key: String? = nil) {
         self.value = wrappedValue
@@ -68,8 +68,10 @@ public struct BatchedPublished<Value> {
     public var wrappedValue: Value {
         get { value }
         set {
-            BatchedUIUpdater.shared.queueUpdate(key: key) {
-                self.value = newValue
+            Task { @MainActor in
+                BatchedUIUpdater.shared.queueUpdate(key: key) {
+                    self.value = newValue
+                }
             }
         }
     }

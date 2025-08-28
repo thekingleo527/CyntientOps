@@ -251,9 +251,26 @@ public final class GRDBManager {
                 primaryContact TEXT,
                 contactPhone TEXT,
                 contactEmail TEXT,
-                specialNotes TEXT
+                specialNotes TEXT,
+                bbl TEXT,
+                bin TEXT
             )
         """)
+        
+        // Add BBL and BIN columns if they don't exist (for migration)
+        do {
+            let columns = try db.columns(in: "buildings")
+            if !columns.contains(where: { $0.name == "bbl" }) {
+                try db.execute(sql: "ALTER TABLE buildings ADD COLUMN bbl TEXT")
+                print("✅ Added BBL column to buildings table")
+            }
+            if !columns.contains(where: { $0.name == "bin" }) {
+                try db.execute(sql: "ALTER TABLE buildings ADD COLUMN bin TEXT")
+                print("✅ Added BIN column to buildings table")
+            }
+        } catch {
+            print("⚠️ Could not add BBL/BIN columns to buildings table: \(error)")
+        }
         
         // Routine tasks table (main tasks table)
         try db.execute(sql: """
@@ -507,15 +524,27 @@ public final class GRDBManager {
                 can_add_notes INTEGER DEFAULT 1,
                 can_view_map INTEGER DEFAULT 1,
                 can_add_emergency_tasks INTEGER DEFAULT 0,
-                requires_photo_for_sanitation INTEGER DEFAULT 1,
+                requires_photo_for_sanitation INTEGER DEFAULT 0,
                 simplified_interface INTEGER DEFAULT 0,
                 max_daily_tasks INTEGER DEFAULT 50,
                 preferred_language TEXT DEFAULT 'en',
+                language TEXT DEFAULT 'en',
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (worker_id) REFERENCES workers(id)
             )
         """)
+        
+        // Add language column to worker_capabilities if it doesn't exist (migration)
+        do {
+            let columns = try db.columns(in: "worker_capabilities")
+            if !columns.contains(where: { $0.name == "language" }) {
+                try db.execute(sql: "ALTER TABLE worker_capabilities ADD COLUMN language TEXT DEFAULT 'en'")
+                print("✅ Added language column to worker_capabilities table")
+            }
+        } catch {
+            print("⚠️ Could not add language column to worker_capabilities table: \(error)")
+        }
         
         // Worker time logs (for metrics calculation)
         try db.execute(sql: """
@@ -803,6 +832,35 @@ public final class GRDBManager {
             )
         """)
         
+        // Historical NYC Data table for compliance tracking
+        try db.execute(sql: """
+            CREATE TABLE IF NOT EXISTS building_historical_data (
+                building_id TEXT PRIMARY KEY,
+                data_json TEXT NOT NULL,
+                loaded_date TEXT NOT NULL,
+                data_start_date TEXT NOT NULL,
+                data_end_date TEXT NOT NULL,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (building_id) REFERENCES buildings(id)
+            )
+        """)
+        
+        // Compliance alerts table for real-time notifications
+        try db.execute(sql: """
+            CREATE TABLE IF NOT EXISTS compliance_alerts (
+                id TEXT PRIMARY KEY,
+                building_id TEXT NOT NULL,
+                alert_type TEXT NOT NULL,
+                message TEXT NOT NULL,
+                severity TEXT NOT NULL DEFAULT 'medium',
+                created_at TEXT NOT NULL,
+                resolved_at TEXT,
+                is_resolved INTEGER NOT NULL DEFAULT 0,
+                FOREIGN KEY (building_id) REFERENCES buildings(id)
+            )
+        """)
+        
         // Create indexes
         try createIndexes(db)
         
@@ -897,6 +955,15 @@ public final class GRDBManager {
         try db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_dsny_schedule_updated ON dsny_schedule_cache(last_updated)")
         try db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_dsny_violations_building ON dsny_violations(building_id)")
         try db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_dsny_violations_date ON dsny_violations(issue_date)")
+        
+        // Historical data indexes
+        try db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_historical_data_loaded_date ON building_historical_data(loaded_date)")
+        try db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_historical_data_date_range ON building_historical_data(data_start_date, data_end_date)")
+        
+        // Compliance alerts indexes
+        try db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_compliance_alerts_building ON compliance_alerts(building_id)")
+        try db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_compliance_alerts_severity ON compliance_alerts(severity, is_resolved)")
+        try db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_compliance_alerts_created ON compliance_alerts(created_at)")
         try db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_dsny_violations_status ON dsny_violations(status)")
         try db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_dsny_compliance_building_date ON dsny_compliance_logs(building_id, check_date)")
         try db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_dsny_compliance_compliant ON dsny_compliance_logs(is_compliant)")

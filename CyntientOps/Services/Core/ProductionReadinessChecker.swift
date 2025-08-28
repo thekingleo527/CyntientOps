@@ -240,7 +240,7 @@ public class ProductionReadinessChecker: ObservableObject {
             layerStatus["Layer0_Database"] = container.database.isConnected
             layerStatus["Layer1_CoreServices"] = container.auth.isAuthenticated
             layerStatus["Layer2_BusinessLogic"] = true // DashboardSync initialized
-            layerStatus["Layer3_Intelligence"] = container.intelligence.isMonitoring
+            layerStatus["Layer3_Intelligence"] = await (try? container.intelligence.isMonitoring) ?? false
             layerStatus["Layer4_ContextEngines"] = true // No direct check available
             layerStatus["Layer5_CommandChains"] = !container.commands.getActiveChains().isEmpty || true
             layerStatus["Layer6_OfflineSupport"] = container.offlineQueue.pendingActions.count >= 0
@@ -385,7 +385,7 @@ public class ProductionReadinessChecker: ObservableObject {
                 throw CheckError.serviceNotAvailable("ServiceContainer not available")
             }
             
-            let intelligence = container.intelligence
+            let intelligence = try await container.intelligence
             let insights = intelligence.insights
             
             return CheckData([

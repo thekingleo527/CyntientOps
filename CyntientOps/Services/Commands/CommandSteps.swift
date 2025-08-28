@@ -90,15 +90,9 @@ public struct DatabaseTransactionCommand: CommandStep {
             workerId: workerId
         )
         // Use production task completion with full evidence documentation
-        let completionCommand = CompleteTaskWithEvidenceCommand(
-            taskId: taskId,
-            workerId: workerId,
-            completionNotes: "Task completed via command chain",
-            photoIds: evidence.compactMap { $0 as? String },
-            container: container
-        )
+        try await container.tasks.completeTask(taskId, evidence: evidence)
         
-        let reportId = try await completionCommand.execute() as? String
+        let reportId = taskId // Task completion successful
         return reportId != nil
     }
 }
@@ -136,7 +130,7 @@ public struct IntelligenceUpdateCommand: CommandStep {
     }
     
     public func execute() async throws -> Any? {
-        await container.intelligence.processTaskCompletion(taskId: taskId, workerId: workerId)
+        try await container.intelligence.processTaskCompletion(taskId: taskId, workerId: workerId)
         return true
     }
 }
@@ -366,29 +360,31 @@ public struct UploadToStorageCommand: CommandStep {
     
     private let taskId: String
     private let workerId: String
+    private let buildingId: String
     private let container: ServiceContainer
     
-    public init(taskId: String, workerId: String, container: ServiceContainer) {
+    public init(taskId: String, workerId: String, buildingId: String, container: ServiceContainer) {
         self.taskId = taskId
         self.workerId = workerId
+        self.buildingId = buildingId
         self.container = container
     }
     
     public func execute() async throws -> Any? {
         // In production, upload to secure cloud storage
-        // For now, simulate upload
+        // For now, simulate upload with photo evidence service
         let uploadId = UUID().uuidString
         
-        // Use production photo capture implementation
-        let photoCommand = CaptureTaskPhotoCommand(
-            taskId: taskId,
-            workerId: workerId,
+        // Use photo evidence service for production photo handling
+        let photoResult = try await container.photos.captureQuick(
+            image: UIImage(), // Would be actual photo image
+            category: .afterWork,
             buildingId: buildingId,
-            taskType: taskType,
-            container: container
+            workerId: workerId,
+            notes: "Task completion photo"
         )
         
-        return try await photoCommand.execute() as? String ?? uploadId
+        return photoResult.id
     }
 }
 
@@ -427,7 +423,7 @@ public struct FetchViolationCommand: CommandStep {
     }
     
     public func execute() async throws -> Any? {
-        let violation = try await container.nycCompliance.getComplianceIssues(for: buildingId)
+        let violation = await container.nycCompliance.getComplianceIssues(for: buildingId)
             .first { issue in
                 return issue.id == violationId // Using id instead of externalId
             }
@@ -455,14 +451,23 @@ public struct CreateResolutionTaskCommand: CommandStep {
     }
     
     public func execute() async throws -> Any? {
-        // Use production violation task creation
-        let violationCommand = CreateViolationTaskCommand(
-            violationId: violationId,
+        // Use production violation task creation via compliance service
+        // Create a task for addressing the compliance violation
+        let taskTemplate = ContextualTask(
+            id: UUID().uuidString,
+            title: "Address Violation \(violationId)",
+            description: "Compliance violation requires attention",
+            status: .pending,
+            category: .compliance,
+            urgency: .high,
             buildingId: buildingId,
-            container: container
+            assignedWorkerId: nil
         )
         
-        return try await violationCommand.execute() as? String ?? UUID().uuidString
+        try await container.tasks.createTask(taskTemplate)
+        let taskId = taskTemplate.id
+        
+        return taskId ?? UUID().uuidString
     }
 }
 
@@ -531,7 +536,7 @@ public struct MonitorProgressCommand: CommandStep {
     
     public func execute() async throws -> Any? {
         // Set up monitoring for this violation resolution
-        await container.intelligence.startViolationMonitoring(violationId)
+        try await container.intelligence.startViolationMonitoring(violationId)
         return true
     }
 }

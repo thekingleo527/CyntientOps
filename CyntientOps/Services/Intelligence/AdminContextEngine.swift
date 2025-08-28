@@ -87,7 +87,12 @@ public final class AdminContextEngine: ObservableObject, AdminContextEngineProto
     private var taskService: TaskService? { container?.tasks }
     private var complianceService: ComplianceService? { container?.compliance }
     private var workerService: WorkerService? { container?.workers }
-    private var intelligenceService: UnifiedIntelligenceService? { container?.intelligence }
+    private var intelligenceService: UnifiedIntelligenceService? { 
+        get async throws {
+            guard let container = container else { return nil }
+            return try await container.intelligence
+        }
+    }
     
     // MARK: - Initialization
     
@@ -325,7 +330,7 @@ public final class AdminContextEngine: ObservableObject, AdminContextEngineProto
     }
     
     private func loadIntelligenceData() async throws {
-        guard let intelligenceService = intelligenceService else { return }
+        guard let intelligenceService = try await intelligenceService else { return }
         
         // Get AI insights
         intelligenceInsights = intelligenceService.insights
@@ -459,11 +464,18 @@ public final class AdminContextEngine: ObservableObject, AdminContextEngineProto
             .store(in: &cancellables)
         
         // Subscribe to intelligence updates
-        intelligenceService?.$insights
-            .sink { [weak self] insights in
-                self?.intelligenceInsights = insights
+        Task {
+            do {
+                guard let intelligenceService = try await intelligenceService else { return }
+                intelligenceService.$insights
+                    .sink { [weak self] insights in
+                        self?.intelligenceInsights = insights
+                    }
+                    .store(in: &cancellables)
+            } catch {
+                print("❌ Failed to setup intelligence subscription: \(error)")
             }
-            .store(in: &cancellables)
+        }
     }
     
     private func startRealtimeMonitoring() {

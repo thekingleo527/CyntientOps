@@ -189,7 +189,7 @@ struct CyntientOpsApp: App {
             
             // Reduced sampling to improve performance during initialization
             options.tracesSampleRate = 0.05   // 5% sampling
-            options.profileOptions.sessionSampleRate = 0.02 // 2% profiling - updated API
+            options.profilesSampleRate = 0.02 // 2% profiling
             
             if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String,
                let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String {
@@ -198,8 +198,9 @@ struct CyntientOpsApp: App {
             
             options.enableAutoBreadcrumbTracking = true
             options.maxBreadcrumbs = 100
-            options.attachScreenshot = true
-            options.attachViewHierarchy = true
+            // Disable heavy operations during launch for performance
+            options.attachScreenshot = false
+            options.attachViewHierarchy = false
             
             options.beforeSend = { event in
                 return self.sanitizeEvent(event)

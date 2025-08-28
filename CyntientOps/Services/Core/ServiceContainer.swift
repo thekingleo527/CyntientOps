@@ -22,82 +22,6 @@ import Combine
 import GRDB
 import CoreLocation
 
-// MARK: - Temporary alias until UserProfileService is properly added to Xcode project
-typealias UserProfileService = UserProfileServiceTemp
-
-@MainActor
-public final class UserProfileServiceTemp: ObservableObject {
-    @Published public var userPreferences: UserPreferences?
-    private let database: GRDBManager
-    
-    public init(database: GRDBManager) {
-        self.database = database
-    }
-    
-    public func loadUserProfile(for userId: String) async throws -> CoreTypes.User? {
-        let workers = try await database.query("""
-            SELECT id, name, email, role, isActive, lastLogin, created_at, updated_at
-            FROM workers 
-            WHERE id = ? AND isActive = 1
-        """, [userId])
-        
-        guard let workerData = workers.first,
-              let workerId = workerData["id"] as? String,
-              let name = workerData["name"] as? String,
-              let email = workerData["email"] as? String,
-              let role = workerData["role"] as? String else {
-            return nil
-        }
-        
-        return CoreTypes.User(workerId: workerId, name: name, email: email, role: role)
-    }
-    
-    public func updateProfile(userId: String, name: String?, email: String?) async throws {}
-    public func saveUserPreferences(_ preferences: UserPreferences) async throws {}
-    public func updatePreference<T>(userId: String, key: String, value: T) async throws {}
-}
-
-public struct UserPreferences {
-    public let userId: String
-    public let theme: String
-    public let notifications: Bool
-    public let autoClockOut: Bool
-    public let mapZoomLevel: Double
-    public let defaultView: String
-    
-    public init(
-        userId: String,
-        theme: String = "dark",
-        notifications: Bool = true,
-        autoClockOut: Bool = false,
-        mapZoomLevel: Double = 15.0,
-        defaultView: String = "dashboard"
-    ) {
-        self.userId = userId
-        self.theme = theme
-        self.notifications = notifications
-        self.autoClockOut = autoClockOut
-        self.mapZoomLevel = mapZoomLevel
-        self.defaultView = defaultView
-    }
-}
-
-public enum ProfileError: LocalizedError {
-    case preferencesNotLoaded
-    case invalidPreferenceKey(String)
-    case updateFailed
-    
-    public var errorDescription: String? {
-        switch self {
-        case .preferencesNotLoaded:
-            return "User preferences not loaded"
-        case .invalidPreferenceKey(let key):
-            return "Invalid preference key: \(key)"
-        case .updateFailed:
-            return "Failed to update profile"
-        }
-    }
-}
 
 
 @MainActor
@@ -135,8 +59,8 @@ public final class ServiceContainer: ObservableObject {
         ClientService(database: database)
     }()
     
-    public private(set) lazy var userProfile: UserProfileServiceTemp = {
-        UserProfileServiceTemp(database: database)
+    public private(set) lazy var userProfile: UserProfileService = {
+        UserProfileService(database: database)
     }()
     
     // MARK: - Layer 2: Business Logic (LAZY)
@@ -150,10 +74,6 @@ public final class ServiceContainer: ObservableObject {
     
     public private(set) lazy var compliance: ComplianceService = {
         ComplianceService(database: database, dashboardSync: dashboardSync)
-    }()
-    
-    public private(set) lazy var dailyOps: DailyOpsReset = {
-        DailyOpsReset(database: database)
     }()
     
     public private(set) lazy var webSocket: WebSocketManager = {
@@ -228,6 +148,40 @@ public final class ServiceContainer: ObservableObject {
     public private(set) lazy var nycCompliance: NYCComplianceService = {
         NYCComplianceService(database: database)
     }()
+    
+    public private(set) lazy var nycHistoricalData: NYCHistoricalDataService = {
+        NYCHistoricalDataService.shared
+    }()
+    
+    // MARK: - Weather Service
+    public private(set) lazy var weather: WeatherDataAdapter = {
+        WeatherDataAdapter.shared
+    }()
+    
+    // MARK: - Route Management
+    public private(set) lazy var routes: RouteManager = {
+        RouteManager(database: database)
+    }()
+    
+    // MARK: - Route-Operational Integration Bridge
+    public private(set) lazy var routeBridge: RouteOperationalBridge = {
+        RouteOperationalBridge(routeManager: routes, operationalManager: operationalData)
+    }()
+    
+    // MARK: - Weather-Triggered Task Management
+    public private(set) lazy var weatherTasks: WeatherTriggeredTaskManager = {
+        WeatherTriggeredTaskManager(weatherAdapter: weather, routeManager: routes)
+    }()
+    
+    public private(set) lazy var nycDataCoordinator: NYCDataCoordinator = {
+        NYCDataCoordinator.shared
+    }()
+    
+    // MARK: - DSNY Task Management
+    public private(set) lazy var dsnyTaskManager: DSNYTaskManager = {
+        DSNYTaskManager.shared()
+    }()
+    
     // BBLGenerationService accessed directly as singleton to avoid compilation issues
     
     // MARK: - Performance Monitoring

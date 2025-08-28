@@ -1598,7 +1598,8 @@ class AdminDashboardViewModel: ObservableObject {
         
         do {
             // Use unified intelligence from container
-            let insights = container.intelligence.getInsights(for: .admin)
+            let intelligence = try await container.intelligence
+            let insights = intelligence.getInsights(for: .admin)
             self.portfolioInsights = insights
             self.isLoadingInsights = false
             
@@ -1620,6 +1621,9 @@ class AdminDashboardViewModel: ObservableObject {
             )
             broadcastAdminUpdate(update)
             
+        } catch {
+            self.isLoadingInsights = false
+            print("❌ Failed to load portfolio insights: \(error)")
         }
     }
     
@@ -1639,7 +1643,8 @@ class AdminDashboardViewModel: ObservableObject {
         
         do {
             // Use unified intelligence
-            let allInsights = container.intelligence.getInsights(for: .admin)
+            let intelligence = try await container.intelligence
+            let allInsights = intelligence.getInsights(for: .admin)
             let buildingInsights = allInsights.filter { insight in
                 insight.affectedBuildings.contains(buildingId)
             }
@@ -1666,6 +1671,9 @@ class AdminDashboardViewModel: ObservableObject {
             )
             broadcastAdminUpdate(update)
             
+        } catch {
+            self.isLoadingIntelligence = false
+            print("❌ Failed to load building intelligence: \(error)")
         }
     }
     
@@ -2197,7 +2205,7 @@ class AdminDashboardViewModel: ObservableObject {
         photoEvidence: String? = nil
     ) async {
         // Use the admin operational intelligence service if available
-        await container.adminIntelligence?.addWorkerNote(
+        await container.getAdminIntelligence().addWorkerNote(
             workerId: workerId,
             buildingId: buildingId,
             noteText: "Bin placement: \(binType) - \(action) at \(location)",
@@ -2218,7 +2226,7 @@ class AdminDashboardViewModel: ObservableObject {
         photoEvidence: String? = nil
     ) async {
         // Use the admin operational intelligence service if available
-        await container.adminIntelligence?.addWorkerNote(
+        await container.getAdminIntelligence().addWorkerNote(
             workerId: workerId,
             buildingId: buildingId,
             noteText: "Vendor access: \(vendorName) (\(vendorType)) - \(accessDetails)",

@@ -26,28 +26,7 @@ import Combine
 import CryptoKit  // For checksum generation
 
 // MARK: - Canonical ID Reference
-
-    public struct Buildings {
-        static let westEighteenth12 = "1"
-        static let eastTwentieth29_31 = "2"
-        static let westSeventeenth135_139 = "3"
-        static let franklin104 = "4"
-        static let westSeventeenth138 = "5"
-        static let perry68 = "6"
-        static let westEighteenth112 = "7"
-        static let elizabeth41 = "8"
-        static let westSeventeenth117 = "9"
-        static let perry131 = "10"
-        static let firstAvenue123 = "11"
-        static let westSeventeenth136 = "13"
-        static let rubinMuseum = "14"
-        static let eastFifteenth133 = "15"
-        static let stuyvesantCove = "16"
-        static let springStreet178 = "17"
-        static let walker36 = "18"
-        static let seventhAvenue115 = "19"
-        static let cyntientOpsHQ = "20"
-    }
+// Note: CanonicalIDs is defined in Core/Models/CanonicalIDs.swift
 
 // MARK: - Date Extension
 extension Date {
@@ -1603,36 +1582,37 @@ public class OperationalDataManager: ObservableObject {
     ]
     
     // MARK: - Routine Schedules
+    // Worker start times: Mercedes 6:30, Kevin 7:00, Luis 7:30, Greg 8:30
     private let routineSchedules: [(buildingId: String, name: String, rrule: String, workerId: String, category: String)] = [
-        // Kevin's Perry Street circuit
-        ("10", "Daily Sidewalk Sweep", "FREQ=DAILY;BYHOUR=6", "4", "Cleaning"),
-        ("10", "Weekly Hallway Deep Clean", "FREQ=WEEKLY;BYDAY=MO,WE;BYHOUR=7", "4", "Cleaning"),
-        ("6", "Perry 68 Full Building Clean", "FREQ=WEEKLY;BYDAY=TU,TH;BYHOUR=8", "4", "Cleaning"),
+        // Kevin's Perry Street circuit (starts at 7:00 AM)
+        ("10", "Daily Sidewalk Sweep", "FREQ=DAILY;BYHOUR=7", "4", "Cleaning"),
+        ("10", "Weekly Hallway Deep Clean", "FREQ=WEEKLY;BYDAY=MO,WE;BYHOUR=8", "4", "Cleaning"),
+        ("6", "Perry 68 Full Building Clean", "FREQ=WEEKLY;BYDAY=TU,TH;BYHOUR=9", "4", "Cleaning"),
         ("7", "17th Street Trash Area Maintenance", "FREQ=DAILY;BYHOUR=11", "4", "Cleaning"),
         ("9", "DSNY: Compliance Check", "FREQ=WEEKLY;BYDAY=SU,TU,TH;BYHOUR=20", "4", "Operations"),
         
-        // Kevin's Rubin Museum routing
-        ("14", "Rubin Morning Trash Circuit", "FREQ=DAILY;BYHOUR=10", "4", "Sanitation"),
-        ("14", "Rubin Museum Deep Clean", "FREQ=WEEKLY;BYDAY=MO,WE,FR;BYHOUR=10", "4", "Sanitation"),
+        // Kevin's Rubin Museum routing (morning tasks start at 7:00)
+        ("14", "Rubin Morning Trash Circuit", "FREQ=DAILY;BYHOUR=7", "4", "Sanitation"),
+        ("14", "Rubin Museum Deep Clean", "FREQ=WEEKLY;BYDAY=MO,WE,FR;BYHOUR=8", "4", "Sanitation"),
         ("14", "Rubin DSNY Operations", "FREQ=WEEKLY;BYDAY=SU,TU,TH;BYHOUR=20", "4", "Operations"),
         
-        // Mercedes' morning glass circuit
-        ("7", "Glass & Lobby Clean", "FREQ=DAILY;BYHOUR=6", "5", "Cleaning"),
+        // Mercedes' morning glass circuit (starts at 6:30 AM)
+        ("7", "Glass & Lobby Clean", "FREQ=DAILY;BYHOUR=6;BYMINUTE=30", "5", "Cleaning"),
         ("9", "117 West 17th Glass & Vestibule", "FREQ=DAILY;BYHOUR=7", "5", "Cleaning"),
-        ("3", "135-139 West 17th Glass Clean", "FREQ=DAILY;BYHOUR=8", "5", "Cleaning"),
-        ("14", "Rubin Museum Roof Drain Check", "FREQ=WEEKLY;BYDAY=WE;BYHOUR=10", "5", "Maintenance"),
+        ("3", "135-139 West 17th Glass Clean", "FREQ=DAILY;BYHOUR=7;BYMINUTE=30", "5", "Cleaning"),
+        ("14", "Rubin Museum Roof Drain Check", "FREQ=WEEKLY;BYDAY=WE;BYHOUR=8", "5", "Maintenance"),
         
-        // Edwin's maintenance rounds
+        // Edwin's maintenance rounds (standard times)
         ("16", "Stuyvesant Park Morning Inspection", "FREQ=DAILY;BYHOUR=6", "2", "Maintenance"),
         ("15", "133 E 15th Boiler Blow-Down", "FREQ=WEEKLY;BYDAY=MO;BYHOUR=9", "2", "Maintenance"),
         ("9", "Water Filter Change", "FREQ=MONTHLY;BYHOUR=10", "2", "Maintenance"),
         
-        // Luis Lopez daily circuit
-        ("4", "104 Franklin Sidewalk Hose", "FREQ=WEEKLY;BYDAY=MO,WE,FR;BYHOUR=7", "6", "Cleaning"),
-        ("8", "41 Elizabeth Full Service", "FREQ=DAILY;BYHOUR=8", "6", "Cleaning"),
+        // Luis Lopez daily circuit (starts at 7:30 AM)
+        ("4", "104 Franklin Sidewalk Hose", "FREQ=WEEKLY;BYDAY=MO,WE,FR;BYHOUR=7;BYMINUTE=30", "6", "Cleaning"),
+        ("8", "41 Elizabeth Full Service", "FREQ=DAILY;BYHOUR=7;BYMINUTE=30", "6", "Cleaning"),
         
-        // Greg Hutson building specialist
-        ("1", "12 West 18th Complete Service", "FREQ=DAILY;BYHOUR=9", "1", "Cleaning"),
+        // Greg Hutson building specialist (starts at 8:30 AM)
+        ("1", "12 West 18th Complete Service", "FREQ=DAILY;BYHOUR=8;BYMINUTE=30", "1", "Cleaning"),
         
         // Angel evening operations
         ("1", "Evening Security Check", "FREQ=DAILY;BYHOUR=21", "7", "Operations"),
@@ -2222,7 +2202,7 @@ public class OperationalDataManager: ObservableObject {
                     
                     let existingTasks = try await self.grdbManager.query("""
                         SELECT id FROM tasks WHERE name = ? AND buildingId = ? AND workerId = ?
-                        """, [operationalTask.taskName, buildingId, workerId])
+                        """, [operationalTask.taskName, buildingId ?? "", workerId ?? ""])
                     
                     if !existingTasks.isEmpty {
                         print("⏭️ Skipping duplicate task: \(operationalTask.taskName)")
@@ -3333,21 +3313,23 @@ public class OperationalDataManager: ObservableObject {
     /// Gets worker's routine schedules from the real operational data
     public func getWorkerRoutineSchedules(for workerId: String) async throws -> [WorkerRoutineSchedule] {
         do {
-            // Query from routine_tasks table which contains the actual operational routine data
+            // Query from routine_schedules table which contains the recurring patterns
             let results = try await self.grdbManager.query("""
-                SELECT rt.*, b.name as building_name, b.address, b.latitude, b.longitude
-                FROM routine_tasks rt
-                JOIN buildings b ON rt.buildingId = b.id  
-                WHERE rt.workerId = ? AND rt.recurrence != 'oneTime'
-                ORDER BY rt.category, rt.title
+                SELECT rs.*, b.name as building_name, b.address, b.latitude, b.longitude
+                FROM routine_schedules rs
+                JOIN buildings b ON rs.building_id = b.id  
+                WHERE rs.worker_id = ?
+                ORDER BY rs.category, rs.name
             """, [workerId])
+            
+            print("🔍 DEBUG: getWorkerRoutineSchedules found \(results.count) schedules for worker \(workerId)")
             
             return results.compactMap { row in
                 guard let id = row["id"] as? String,
-                      let title = row["title"] as? String,
-                      let buildingId = row["buildingId"] as? String,
+                      let name = row["name"] as? String,
+                      let buildingId = row["building_id"] as? String,
                       let buildingName = row["building_name"] as? String,
-                      let recurrence = row["recurrence"] as? String,
+                      let rrule = row["rrule"] as? String,
                       let category = row["category"] as? String else {
                     return nil
                 }
@@ -3355,14 +3337,12 @@ public class OperationalDataManager: ObservableObject {
                 let address = row["address"] as? String ?? ""
                 let latitude = row["latitude"] as? Double ?? 40.7589
                 let longitude = row["longitude"] as? Double ?? -73.9851
-                let estimatedDuration = row["estimatedDuration"] as? Int ?? 30
-                
-                // Convert recurrence pattern to RRULE format for scheduling
-                let rrule = convertRecurrenceToRRule(recurrence)
+                let estimatedDurationSeconds = row["estimated_duration"] as? Int ?? 3600
+                let estimatedDuration = estimatedDurationSeconds / 60 // Convert to minutes
                 
                 return WorkerRoutineSchedule(
                     id: id,
-                    name: title,
+                    name: name,
                     buildingId: buildingId,
                     buildingName: buildingName,
                     buildingAddress: address,
@@ -3398,40 +3378,159 @@ public class OperationalDataManager: ObservableObject {
     }
     
     /// Gets worker's schedule for a specific date by expanding routine RRULE patterns
-    public func getWorkerScheduleForDate(workerId: String, date: Date) async throws -> [WorkerScheduleItem] {
-        let routines = try await getWorkerRoutineSchedules(for: workerId)
-        let _ = Calendar.current
+    public func getWorkerScheduleForDate(workerId: String, date: Date, skipTimeFiltering: Bool = false) async throws -> [WorkerScheduleItem] {
+        // Query routine schedules from database
+        let results = try await grdbManager.query("""
+            SELECT rs.*, b.name as building_name, b.address as building_address
+            FROM routine_schedules rs
+            JOIN buildings b ON rs.building_id = b.id
+            WHERE rs.worker_id = ?
+            ORDER BY rs.category, rs.name
+        """, [workerId])
+        
+        print("🔍 DEBUG: Found \(results.count) routine schedules for worker \(workerId)")
+        print("🔍 DEBUG: Database query results:")
+        for (index, result) in results.enumerated() {
+            let id = result["id"] as? String ?? "unknown"
+            let name = result["name"] as? String ?? "unknown"
+            let rrule = result["rrule"] as? String ?? "unknown"
+            print("   \(index + 1). ID: \(id), Name: \(name), RRULE: \(rrule)")
+        }
         
         var scheduleItems: [WorkerScheduleItem] = []
+        let calendar = Calendar.current
         
-        for routine in routines {
-            if let scheduledTimes = expandRRuleForDate(routine.rrule, date: date) {
+        print("🔍 DEBUG: Starting to process \(results.count) routine schedules...")
+        
+        for row in results {
+            print("🔍 DEBUG: Processing routine schedule row...")
+            
+            // Debug each guard condition individually
+            guard let id = row["id"] as? String else {
+                print("❌ DEBUG: Missing or invalid 'id' field in row")
+                print("🔍 DEBUG: Available keys in row: \(Array(row.keys))")
+                print("🔍 DEBUG: Raw id value: \(row["id"] ?? "nil")")
+                continue
+            }
+            print("✅ DEBUG: Got id: \(id)")
+            
+            guard let name = row["name"] as? String else {
+                print("❌ DEBUG: Missing or invalid 'name' field in row")
+                print("🔍 DEBUG: Raw name value: \(row["name"] ?? "nil")")
+                continue
+            }
+            print("✅ DEBUG: Got name: \(name)")
+            
+            guard let buildingId = row["building_id"] as? String else {
+                print("❌ DEBUG: Missing or invalid 'building_id' field in row")
+                print("🔍 DEBUG: Raw building_id value: \(row["building_id"] ?? "nil")")
+                continue
+            }
+            print("✅ DEBUG: Got buildingId: \(buildingId)")
+            
+            guard let buildingName = row["building_name"] as? String else {
+                print("❌ DEBUG: Missing or invalid 'building_name' field in row")
+                print("🔍 DEBUG: Raw building_name value: \(row["building_name"] ?? "nil")")
+                continue
+            }
+            print("✅ DEBUG: Got buildingName: \(buildingName)")
+            
+            guard let rrule = row["rrule"] as? String else {
+                print("❌ DEBUG: Missing or invalid 'rrule' field in row")
+                print("🔍 DEBUG: Raw rrule value: \(row["rrule"] ?? "nil")")
+                continue
+            }
+            print("✅ DEBUG: Got rrule: \(rrule)")
+            
+            guard let category = row["category"] as? String else {
+                print("❌ DEBUG: Missing or invalid 'category' field in row")
+                print("🔍 DEBUG: Raw category value: \(row["category"] ?? "nil")")
+                continue
+            }
+            print("✅ DEBUG: Got category: \(category)")
+            
+            let estimatedDurationRaw = row["estimated_duration"]
+            let estimatedDurationSeconds: Int
+            if let duration = estimatedDurationRaw as? Int {
+                estimatedDurationSeconds = duration
+            } else if let duration = estimatedDurationRaw as? Int64 {
+                estimatedDurationSeconds = Int(duration)
+            } else if let durationString = estimatedDurationRaw as? String, let duration = Int(durationString) {
+                estimatedDurationSeconds = duration
+            } else {
+                print("❌ DEBUG: Could not convert 'estimated_duration' to Int")
+                print("🔍 DEBUG: Raw estimated_duration value: \(estimatedDurationRaw ?? "nil") (type: \(type(of: estimatedDurationRaw)))")
+                continue
+            }
+            print("✅ DEBUG: Got estimatedDurationSeconds: \(estimatedDurationSeconds)")
+            
+            let weatherDependentRaw = row["weather_dependent"]
+            let weatherDependent: Int
+            if let value = weatherDependentRaw as? Int {
+                weatherDependent = value
+            } else if let value = weatherDependentRaw as? Int64 {
+                weatherDependent = Int(value)
+            } else if let valueString = weatherDependentRaw as? String, let value = Int(valueString) {
+                weatherDependent = value
+            } else {
+                print("❌ DEBUG: Could not convert 'weather_dependent' to Int")
+                print("🔍 DEBUG: Raw weather_dependent value: \(weatherDependentRaw ?? "nil") (type: \(type(of: weatherDependentRaw)))")
+                continue
+            }
+            print("✅ DEBUG: Got weatherDependent: \(weatherDependent)")
+            
+            print("🎉 DEBUG: All guard conditions passed! Proceeding with RRULE expansion...")
+            
+            // Expand RRULE for the given date
+            print("🔍 DEBUG: Expanding RRULE '\(rrule)' for \(name) on \(date)")
+            print("🔍 DEBUG: About to call expandRRuleForDate with RRULE: '\(rrule)'")
+            if let scheduledTimes = expandRRuleForDate(rrule, date: date) {
+                print("🔍 DEBUG: RRULE expansion resulted in \(scheduledTimes.count) instances")
+                if scheduledTimes.isEmpty {
+                    print("⚠️ DEBUG: RRULE '\(rrule)' expanded to 0 instances - this routine won't show today")
+                } else {
+                    print("✅ DEBUG: RRULE '\(rrule)' successfully expanded to \(scheduledTimes.count) instances")
+                }
                 for (startTime, _) in scheduledTimes {
-                    // Use the routine's actual estimated duration instead of default from RRULE expansion
-                    let actualDuration = routine.estimatedDuration
-                    let endTime = startTime.addingTimeInterval(TimeInterval(actualDuration * 60)) // duration in minutes
+                    let estimatedDurationMinutes = estimatedDurationSeconds / 60
+                    let endTime = startTime.addingTimeInterval(TimeInterval(estimatedDurationSeconds))
                     
                     let item = WorkerScheduleItem(
-                        id: "\(routine.id)_\(startTime.timeIntervalSince1970)",
-                        routineId: routine.id,
-                        title: routine.name,
-                        description: "At \(routine.buildingName)",
-                        buildingId: routine.buildingId,
-                        buildingName: routine.buildingName,
+                        id: "\(id)_\(date.timeIntervalSince1970)",
+                        routineId: id,
+                        title: name,
+                        description: "At \(buildingName)",
+                        buildingId: buildingId,
+                        buildingName: buildingName,
                         startTime: startTime,
                         endTime: endTime,
-                        category: routine.category,
-                        isWeatherDependent: routine.isWeatherDependent,
-                        estimatedDuration: actualDuration,
-                        requiresPhoto: routine.category.lowercased().contains("sanitation") || routine.category.lowercased().contains("cleaning")
+                        category: category,
+                        isWeatherDependent: weatherDependent != 0,
+                        estimatedDuration: estimatedDurationMinutes,
+                        requiresPhoto: category.lowercased().contains("sanitation") || category.lowercased().contains("cleaning")
                     )
                     scheduleItems.append(item)
                 }
+            } else {
+                print("❌ DEBUG: expandRRuleForDate returned nil for RRULE: '\(rrule)'")
             }
         }
         
-        return scheduleItems.sorted { $0.startTime < $1.startTime }
+        let sortedSchedules = scheduleItems.sorted { $0.startTime < $1.startTime }
+        
+        // Skip time filtering if requested (used for getting tomorrow's schedule)
+        if skipTimeFiltering {
+            print("🔍 DEBUG: Returning \(sortedSchedules.count) schedules without time filtering")
+            return sortedSchedules
+        }
+        
+        // Apply time-aware logic to show relevant schedules based on current time
+        let timeRelevantSchedules = try await getTimeRelevantSchedules(sortedSchedules, workerId: workerId)
+        
+        print("🔍 DEBUG: Final schedule count for worker \(workerId): \(timeRelevantSchedules.count) time-relevant items")
+        return timeRelevantSchedules
     }
+    
     
     /// Gets worker's weekly schedule (7 days from today)
     public func getWorkerWeeklySchedule(for workerId: String) async throws -> [WorkerScheduleItem] {
@@ -3451,6 +3550,28 @@ public class OperationalDataManager: ObservableObject {
         return weeklySchedule
     }
     
+    /// Get initialization status for debugging
+    public func getInitializationStatus() async -> (workersSeeded: Bool, buildingsSeeded: Bool, routinesSeeded: Bool, tasksSeeded: Bool) {
+        do {
+            let workerCount = try await grdbManager.query("SELECT COUNT(*) as count FROM workers", [])
+            let buildingCount = try await grdbManager.query("SELECT COUNT(*) as count FROM buildings", [])
+            let routineCount = try await grdbManager.query("SELECT COUNT(*) as count FROM routine_schedules", [])
+            let taskCount = try await grdbManager.query("SELECT COUNT(*) as count FROM tasks", [])
+            
+            let workersSeeded = (workerCount.first?["count"] as? Int ?? 0) > 0
+            let buildingsSeeded = (buildingCount.first?["count"] as? Int ?? 0) > 0
+            let routinesSeeded = (routineCount.first?["count"] as? Int ?? 0) > 0
+            let tasksSeeded = (taskCount.first?["count"] as? Int ?? 0) > 0
+            
+            print("🔍 DEBUG: Initialization Status - Workers: \(workersSeeded), Buildings: \(buildingsSeeded), Routines: \(routinesSeeded), Tasks: \(tasksSeeded)")
+            
+            return (workersSeeded, buildingsSeeded, routinesSeeded, tasksSeeded)
+        } catch {
+            print("❌ Failed to check initialization status: \(error)")
+            return (false, false, false, false)
+        }
+    }
+    
     /// Expands RRULE pattern for a specific date - returns [(startTime, durationMinutes)]
     private func expandRRuleForDate(_ rrule: String, date: Date) -> [(Date, Int)]? {
         let calendar = Calendar.current
@@ -3458,7 +3579,12 @@ public class OperationalDataManager: ObservableObject {
         
         var frequency: String?
         var byHour: [Int] = []
+        var byMinute: [Int] = []
         var byDay: [String] = []
+        
+        print("🔍 DEBUG: expandRRuleForDate called with RRULE: \(rrule)")
+        print("🔍 DEBUG: Date parameter: \(date)")
+        print("🔍 DEBUG: RRULE components: \(components)")
         
         for component in components {
             let parts = component.split(separator: "=")
@@ -3471,6 +3597,8 @@ public class OperationalDataManager: ObservableObject {
                     frequency = value
                 case "BYHOUR":
                     byHour = value.split(separator: ",").compactMap { Int($0) }
+                case "BYMINUTE":
+                    byMinute = value.split(separator: ",").compactMap { Int($0) }
                 case "BYDAY":
                     byDay = value.split(separator: ",").map { String($0) }
                 default:
@@ -3480,13 +3608,20 @@ public class OperationalDataManager: ObservableObject {
             }
         }
         
-        guard let freq = frequency else { return nil }
+        guard let freq = frequency else { 
+            print("🔍 DEBUG: No frequency found in RRULE")
+            return nil 
+        }
         
         let weekday = calendar.component(.weekday, from: date) // 1 = Sunday, 2 = Monday, etc.
         let weekdayMap = [
             "SU": 1, "MO": 2, "TU": 3, "WE": 4, 
             "TH": 5, "FR": 6, "SA": 7
         ]
+        
+        print("🔍 DEBUG: FREQ=\(freq), byDay=\(byDay), byHour=\(byHour), byMinute=\(byMinute), today's weekday=\(weekday)")
+        
+        var scheduledTimes: [(Date, Int)] = []
         
         switch freq {
         case "DAILY":
@@ -3495,13 +3630,27 @@ public class OperationalDataManager: ObservableObject {
                 let dayMatches = byDay.contains { day in
                     weekdayMap[day] == weekday
                 }
-                if !dayMatches { return [] }
+                print("🔍 DEBUG: DAILY task with byDay restrictions: \(byDay), today=\(weekday), matches=\(dayMatches)")
+                if !dayMatches { 
+                    print("⚠️ DEBUG: DAILY task skipped - today doesn't match byDay requirements")
+                    return [] 
+                }
+            } else {
+                print("🔍 DEBUG: DAILY task with no byDay restrictions - will run today")
             }
             
             let hours = byHour.isEmpty ? [9] : byHour // Default to 9 AM if no hour specified
-            return hours.map { hour in
-                let startTime = calendar.date(bySettingHour: hour, minute: 0, second: 0, of: date) ?? date
-                return (startTime, 60) // Default 60 minutes duration
+            let minutes = byMinute.isEmpty ? [0] : byMinute // Default to :00 if no minute specified
+            
+            scheduledTimes = hours.flatMap { hour in
+                minutes.compactMap { minute in
+                    guard let startTime = calendar.date(bySettingHour: hour, minute: minute, second: 0, of: date) else {
+                        print("⚠️ DEBUG: Failed to create date for \(hour):\(String(format: "%02d", minute))")
+                        return nil
+                    }
+                    print("✅ DEBUG: Created DAILY schedule at \(hour):\(String(format: "%02d", minute)) for \(startTime)")
+                    return (startTime, 60) // Default 60 minutes duration
+                }
             }
             
         case "WEEKLY":
@@ -3510,16 +3659,28 @@ public class OperationalDataManager: ObservableObject {
                 let dayMatches = byDay.contains { day in
                     weekdayMap[day] == weekday
                 }
-                if !dayMatches { return [] }
+                print("🔍 DEBUG: WEEKLY task with byDay: \(byDay), today=\(weekday), matches=\(dayMatches)")
+                if !dayMatches { 
+                    print("⚠️ DEBUG: WEEKLY task skipped - today doesn't match byDay requirements")
+                    return [] 
+                }
             } else {
-                // If no days specified, default to once per week on same day
-                return []
+                // If no days specified, run every day (treating as daily)
+                print("🔍 DEBUG: WEEKLY task with no byDay specified - treating as daily")
             }
             
             let hours = byHour.isEmpty ? [10] : byHour // Default to 10 AM if no hour specified
-            return hours.map { hour in
-                let startTime = calendar.date(bySettingHour: hour, minute: 0, second: 0, of: date) ?? date
-                return (startTime, 120) // Default 2 hours duration for weekly tasks
+            let minutes = byMinute.isEmpty ? [0] : byMinute // Default to :00 if no minute specified
+            
+            scheduledTimes = hours.flatMap { hour in
+                minutes.compactMap { minute in
+                    guard let startTime = calendar.date(bySettingHour: hour, minute: minute, second: 0, of: date) else {
+                        print("⚠️ DEBUG: Failed to create date for \(hour):\(String(format: "%02d", minute))")
+                        return nil
+                    }
+                    print("✅ DEBUG: Created WEEKLY schedule at \(hour):\(String(format: "%02d", minute)) for \(startTime)")
+                    return (startTime, 120) // Default 2 hours duration for weekly tasks
+                }
             }
             
         case "MONTHLY":
@@ -3527,15 +3688,101 @@ public class OperationalDataManager: ObservableObject {
             let dayOfMonth = calendar.component(.day, from: date)
             if dayOfMonth <= 7 && (2...6).contains(weekday) { // First week, weekday
                 let hours = byHour.isEmpty ? [11] : byHour
-                return hours.map { hour in
-                    let startTime = calendar.date(bySettingHour: hour, minute: 0, second: 0, of: date) ?? date
-                    return (startTime, 180) // 3 hours for monthly tasks
+                let minutes = byMinute.isEmpty ? [0] : byMinute
+                
+                scheduledTimes = hours.flatMap { hour in
+                    minutes.compactMap { minute in
+                        guard let startTime = calendar.date(bySettingHour: hour, minute: minute, second: 0, of: date) else {
+                            print("⚠️ DEBUG: Failed to create date for \(hour):\(String(format: "%02d", minute))")
+                            return nil
+                        }
+                        print("✅ DEBUG: Created MONTHLY schedule at \(hour):\(String(format: "%02d", minute)) for \(startTime)")
+                        return (startTime, 180) // 3 hours for monthly tasks
+                    }
                 }
+            } else {
+                print("⚠️ DEBUG: MONTHLY task skipped - not in first week or not weekday")
+                return []
             }
-            return []
             
         default:
+            print("⚠️ DEBUG: Unsupported frequency: \(freq)")
             return []
+        }
+        
+        print("🔍 DEBUG: Final scheduledTimes count: \(scheduledTimes.count)")
+        if scheduledTimes.isEmpty {
+            print("⚠️ DEBUG: expandRRuleForDate returning empty array - no schedules generated")
+        } else {
+            print("✅ DEBUG: expandRRuleForDate returning \(scheduledTimes.count) scheduled times")
+            for (time, duration) in scheduledTimes {
+                print("   - Schedule: \(time) for \(duration) minutes")
+            }
+        }
+        return scheduledTimes
+    }
+    
+    /// Returns time-relevant schedules based on current time of day
+    /// Shows active/upcoming tasks during work hours, tomorrow's schedule after hours
+    private func getTimeRelevantSchedules(_ todaySchedules: [WorkerScheduleItem], workerId: String) async throws -> [WorkerScheduleItem] {
+        let now = Date()
+        let calendar = Calendar.current
+        let currentHour = calendar.component(.hour, from: now)
+        let currentMinute = calendar.component(.minute, from: now)
+        let currentTimeInMinutes = currentHour * 60 + currentMinute
+        
+        print("🔍 DEBUG: Current time: \(currentHour):\(String(format: "%02d", currentMinute)) (\(currentTimeInMinutes) minutes since midnight)")
+        
+        // Check if there are any relevant schedules for today
+        let relevantTodaySchedules = todaySchedules.filter { schedule in
+            let scheduleHour = calendar.component(.hour, from: schedule.startTime)
+            let scheduleMinute = calendar.component(.minute, from: schedule.startTime)
+            let scheduleTimeInMinutes = scheduleHour * 60 + scheduleMinute
+            
+            // Include schedules that:
+            // 1. Are happening now (within their duration)
+            // 2. Are starting within the next 3 hours
+            // 3. Haven't finished yet
+            let endTimeInMinutes = scheduleTimeInMinutes + schedule.estimatedDuration
+            let isActive = currentTimeInMinutes >= scheduleTimeInMinutes && currentTimeInMinutes <= endTimeInMinutes
+            let isUpcoming = scheduleTimeInMinutes > currentTimeInMinutes && (scheduleTimeInMinutes - currentTimeInMinutes) <= 180 // Next 3 hours
+            let shouldShow = isActive || isUpcoming
+            
+            if shouldShow {
+                let status = isActive ? "ACTIVE" : "UPCOMING"
+                print("✅ DEBUG: \(status) today's schedule: \(schedule.title) at \(scheduleHour):\(String(format: "%02d", scheduleMinute))")
+            }
+            
+            return shouldShow
+        }
+        
+        // If we have relevant schedules for today, return them
+        if !relevantTodaySchedules.isEmpty {
+            print("🔍 DEBUG: Showing \(relevantTodaySchedules.count) relevant schedules for today")
+            return relevantTodaySchedules
+        }
+        
+        // If it's after hours (no relevant today schedules), get tomorrow's schedule
+        let tomorrow = calendar.date(byAdding: .day, value: 1, to: now) ?? now
+        print("🌅 DEBUG: After hours - getting tomorrow's schedule (\(calendar.component(.month, from: tomorrow))/\(calendar.component(.day, from: tomorrow)))")
+        
+        do {
+            let tomorrowSchedules = try await getWorkerScheduleForDate(workerId: workerId, date: tomorrow, skipTimeFiltering: true)
+            
+            // For tomorrow's schedule, show the first few morning tasks to give preview
+            let morningSchedules = tomorrowSchedules.prefix(5).map { schedule in
+                let scheduleHour = calendar.component(.hour, from: schedule.startTime)
+                let scheduleMinute = calendar.component(.minute, from: schedule.startTime)
+                print("🌅 DEBUG: Tomorrow's schedule: \(schedule.title) at \(scheduleHour):\(String(format: "%02d", scheduleMinute))")
+                return schedule
+            }
+            
+            print("🔍 DEBUG: Showing \(morningSchedules.count) tasks from tomorrow's schedule")
+            return Array(morningSchedules)
+            
+        } catch {
+            print("⚠️ DEBUG: Failed to get tomorrow's schedule: \(error)")
+            return todaySchedules // Fallback to showing all today's schedules
         }
     }
     

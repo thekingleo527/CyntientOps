@@ -13,7 +13,7 @@ import Combine
 
 // MARK: - Weather Error Enum
 
-enum WeatherError: LocalizedError {
+public enum WeatherError: LocalizedError {
     case invalidURL
     case invalidResponse
     case networkError
@@ -24,7 +24,7 @@ enum WeatherError: LocalizedError {
     case unauthorized
     case unknown(Error)
     
-    var errorDescription: String? {
+    public var errorDescription: String? {
         switch self {
         case .invalidURL:
             return "Invalid weather API URL"
@@ -51,14 +51,14 @@ enum WeatherError: LocalizedError {
 // MARK: - Weather Data Adapter
 
 @MainActor
-class WeatherDataAdapter: ObservableObject {
-    static let shared = WeatherDataAdapter()
+public final class WeatherDataAdapter: ObservableObject {
+    public static let shared = WeatherDataAdapter()
     
-    @Published var currentWeather: CoreTypes.WeatherData?
-    @Published var forecast: [CoreTypes.WeatherData] = []
-    @Published var isLoading = false
-    @Published var error: WeatherError?
-    @Published var lastUpdate: Date?
+    @Published public private(set) var currentWeather: CoreTypes.WeatherData?
+    @Published public private(set) var forecast: [CoreTypes.WeatherData] = []
+    @Published public private(set) var isLoading = false
+    @Published public private(set) var error: WeatherError?
+    @Published public private(set) var lastUpdate: Date?
     
     // Enhanced cache with in-memory backing
     private var weatherCache: [String: (data: [CoreTypes.WeatherData], timestamp: Date)] = [:]

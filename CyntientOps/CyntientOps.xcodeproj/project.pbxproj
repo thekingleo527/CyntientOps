@@ -116,7 +116,6 @@
 		231932F92E42E9CD00640977 /* ClientContextEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2319329D2E42E9CD00640977 /* ClientContextEngine.swift */; };
 		231932FA2E42E9CD00640977 /* InventoryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231932842E42E9CD00640977 /* InventoryService.swift */; };
 		231932FB2E42E9CD00640977 /* CommandSteps.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231932782E42E9CD00640977 /* CommandSteps.swift */; };
-		231932FC2E42E9CD00640977 /* DailyOpsReset.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231932B72E42E9CD00640977 /* DailyOpsReset.swift */; };
 		231932FD2E42E9CD00640977 /* NYCAPIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231932B02E42E9CD00640977 /* NYCAPIService.swift */; };
 		231932FE2E42E9CD00640977 /* WeatherDataAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231932982E42E9CD00640977 /* WeatherDataAdapter.swift */; };
 		231932FF2E42E9CD00640977 /* NYCComplianceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231932B12E42E9CD00640977 /* NYCComplianceService.swift */; };
@@ -252,10 +251,29 @@
 		231934452E42ECD600640977 /* TestRealDataIntegration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231934432E42ECD600640977 /* TestRealDataIntegration.swift */; };
 		231934482E42ED2600640977 /* CyntientOps-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 231934472E42ED2600640977 /* CyntientOps-Info.plist */; };
 		2319344A2E42ED3900640977 /* CyntientOpsApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231934492E42ED3900640977 /* CyntientOpsApp.swift */; };
+		23486D702E5FC3450040DA52 /* DateUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23486D6E2E5FC3450040DA52 /* DateUtils.swift */; };
+		23486D732E5FC3840040DA52 /* IntelligencePanelModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23486D712E5FC3840040DA52 /* IntelligencePanelModel.swift */; };
+		23486D762E5FDA050040DA52 /* BuildingUnitValidator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23486D742E5FDA050040DA52 /* BuildingUnitValidator.swift */; };
+		23486D772E5FDA050040DA52 /* DSNYTaskManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23486D752E5FDA050040DA52 /* DSNYTaskManager.swift */; };
+		23486D802E5FDA7A0040DA52 /* EdwinLemaRoutes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23486D7A2E5FDA7A0040DA52 /* EdwinLemaRoutes.swift */; };
+		23486D812E5FDA7A0040DA52 /* OperationalCalendar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23486D7D2E5FDA7A0040DA52 /* OperationalCalendar.swift */; };
+		23486D822E5FDA7A0040DA52 /* KevinDutanRoutes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23486D7C2E5FDA7A0040DA52 /* KevinDutanRoutes.swift */; };
+		23486D832E5FDA7A0040DA52 /* WorkerRoute.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23486D7E2E5FDA7A0040DA52 /* WorkerRoute.swift */; };
+		23486D842E5FDA7A0040DA52 /* DSNYCollectionSchedule.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23486D782E5FDA7A0040DA52 /* DSNYCollectionSchedule.swift */; };
+		23486D852E5FDA7A0040DA52 /* KevinDutanCompleteSchedule.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23486D7B2E5FDA7A0040DA52 /* KevinDutanCompleteSchedule.swift */; };
+		23486D882E5FEA340040DA52 /* RouteManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23486D862E5FEA340040DA52 /* RouteManager.swift */; };
+		23486D8A2E5FEA5A0040DA52 /* RouteOperationalBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23486D892E5FEA5A0040DA52 /* RouteOperationalBridge.swift */; };
+		23486D8D2E5FEAA60040DA52 /* WeatherTriggeredTaskManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23486D8B2E5FEAA60040DA52 /* WeatherTriggeredTaskManager.swift */; };
+		23486D912E5FECE10040DA52 /* WorkerProfileViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23486D902E5FECE10040DA52 /* WorkerProfileViewModel.swift */; };
+		23486D922E5FECE10040DA52 /* WeatherScoreBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23486D8E2E5FECE10040DA52 /* WeatherScoreBuilder.swift */; };
+		23486D962E5FED770040DA52 /* WeatherSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23486D942E5FED770040DA52 /* WeatherSnapshot.swift */; };
+		23486D972E5FED770040DA52 /* RoutineWeatherProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23486D932E5FED770040DA52 /* RoutineWeatherProfile.swift */; };
 		234B500D2E5D440B00F57B6A /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = 234B500C2E5D440B00F57B6A /* GRDB */; };
 		234B50102E5D456F00F57B6A /* Sentry in Frameworks */ = {isa = PBXBuildFile; productRef = 234B500F2E5D456F00F57B6A /* Sentry */; };
 		234B50122E5DE64200F57B6A /* QuickLoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 234B50112E5DE64200F57B6A /* QuickLoginView.swift */; };
 		238FAF592E5E53C500187318 /* UserProfileService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 238FAF582E5E53C500187318 /* UserProfileService.swift */; };
+		238FAF5C2E5E766100187318 /* NYCHistoricalDataService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 238FAF5B2E5E766100187318 /* NYCHistoricalDataService.swift */; };
+		238FAF5D2E5E766100187318 /* NYCDataCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 238FAF5A2E5E766100187318 /* NYCDataCoordinator.swift */; };
 		23B211692E52D8A500481C3C /* ClientBuildingCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23B211672E52D8A500481C3C /* ClientBuildingCard.swift */; };
 		23B2116A2E52D8A500481C3C /* ClientBuildingGridSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23B211682E52D8A500481C3C /* ClientBuildingGridSection.swift */; };
 		23B2116C2E52FCEB00481C3C /* ClientDashboardPortfolioHeroCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23B2116B2E52FCEB00481C3C /* ClientDashboardPortfolioHeroCard.swift */; };
@@ -402,7 +420,6 @@
 		231932B22E42E9CD00640977 /* NYCDataModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NYCDataModels.swift; sourceTree = "<group>"; };
 		231932B32E42E9CD00640977 /* NYCIntegrationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NYCIntegrationManager.swift; sourceTree = "<group>"; };
 		231932B52E42E9CD00640977 /* OfflineQueueManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineQueueManager.swift; sourceTree = "<group>"; };
-		231932B72E42E9CD00640977 /* DailyOpsReset.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyOpsReset.swift; sourceTree = "<group>"; };
 		231932B82E42E9CD00640977 /* TaskService+OperationalFallback.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TaskService+OperationalFallback.swift"; sourceTree = "<group>"; };
 		231932B92E42E9CD00640977 /* TelemetryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelemetryService.swift; sourceTree = "<group>"; };
 		231932BA2E42E9CD00640977 /* TimeBasedTaskFilter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeBasedTaskFilter.swift; sourceTree = "<group>"; };
@@ -540,8 +557,27 @@
 		231934462E42ECF300640977 /* CyntientOpsTests-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "CyntientOpsTests-Bridging-Header.h"; sourceTree = "<group>"; };
 		231934472E42ED2600640977 /* CyntientOps-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "CyntientOps-Info.plist"; sourceTree = "<group>"; };
 		231934492E42ED3900640977 /* CyntientOpsApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CyntientOpsApp.swift; sourceTree = "<group>"; };
+		23486D6E2E5FC3450040DA52 /* DateUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DateUtils.swift; sourceTree = "<group>"; };
+		23486D712E5FC3840040DA52 /* IntelligencePanelModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntelligencePanelModel.swift; sourceTree = "<group>"; };
+		23486D742E5FDA050040DA52 /* BuildingUnitValidator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuildingUnitValidator.swift; sourceTree = "<group>"; };
+		23486D752E5FDA050040DA52 /* DSNYTaskManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DSNYTaskManager.swift; sourceTree = "<group>"; };
+		23486D782E5FDA7A0040DA52 /* DSNYCollectionSchedule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DSNYCollectionSchedule.swift; sourceTree = "<group>"; };
+		23486D7A2E5FDA7A0040DA52 /* EdwinLemaRoutes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EdwinLemaRoutes.swift; sourceTree = "<group>"; };
+		23486D7B2E5FDA7A0040DA52 /* KevinDutanCompleteSchedule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KevinDutanCompleteSchedule.swift; sourceTree = "<group>"; };
+		23486D7C2E5FDA7A0040DA52 /* KevinDutanRoutes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KevinDutanRoutes.swift; sourceTree = "<group>"; };
+		23486D7D2E5FDA7A0040DA52 /* OperationalCalendar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OperationalCalendar.swift; sourceTree = "<group>"; };
+		23486D7E2E5FDA7A0040DA52 /* WorkerRoute.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkerRoute.swift; sourceTree = "<group>"; };
+		23486D862E5FEA340040DA52 /* RouteManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteManager.swift; sourceTree = "<group>"; };
+		23486D892E5FEA5A0040DA52 /* RouteOperationalBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteOperationalBridge.swift; sourceTree = "<group>"; };
+		23486D8B2E5FEAA60040DA52 /* WeatherTriggeredTaskManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherTriggeredTaskManager.swift; sourceTree = "<group>"; };
+		23486D8E2E5FECE10040DA52 /* WeatherScoreBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherScoreBuilder.swift; sourceTree = "<group>"; };
+		23486D902E5FECE10040DA52 /* WorkerProfileViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkerProfileViewModel.swift; sourceTree = "<group>"; };
+		23486D932E5FED770040DA52 /* RoutineWeatherProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutineWeatherProfile.swift; sourceTree = "<group>"; };
+		23486D942E5FED770040DA52 /* WeatherSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherSnapshot.swift; sourceTree = "<group>"; };
 		234B50112E5DE64200F57B6A /* QuickLoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickLoginView.swift; sourceTree = "<group>"; };
 		238FAF582E5E53C500187318 /* UserProfileService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserProfileService.swift; sourceTree = "<group>"; };
+		238FAF5A2E5E766100187318 /* NYCDataCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NYCDataCoordinator.swift; sourceTree = "<group>"; };
+		238FAF5B2E5E766100187318 /* NYCHistoricalDataService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NYCHistoricalDataService.swift; sourceTree = "<group>"; };
 		23B211672E52D8A500481C3C /* ClientBuildingCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClientBuildingCard.swift; sourceTree = "<group>"; };
 		23B211682E52D8A500481C3C /* ClientBuildingGridSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClientBuildingGridSection.swift; sourceTree = "<group>"; };
 		23B2116B2E52FCEB00481C3C /* ClientDashboardPortfolioHeroCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClientDashboardPortfolioHeroCard.swift; sourceTree = "<group>"; };
@@ -713,6 +749,8 @@
 		231932522E42E92900640977 /* Dashboard */ = {
 			isa = PBXGroup;
 			children = (
+				23486D8F2E5FECE10040DA52 /* Worker */,
+				23486D902E5FECE10040DA52 /* WorkerProfileViewModel.swift */,
 				2319324F2E42E92900640977 /* AdminDashboardViewModel.swift */,
 				231932502E42E92900640977 /* ClientDashboardViewModel.swift */,
 				231932512E42E92900640977 /* WorkerDashboardViewModel.swift */,
@@ -732,6 +770,7 @@
 		231932582E42E92900640977 /* ViewModels */ = {
 			isa = PBXGroup;
 			children = (
+				23486D722E5FC3840040DA52 /* Intelligence */,
 				2319324E2E42E92900640977 /* Building */,
 				231932522E42E92900640977 /* Dashboard */,
 				231932552E42E92900640977 /* Task */,
@@ -867,6 +906,7 @@
 		231932992E42E9CD00640977 /* Integration */ = {
 			isa = PBXGroup;
 			children = (
+				23486D892E5FEA5A0040DA52 /* RouteOperationalBridge.swift */,
 				231932942E42E9CD00640977 /* DSNYTaskGenerator.swift */,
 				231932952E42E9CD00640977 /* IntegrationManager.swift */,
 				231932962E42E9CD00640977 /* QuickBooksOAuthManager.swift */,
@@ -910,6 +950,10 @@
 		231932B42E42E9CD00640977 /* NYC */ = {
 			isa = PBXGroup;
 			children = (
+				23486D742E5FDA050040DA52 /* BuildingUnitValidator.swift */,
+				23486D752E5FDA050040DA52 /* DSNYTaskManager.swift */,
+				238FAF5A2E5E766100187318 /* NYCDataCoordinator.swift */,
+				238FAF5B2E5E766100187318 /* NYCHistoricalDataService.swift */,
 				231932B02E42E9CD00640977 /* NYCAPIService.swift */,
 				231932B12E42E9CD00640977 /* NYCComplianceService.swift */,
 				231932B22E42E9CD00640977 /* NYCDataModels.swift */,
@@ -929,7 +973,6 @@
 		231932BB2E42E9CD00640977 /* Operations */ = {
 			isa = PBXGroup;
 			children = (
-				231932B72E42E9CD00640977 /* DailyOpsReset.swift */,
 				231932B82E42E9CD00640977 /* TaskService+OperationalFallback.swift */,
 				231932BA2E42E9CD00640977 /* TimeBasedTaskFilter.swift */,
 			);
@@ -959,6 +1002,7 @@
 		231932C42E42E9CD00640977 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				23486D8C2E5FEAA60040DA52 /* Weather */,
 				23F82D592E5E52930097E7B1 /* Admin */,
 				231932742E42E9CD00640977 /* Cache */,
 				231932762E42E9CD00640977 /* Client */,
@@ -1105,6 +1149,7 @@
 		231933622E42EBDB00640977 /* Managers */ = {
 			isa = PBXGroup;
 			children = (
+				23486D872E5FEA340040DA52 /* Routes */,
 				2319334A2E42EBDB00640977 /* Migrations */,
 				2319335E2E42EBDB00640977 /* System */,
 				231933612E42EBDB00640977 /* NavigationCoordinator.swift */,
@@ -1175,6 +1220,9 @@
 		2319339D2E42EC3200640977 /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				23486D952E5FED770040DA52 /* Weather */,
+				23486D792E5FDA7A0040DA52 /* NYC */,
+				23486D7F2E5FDA7A0040DA52 /* Routes */,
 				231933882E42EC3200640977 /* Core */,
 				2319338C2E42EC3200640977 /* DTOs */,
 				2319338F2E42EC3200640977 /* Enums */,
@@ -1206,6 +1254,7 @@
 		231933A02E42EC3200640977 /* Core */ = {
 			isa = PBXGroup;
 			children = (
+				23486D6F2E5FC3450040DA52 /* Utils */,
 				231933842E42EC3200640977 /* Database */,
 				231933862E42EC3200640977 /* Extensions */,
 				2319339D2E42EC3200640977 /* Models */,
@@ -1399,6 +1448,75 @@
 				23E8FB0C2E42F96400F8771C /* CyntientOpsTests.xctest */,
 				23E8FB0D2E42F96400F8771C /* CyntientOpsUITests.xctest */,
 			);
+			sourceTree = "<group>";
+		};
+		23486D6F2E5FC3450040DA52 /* Utils */ = {
+			isa = PBXGroup;
+			children = (
+				23486D6E2E5FC3450040DA52 /* DateUtils.swift */,
+			);
+			path = Utils;
+			sourceTree = "<group>";
+		};
+		23486D722E5FC3840040DA52 /* Intelligence */ = {
+			isa = PBXGroup;
+			children = (
+				23486D712E5FC3840040DA52 /* IntelligencePanelModel.swift */,
+			);
+			path = Intelligence;
+			sourceTree = "<group>";
+		};
+		23486D792E5FDA7A0040DA52 /* NYC */ = {
+			isa = PBXGroup;
+			children = (
+				23486D782E5FDA7A0040DA52 /* DSNYCollectionSchedule.swift */,
+			);
+			path = NYC;
+			sourceTree = "<group>";
+		};
+		23486D7F2E5FDA7A0040DA52 /* Routes */ = {
+			isa = PBXGroup;
+			children = (
+				23486D7A2E5FDA7A0040DA52 /* EdwinLemaRoutes.swift */,
+				23486D7B2E5FDA7A0040DA52 /* KevinDutanCompleteSchedule.swift */,
+				23486D7C2E5FDA7A0040DA52 /* KevinDutanRoutes.swift */,
+				23486D7D2E5FDA7A0040DA52 /* OperationalCalendar.swift */,
+				23486D7E2E5FDA7A0040DA52 /* WorkerRoute.swift */,
+			);
+			path = Routes;
+			sourceTree = "<group>";
+		};
+		23486D872E5FEA340040DA52 /* Routes */ = {
+			isa = PBXGroup;
+			children = (
+				23486D862E5FEA340040DA52 /* RouteManager.swift */,
+			);
+			path = Routes;
+			sourceTree = "<group>";
+		};
+		23486D8C2E5FEAA60040DA52 /* Weather */ = {
+			isa = PBXGroup;
+			children = (
+				23486D8B2E5FEAA60040DA52 /* WeatherTriggeredTaskManager.swift */,
+			);
+			path = Weather;
+			sourceTree = "<group>";
+		};
+		23486D8F2E5FECE10040DA52 /* Worker */ = {
+			isa = PBXGroup;
+			children = (
+				23486D8E2E5FECE10040DA52 /* WeatherScoreBuilder.swift */,
+			);
+			path = Worker;
+			sourceTree = "<group>";
+		};
+		23486D952E5FED770040DA52 /* Weather */ = {
+			isa = PBXGroup;
+			children = (
+				23486D932E5FED770040DA52 /* RoutineWeatherProfile.swift */,
+				23486D942E5FED770040DA52 /* WeatherSnapshot.swift */,
+			);
+			path = Weather;
 			sourceTree = "<group>";
 		};
 		23F82D592E5E52930097E7B1 /* Admin */ = {
@@ -1620,6 +1738,7 @@
 				231933732E42EBDB00640977 /* V003_WorkerAssignments.swift in Sources */,
 				231933742E42EBDB00640977 /* NavigationCoordinator.swift in Sources */,
 				231933752E42EBDB00640977 /* OperationalDataManager_Operations.swift in Sources */,
+				23486D882E5FEA340040DA52 /* RouteManager.swift in Sources */,
 				231933762E42EBDB00640977 /* NotificationManager.swift in Sources */,
 				231933BD2E42EC5900640977 /* WorkerBuildingAssignments.swift in Sources */,
 				231933782E42EBDB00640977 /* ClockInManager.swift in Sources */,
@@ -1630,6 +1749,8 @@
 				231932242E42E91200640977 /* SignUpView.swift in Sources */,
 				231932252E42E91200640977 /* MaintenanceTaskView.swift in Sources */,
 				231932262E42E91200640977 /* UnifiedTaskDetailView.swift in Sources */,
+				23486D912E5FECE10040DA52 /* WorkerProfileViewModel.swift in Sources */,
+				23486D922E5FECE10040DA52 /* WeatherScoreBuilder.swift in Sources */,
 				231932272E42E91200640977 /* BuildingRoutineComponents.swift in Sources */,
 				231932282E42E91200640977 /* InitializationView.swift in Sources */,
 				231932292E42E91200640977 /* ClientDashboardView.swift in Sources */,
@@ -1669,11 +1790,14 @@
 				231933AF2E42EC3200640977 /* TimeStatus.swift in Sources */,
 				231933B02E42EC3200640977 /* QBConnectionStatus.swift in Sources */,
 				231933B12E42EC3200640977 /* ComplianceIssue.swift in Sources */,
+				238FAF5C2E5E766100187318 /* NYCHistoricalDataService.swift in Sources */,
+				238FAF5D2E5E766100187318 /* NYCDataCoordinator.swift in Sources */,
 				231933B22E42EC3200640977 /* CyntientOpsExtensions.swift in Sources */,
 				231933B32E42EC3200640977 /* ImportHelper.swift in Sources */,
 				231933B42E42EC3200640977 /* SharedTypes.swift in Sources */,
 				231933B52E42EC3200640977 /* WorkerMetricsDTO.swift in Sources */,
 				231933B62E42EC3200640977 /* VerificationRecord.swift in Sources */,
+				23486D8D2E5FEAA60040DA52 /* WeatherTriggeredTaskManager.swift in Sources */,
 				231933B72E42EC3200640977 /* CLLocationCoordinate2DExtension.swift in Sources */,
 				231932362E42E91200640977 /* BuildingDetailView.swift in Sources */,
 				231932372E42E91200640977 /* TaskFormView.swift in Sources */,
@@ -1713,6 +1837,7 @@
 				2319342C2E42EC7200640977 /* StatusPill.swift in Sources */,
 				2319342E2E42EC7200640977 /* AdminRealtimeSection.swift in Sources */,
 				2319342F2E42EC7200640977 /* WeatherDashboardComponent.swift in Sources */,
+				23486D732E5FC3840040DA52 /* IntelligencePanelModel.swift in Sources */,
 				231934302E42EC7200640977 /* AdaptiveGlassModifier.swift in Sources */,
 				231934312E42EC7200640977 /* ImagePicker.swift in Sources */,
 				231934322E42EC7200640977 /* WeatherTasksSection.swift in Sources */,
@@ -1728,6 +1853,8 @@
 				2319343F2E42EC7200640977 /* Building.swift in Sources */,
 				231934402E42EC7200640977 /* GlassCard.swift in Sources */,
 				231934412E42EC7200640977 /* SyncStatusView.swift in Sources */,
+				23486D962E5FED770040DA52 /* WeatherSnapshot.swift in Sources */,
+				23486D972E5FED770040DA52 /* RoutineWeatherProfile.swift in Sources */,
 				231932392E42E91200640977 /* OnboardingView.swift in Sources */,
 				2319323A2E42E91200640977 /* AssignedBuildingsView.swift in Sources */,
 				2319323B2E42E91200640977 /* AdminReportsView.swift in Sources */,
@@ -1777,6 +1904,7 @@
 				23E8FB0F2E43436300F8771C /* AdminContextEngine.swift in Sources */,
 				231933382E42EA0000640977 /* NovaAPIService.swift in Sources */,
 				231933392E42EA0000640977 /* NovaImageLoader.swift in Sources */,
+				23486D702E5FC3450040DA52 /* DateUtils.swift in Sources */,
 				2319333A2E42EA0000640977 /* NovaTypes.swift in Sources */,
 				2319333B2E42EA0000640977 /* NovaAvatar.swift in Sources */,
 				2319333C2E42EA0000640977 /* NovaInteractionView.swift in Sources */,
@@ -1785,9 +1913,17 @@
 				231932D32E42E9CD00640977 /* ClientBuildingSeeder.swift in Sources */,
 				231932D42E42E9CD00640977 /* NetworkMonitor.swift in Sources */,
 				231932D52E42E9CD00640977 /* WebSocketManager.swift in Sources */,
+				23486D802E5FDA7A0040DA52 /* EdwinLemaRoutes.swift in Sources */,
+				23486D812E5FDA7A0040DA52 /* OperationalCalendar.swift in Sources */,
+				23486D822E5FDA7A0040DA52 /* KevinDutanRoutes.swift in Sources */,
+				23486D832E5FDA7A0040DA52 /* WorkerRoute.swift in Sources */,
+				23486D842E5FDA7A0040DA52 /* DSNYCollectionSchedule.swift in Sources */,
+				23486D852E5FDA7A0040DA52 /* KevinDutanCompleteSchedule.swift in Sources */,
 				231932D62E42E9CD00640977 /* ConflictResolutionService.swift in Sources */,
 				231932D72E42E9CD00640977 /* EmergencyContactService.swift in Sources */,
 				231932D82E42E9CD00640977 /* ComplianceService.swift in Sources */,
+				23486D762E5FDA050040DA52 /* BuildingUnitValidator.swift in Sources */,
+				23486D772E5FDA050040DA52 /* DSNYTaskManager.swift in Sources */,
 				231932D92E42E9CD00640977 /* CacheManager.swift in Sources */,
 				231932DC2E42E9CD00640977 /* TelemetryService.swift in Sources */,
 				231932DD2E42E9CD00640977 /* WorkerService.swift in Sources */,
@@ -1824,13 +1960,13 @@
 				231932F92E42E9CD00640977 /* ClientContextEngine.swift in Sources */,
 				231932FA2E42E9CD00640977 /* InventoryService.swift in Sources */,
 				231932FB2E42E9CD00640977 /* CommandSteps.swift in Sources */,
-				231932FC2E42E9CD00640977 /* DailyOpsReset.swift in Sources */,
 				234B50122E5DE64200F57B6A /* QuickLoginView.swift in Sources */,
 				231932FD2E42E9CD00640977 /* NYCAPIService.swift in Sources */,
 				231932FE2E42E9CD00640977 /* WeatherDataAdapter.swift in Sources */,
 				231932FF2E42E9CD00640977 /* NYCComplianceService.swift in Sources */,
 				231933012E42E9CD00640977 /* AnalyticsService.swift in Sources */,
 				231933032E42E9CD00640977 /* CommandChainManager.swift in Sources */,
+				23486D8A2E5FEA5A0040DA52 /* RouteOperationalBridge.swift in Sources */,
 				231933042E42E9CD00640977 /* DashboardSyncService.swift in Sources */,
 				231933052E42E9CD00640977 /* ClientService.swift in Sources */,
 			);

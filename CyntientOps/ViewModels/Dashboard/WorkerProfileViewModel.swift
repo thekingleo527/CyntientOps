@@ -83,7 +83,7 @@ public final class WorkerProfileViewModel: ObservableObject {
         }
     }
     
-    public struct BuildingAssignment: Identifiable, Hashable {
+    public struct BuildingAssignment: Identifiable {
         public let id = UUID()
         public let buildingId: String
         public let buildingName: String
@@ -98,6 +98,7 @@ public final class WorkerProfileViewModel: ObservableObject {
             return TimeInterval(tasks.reduce(0) { $0 + $1.estimatedDuration } * 60)
         }
     }
+
     
     public struct WorkerPerformanceMetrics {
         public let workerId: String
@@ -362,6 +363,19 @@ public final class WorkerProfileViewModel: ObservableObject {
 }
 
 // MARK: - Preview Support
+
+// Hashable/Equatable conformance for nested type with non-Hashable members
+extension WorkerProfileViewModel.BuildingAssignment: Equatable {
+    public static func == (lhs: WorkerProfileViewModel.BuildingAssignment, rhs: WorkerProfileViewModel.BuildingAssignment) -> Bool {
+        lhs.id == rhs.id
+    }
+}
+
+extension WorkerProfileViewModel.BuildingAssignment: Hashable {
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
+}
 
 #if DEBUG
 extension WorkerProfileViewModel {

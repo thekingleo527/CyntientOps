@@ -28,6 +28,7 @@ public struct CoreTypes {
     // MARK: - User & Worker Types
     
     public enum UserRole: String, Codable, CaseIterable {
+        case superAdmin = "superAdmin"
         case admin = "admin"
         case manager = "manager"
         case worker = "worker"
@@ -35,6 +36,7 @@ public struct CoreTypes {
         
         public var displayName: String {
             switch self {
+            case .superAdmin: return "Super Admin"
             case .admin: return "Admin"
             case .manager: return "Manager"
             case .worker: return "Worker"
@@ -637,13 +639,18 @@ public struct CoreTypes {
             case taskStarted = "taskStarted"
             case taskCompleted = "taskCompleted"
             case taskUpdated = "taskUpdated"
+            case routineStarted = "routineStarted"
+            case routineCompleted = "routineCompleted"
             case workerClockedIn = "workerClockedIn"
             case workerClockedOut = "workerClockedOut"
+            case workerNote = "workerNote"
             case buildingMetricsChanged = "buildingMetricsChanged"
             case inventoryUpdated = "inventoryUpdated"
             case complianceStatusChanged = "complianceStatusChanged"
             case criticalUpdate = "criticalUpdate"
             case buildingUpdate = "buildingUpdate"
+            case vendorAccess = "vendorAccess"
+            case routineFullyCompleted = "routineFullyCompleted"
             case complianceUpdate = "complianceUpdate"
             case routineStatusChanged = "routineStatusChanged"
             case monthlyMetricsUpdated = "monthlyMetricsUpdated"
@@ -2684,7 +2691,7 @@ public struct CoreTypes {
     public struct AdminTaskSchedule: Identifiable, Codable {
         public let id: String
         public let taskId: String
-        public let scheduledDateTime: Date
+        public var scheduledDateTime: Date
         public let assignedWorkerId: String?
         public let buildingId: String
         public let createdBy: String // Admin ID
@@ -2995,6 +3002,27 @@ public struct CoreTypes {
         }
     }
 
+    // Location for DSNY bin placement/retrieval guidance
+    public enum BinLocation: String, Codable, CaseIterable {
+        case curbside = "curbside"
+        case inside = "inside"
+        case basement = "basement"
+        case alley = "alley"
+        case loadingDock = "loading_dock"
+        case other = "other"
+
+        public var description: String {
+            switch self {
+            case .curbside: return "curbside at entrance"
+            case .inside: return "inside near trash area"
+            case .basement: return "basement trash area"
+            case .alley: return "alley collection point"
+            case .loadingDock: return "loading dock"
+            case .other: return "designated area"
+            }
+        }
+    }
+
 public struct WorkerSummary: Codable, Identifiable {
     public let id: String
     public let name: String
@@ -3016,6 +3044,8 @@ public struct WorkerSummary: Codable, Identifiable {
         self.shiftEnd = shiftEnd
     }
 }
+
+// Provide un-namespaced access used by DSNY modules
 
 public struct WorkerCapability: Codable, Identifiable {
     public let id: String
@@ -3404,6 +3434,136 @@ public struct WorkerPerformance: Codable, Identifiable {
         case emergency = "emergency"
     }
 
+    // MARK: - Date Utilities (Timezone-aware)
+    
+    public struct DateUtils {
+        
+        // MARK: - Timezone & Calendar
+        
+        /// Current timezone (local device timezone)
+        public static var tz: TimeZone { .current }
+        
+        /// Calendar configured with local timezone
+        public static var calendar: Calendar = {
+            var cal = Calendar.current
+            cal.timeZone = tz
+            return cal
+        }()
+        
+        // MARK: - Today Boundaries
+        
+        /// Start of today in local timezone (midnight)
+        public static func startOfToday() -> Date {
+            calendar.startOfDay(for: Date())
+        }
+        
+        /// End of today in local timezone (midnight tomorrow)
+        public static func endOfToday() -> Date {
+            let start = startOfToday()
+            return calendar.date(byAdding: .day, value: 1, to: start)!
+        }
+        
+        /// Today's date range (startOfToday...endOfToday)
+        public static var todayRange: ClosedRange<Date> {
+            startOfToday()...endOfToday()
+        }
+        
+        // MARK: - Time Windows
+        
+        /// Creates a time window from now for the specified hours
+        public static func window(hours: Int) -> ClosedRange<Date> {
+            let now = Date()
+            let end = calendar.date(byAdding: .hour, value: hours, to: now)!
+            return now...end
+        }
+        
+        // MARK: - Date Comparisons
+        
+        /// Check if date is today in local timezone
+        public static func isToday(_ date: Date) -> Bool {
+            calendar.isDate(date, inSameDayAs: Date())
+        }
+        
+        /// Check if date is within current week
+        public static func isThisWeek(_ date: Date) -> Bool {
+            let now = Date()
+            let startOfWeek = calendar.dateInterval(of: .weekOfYear, for: now)?.start ?? now
+            let endOfWeek = calendar.dateInterval(of: .weekOfYear, for: now)?.end ?? now
+            return date >= startOfWeek && date < endOfWeek
+        }
+        
+        /// Check if date is within current month
+        public static func isThisMonth(_ date: Date) -> Bool {
+            let now = Date()
+            return calendar.isDate(date, equalTo: now, toGranularity: .month)
+        }
+        
+        /// Check if date is overdue (past today)
+        public static func isOverdue(_ date: Date) -> Bool {
+            date < startOfToday()
+        }
+        
+        /// Check if date is upcoming (future)
+        public static func isUpcoming(_ date: Date) -> Bool {
+            date > Date()
+        }
+        
+        /// Check if a date is within the next N hours
+        public static func isWithinHours(_ date: Date, hours: Int) -> Bool {
+            window(hours: hours).contains(date)
+        }
+        
+        // MARK: - Formatters
+        
+        /// Time formatter for local timezone (e.g., "7:00 AM")
+        public static var timeFormatter: DateFormatter = {
+            let formatter = DateFormatter()
+            formatter.timeStyle = .short
+            formatter.timeZone = tz
+            return formatter
+        }()
+        
+        /// Date formatter for local timezone (e.g., "Jan 15, 2024")
+        public static var dateFormatter: DateFormatter = {
+            let formatter = DateFormatter()
+            formatter.dateStyle = .medium
+            formatter.timeZone = tz
+            return formatter
+        }()
+        
+        /// Combined date and time formatter
+        public static var dateTimeFormatter: DateFormatter = {
+            let formatter = DateFormatter()
+            formatter.dateStyle = .medium
+            formatter.timeStyle = .short
+            formatter.timeZone = tz
+            return formatter
+        }()
+        
+        // MARK: - Time Window Constants
+        
+        /// Common time windows for task filtering
+        public enum TimeWindow {
+            case immediate      // Next 12 hours
+            case urgent         // Next 6 hours
+            case upcoming       // Next 24 hours
+            case soon           // Next 2 hours
+            
+            public var hours: Int {
+                switch self {
+                case .immediate: return 12
+                case .urgent: return 6
+                case .upcoming: return 24
+                case .soon: return 2
+                }
+            }
+            
+            public var range: ClosedRange<Date> {
+                CoreTypes.DateUtils.window(hours: hours)
+            }
+        }
+    }
+
 } // END of CoreTypes namespace
 
 // MARK: - Global Type Aliases for Direct Access
@@ -3529,5 +3689,3 @@ public typealias RecommendationPriority = CoreTypes.RecommendationPriority
 // MARK: - AdminOperationalIntelligence Types (Direct Access)  
 // Note: These types are already public in AdminOperationalIntelligence.swift
 // The ViewModels should import that file directly to access these types
-
-// MARK: - Report Types (Defined in AdminReportsView)
