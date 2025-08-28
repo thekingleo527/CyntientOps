@@ -987,6 +987,7 @@ struct AdminNovaIntelligenceBar: View {
                             ll97NonCompliant: viewModel.ll97EmissionsData.values.flatMap { $0 }.filter { !$0.isCompliant }.count,
                             workersActive: viewModel.workersActive,
                             workersTotal: viewModel.workersTotal,
+                            complianceTrend: viewModel.complianceTrendText,
                             onExampleReport: {
                                 if let first = buildings.first,
                                    let report = viewModel.getDetailedPropertyReport(buildingId: first.id) {
@@ -1403,6 +1404,7 @@ struct AdminAnalyticsContent: View {
     let ll97NonCompliant: Int
     let workersActive: Int
     let workersTotal: Int
+    let complianceTrend: String
     let onExampleReport: () -> Void
 
     var body: some View {
@@ -1424,7 +1426,7 @@ struct AdminAnalyticsContent: View {
                 AdminAnalyticTile(
                     title: "Compliance",
                     value: complianceValue,
-                    trend: "",
+                    trend: complianceTrend,
                     color: CyntientOpsDesign.DashboardColors.info
                 )
             }

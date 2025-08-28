@@ -57,6 +57,7 @@ class AdminDashboardViewModel: ObservableObject {
     @Published var dashboardSyncStatus: CoreTypes.DashboardSyncStatus = .synced
     @Published var historicalLoadMonths: Int = 6
     @Published var historicalLoadedAt: Date?
+    @Published var complianceTrendText: String = ""
     
     // MARK: - Convenience Data Properties
     @Published var hpdViolationsData: [String: [HPDViolation]] = [:]
@@ -719,12 +720,14 @@ class AdminDashboardViewModel: ObservableObject {
         await loadDashboardData()
         // Load 1-6 months of historical data for analytics/reporting
         await loadHistoricalPortfolioData(months: historicalLoadMonths)
+        await computeComplianceTrend(daysWindow: 30)
     }
     
     /// Refresh dashboard data (for pull-to-refresh)
     func refreshDashboardData() async {
         await loadDashboardData()
         await loadHistoricalPortfolioData(months: historicalLoadMonths)
+        await computeComplianceTrend(daysWindow: 30)
     }
 
     // MARK: - Historical Data Loading
@@ -734,6 +737,57 @@ class AdminDashboardViewModel: ObservableObject {
         await container.nycHistoricalData.loadHistoricalDataForAllBuildings(months: months)
         historicalLoadedAt = Date()
         print("✅ Historical data load complete for \(months) months")
+    }
+
+    // MARK: - Compliance Trend Calculation
+    @MainActor
+    public func computeComplianceTrend(daysWindow: Int = 30) async {
+        let historical = container.nycHistoricalData.getAllBuildingsWithHistoricalData()
+        guard !historical.isEmpty else {
+            complianceTrendText = ""
+            return
+        }
+
+        let now = Date()
+        guard let startCurrent = Calendar.current.date(byAdding: .day, value: -daysWindow, to: now),
+              let startPrev = Calendar.current.date(byAdding: .day, value: -2*daysWindow, to: now) else {
+            complianceTrendText = ""
+            return
+        }
+
+        let iso = ISO8601DateFormatter()
+
+        func withinCurrentWindow(_ dateString: String?) -> Bool {
+            guard let s = dateString, let d = iso.date(from: s) else { return false }
+            return d >= startCurrent && d <= now
+        }
+        func withinPrevWindow(_ dateString: String?) -> Bool {
+            guard let s = dateString, let d = iso.date(from: s) else { return false }
+            return d >= startPrev && d < startCurrent
+        }
+
+        var currentTotal = 0
+        var prevTotal = 0
+
+        for b in historical {
+            currentTotal += b.hpdViolations.filter { withinCurrentWindow($0.inspectionDate) }.count
+            prevTotal += b.hpdViolations.filter { withinPrevWindow($0.inspectionDate) }.count
+
+            currentTotal += b.dsnyViolations.filter { withinCurrentWindow($0.issueDate) }.count
+            prevTotal += b.dsnyViolations.filter { withinPrevWindow($0.issueDate) }.count
+
+            currentTotal += b.dobPermits.filter { withinCurrentWindow($0.issuanceDate) }.count
+            prevTotal += b.dobPermits.filter { withinPrevWindow($0.issuanceDate) }.count
+        }
+
+        let delta = currentTotal - prevTotal
+        if delta > 0 {
+            complianceTrendText = "+\(delta) vs prev \(daysWindow)d"
+        } else if delta < 0 {
+            complianceTrendText = "\(delta) vs prev \(daysWindow)d"
+        } else {
+            complianceTrendText = "flat vs prev \(daysWindow)d"
+        }
     }
     
     
