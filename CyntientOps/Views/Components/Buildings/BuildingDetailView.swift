@@ -4582,7 +4582,7 @@ struct BuildingRoutesTab: View {
         isLoading = true
         
         Task {
-            let dayOfWeek = Calendar.current.component(.weekday, from: selectedDate)
+            _ = Calendar.current.component(.weekday, from: selectedDate)
             let routes = container.routes
             let allRoutes = routes.routes
             
@@ -4713,6 +4713,8 @@ struct RouteSequenceCard: View {
             return ("trash.circle.fill", .orange)
         case .operations:
             return ("gearshape.fill", .gray)
+        @unknown default:
+            return ("square.dashed", .gray)
         }
     }
     
@@ -4721,13 +4723,16 @@ struct RouteSequenceCard: View {
         case .sweeping: return "wind"
         case .hosing: return "drop.fill"
         case .vacuuming: return "tornado"
+        case .mopping: return "mop"
         case .trashCollection: return "trash.fill"
+        case .dsnySetout: return "trash"
         case .maintenance: return "wrench.fill"
         case .buildingInspection: return "magnifyingglass"
         case .posterRemoval: return "doc.text.fill"
         case .treepitCleaning: return "leaf.fill"
         case .stairwellCleaning: return "stairs"
         case .binManagement: return "trash.circle.fill"
+        case .laundryRoom: return "washer"
         }
     }
     

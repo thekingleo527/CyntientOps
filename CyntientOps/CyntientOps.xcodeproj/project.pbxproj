@@ -268,6 +268,7 @@
 		23486D922E5FECE10040DA52 /* WeatherScoreBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23486D8E2E5FECE10040DA52 /* WeatherScoreBuilder.swift */; };
 		23486D962E5FED770040DA52 /* WeatherSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23486D942E5FED770040DA52 /* WeatherSnapshot.swift */; };
 		23486D972E5FED770040DA52 /* RoutineWeatherProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23486D932E5FED770040DA52 /* RoutineWeatherProfile.swift */; };
+		23486D992E5FF5390040DA52 /* View+GlassCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23486D982E5FF5390040DA52 /* View+GlassCard.swift */; };
 		234B500D2E5D440B00F57B6A /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = 234B500C2E5D440B00F57B6A /* GRDB */; };
 		234B50102E5D456F00F57B6A /* Sentry in Frameworks */ = {isa = PBXBuildFile; productRef = 234B500F2E5D456F00F57B6A /* Sentry */; };
 		234B50122E5DE64200F57B6A /* QuickLoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 234B50112E5DE64200F57B6A /* QuickLoginView.swift */; };
@@ -574,6 +575,7 @@
 		23486D902E5FECE10040DA52 /* WorkerProfileViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkerProfileViewModel.swift; sourceTree = "<group>"; };
 		23486D932E5FED770040DA52 /* RoutineWeatherProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutineWeatherProfile.swift; sourceTree = "<group>"; };
 		23486D942E5FED770040DA52 /* WeatherSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherSnapshot.swift; sourceTree = "<group>"; };
+		23486D982E5FF5390040DA52 /* View+GlassCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "View+GlassCard.swift"; sourceTree = "<group>"; };
 		234B50112E5DE64200F57B6A /* QuickLoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickLoginView.swift; sourceTree = "<group>"; };
 		238FAF582E5E53C500187318 /* UserProfileService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserProfileService.swift; sourceTree = "<group>"; };
 		238FAF5A2E5E766100187318 /* NYCDataCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NYCDataCoordinator.swift; sourceTree = "<group>"; };
@@ -1352,6 +1354,7 @@
 		231933F42E42EC7200640977 /* Glass */ = {
 			isa = PBXGroup;
 			children = (
+				23486D982E5FF5390040DA52 /* View+GlassCard.swift */,
 				231933E52E42EC7200640977 /* BuildingHeaderGlassOverlay.swift */,
 				231933E62E42EC7200640977 /* BuildingStatsGlassCard.swift */,
 				231933E72E42EC7200640977 /* ClockInGlassModal.swift */,
@@ -1857,6 +1860,7 @@
 				23486D972E5FED770040DA52 /* RoutineWeatherProfile.swift in Sources */,
 				231932392E42E91200640977 /* OnboardingView.swift in Sources */,
 				2319323A2E42E91200640977 /* AssignedBuildingsView.swift in Sources */,
+				23486D992E5FF5390040DA52 /* View+GlassCard.swift in Sources */,
 				2319323B2E42E91200640977 /* AdminReportsView.swift in Sources */,
 				2319323C2E42E91200640977 /* ClientDashboardMainView.swift in Sources */,
 				2319323D2E42E91200640977 /* AdminWorkerManagementView.swift in Sources */,
