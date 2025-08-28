@@ -130,7 +130,7 @@ public final class RouteOperationalBridge: ObservableObject {
     }
     
     /// Determine task priority based on operation characteristics
-    private func determinePriority(from operation: OperationTask) -> TaskPriority {
+    private func determinePriority(from operation: OperationTask) -> LegacyTaskPriority {
         switch operation.category {
         case .dsnySetout:
             return .critical // Compliance-critical
@@ -283,7 +283,7 @@ public struct RouteInfo {
 }
 
 // Legacy compatibility
-public enum TaskPriority {
+public enum LegacyTaskPriority {
     case critical
     case high
     case medium

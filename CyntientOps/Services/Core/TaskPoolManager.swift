@@ -35,7 +35,7 @@ public final class TaskPoolManager {
     
     /// Execute task with automatic pooling
     public func execute<T>(
-        priority: TaskPriority = .medium,
+        priority: Swift.TaskPriority = .medium,
         operation: @escaping () async throws -> T
     ) async throws -> T {
         
@@ -61,7 +61,7 @@ public final class TaskPoolManager {
     
     /// Execute task without return value
     public func executeVoid(
-        priority: TaskPriority = .medium,
+        priority: Swift.TaskPriority = .medium,
         operation: @escaping () async throws -> Void
     ) {
         let taskId = UUID()
@@ -82,7 +82,7 @@ public final class TaskPoolManager {
     
     private func queueTask(
         id: UUID,
-        priority: TaskPriority,
+        priority: Swift.TaskPriority,
         operation: @escaping () async -> Void
     ) async {
         
@@ -95,7 +95,7 @@ public final class TaskPoolManager {
             }
         } else {
             // Queue for later execution
-            if priority >= .high {
+            if isHighPriority(priority) {
                 // High priority tasks go to front
                 pendingTasks.insert((id, operation), at: 0)
             } else {
@@ -115,6 +115,15 @@ public final class TaskPoolManager {
             Task {
                 await nextOperation()
             }
+        }
+    }
+
+    private func isHighPriority(_ p: Swift.TaskPriority) -> Bool {
+        switch p {
+        case .high, .userInitiated, .userInteractive:
+            return true
+        default:
+            return false
         }
     }
     

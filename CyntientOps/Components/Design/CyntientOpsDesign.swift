@@ -478,6 +478,8 @@ enum CyntientOpsDesign {
             case .manager: return DashboardColors.warning
             case .worker: return DashboardColors.workerPrimary
             case .client: return DashboardColors.clientPrimary
+            case .superAdmin: return DashboardColors.adminPrimary
+            @unknown default: return DashboardColors.primaryText
             }
         }
         
