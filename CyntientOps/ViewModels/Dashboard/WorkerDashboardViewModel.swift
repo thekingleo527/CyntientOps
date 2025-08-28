@@ -2278,7 +2278,7 @@ public class WorkerDashboardViewModel: ObservableObject {
             // Fallback to legacy system
             nextPriorityTitle = nextTask.task.title
             nextPriorityTime = nextTask.scheduledAt
-            currentBuildingName = getBuilding(id: nextTask.task.buildingId)?.name ?? "Unknown Building"
+            currentBuildingName = getBuilding(id: nextTask.task.buildingId ?? "")?.name ?? "Unknown Building"
         } else {
             nextPriorityTitle = "All Clear"
             nextPriorityTime = nil
@@ -2664,12 +2664,19 @@ public class WorkerDashboardViewModel: ObservableObject {
                     title: operation.name,
                     description: operation.instructions ?? "",
                     status: .pending,
+                    completedAt: nil,
+                    scheduledDate: nil,
                     dueDate: sequence.arrivalTime,
                     category: convertOperationToContextualCategory(operation.category),
-                    buildingContext: sequence.buildingName,
-                    weatherContext: operation.isWeatherSensitive ? 
-                        "Weather-sensitive: \(operation.location.rawValue)" : nil,
                     urgency: .normal,
+                    building: nil,
+                    worker: nil,
+                    buildingId: sequence.buildingId,
+                    buildingName: sequence.buildingName,
+                    assignedWorkerId: worker?.id,
+                    priority: .normal,
+                    frequency: nil,
+                    requiresPhoto: operation.requiresPhoto,
                     estimatedDuration: operation.estimatedDuration
                 )
                 
@@ -2786,7 +2793,7 @@ public class WorkerDashboardViewModel: ObservableObject {
         if update.type == .complianceStatusChanged,
            !update.buildingId.isEmpty,
            assignedBuildings.contains(where: { $0.id == update.buildingId }) {
-            Task.pooled { await self.refreshData() }
+            TaskPool.pooled { await self.refreshData() }
         }
     }
     
