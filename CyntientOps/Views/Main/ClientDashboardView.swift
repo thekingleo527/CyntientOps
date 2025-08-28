@@ -77,6 +77,7 @@ struct ClientDashboardView: View {
     @State private var sheet: ClientRoute?
     @State private var isPortfolioMapRevealed = false
     @State private var intelligencePanelExpanded = false
+    @State private var showingPortfolioMap = false
     
     // MARK: - Responsive Layout Computed Properties
     
@@ -227,7 +228,7 @@ struct ClientDashboardView: View {
                     routineMetrics: viewModel.realtimeRoutineMetrics,
                     onTabTap: handleNovaTabTap,
                     onMaintenanceRequest: { /* Navigation */ },
-                    onMapToggle: handlePortfolioMapToggle,
+                    onMapToggle: { withAnimation { isPortfolioMapRevealed.toggle() } },
                     viewModel: viewModel
                 )
                 .padding(.horizontal, 16)
@@ -1309,7 +1310,7 @@ struct ClientNovaIntelligenceBar: View {
                         monthlyMetrics: monthlyMetrics,
                         routineMetrics: routineMetrics,
                         portfolioValue: viewModel.portfolioAssessedValue,
-                        onMapToggle: onMapToggle,
+                        onMapToggle: { showingPortfolioMap = true },
                         onViewAllTap: { /* Navigate to buildings */ }
                     )
                     
@@ -1355,6 +1356,18 @@ struct ClientNovaIntelligenceBar: View {
             return complianceOverview.criticalViolations
         case .analytics:
             return 0
+        }
+    }
+    
+    // MARK: - Portfolio Map Sheet
+    @ViewBuilder
+    private var portfolioMapSheet: some View {
+        if showingPortfolioMap {
+            ClientPortfolioMapRevealSheet(container: container, buildings: viewModel.clientBuildings) { _ in
+                showingPortfolioMap = false
+            }
+        } else {
+            EmptyView()
         }
     }
 }
