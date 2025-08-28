@@ -1310,7 +1310,7 @@ struct ClientNovaIntelligenceBar: View {
                         monthlyMetrics: monthlyMetrics,
                         routineMetrics: routineMetrics,
                         portfolioValue: viewModel.portfolioAssessedValue,
-                        onMapToggle: { showingPortfolioMap = true },
+                        onMapToggle: onMapToggle,
                         onViewAllTap: { /* Navigate to buildings */ }
                     )
                     

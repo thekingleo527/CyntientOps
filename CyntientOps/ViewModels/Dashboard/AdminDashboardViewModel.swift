@@ -60,6 +60,7 @@ class AdminDashboardViewModel: ObservableObject {
     @Published var hpdViolationsData: [String: [HPDViolation]] = [:]
     @Published var dobPermitsData: [String: [DOBPermit]] = [:]
     @Published var dsnyScheduleData: [String: [DSNYRoute]] = [:]
+    @Published var dsnyViolationsByBuilding: [String: [DSNYViolation]] = [:]
     @Published var ll97EmissionsData: [String: [LL97Emission]] = [:]
     @Published var buildingsList: [CoreTypes.NamedCoordinate] = []
     @Published var crossDashboardUpdates: [CoreTypes.DashboardUpdate] = []
@@ -659,10 +660,11 @@ class AdminDashboardViewModel: ObservableObject {
     private func loadRealComplianceData() async {
         print("🗽 Loading real NYC API compliance data...")
         let nycAPI = NYCAPIService.shared
-        
+
         var hpdData: [String: [HPDViolation]] = [:]
         var dobData: [String: [DOBPermit]] = [:]
         var dsnyData: [String: [DSNYRoute]] = [:]
+        var dsnyViolations: [String: [DSNYViolation]] = [:]
         var ll97Data: [String: [LL97Emission]] = [:]
         
         for building in buildings {
@@ -678,6 +680,13 @@ class AdminDashboardViewModel: ObservableObject {
                 // Fetch real DSNY routes (if available)
                 let dsnyRoutes = try? await nycAPI.fetchDSNYSchedule(district: building.address)
                 dsnyData[building.id] = dsnyRoutes ?? []
+
+                // Fetch DSNY violations (last 12 months via service filtering)
+                if let v = try? await nycAPI.fetchDSNYViolations(bin: building.id) {
+                    dsnyViolations[building.id] = v
+                } else {
+                    dsnyViolations[building.id] = []
+                }
                 
                 // Fetch real LL97 emissions
                 let ll97Emissions = try await nycAPI.fetchLL97Compliance(bbl: building.id)
@@ -698,7 +707,8 @@ class AdminDashboardViewModel: ObservableObject {
         self.dobPermitsData = dobData
         self.dsnyScheduleData = dsnyData
         self.ll97EmissionsData = ll97Data
-        
+        self.dsnyViolationsByBuilding = dsnyViolations
+
         print("🗽 Real NYC compliance data loaded for \(buildings.count) buildings")
     }
     

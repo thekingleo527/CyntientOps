@@ -23,6 +23,7 @@ struct BuildingMapDetailView: View {
     @State private var showClockIn = false
     @State private var showAllTasks = false
     @State private var showDetails = false
+    @State private var showClockOut = false
     
     var body: some View {
         NavigationStack {
@@ -244,6 +245,47 @@ struct BuildingMapDetailView: View {
                 }
             }
             
+            // Clock Out (when clocked in at this building)
+            if let wid = NewAuthManager.shared.workerId,
+               let status = container.clockIn.getClockInStatus(for: wid),
+               status.buildingId == building.id {
+                Button(action: { showClockOut = true }) {
+                    HStack(spacing: 12) {
+                        Image(systemName: "clock.badge.xmark")
+                            .font(.title3)
+                        Text("Clock Out from Building")
+                            .fontWeight(.semibold)
+                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                }
+                .glassButton(style: .warning, size: .large)
+                .sheet(isPresented: $showClockOut) {
+                    if let wid2 = NewAuthManager.shared.workerId {
+                        NavigationView {
+                            VStack(spacing: 16) {
+                                Text("Clock out from \(building.name)?")
+                                    .font(.headline)
+                                Text(building.address)
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                HStack(spacing: 12) {
+                                    Button("Cancel", role: .cancel) { showClockOut = false }
+                                    Button("Clock Out") {
+                                        Task { try? await container.clockIn.clockOut(workerId: wid2); showClockOut = false }
+                                    }
+                                    .buttonStyle(.borderedProminent)
+                                    .tint(.orange)
+                                }
+                            }
+                            .padding()
+                            .navigationTitle("Clock Out")
+                            .navigationBarTitleDisplayMode(.inline)
+                        }
+                    }
+                }
+            }
+
             Button(action: { showDetails = true }) {
                 HStack {
                     Text("View Building Details")
