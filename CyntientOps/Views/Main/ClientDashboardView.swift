@@ -176,6 +176,13 @@ struct ClientDashboardView: View {
                             onComplianceTap: { /* Navigation */ },
                             onWorkerManagementTap: { /* Navigation */ }
                         )
+
+                        // Broadcast Strip (urgent-first portfolio status)
+                        ClientBroadcastStrip(
+                            criticalViolations: viewModel.complianceOverview.criticalViolations,
+                            behindScheduleCount: viewModel.realtimeRoutineMetrics.behindScheduleCount,
+                            budgetOverrun: viewModel.monthlyMetrics.budgetUtilization > 1.0
+                        )
                         
                         // Buildings Grid (when hero expanded and client has properties)
                         if heroExpanded && !viewModel.clientBuildingsWithImages.isEmpty {
@@ -229,6 +236,10 @@ struct ClientDashboardView: View {
                     onTabTap: handleNovaTabTap,
                     onMaintenanceRequest: { /* Navigation */ },
                     onMapToggle: { withAnimation { isPortfolioMapRevealed.toggle() } },
+                    onHPD: { sheet = .hpdCompliance },
+                    onDOB: { sheet = .dobCompliance },
+                    onDSNY: { sheet = .dsnyCompliance },
+                    onLL97: { sheet = .ll97Compliance },
                     viewModel: viewModel
                 )
                 .padding(.horizontal, 16)
@@ -1232,6 +1243,10 @@ struct ClientNovaIntelligenceBar: View {
     let onTabTap: (ClientDashboardView.NovaTab) -> Void
     let onMaintenanceRequest: () -> Void
     let onMapToggle: () -> Void
+    let onHPD: () -> Void
+    let onDOB: () -> Void
+    let onDSNY: () -> Void
+    let onLL97: () -> Void
     @ObservedObject var viewModel: ClientDashboardViewModel
     
     var body: some View {
@@ -1319,10 +1334,10 @@ struct ClientNovaIntelligenceBar: View {
                         complianceOverview: complianceOverview,
                         buildingsList: buildingsList,
                         viewModel: viewModel,
-                        onHPDTap: { /* Navigation */ },
-                        onDOBTap: { /* Navigation */ },
-                        onDSNYTap: { /* Navigation */ },
-                        onLL97Tap: { /* Navigation */ }
+                        onHPDTap: onHPD,
+                        onDOBTap: onDOB,
+                        onDSNYTap: onDSNY,
+                        onLL97Tap: onLL97
                     )
                     
                 case .analytics:

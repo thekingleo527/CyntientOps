@@ -950,6 +950,8 @@ struct AdminNovaIntelligenceBar: View {
                         AdminBuildingsContent(
                             buildings: buildings,
                             portfolioMetrics: portfolioMetrics,
+                            hpdOpenCount: viewModel.hpdViolationsData.values.flatMap { $0 }.filter { $0.isActive }.count,
+                            dobActivePermits: viewModel.dobPermitsData.values.flatMap { $0 }.filter { !$0.isExpired }.count,
                             dsnyViolationsCount: viewModel.dsnyViolationsByBuilding.values.flatMap { $0 }.filter { $0.isActive }.count,
                             onMapToggle: onMapToggle
                         )
@@ -1274,6 +1276,8 @@ struct AdminWorkerStatusRow: View {
 struct AdminBuildingsContent: View {
     let buildings: [CoreTypes.NamedCoordinate]
     let portfolioMetrics: CoreTypes.PortfolioMetrics
+    let hpdOpenCount: Int
+    let dobActivePermits: Int
     let dsnyViolationsCount: Int
     let onMapToggle: () -> Void
     
@@ -1315,6 +1319,18 @@ struct AdminBuildingsContent: View {
                     title: "DSNY Open",
                     count: dsnyViolationsCount,
                     color: dsnyViolationsCount > 0 ? CyntientOpsDesign.DashboardColors.warning : CyntientOpsDesign.DashboardColors.success
+                )
+
+                AdminBuildingStatusTile(
+                    title: "HPD Open",
+                    count: hpdOpenCount,
+                    color: hpdOpenCount > 0 ? CyntientOpsDesign.DashboardColors.warning : CyntientOpsDesign.DashboardColors.success
+                )
+
+                AdminBuildingStatusTile(
+                    title: "DOB Active",
+                    count: dobActivePermits,
+                    color: dobActivePermits > 0 ? CyntientOpsDesign.DashboardColors.info : CyntientOpsDesign.DashboardColors.success
                 )
             }
         }
