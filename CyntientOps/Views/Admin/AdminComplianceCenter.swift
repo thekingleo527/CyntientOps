@@ -1,3 +1,4 @@
+#if false
 //
 //  AdminComplianceCenter.swift
 //  CyntientOps v6.0
@@ -903,4 +904,6 @@ struct AdminComplianceCenter_Previews: PreviewProvider {
             .preferredColorScheme(.dark)
     }
 }
+#endif
+
 #endif

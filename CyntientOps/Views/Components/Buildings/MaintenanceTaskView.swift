@@ -34,7 +34,7 @@ struct MaintenanceTaskView: View {
                 HStack {
                     Text(task.title).font(.title).bold()
                     Spacer()
-                    StatusBadge(isCompleted: task.status == .completed, urgency: task.urgency)
+                    MaintenanceStatusBadge(isCompleted: task.status == .completed, urgency: task.urgency)
                 }
 
                 // Building
@@ -283,7 +283,7 @@ struct MaintenanceTaskView: View {
 }
 
 // MARK: – Status badge helper
-struct StatusBadge: View {
+struct MaintenanceStatusBadge: View {
     let isCompleted: Bool
     let urgency: CyntientOps.TaskUrgency
 
@@ -309,4 +309,3 @@ struct StatusBadge: View {
             .cornerRadius(20)
     }
 }
-

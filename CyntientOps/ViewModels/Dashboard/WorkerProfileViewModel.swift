@@ -378,13 +378,3 @@ extension WorkerProfileViewModel.BuildingAssignment: Hashable {
         hasher.combine(id)
     }
 }
-
-#if DEBUG
-extension WorkerProfileViewModel {
-    static func preview() -> WorkerProfileViewModel {
-        let container = ServiceContainer()
-        let viewModel = WorkerProfileViewModel(serviceContainer: container)
-        return viewModel
-    }
-}
-#endif

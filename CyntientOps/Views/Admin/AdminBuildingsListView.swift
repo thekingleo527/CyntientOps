@@ -268,6 +268,7 @@ struct AdminBuildingListItem: View {
     }
 }
 
+#if false
 struct AdminProfileStatCard: View {
     let title: String
     let value: String
@@ -355,6 +356,7 @@ struct AdminInfoRow: View {
     }
 }
 
+#endif
 struct AdminBuildingMetricPill: View {
     let label: String
     let value: String

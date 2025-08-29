@@ -391,20 +391,20 @@ private struct TaskDetailSheet: View {
                     
                     // Task Details
                     VStack(alignment: .leading, spacing: 12) {
-                        DetailRow(title: "Category", value: task.category)
-                        DetailRow(title: "Skill Level", value: task.skillLevel)
-                        DetailRow(title: "Recurrence", value: task.recurrence)
-                        DetailRow(title: "Estimated Duration", value: "\(task.estimatedDuration) minutes")
+                        WorkerDetailRow(title: "Category", value: task.category)
+                        WorkerDetailRow(title: "Skill Level", value: task.skillLevel)
+                        WorkerDetailRow(title: "Recurrence", value: task.recurrence)
+                        WorkerDetailRow(title: "Estimated Duration", value: "\(task.estimatedDuration) minutes")
                         
                         if let startHour = task.startHour, let endHour = task.endHour {
-                            DetailRow(title: "Time Window", value: String(format: "%02d:00 - %02d:00", startHour, endHour))
+                            WorkerDetailRow(title: "Time Window", value: String(format: "%02d:00 - %02d:00", startHour, endHour))
                         }
                         
                         if let daysOfWeek = task.daysOfWeek {
-                            DetailRow(title: "Days", value: daysOfWeek)
+                            WorkerDetailRow(title: "Days", value: daysOfWeek)
                         }
                         
-                        DetailRow(title: "Photo Required", value: task.requiresPhoto ? "Yes" : "No")
+                        WorkerDetailRow(title: "Photo Required", value: task.requiresPhoto ? "Yes" : "No")
                     }
                     
                     Spacer()
@@ -424,7 +424,7 @@ private struct TaskDetailSheet: View {
     }
 }
 
-private struct DetailRow: View {
+private struct WorkerDetailRow: View {
     let title: String
     let value: String
     

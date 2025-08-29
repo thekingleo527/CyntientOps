@@ -1,3 +1,4 @@
+#if false
 //
 //  BuildingDetailView.swift
 //  CyntientOps
@@ -92,4 +93,5 @@ extension BuildingDetailView {
         )
     }
 }
+#endif
 #endif

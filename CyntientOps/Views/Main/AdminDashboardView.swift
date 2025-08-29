@@ -74,7 +74,7 @@ public struct AdminDashboardView: View {
     // MARK: - State
     @State private var heroExpanded = true
     @State private var selectedNovaTab: AdminNovaTab = .priorities
-    @State private var sheet: AdminRoute?
+    @State private var activeSheet: AdminRoute?
     @State private var isPortfolioMapRevealed = false
     @State private var intelligencePanelExpanded = false
     @State private var exampleReportText: String? = nil
@@ -88,7 +88,7 @@ public struct AdminDashboardView: View {
             isRevealed: $isPortfolioMapRevealed,
             container: container,
             onBuildingTap: { building in
-                sheet = .buildingDetail(building.id)
+                activeSheet = .buildingDetail(building.id)
             }
         ) {
             ZStack {
@@ -117,9 +117,9 @@ public struct AdminDashboardView: View {
                                 activeWorkers: viewModel.workersActive,
                                 workersTotal: viewModel.workersTotal,
                                 criticalAlerts: viewModel.criticalAlerts,
-                                onBuildingsTap: { sheet = .buildings },
-                                onWorkersTap: { sheet = .workers },
-                                onComplianceTap: { sheet = .compliance }
+                                onBuildingsTap: { activeSheet = .buildings },
+                                onWorkersTap: { activeSheet = .workers },
+                                onComplianceTap: { activeSheet = .compliance }
                             )
                             
                             // Urgent Items Section (admin-specific)
@@ -128,8 +128,8 @@ public struct AdminDashboardView: View {
                                     criticalAlerts: viewModel.criticalAlerts.count,
                                     complianceIssues: getComplianceIssuesCount(),
                                     workersNeedingAttention: getWorkersNeedingAttention(),
-                                    onEmergenciesTap: { sheet = .emergencies },
-                                    onComplianceTap: { sheet = .compliance }
+                                    onEmergenciesTap: { activeSheet = .emergencies },
+                                    onComplianceTap: { activeSheet = .compliance }
                                 )
                             }
                         }
@@ -149,7 +149,7 @@ public struct AdminDashboardView: View {
                         criticalAlerts: viewModel.criticalAlerts,
                         onTabTap: handleNovaTabTap,
                         onMapToggle: handlePortfolioMapToggle,
-                        onEmergencyBroadcast: { sheet = .emergencies },
+                        onEmergencyBroadcast: { activeSheet = .emergencies },
                         viewModel: viewModel
                     )
                     .padding(.horizontal, 16)
@@ -159,7 +159,7 @@ public struct AdminDashboardView: View {
         }
         .navigationBarHidden(true)
         .preferredColorScheme(.dark)
-        .sheet(item: $sheet) { route in
+        .sheet(item: $activeSheet) { route in
             NavigationView {
                 adminSheetContent(for: route)
             }
@@ -172,9 +172,9 @@ public struct AdminDashboardView: View {
     // MARK: - Header Actions
     private func handleHeaderRoute(_ route: AdminHeaderV3B.HeaderRoute) {
         switch route {
-        case .profile: sheet = .profile
-        case .chat: sheet = .chat
-        case .settings: sheet = .settings
+        case .profile: activeSheet = .profile
+        case .chat: activeSheet = .chat
+        case .settings: activeSheet = .settings
         case .logout: handleLogout()
         }
     }
@@ -404,7 +404,7 @@ struct AdminUrgentItem: View {
                 buildings: viewModel.buildings,
                 buildingMetrics: viewModel.buildingMetrics,
                 onSelectBuilding: { building in
-                    sheet = .buildingDetail(building.id)
+                    activeSheet = .buildingDetail(building.id)
                 }
             )
                 .navigationTitle("Portfolio Buildings")
@@ -1058,11 +1058,11 @@ struct AdminNovaIntelligenceBar: View {
                                 if let first = buildings.first,
                                    let report = viewModel.getDetailedPropertyReport(buildingId: first.id) {
                                     exampleReportText = report
-                                    sheet = .exampleReport(first.id)
+                                    activeSheet = .exampleReport(first.id)
                                 }
                             },
                             onVerificationSummary: {
-                                sheet = .verificationSummary
+                                activeSheet = .verificationSummary
                             }
                         )
                     }
@@ -1581,6 +1581,7 @@ struct AdminAnalyticsContent: View {
 }
 
 // MARK: - Missing Admin Components (Placeholder implementations)
+#if false
 
 struct AdminWorkerDetailView: View {
     let workerId: String
@@ -1680,7 +1681,7 @@ struct AdminEmergencyManagementView: View {
     }
 }
 
-struct AdminSettingsView: View {
+struct AdminSettingsViewEmbedded: View {
     var body: some View {
         VStack {
             Text("Settings")
@@ -1704,6 +1705,8 @@ struct AdminPortfolioMapView: View {
         .padding()
     }
 }
+
+#endif
 
 // MARK: - Preview
 struct AdminDashboardView_Previews: PreviewProvider {

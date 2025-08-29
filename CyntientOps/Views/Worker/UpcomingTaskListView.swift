@@ -35,7 +35,7 @@ struct UpcomingTaskListView: View {
             } else {
                 VStack(spacing: 8) {
                     ForEach(rows) { row in
-                        TaskRowView(row: row)
+                        UpcomingTaskRowView(row: row)
                     }
                 }
             }
@@ -47,7 +47,7 @@ struct UpcomingTaskListView: View {
 
 // MARK: - Task Row View
 
-private struct TaskRowView: View {
+private struct UpcomingTaskRowView: View {
     let row: TaskRowVM
     
     var body: some View {
@@ -182,7 +182,7 @@ private struct EmptyTasksView: View {
                 description: "Prepare bags for collection",
                 status: .pending,
                 dueDate: Date().addingTimeInterval(7200),
-                category: .operations
+                category: .sanitation
             ),
             chip: .wet,
             advice: "Wet window likely—consider reslotting.",
@@ -203,7 +203,7 @@ private struct EmptyTasksView: View {
         ))
     ]
     
-    return VStack {
+    VStack {
         UpcomingTaskListView(rows: sampleRows)
         Spacer()
     }

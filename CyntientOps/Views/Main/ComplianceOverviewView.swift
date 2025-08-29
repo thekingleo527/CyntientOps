@@ -1080,7 +1080,7 @@ struct ComplianceHeroStatusCard: View {
             GridItem(.flexible()),
             GridItem(.flexible())
         ], spacing: 12) {
-            ComplianceMetricCard(
+            ComplianceOverviewMetricCard(
                 title: "Critical Issues",
                 value: "\(criticalIssues.count)",
                 icon: "exclamationmark.triangle.fill",
@@ -1088,7 +1088,7 @@ struct ComplianceHeroStatusCard: View {
                 onTap: criticalIssues.isEmpty ? nil : onViewAllIssues
             )
             
-            ComplianceMetricCard(
+            ComplianceOverviewMetricCard(
                 title: "Next Audit",
                 value: nextAuditText,
                 icon: "calendar.badge.checkmark",
@@ -1096,7 +1096,7 @@ struct ComplianceHeroStatusCard: View {
                 onTap: onScheduleAudit
             )
             
-            ComplianceMetricCard(
+            ComplianceOverviewMetricCard(
                 title: "Recent Activity",
                 value: "5",
                 icon: "clock.arrow.2.circlepath",
@@ -1104,7 +1104,7 @@ struct ComplianceHeroStatusCard: View {
                 onTap: nil
             )
             
-            ComplianceMetricCard(
+            ComplianceOverviewMetricCard(
                 title: "Compliance Rate",
                 value: "\(Int(complianceRate))%",
                 icon: "chart.line.uptrend.xyaxis",
@@ -1214,7 +1214,7 @@ struct ComplianceMetricPill: View {
     }
 }
 
-struct ComplianceMetricCard: View {
+struct ComplianceOverviewMetricCard: View {
     let title: String
     let value: String
     let icon: String

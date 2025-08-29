@@ -340,7 +340,7 @@ struct PortfolioOverviewView: View {
                 GridItem(.flexible()),
                 GridItem(.flexible())
             ], spacing: 16) {
-                KPICard(
+                ClientKPICard(
                     title: "Monthly Spend",
                     value: "$\(Int(portfolioSummary.monthlySpend))",
                     subtitle: "of $\(Int(portfolioSummary.monthlyBudget)) budget",
@@ -349,7 +349,7 @@ struct PortfolioOverviewView: View {
                     icon: "dollarsign.circle"
                 )
                 
-                KPICard(
+                ClientKPICard(
                     title: "Task Efficiency",
                     value: "\(Int(portfolioSummary.completionRate * 100))%",
                     subtitle: "completion rate",
@@ -358,7 +358,7 @@ struct PortfolioOverviewView: View {
                     icon: "checkmark.circle"
                 )
                 
-                KPICard(
+                ClientKPICard(
                     title: "Compliance Score",
                     value: "\(portfolioSummary.complianceScore)%",
                     subtitle: "regulatory compliance",
@@ -367,7 +367,7 @@ struct PortfolioOverviewView: View {
                     icon: "shield.checkered"
                 )
                 
-                KPICard(
+                ClientKPICard(
                     title: "Critical Issues",
                     value: "\(portfolioSummary.criticalIssues)",
                     subtitle: "require attention",
@@ -607,7 +607,7 @@ struct ExecutiveSummaryItem: View {
     }
 }
 
-struct KPICard: View {
+struct ClientKPICard: View {
     let title: String
     let value: String
     let subtitle: String

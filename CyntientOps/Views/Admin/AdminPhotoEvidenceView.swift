@@ -23,8 +23,8 @@ struct AdminPhotoEvidenceView: View {
     
     // State management
     @State private var isLoading = false
-    @State private var photoEvidences: [CoreTypes.PhotoEvidence] = []
-    @State private var filteredEvidences: [CoreTypes.PhotoEvidence] = []
+    @State private var photoEvidences: [CoreTypes.ProcessedPhoto] = []
+    @State private var filteredEvidences: [CoreTypes.ProcessedPhoto] = []
     @State private var buildings: [CoreTypes.NamedCoordinate] = []
     @State private var workers: [CoreTypes.WorkerProfile] = []
     @State private var selectedEvidences: Set<String> = []
@@ -40,7 +40,7 @@ struct AdminPhotoEvidenceView: View {
     
     // UI States
     @State private var currentContext: ViewContext = .overview
-    @State private var selectedEvidence: CoreTypes.PhotoEvidence?
+    @State private var selectedEvidence: CoreTypes.ProcessedPhoto?
     @State private var showingEvidenceDetail = false
     @State private var showingBulkActions = false
     @State private var showingValidationResults = false
@@ -550,7 +550,7 @@ struct EvidenceMetricCard: View {
 }
 
 struct AdminPhotoEvidenceCard: View {
-    let evidence: CoreTypes.PhotoEvidence
+    let evidence: CoreTypes.ProcessedPhoto
     let isSelected: Bool
     let onTap: () -> Void
     let onSelect: (Bool) -> Void
@@ -682,7 +682,7 @@ struct EvidenceMetrics {
 // MARK: - Placeholder Views
 
 struct AdminPhotoEvidenceDetailView: View {
-    let evidence: CoreTypes.PhotoEvidence
+    let evidence: CoreTypes.ProcessedPhoto
     let onUpdate: () -> Void
     
     var body: some View {
@@ -716,7 +716,7 @@ struct AdminPhotoEvidenceDetailView: View {
 
 struct AdminPhotoEvidenceBulkActionsView: View {
     let selectedEvidences: [String]
-    let allEvidences: [CoreTypes.PhotoEvidence]
+    let allEvidences: [CoreTypes.ProcessedPhoto]
     let onComplete: () -> Void
     
     var body: some View {
@@ -747,7 +747,7 @@ struct AdminPhotoEvidenceBulkActionsView: View {
 }
 
 struct AdminPhotoValidationResultsView: View {
-    let evidences: [CoreTypes.PhotoEvidence]
+    let evidences: [CoreTypes.ProcessedPhoto]
     
     var body: some View {
         NavigationView {

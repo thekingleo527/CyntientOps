@@ -48,7 +48,7 @@ public struct ProfileAssignedBuildingsView: View {
             }
         }
         .sheet(isPresented: $showingMapView) {
-            BuildingsMapView(
+            ProfileBuildingsMapView(
                 assignments: viewModel.currentAssignments,
                 region: $mapRegion,
                 onBuildingSelected: { assignment in
@@ -211,7 +211,7 @@ private struct BuildingAssignmentCard: View {
                 
                 // Status Badge
                 HStack {
-                    StatusBadge(
+                    ProfileStatusBadge(
                         isActive: assignment.isActiveToday,
                         text: assignment.isActiveToday ? "Active Today" : "Scheduled"
                     )
@@ -222,7 +222,7 @@ private struct BuildingAssignmentCard: View {
                 // Stats Grid
                 VStack(spacing: 8) {
                     HStack {
-                        StatItem(
+                        ProfileStatItem(
                             icon: "list.bullet",
                             value: "\(assignment.taskCount)",
                             label: "Tasks"
@@ -230,7 +230,7 @@ private struct BuildingAssignmentCard: View {
                         
                         Spacer()
                         
-                        StatItem(
+                        ProfileStatItem(
                             icon: "clock",
                             value: formattedDuration(assignment.estimatedDuration),
                             label: "Duration"
@@ -238,7 +238,7 @@ private struct BuildingAssignmentCard: View {
                     }
                     
                     HStack {
-                        StatItem(
+                        ProfileStatItem(
                             icon: "percent",
                             value: String(format: "%.0f%%", assignment.completionRate * 100),
                             label: "Complete"
@@ -247,13 +247,13 @@ private struct BuildingAssignmentCard: View {
                         Spacer()
                         
                         if let lastVisited = assignment.lastVisited {
-                            StatItem(
+                            ProfileStatItem(
                                 icon: "clock.arrow.circlepath",
                                 value: relativeDate(lastVisited),
                                 label: "Last Visit"
                             )
                         } else {
-                            StatItem(
+                            ProfileStatItem(
                                 icon: "questionmark.circle",
                                 value: "N/A",
                                 label: "Last Visit"
@@ -278,7 +278,7 @@ private struct BuildingAssignmentCard: View {
                     
                     Image(systemName: "chevron.right")
                         .font(.caption2)
-                        .foregroundColor(.tertiary)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
                 }
             }
             .padding()
@@ -311,7 +311,7 @@ private struct BuildingAssignmentCard: View {
     }
 }
 
-private struct StatusBadge: View {
+private struct ProfileStatusBadge: View {
     let isActive: Bool
     let text: String
     
@@ -327,7 +327,7 @@ private struct StatusBadge: View {
     }
 }
 
-private struct StatItem: View {
+private struct ProfileStatItem: View {
     let icon: String
     let value: String
     let label: String
@@ -354,29 +354,35 @@ private struct StatItem: View {
 
 // MARK: - Buildings Map View
 
-private struct BuildingsMapView: View {
+private struct ProfileBuildingsMapView: View {
     let assignments: [WorkerProfileViewModel.BuildingAssignment]
     @Binding var region: MKCoordinateRegion
     let onBuildingSelected: (WorkerProfileViewModel.BuildingAssignment) -> Void
     
     @Environment(\.dismiss) private var dismiss
     @State private var selectedAssignment: WorkerProfileViewModel.BuildingAssignment?
+    @State private var cameraPosition: MapCameraPosition = .automatic
     
     var body: some View {
         NavigationView {
             ZStack {
-                Map(coordinateRegion: $region, annotationItems: assignments) { assignment in
-                    MapAnnotation(coordinate: assignment.coordinate) {
-                        BuildingMapPin(
-                            assignment: assignment,
-                            isSelected: selectedAssignment?.buildingId == assignment.buildingId,
-                            onTap: {
-                                selectedAssignment = assignment
-                            }
-                        )
+                Map(position: $cameraPosition) {
+                    ForEach(assignments, id: \.buildingId) { assignment in
+                        Annotation("", coordinate: assignment.coordinate) {
+                            ProfileBuildingMapPin(
+                                assignment: assignment,
+                                isSelected: selectedAssignment?.buildingId == assignment.buildingId,
+                                onTap: {
+                                    selectedAssignment = assignment
+                                }
+                            )
+                        }
                     }
                 }
                 .ignoresSafeArea()
+                .onAppear {
+                    cameraPosition = .region(region)
+                }
                 
                 // Selected Building Info
                 if let selected = selectedAssignment {
@@ -403,7 +409,7 @@ private struct BuildingsMapView: View {
     }
 }
 
-private struct BuildingMapPin: View {
+private struct ProfileBuildingMapPin: View {
     let assignment: WorkerProfileViewModel.BuildingAssignment
     let isSelected: Bool
     let onTap: () -> Void
@@ -537,28 +543,28 @@ private struct BuildingDetailSheet: View {
                 GridItem(.flexible()),
                 GridItem(.flexible())
             ], spacing: 12) {
-                StatCard(
+                WorkerProfileStatCard(
                     title: "Total Tasks",
                     value: "\(assignment.taskCount)",
                     icon: "list.bullet",
                     color: .blue
                 )
                 
-                StatCard(
+                WorkerProfileStatCard(
                     title: "Estimated Time",
                     value: formattedDuration(assignment.estimatedDuration),
                     icon: "clock",
                     color: .orange
                 )
                 
-                StatCard(
+                WorkerProfileStatCard(
                     title: "Completion Rate",
                     value: String(format: "%.0f%%", assignment.completionRate * 100),
                     icon: "percent",
                     color: .green
                 )
                 
-                StatCard(
+                WorkerProfileStatCard(
                     title: "Status",
                     value: assignment.isActiveToday ? "Active" : "Scheduled",
                     icon: assignment.isActiveToday ? "checkmark.circle" : "clock.arrow.circlepath",
@@ -575,7 +581,7 @@ private struct BuildingDetailSheet: View {
                 .foregroundColor(.primary)
             
             ForEach(assignment.tasks, id: \.taskName) { task in
-                TaskRowView(task: task)
+                ProfileTaskRowView(task: task)
                     .padding(.vertical, 4)
             }
         }
@@ -593,7 +599,7 @@ private struct BuildingDetailSheet: View {
     }
 }
 
-private struct StatCard: View {
+private struct WorkerProfileStatCard: View {
     let title: String
     let value: String
     let icon: String
@@ -622,7 +628,7 @@ private struct StatCard: View {
     }
 }
 
-private struct TaskRowView: View {
+private struct ProfileTaskRowView: View {
     let task: OperationalDataTaskAssignment
     
     var body: some View {
@@ -664,10 +670,11 @@ private struct TaskRowView: View {
 
 // MARK: - Previews
 
-#if DEBUG
+#if DEBUG && false
+// Preview disabled to avoid dependency on unavailable WorkerProfileViewModel.preview()
 struct ProfileAssignedBuildingsView_Previews: PreviewProvider {
     static var previews: some View {
-        ProfileAssignedBuildingsView(viewModel: WorkerProfileViewModel.preview())
+        EmptyView()
             .previewLayout(.sizeThatFits)
     }
 }

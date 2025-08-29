@@ -170,7 +170,7 @@ struct WeatherDashboardComponent: View {
 
 // MARK: - Task Row Component
 
-struct TaskRowView: View {
+struct WeatherTaskRowView: View {
     let task: ContextualTask
     let onTap: (ContextualTask) -> Void
     

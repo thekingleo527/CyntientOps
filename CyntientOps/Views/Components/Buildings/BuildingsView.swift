@@ -265,7 +265,7 @@ struct BuildingsView: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: CyntientOpsDesign.Spacing.sm) {
                 ForEach(BuildingFilter.allCases, id: \.self) { filter in
-                    FilterPill(
+                    BuildingsFilterPill(
                         title: filter.rawValue,
                         icon: filter.icon,
                         isSelected: selectedFilter == filter,
@@ -624,7 +624,7 @@ struct BuildingQuickMetrics: View {
 
 // MARK: - Filter Pill Component
 
-struct FilterPill: View {
+struct BuildingsFilterPill: View {
     let title: String
     let icon: String
     let isSelected: Bool

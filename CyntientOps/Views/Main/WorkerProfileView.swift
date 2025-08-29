@@ -31,16 +31,16 @@ struct WorkerProfileView: View {
                     
                     // Performance Section with glass card
                     if let metrics = viewModel.performanceMetrics {
-                        PerformanceMetricsView(metrics: metrics)
+                        ProfilePerformanceMetricsView(metrics: metrics)
                             .animatedGlassAppear(delay: 0.2)
                     }
                     
                     // Weekly Schedule Section (Per Design Brief)
-                    WeeklyScheduleView(schedule: viewModel.weeklySchedule)
+                    ProfileWeeklyScheduleView(schedule: viewModel.weeklySchedule)
                         .animatedGlassAppear(delay: 0.3)
                     
                     // Assigned Buildings Section (Per Design Brief) 
-                    ProfileAssignedBuildingsView(buildings: viewModel.assignedBuildings)
+                    ProfileAssignedBuildingsViewEmbedded(buildings: viewModel.assignedBuildings)
                         .animatedGlassAppear(delay: 0.4)
                     
                     // Skills Section
@@ -183,7 +183,7 @@ struct ContactChip: View {
 
 // MARK: - Performance Metrics with Glass Design
 
-struct PerformanceMetricsView: View {
+struct ProfilePerformanceMetricsView: View {
     let metrics: CoreTypes.PerformanceMetrics
     
     var body: some View {
@@ -914,7 +914,7 @@ struct LogoutSectionView: View {
 
 // MARK: - Weekly Schedule View (Per Design Brief)
 
-struct WeeklyScheduleView: View {
+struct ProfileWeeklyScheduleView: View {
     let schedule: [DayScheduleItem]
     
     var body: some View {
@@ -960,7 +960,7 @@ struct WeeklyScheduleView: View {
 
 // MARK: - Assigned Buildings View (Per Design Brief)
 
-struct ProfileAssignedBuildingsView: View {
+struct ProfileAssignedBuildingsViewEmbedded: View {
     let buildings: [BuildingSummary]
     
     var body: some View {
