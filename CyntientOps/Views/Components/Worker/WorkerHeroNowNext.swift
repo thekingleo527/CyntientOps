@@ -10,7 +10,7 @@ struct WorkerHeroNowNext: View {
         }
     }
 
-    private func heroCard(title: String, tasks: [WorkerDashboardViewModel.TaskItem], color: Color) -> some View {
+    private func heroCard(title: String, tasks: [TaskRowVM], color: Color) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Text(title)
@@ -23,7 +23,7 @@ struct WorkerHeroNowNext: View {
                     Circle().fill(color.opacity(0.8)).frame(width: 6, height: 6)
                     VStack(alignment: .leading, spacing: 2) {
                         Text(t.title).font(.subheadline)
-                        if let due = t.dueDate { Text(due, style: .time).font(.caption2).foregroundColor(.gray) }
+                        Text(t.time).font(.caption2).foregroundColor(.gray)
                     }
                     Spacer()
                 }
@@ -37,17 +37,14 @@ struct WorkerHeroNowNext: View {
         .cornerRadius(12)
     }
 
-    private func nowTasks() -> [WorkerDashboardViewModel.TaskItem] {
-        // Tasks due within 30 minutes or in-progress from todaysTasks if available
-        let window = Date().addingTimeInterval(30*60)
-        return viewModel.todaysTasks.filter { t in
-            if let due = t.dueDate { return due <= window } else { return false }
-        }
+    private func nowTasks() -> [TaskRowVM] {
+        // Return first few tasks from upcoming (these are already weather-sorted and prioritized)
+        return Array(viewModel.upcoming.prefix(2))
     }
 
-    private func nextTasks() -> [WorkerDashboardViewModel.TaskItem] {
-        // Sorted upcoming by due date
-        return viewModel.upcoming.sorted { ($0.dueDate ?? Date.distantFuture) < ($1.dueDate ?? Date.distantFuture) }
+    private func nextTasks() -> [TaskRowVM] {
+        // Return next tasks after the "now" tasks
+        return Array(viewModel.upcoming.dropFirst(2).prefix(2))
     }
 }
 

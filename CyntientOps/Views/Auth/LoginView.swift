@@ -17,6 +17,7 @@ struct LoginView: View {
     @State private var isLoading: Bool = false
     @State private var errorMessage: String? = nil
     @State private var showBiometricButton = false
+    @State private var showingDeveloperSheet = false
     
     @StateObject private var authManager = NewAuthManager.shared
     
@@ -332,94 +333,7 @@ struct LoginView: View {
                     
                     // Development quick access section (remove in production)
                     #if DEBUG
-                    GlassCard(intensity: GlassIntensity.thin, cornerRadius: 20) {
-                        VStack(alignment: .leading, spacing: 16) {
-                            Text("Development Quick Access")
-                                .font(.headline)
-                                .foregroundColor(.white)
-                            
-                            Text("⚠️ Remove in Production")
-                                .font(.caption)
-                                .foregroundColor(.orange)
-                            
-                            VStack(spacing: 12) {
-                                // Admin/Management
-                                quickAccessButton(
-                                    email: "shawn.magloire@cyntientops.com",
-                                    name: "Shawn (Admin)",
-                                    icon: "shield.fill",
-                                    color: .purple
-                                )
-                                
-                                // Client Dashboard Access
-                                quickAccessButton(
-                                    email: "David@jmrealty.org",
-                                    name: "David (JM Realty Client)",
-                                    icon: "building.columns.fill",
-                                    color: .teal
-                                )
-                                
-                                Divider().opacity(0.3)
-                                
-                                Text("Workers")
-                                    .font(.caption)
-                                    .foregroundColor(.white.opacity(0.7))
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                
-                                // Workers - Main Team
-                                quickAccessButton(
-                                    email: "kevin.dutan@cyntientops.com",
-                                    name: "Kevin (38 tasks)",
-                                    icon: "wrench.and.screwdriver",
-                                    color: .blue
-                                )
-                                
-                                quickAccessButton(
-                                    email: "edwin.lema@cyntientops.com",
-                                    name: "Edwin (12 tasks)",
-                                    icon: "person.text.rectangle",
-                                    color: .green
-                                )
-                                
-                                quickAccessButton(
-                                    email: "greg.hutson@cyntientops.com",
-                                    name: "Greg (6 tasks)",
-                                    icon: "hammer.fill",
-                                    color: .orange
-                                )
-                                
-                                quickAccessButton(
-                                    email: "luis.lopez@cyntientops.com",
-                                    name: "Luis (7 tasks)",
-                                    icon: "building.2.fill",
-                                    color: .cyan
-                                )
-                                
-                                quickAccessButton(
-                                    email: "mercedes.inamagua@cyntientops.com",
-                                    name: "Mercedes (7 tasks)",
-                                    icon: "sparkles",
-                                    color: .pink
-                                )
-                                
-                                quickAccessButton(
-                                    email: "angel.guiracocha@cyntientops.com",
-                                    name: "Angel (5 tasks)",
-                                    icon: "moon.stars.fill",
-                                    color: .indigo
-                                )
-                            }
-                        }
-                    }
-                    .padding(.horizontal, 24)
-                    .offset(y: quickAccessOffset)
-                    .opacity(quickAccessOpacity)
-                    .onAppear {
-                        withAnimation(.spring(response: 0.8, dampingFraction: 0.7).delay(0.6)) {
-                            quickAccessOffset = 0
-                            quickAccessOpacity = 1
-                        }
-                    }
+                    developerAccessButton
                     #endif
                     
                     // Footer
@@ -458,6 +372,58 @@ struct LoginView: View {
     }
     
     #if DEBUG
+    private var developerAccessButton: some View {
+        GlassCard(intensity: GlassIntensity.thin, cornerRadius: 20) {
+            Button(action: {
+                showingDeveloperSheet = true
+            }) {
+                HStack(spacing: 12) {
+                    ZStack {
+                        Circle()
+                            .fill(Color.purple.opacity(0.2))
+                            .frame(width: 40, height: 40)
+                        
+                        Image(systemName: "wrench.and.screwdriver")
+                            .font(.system(size: 18, weight: .medium))
+                            .foregroundColor(.purple)
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Developer Access")
+                            .font(.headline)
+                            .foregroundColor(.white)
+                        
+                        Text("Quick login for testing")
+                            .font(.caption)
+                            .foregroundColor(.white.opacity(0.7))
+                    }
+                    
+                    Spacer()
+                    
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(.purple)
+                }
+                .padding(16)
+            }
+            .buttonStyle(PlainButtonStyle())
+        }
+        .padding(.horizontal, 24)
+        .padding(.top, 16)
+        .offset(y: quickAccessOffset)
+        .opacity(quickAccessOpacity)
+        .onAppear {
+            withAnimation(.spring(response: 0.8, dampingFraction: 0.7).delay(0.6)) {
+                quickAccessOffset = 0
+                quickAccessOpacity = 1
+            }
+        }
+        .sheet(isPresented: $showingDeveloperSheet) {
+            DeveloperLoginSheet()
+                .environmentObject(authManager)
+        }
+    }
+    
     private func quickAccessButton(email: String, name: String, icon: String, color: Color) -> some View {
         Button(action: {
             Task {

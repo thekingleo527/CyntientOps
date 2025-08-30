@@ -36,6 +36,7 @@ class AdminDashboardViewModel: ObservableObject {
         complianceScore: 0.0
     )
     @Published var criticalAlerts: [CoreTypes.AdminAlert] = []
+    @Published var complianceIssues: [CoreTypes.ComplianceIssue] = []
     
     // MARK: - Digital Twin Core Properties
     @Published var buildingCount: Int = 0

@@ -59,6 +59,7 @@ public struct AdminDashboardView: View {
         case priorities = "Priorities"
         case workers = "Workers"
         case buildings = "Buildings"
+        case compliance = "Compliance"
         case analytics = "Analytics"
         
         var icon: String {
@@ -66,6 +67,7 @@ public struct AdminDashboardView: View {
             case .priorities: return "exclamationmark.triangle"
             case .workers: return "person.2"
             case .buildings: return "building.2"
+            case .compliance: return "checkmark.shield.fill"
             case .analytics: return "chart.bar"
             }
         }
@@ -150,6 +152,16 @@ public struct AdminDashboardView: View {
                         onTabTap: handleNovaTabTap,
                         onMapToggle: handlePortfolioMapToggle,
                         onEmergencyBroadcast: { activeSheet = .emergencies },
+                        onExampleReport: {
+                            if let first = viewModel.buildings.first,
+                               let report = viewModel.getDetailedPropertyReport(buildingId: first.id) {
+                                exampleReportText = report
+                                activeSheet = .exampleReport(first.id)
+                            }
+                        },
+                        onVerificationSummary: {
+                            activeSheet = .verificationSummary
+                        },
                         viewModel: viewModel
                     )
                     .padding(.horizontal, 16)
@@ -453,8 +465,13 @@ struct AdminUrgentItem: View {
                 .navigationTitle("Nova Assistant")
                 
         case .map:
-            AdminPortfolioMapView(buildings: viewModel.buildings, workers: viewModel.workers)
-                .navigationTitle("Portfolio Map")
+            VStack {
+                Text("Portfolio Map")
+                    .font(.title2)
+                Text("Map view coming soon")
+                    .foregroundColor(.secondary)
+            }
+            .navigationTitle("Portfolio Map")
         
         case .exampleReport(let buildingId):
             ScrollView {
@@ -959,6 +976,8 @@ struct AdminNovaIntelligenceBar: View {
     let onTabTap: (AdminDashboardView.AdminNovaTab) -> Void
     let onMapToggle: () -> Void
     let onEmergencyBroadcast: () -> Void
+    let onExampleReport: () -> Void
+    let onVerificationSummary: () -> Void
     @ObservedObject var viewModel: AdminDashboardViewModel
     
     var body: some View {
@@ -1007,6 +1026,8 @@ struct AdminNovaIntelligenceBar: View {
             return workers.count > 3 ? 220 : 180
         case .buildings:
             return buildings.count > 3 ? 200 : 160
+        case .compliance:
+            return 220  // Space for compliance data
         case .analytics:
             return 200
         }
@@ -1043,6 +1064,15 @@ struct AdminNovaIntelligenceBar: View {
                             onMapToggle: onMapToggle
                         )
                         
+                    case .compliance:
+                        AdminComplianceContent(
+                            complianceIssues: viewModel.complianceIssues,
+                            hpdViolations: viewModel.hpdViolationsData.values.flatMap { $0 },
+                            dsnyViolations: viewModel.dsnyViolationsByBuilding.values.flatMap { $0 },
+                            complianceScore: Int(viewModel.complianceScore),
+                            onMapToggle: onMapToggle
+                        )
+                        
                     case .analytics:
                         AdminAnalyticsContent(
                             portfolioMetrics: portfolioMetrics,
@@ -1054,16 +1084,8 @@ struct AdminNovaIntelligenceBar: View {
                             workersActive: viewModel.workersActive,
                             workersTotal: viewModel.workersTotal,
                             complianceTrend: viewModel.complianceTrendText,
-                            onExampleReport: {
-                                if let first = buildings.first,
-                                   let report = viewModel.getDetailedPropertyReport(buildingId: first.id) {
-                                    exampleReportText = report
-                                    activeSheet = .exampleReport(first.id)
-                                }
-                            },
-                            onVerificationSummary: {
-                                activeSheet = .verificationSummary
-                            }
+                            onExampleReport: onExampleReport,
+                            onVerificationSummary: onVerificationSummary
                         )
                     }
                 }
@@ -1090,9 +1112,98 @@ struct AdminNovaIntelligenceBar: View {
                 }
                 return false
             }.count
+        case .compliance:
+            return viewModel.complianceIssues.filter { $0.severity == .critical || $0.severity == .high }.count
         case .analytics:
             return 0
         }
+    }
+}
+
+// MARK: - Admin Compliance Content
+struct AdminComplianceContent: View {
+    let complianceIssues: [CoreTypes.ComplianceIssue]
+    let hpdViolations: [HPDViolation]
+    let dsnyViolations: [DSNYViolation]
+    let complianceScore: Int
+    let onMapToggle: () -> Void
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("Compliance Overview")
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                
+                Spacer()
+                
+                Button(action: onMapToggle) {
+                    Image(systemName: "map")
+                        .font(.caption)
+                        .foregroundColor(.blue)
+                }
+            }
+            
+            // Compliance Score
+            HStack {
+                VStack(alignment: .leading) {
+                    Text("Portfolio Score")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                    Text("\(complianceScore)%")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .foregroundColor(complianceScore > 80 ? .green : complianceScore > 60 ? .orange : .red)
+                }
+                
+                Spacer()
+                
+                // Critical Issues Count
+                VStack(alignment: .trailing) {
+                    Text("Critical Issues")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                    Text("\(complianceIssues.filter { $0.severity == .critical }.count)")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .foregroundColor(.red)
+                }
+            }
+            
+            // NYC Violations Summary
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Label("HPD Violations", systemImage: "exclamationmark.triangle")
+                        .font(.caption)
+                    Spacer()
+                    Text("\(hpdViolations.filter { $0.isActive }.count) active")
+                        .font(.caption2)
+                        .foregroundColor(.red)
+                }
+                
+                HStack {
+                    Label("DSNY Violations", systemImage: "trash")
+                        .font(.caption)
+                    Spacer()
+                    Text("\(dsnyViolations.filter { $0.isActive }.count) active")
+                        .font(.caption2)
+                        .foregroundColor(.orange)
+                }
+                
+                HStack {
+                    Label("Total Issues", systemImage: "checkmark.shield")
+                        .font(.caption)
+                    Spacer()
+                    Text("\(complianceIssues.count) tracked")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
+            }
+        }
+        .padding(12)
+        .background(CyntientOpsDesign.DashboardColors.cardBackground)
+        .cornerRadius(12)
     }
 }
 
@@ -1580,21 +1691,7 @@ struct AdminAnalyticsContent: View {
     }
 }
 
-// MARK: - Missing Admin Components (Placeholder implementations)
-#if false
-
-struct AdminWorkerDetailView: View {
-    let workerId: String
-    let container: ServiceContainer
-    
-    var body: some View {
-        VStack {
-            Text("Worker Detail View")
-            Text("Worker ID: \(workerId)")
-        }
-        .padding()
-    }
-}
+// MARK: - Admin Analytics Components
 
 struct AdminAnalyticTile: View {
     let title: String
@@ -1622,6 +1719,22 @@ struct AdminAnalyticTile: View {
         .padding(12)
         .background(Color(.systemGray6))
         .cornerRadius(8)
+    }
+}
+
+// MARK: - Missing Admin Components (Placeholder implementations)
+#if false
+
+struct AdminWorkerDetailView: View {
+    let workerId: String
+    let container: ServiceContainer
+    
+    var body: some View {
+        VStack {
+            Text("Worker Detail View")
+            Text("Worker ID: \(workerId)")
+        }
+        .padding()
     }
 }
 

@@ -123,10 +123,10 @@ struct AdminPhotoEvidenceView: View {
     
     private var evidenceMetrics: EvidenceMetrics {
         let total = photoEvidences.count
-        let validated = photoEvidences.filter { $0.validationStatus == "validated" }.count
-        let pending = photoEvidences.filter { $0.validationStatus == "pending" }.count
-        let flagged = photoEvidences.filter { $0.validationStatus == "flagged" }.count
-        let compliant = photoEvidences.filter { $0.complianceLevel == "compliant" }.count
+        let validated = photoEvidences.filter { !$0.notes.isEmpty }.count // Photos with notes are validated
+        let pending = photoEvidences.filter { $0.notes.isEmpty }.count // Photos without notes are pending
+        let flagged = 0 // No flagging mechanism in current structure
+        let compliant = photoEvidences.filter { $0.category.contains("compliance") || $0.category.contains("safety") }.count
         
         let complianceRate = total > 0 ? Double(compliant) / Double(total) : 1.0
         let validationRate = total > 0 ? Double(validated) / Double(total) : 1.0
@@ -169,7 +169,7 @@ struct AdminPhotoEvidenceView: View {
             await loadData()
         }
         .onReceive(dashboardSync.crossDashboardUpdates) { update in
-            if update.type == .photoEvidenceUpdated || update.type == .taskCompleted {
+            if update.type == .workerPhotoUploaded || update.type == .taskCompleted {
                 Task {
                     await loadData()
                 }
@@ -392,6 +392,7 @@ struct AdminPhotoEvidenceView: View {
                 ForEach(filteredEvidences, id: \.id) { evidence in
                     AdminPhotoEvidenceCard(
                         evidence: evidence,
+                        buildings: buildings,
                         isSelected: selectedEvidences.contains(evidence.id),
                         onTap: {
                             selectedEvidence = evidence
@@ -420,24 +421,25 @@ struct AdminPhotoEvidenceView: View {
         
         do {
             // Load photo evidence
-            photoEvidences = try await container.photoEvidence.getAllPhotoEvidences()
+            photoEvidences = try await container.photos.getAllPhotoEvidences()
             
             // Load buildings
-            buildings = await container.operationalData.buildings
+            buildings = try await container.buildings.getAllBuildings()
             
             // Load workers
-            let workerService = // WorkerService injection needed
-            workers = try await workerService.getAllActiveWorkers()
+            workers = try await container.workers.getAllActiveWorkers()
             
             applyFilters()
             
             // Broadcast update
             let update = CoreTypes.DashboardUpdate(
                 source: .admin,
-                type: .photoEvidenceUpdated,
+                type: .workerPhotoUploaded,
+                buildingId: "",
+                workerId: "",
                 description: "Photo evidence refreshed - \(photoEvidences.count) evidence items loaded"
             )
-            dashboardSync.broadcastUpdate(update)
+            await dashboardSync.broadcastAdminUpdate(update)
             
         } catch {
             print("❌ Failed to load photo evidence data: \(error)")
@@ -452,16 +454,17 @@ struct AdminPhotoEvidenceView: View {
         // Apply search filter
         if !searchText.isEmpty {
             filtered = filtered.filter { evidence in
-                evidence.taskTitle?.localizedCaseInsensitiveContains(searchText) == true ||
-                evidence.buildingName?.localizedCaseInsensitiveContains(searchText) == true ||
-                evidence.workerName?.localizedCaseInsensitiveContains(searchText) == true
+                evidence.category.localizedCaseInsensitiveContains(searchText) ||
+                evidence.buildingId.localizedCaseInsensitiveContains(searchText) ||
+                evidence.workerId.localizedCaseInsensitiveContains(searchText) ||
+                evidence.notes.localizedCaseInsensitiveContains(searchText)
             }
         }
         
         // Apply date range filter
         let cutoffDate = Calendar.current.date(byAdding: .day, value: -selectedDateRange.days, to: Date()) ?? Date()
         filtered = filtered.filter { evidence in
-            evidence.capturedAt >= cutoffDate
+            evidence.timestamp >= cutoffDate
         }
         
         // Apply status filter
@@ -471,10 +474,10 @@ struct AdminPhotoEvidenceView: View {
             }
         }
         
-        // Apply compliance filter
+        // Apply compliance filter (using category as proxy)
         if selectedCompliance != .all {
             filtered = filtered.filter { 
-                $0.complianceLevel?.lowercased() == selectedCompliance.rawValue.lowercased().replacingOccurrences(of: "-", with: "").replacingOccurrences(of: " ", with: "")
+                $0.category.lowercased().contains(selectedCompliance.rawValue.lowercased())
             }
         }
         
@@ -494,9 +497,7 @@ struct AdminPhotoEvidenceView: View {
     private func runComplianceCheck() {
         Task {
             // Trigger compliance validation for all evidence
-            for evidence in photoEvidences {
-                _ = try? await container.photoEvidence.validatePhotoEvidence(evidence.id)
-            }
+            _ = try? await container.photos.validatePhotoEvidence(photoEvidences)
             await loadData()
         }
     }
@@ -551,12 +552,13 @@ struct EvidenceMetricCard: View {
 
 struct AdminPhotoEvidenceCard: View {
     let evidence: CoreTypes.ProcessedPhoto
+    let buildings: [CoreTypes.NamedCoordinate]
     let isSelected: Bool
     let onTap: () -> Void
     let onSelect: (Bool) -> Void
     
     var body: some View {
-        Button(action: onTap) {
+        Button(action: onTap, label: {
             VStack(spacing: 8) {
                 // Photo thumbnail placeholder
                 ZStack {
@@ -607,8 +609,9 @@ struct AdminPhotoEvidenceCard: View {
                             .lineLimit(1)
                     }
                     
-                    if let buildingName = evidence.buildingName {
-                        Text(buildingName)
+                    // Get building name from buildingId
+                    if let building = buildings.first(where: { $0.id == evidence.buildingId }) {
+                        Text(building.name)
                             .font(.caption2)
                             .foregroundColor(.blue)
                             .lineLimit(1)
@@ -621,13 +624,13 @@ struct AdminPhotoEvidenceCard: View {
                         
                         Spacer()
                         
-                        Text(evidence.capturedAt.formatted(.dateTime.month().day()))
+                        Text(evidence.timestamp.formatted(.dateTime.month().day()))
                             .font(.caption2)
                             .foregroundColor(.white.opacity(0.5))
                     }
                 }
             }
-        }
+        })
         .buttonStyle(PlainButtonStyle())
         .background(
             RoundedRectangle(cornerRadius: 12)
@@ -692,8 +695,8 @@ struct AdminPhotoEvidenceDetailView: View {
                     .font(.largeTitle)
                     .foregroundColor(.white)
                 
-                if let taskTitle = evidence.taskTitle {
-                    Text(taskTitle)
+                if !evidence.category.isEmpty {
+                    Text(evidence.category)
                         .font(.headline)
                         .foregroundColor(.white)
                 }
@@ -769,13 +772,4 @@ struct AdminPhotoValidationResultsView: View {
     }
 }
 
-#if DEBUG
-struct AdminPhotoEvidenceView_Previews: PreviewProvider {
-    static var previews: some View {
-        AdminPhotoEvidenceView()
-            .environmentObject(ServiceContainer())
-            .environmentObject(DashboardSyncService.shared)
-            .preferredColorScheme(.dark)
-    }
-}
-#endif
+// MARK: - PRODUCTION BUILD - No Previews

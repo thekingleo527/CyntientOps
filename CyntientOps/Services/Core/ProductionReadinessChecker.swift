@@ -511,13 +511,13 @@ public class ProductionReadinessChecker: ObservableObject {
             }
             
             // Test JM Realty filtering (should see 9 buildings)
-            let jmBuildings = try await clientService.getBuildingsForClient("jm-realty")
+            let jmBuildings = try await clientService.getBuildingsForClient("JMR")
             guard jmBuildings.count == 9 else {
                 throw CheckError.securityIssue("JM Realty sees \(jmBuildings.count) buildings, expected 9")
             }
             
             // Test Weber Farhat filtering (should see 1 building)
-            let weberBuildings = try await clientService.getBuildingsForClient("weber-farhat")
+            let weberBuildings = try await clientService.getBuildingsForClient("WFR")
             guard weberBuildings.count == 1 else {
                 throw CheckError.securityIssue("Weber Farhat sees \(weberBuildings.count) buildings, expected 1")
             }

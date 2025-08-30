@@ -445,13 +445,4 @@ private struct WorkerDetailRow: View {
     }
 }
 
-// MARK: - Previews
-
-#if DEBUG
-struct WeeklyScheduleView_Previews: PreviewProvider {
-    static var previews: some View {
-        WeeklyScheduleView(viewModel: WorkerProfileViewModel.preview())
-            .previewLayout(.sizeThatFits)
-    }
-}
-#endif
+// MARK: - PRODUCTION BUILD - No Previews

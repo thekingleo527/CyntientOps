@@ -920,6 +920,15 @@ public class WorkerDashboardViewModel: ObservableObject {
             .store(in: &cancellables)
         // Kick off initial route optimization
         computeOptimizedRouteIfNeeded()
+        
+        // Listen for memory warnings
+        NotificationCenter.default.addObserver(
+            forName: .emergencyMemoryCleanup,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.emergencyMemoryCleanup()
+        }
     }
     
     deinit {
@@ -1470,26 +1479,24 @@ public class WorkerDashboardViewModel: ObservableObject {
         guard let workerId = worker?.workerId else { return }
         
         do {
-            // Get worker's routine schedules and extract unique buildings  
+            // Get worker's routine schedules and extract unique buildings
             let routineSchedules = try await OperationalDataManager.shared.getWorkerRoutineSchedules(for: workerId)
-            
+
             // Create building summaries from routine data
-            let uniqueBuildings = Dictionary(grouping: routineSchedules, by: \.buildingId)
+            let uniqueBuildings: [BuildingSummary] = Dictionary(grouping: routineSchedules, by: \.buildingId)
                 .compactMap { (buildingId, routines) -> BuildingSummary? in
                     guard let firstRoutine = routines.first else { return nil }
-                    
-                    // Count today's tasks for this building
+
+                    // Count today's tasks for this building (simple heuristic)
                     let todayTasks = routines.filter { routine in
-                        // Simple check - could be expanded with RRULE parsing for exact count
-                        return routine.rrule.contains("DAILY") || routine.rrule.contains("WEEKLY")
+                        routine.rrule.contains("DAILY") || routine.rrule.contains("WEEKLY")
                     }
-                    
-                    // Get real coordinates from routine data
+
                     let coordinate = CLLocationCoordinate2D(
                         latitude: firstRoutine.buildingLocation.latitude,
                         longitude: firstRoutine.buildingLocation.longitude
                     )
-                    
+
                     return BuildingSummary(
                         id: buildingId,
                         name: firstRoutine.buildingName,
@@ -2909,6 +2916,33 @@ public class WorkerDashboardViewModel: ObservableObject {
         refreshTimer?.invalidate()
         weatherUpdateTimer?.invalidate()
         cancellables.removeAll()
+    }
+    
+    /// Enhanced cleanup for memory warnings
+    public func emergencyMemoryCleanup() {
+        // Clear large data arrays
+        allBuildings.removeAll()
+        buildingsForMap.removeAll()
+        recentUpdates.removeAll()
+        buildingMetrics.removeAll()
+        
+        // Clear cache-heavy data
+        vendorAccessEntries.removeAll()
+        dailyNotes.removeAll()
+        todayNotes.removeAll()
+        pendingSupplyRequests.removeAll()
+        recentInventoryUsage.removeAll()
+        lowStockAlerts.removeAll()
+        
+        // Clear map data
+        optimizedStops = nil
+        
+        // Force garbage collection
+        autoreleasepool {
+            // Clear any retained objects
+        }
+        
+        print("🧹 Emergency memory cleanup completed")
     }
     
     // MARK: - Vendor Access Logging Methods

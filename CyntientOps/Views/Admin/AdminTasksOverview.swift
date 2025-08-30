@@ -112,8 +112,8 @@ struct AdminTasksOverview: View {
         let completed = allTasks.filter { $0.status == .completed }.count
         let inProgress = allTasks.filter { $0.status == .inProgress }.count
         let overdue = allTasks.filter { isTaskOverdue($0) }.count
-        let photoRequired = allTasks.filter { $0.requiresPhoto }.count
-        let photoCompleted = allTasks.filter { $0.requiresPhoto && !$0.photoPaths.isEmpty }.count
+        let photoRequired = allTasks.filter { $0.requiresPhoto == true }.count
+        let photoCompleted = allTasks.filter { $0.requiresPhoto == true && $0.completedAt != nil }.count // Use completion as photo proxy
         
         return TaskMetrics(
             total: total,
@@ -152,7 +152,7 @@ struct AdminTasksOverview: View {
             await loadData()
         }
         .onReceive(dashboardSync.crossDashboardUpdates) { update in
-            if update.type == .taskStatusChanged || update.type == .taskAssignmentChanged {
+            if update.type == .taskUpdated || update.type == .taskCompleted {
                 Task {
                     await loadData()
                 }
@@ -391,26 +391,26 @@ struct AdminTasksOverview: View {
         isLoading = true
         
         do {
-            // Load tasks
-            let taskService = // TaskService injection needed
-            allTasks = try await taskService.getAllTasks()
+            // Load tasks from ServiceContainer
+            allTasks = try await container.tasks.getAllTasks()
             
-            // Load workers
-            let workerService = // WorkerService injection needed
-            workers = try await workerService.getAllActiveWorkers()
+            // Load workers from ServiceContainer
+            workers = try await container.workers.getAllActiveWorkers()
             
-            // Load buildings
-            buildings = await container.operationalData.buildings
+            // Load buildings from ServiceContainer
+            buildings = try await container.buildings.getAllBuildings()
             
             applyFilters()
             
             // Broadcast update
             let update = CoreTypes.DashboardUpdate(
                 source: .admin,
-                type: .taskDataRefreshed,
+                type: .taskUpdated,
+                buildingId: "",
+                workerId: "",
                 description: "Task overview refreshed - \(allTasks.count) tasks loaded"
             )
-            dashboardSync.broadcastUpdate(update)
+            await dashboardSync.broadcastAdminUpdate(update)
             
         } catch {
             print("❌ Failed to load task data: \(error)")
@@ -426,8 +426,8 @@ struct AdminTasksOverview: View {
         if !searchText.isEmpty {
             filtered = filtered.filter { task in
                 task.title.localizedCaseInsensitiveContains(searchText) ||
-                task.buildingName.localizedCaseInsensitiveContains(searchText) ||
-                task.workerName?.localizedCaseInsensitiveContains(searchText) == true
+                task.buildingName?.localizedCaseInsensitiveContains(searchText) == true ||
+                false // workerName not available in ContextualTask
             }
         }
         
@@ -443,7 +443,7 @@ struct AdminTasksOverview: View {
         
         // Apply priority filter
         if selectedPriority != .all {
-            filtered = filtered.filter { $0.urgency.rawValue.lowercased() == selectedPriority.rawValue.lowercased() }
+            filtered = filtered.filter { $0.urgency?.rawValue.lowercased() == selectedPriority.rawValue.lowercased() }
         }
         
         // Apply building filter
@@ -453,7 +453,7 @@ struct AdminTasksOverview: View {
         
         // Apply worker filter
         if let selectedWorker = selectedWorker {
-            filtered = filtered.filter { $0.workerId == selectedWorker.id }
+            filtered = filtered.filter { $0.assignedWorkerId == selectedWorker.id }
         }
         
         filteredTasks = filtered
@@ -550,61 +550,66 @@ struct AdminTaskRow: View {
             }
             
             // Task info
-            VStack(alignment: .leading, spacing: 4) {
-                HStack {
-                    Text(task.title)
-                        .font(.headline)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.white)
-                        .lineLimit(1)
-                    
-                    Spacer()
-                    
-                    StatusBadge(status: task.status)
-                }
-                
-                HStack {
-                    Text(task.buildingName)
-                        .font(.caption)
-                        .foregroundColor(.blue)
-                    
-                    if let workerName = task.workerName {
-                        Text("• \(workerName)")
-                            .font(.caption)
-                            .foregroundColor(.white.opacity(0.7))
-                    }
-                    
-                    Spacer()
-                    
-                    if task.requiresPhoto {
-                        Image(systemName: "camera.fill")
-                            .font(.caption)
-                            .foregroundColor(task.photoPaths.isEmpty ? .orange : .green)
-                    }
-                }
-                
-                if let dueDate = task.dueDate {
-                    Text("Due: \(dueDate.formatted(.dateTime.month().day().hour().minute()))")
-                        .font(.caption2)
-                        .foregroundColor(dueDate < Date() ? .red : .white.opacity(0.5))
-                }
-            }
+            taskInfoSection
             
             Image(systemName: "chevron.right")
                 .foregroundColor(.white.opacity(0.3))
         }
         .padding()
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color.white.opacity(isSelected ? 0.1 : 0.05))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(isSelected ? Color.blue : Color.white.opacity(0.1), lineWidth: 1)
-                )
-        )
+        .background(cardBackground)
         .onTapGesture {
             onTap()
         }
+    }
+    
+    private var taskInfoSection: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text(task.title)
+                    .font(.headline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.white)
+                    .lineLimit(1)
+                
+                Spacer()
+                
+                StatusBadge(status: task.status)
+            }
+            
+            HStack {
+                Text(task.buildingName ?? "Unknown Building")
+                    .font(.caption)
+                    .foregroundColor(.blue)
+                
+                // Worker name not available in ContextualTask
+                Text("• Task ID: \(task.id.prefix(8))")
+                    .font(.caption)
+                    .foregroundColor(.white.opacity(0.7))
+                
+                Spacer()
+                
+                if task.requiresPhoto == true {
+                    Image(systemName: "camera.fill")
+                        .font(.caption)
+                        .foregroundColor(task.photoPaths.isEmpty ? .orange : .green)
+                }
+            }
+            
+            if let dueDate = task.dueDate {
+                Text("Due: \(dueDate.formatted(.dateTime.month().day().hour().minute()))")
+                    .font(.caption2)
+                    .foregroundColor(dueDate < Date() ? .red : .white.opacity(0.5))
+            }
+        }
+    }
+    
+    private var cardBackground: some View {
+        RoundedRectangle(cornerRadius: 12)
+            .fill(Color.white.opacity(isSelected ? 0.1 : 0.05))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(isSelected ? Color.blue : Color.white.opacity(0.1), lineWidth: 1)
+            )
     }
 }
 
@@ -630,6 +635,10 @@ struct StatusBadge: View {
         case .inProgress: return .blue
         case .completed: return .green
         case .cancelled: return .red
+        case .overdue: return .red
+        case .paused: return .gray
+        case .waiting: return .gray
+        @unknown default: return .gray
         }
     }
 }
@@ -736,13 +745,4 @@ struct AdminCreateTaskView: View {
     }
 }
 
-#if DEBUG
-struct AdminTasksOverview_Previews: PreviewProvider {
-    static var previews: some View {
-        AdminTasksOverview()
-            .environmentObject(ServiceContainer())
-            .environmentObject(DashboardSyncService.shared)
-            .preferredColorScheme(.dark)
-    }
-}
-#endif
+// MARK: - PRODUCTION BUILD - No Previews

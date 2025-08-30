@@ -93,8 +93,8 @@ struct ClientWorkerDetailSheet: View {
                 .foregroundColor(.white)
             
             ForEach(currentTasks.prefix(5), id: \.id) { task in
-                TaskRowView(task: task) { selectedTask in
-                    onAssignTask(selectedTask)
+                ClientTaskRow(task: task) {
+                    onAssignTask(task)
                 }
             }
         }
@@ -125,9 +125,9 @@ struct ClientWorkerDetailSheet: View {
                 .foregroundColor(.white)
             
             HStack(spacing: 12) {
-                MetricCard(title: "Completion", value: "\(Int(worker.completionRate * 100))%", icon: "checkmark.circle", color: .green)
-                MetricCard(title: "Efficiency", value: "\(Int(worker.efficiency * 100))%", icon: "speedometer", color: .blue)
-                MetricCard(title: "Quality", value: "\(Int(worker.qualityScore * 100))%", icon: "star.circle", color: .purple)
+                WorkerMetricCard(title: "Completion", value: "\(Int(worker.completionRate * 100))%", icon: "checkmark.circle", color: .green)
+                WorkerMetricCard(title: "Efficiency", value: "\(Int(worker.efficiency * 100))%", icon: "speedometer", color: .blue)
+                WorkerMetricCard(title: "Quality", value: "\(Int(worker.qualityScore * 100))%", icon: "star.circle", color: .purple)
             }
         }
         .padding()
@@ -314,4 +314,55 @@ struct ScheduleItemView: View {
     }
 }
 
-// Removed duplicate MetricCard - using existing one from EnhancedAdminHeroWrapper
+// Using existing WorkerMetricCard from WorkerProfileView.swift
+
+struct ClientTaskRow: View {
+    let task: CoreTypes.ContextualTask
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(task.title)
+                        .font(.subheadline)
+                        .foregroundColor(.primary)
+                    
+                    if let description = task.description {
+                        Text(description)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .lineLimit(2)
+                    }
+                }
+                
+                Spacer()
+                
+                VStack(alignment: .trailing, spacing: 4) {
+                    Text(task.status.rawValue)
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .foregroundColor(statusColor(task.status))
+                    
+                    if let dueDate = task.dueDate {
+                        Text(dueDate, style: .date)
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+            .padding(.vertical, 8)
+        }
+        .buttonStyle(PlainButtonStyle())
+    }
+    
+    private func statusColor(_ status: CoreTypes.TaskStatus) -> Color {
+        switch status {
+        case .completed: return .green
+        case .inProgress: return .blue
+        case .pending: return .orange
+        case .overdue: return .red
+        default: return .gray
+        }
+    }
+}

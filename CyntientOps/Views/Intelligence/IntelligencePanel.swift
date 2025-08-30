@@ -2,10 +2,9 @@
 //  IntelligencePanel.swift
 //  CyntientOps v6.0
 //
-//  ✅ INTELLIGENCE PANEL: Bottom panel for all dashboards
-//  ✅ THREE STATES: Mini (tab bar), Expanded (accordion), Full (map mode)
-//  ✅ ROLE-BASED: Different tabs for Worker/Client/Admin
-//  ✅ ANIMATED: Smooth transitions between states
+//  ✅ LEGACY: Generic intelligence panel prototype (previews only)
+//  ✅ NOTE: Runtime dashboards use WorkerIntelligencePanel and ClientNovaIntelligenceBar
+//  ✅ SAFE TO REMOVE: If desired, once all teams confirm no runtime references
 //
 
 import SwiftUI

@@ -23,10 +23,143 @@ public actor BuildingService {
         self.metrics = metrics
     }
     
+    // MARK: - Operational Data Sync Methods
+    
+    /// Sync buildings with OperationalDataManager data
+    public func syncWithOperationalData() async throws {
+        let opManager = OperationalDataManager.shared
+        
+        print("🏢 Syncing buildings with OperationalDataManager...")
+        
+        // Get unique buildings from operational data
+        let buildingNames = await MainActor.run {
+            opManager.getUniqueBuildingNames()
+        }
+        
+        for buildingName in buildingNames {
+            try await findOrCreateBuilding(name: buildingName)
+        }
+        
+        // Handle "148 Chambers Street" specifically with normalization
+        try await normalizeChambersStreetBuilding()
+        
+        print("✅ Synced \(buildingNames.count) buildings from OperationalDataManager")
+    }
+    
+    /// Sync worker building assignments from OperationalDataManager
+    public func syncWorkerAssignments() async throws {
+        let opManager = OperationalDataManager.shared
+        
+        print("👥 Syncing worker-building assignments...")
+        
+        // Map worker names to IDs (from OperationalDataManager)
+        let workerNameToId = [
+            "Kevin Dutan": "4",
+            "Edwin Lema": "2", 
+            "Greg Hutson": "1",
+            "Mercedes Inamagua": "5",
+            "Luis Lopez": "6",
+            "Angel Guirachocha": "7",
+            "Shawn Magloire": "8"
+        ]
+        
+        // Clear existing assignments
+        try await grdbManager.execute("DELETE FROM worker_building_assignments")
+        
+        // Create assignments for each worker based on their tasks
+        for (workerName, workerId) in workerNameToId {
+            let workerTasks = await MainActor.run {
+                opManager.getRealWorldTasks(for: workerName)
+            }
+            let workerBuildings = Set(workerTasks.map { $0.building })
+            
+            for buildingName in workerBuildings {
+                // Find building ID
+                let buildingRows = try await grdbManager.query("""
+                    SELECT id FROM buildings 
+                    WHERE name = ? OR normalized_name LIKE ? OR aliases LIKE ?
+                """, [buildingName, "%\(buildingName.lowercased())%", "%\(buildingName.lowercased())%"])
+                
+                if let buildingId = buildingRows.first?["id"] {
+                    try await grdbManager.execute("""
+                        INSERT OR REPLACE INTO worker_building_assignments
+                        (id, worker_id, building_id, assignment_type, is_primary, created_at)
+                        VALUES (?, ?, ?, 'operational', 1, CURRENT_TIMESTAMP)
+                    """, [UUID().uuidString, workerId, buildingId])
+                } else {
+                    print("⚠️ Building not found for assignment: \(buildingName)")
+                }
+            }
+            
+            print("✅ Assigned \(workerBuildings.count) buildings to \(workerName) (ID: \(workerId))")
+        }
+    }
+    
+    /// Normalize 148 Chambers Street with aliases for reliable lookup
+    private func normalizeChambersStreetBuilding() async throws {
+        let chambersVariations = ["148 Chambers Street", "148 Chambers St", "148 chambers street"]
+        
+        for variation in chambersVariations {
+            let rows = try await grdbManager.query("SELECT id FROM buildings WHERE name LIKE ?", ["%\(variation)%"])
+            
+            if let buildingId = rows.first?["id"] {
+                try await grdbManager.execute("""
+                    UPDATE buildings SET 
+                        normalized_name = '148 chambers street',
+                        aliases = '148 chambers st|148 chambers|chambers street 148',
+                        borough = 'Manhattan',
+                        compliance_status = 'active'
+                    WHERE id = ?
+                """, [buildingId])
+                
+                print("✅ Normalized 148 Chambers Street building (ID: \(buildingId))")
+                return
+            }
+        }
+        
+        print("⚠️ 148 Chambers Street not found for normalization")
+    }
+    
+    /// Find existing building or create new one from operational data
+    private func findOrCreateBuilding(name: String) async throws {
+        // First try exact match
+        let existingRows = try await grdbManager.query("SELECT id FROM buildings WHERE name = ?", [name])
+        
+        if !existingRows.isEmpty {
+            return // Building already exists
+        }
+        
+        // Try normalized lookup
+        let normalizedName = name.lowercased().replacingOccurrences(of: "street", with: "st")
+        let normalizedRows = try await grdbManager.query("""
+            SELECT id FROM buildings WHERE normalized_name = ? OR aliases LIKE ?
+        """, [normalizedName, "%\(normalizedName)%"])
+        
+        if !normalizedRows.isEmpty {
+            return // Building found via normalization
+        }
+        
+        // Create new building from operational data
+        let newId = UUID().uuidString
+        try await grdbManager.execute("""
+            INSERT INTO buildings (id, name, address, latitude, longitude, normalized_name, isActive, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, 1, CURRENT_TIMESTAMP)
+        """, [
+            newId,
+            name,
+            name, // Use name as address for now
+            40.7128, // Default NYC coordinates
+            -74.0060,
+            normalizedName
+        ])
+        
+        print("🏢 Created new building: \(name) (ID: \(newId))")
+    }
+    
     // MARK: - Public API Methods
     
     /// Get all buildings - throws if none found
-    func getAllBuildings() async throws -> [NamedCoordinate] {
+    public func getAllBuildings() async throws -> [NamedCoordinate] {
         let rows = try await grdbManager.query("SELECT * FROM buildings ORDER BY name")
         
         // NO FALLBACK - throw if no buildings

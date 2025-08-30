@@ -296,6 +296,157 @@ public final class ClientDashboardViewModel: ObservableObject {
         refreshTask?.cancel()
     }
     
+    // MARK: - Real NYC Compliance Data Loading
+    
+    /// Load real compliance data for the current client using client_buildings join
+    private func loadRealComplianceData() async {
+        // Ensure we have a client context
+        var resolvedClientId: String? = clientId
+        if resolvedClientId == nil {
+            if let current = try? await container.client.getClientForUser(email: session.user?.email ?? "") {
+                resolvedClientId = current.id
+            }
+        }
+        guard let clientId = resolvedClientId else { return }
+
+        print("🏛️ Loading real NYC compliance data for client \(clientId) via client_buildings…")
+
+        do {
+            // Get client’s building IDs via join
+            let buildingIds = try await container.client.getBuildingsForClient(clientId).map { $0.id }
+            if buildingIds.isEmpty {
+                print("⚠️ Client has 0 buildings assigned")
+                return
+            }
+
+            // Pull building coordinates from DB
+            let placeholders = buildingIds.map { _ in "?" }.joined(separator: ",")
+            let rows = try await container.database.query("""
+                SELECT id, name, address, latitude, longitude
+                FROM buildings
+                WHERE id IN (\(placeholders))
+            """, buildingIds)
+
+            for row in rows {
+                guard let buildingId = row["id"] as? String,
+                      let buildingName = row["name"] as? String,
+                      let latitude = row["latitude"] as? Double,
+                      let longitude = row["longitude"] as? Double else { continue }
+
+                let buildingCoord = CoreTypes.NamedCoordinate(
+                    id: buildingId,
+                    name: buildingName,
+                    latitude: latitude,
+                    longitude: longitude
+                )
+
+                // Real HPD/DOB/LL97 via compliance service caches
+                let hpd = container.nycCompliance.getHPDViolations(for: buildingId)
+                await MainActor.run { self.complianceIssues.append(contentsOf: hpd.map { v in
+                    CoreTypes.ComplianceIssue(
+                        id: v.violationId,
+                        title: "HPD Violation - \(v.currentStatus)",
+                        description: v.novDescription,
+                        severity: v.severity,
+                        buildingId: buildingId,
+                        buildingName: buildingName,
+                        status: .open,
+                        dueDate: nil,
+                        assignedTo: nil,
+                        createdAt: Date(),
+                        reportedDate: Date(),
+                        type: .regulatory
+                    )
+                }) }
+
+                // DSNY schedule
+                if let schedule = try? await DSNYAPIService.shared.getSchedule(for: buildingCoord) {
+                    var routes: [DSNYRoute] = []
+                    for day in schedule.refuseDays {
+                        routes.append(DSNYRoute(
+                            communityDistrict: schedule.districtSection,
+                            section: schedule.districtSection,
+                            route: "TRA-\(schedule.districtSection)",
+                            dayOfWeek: day.rawValue,
+                            time: "6:00 AM",
+                            serviceType: "TRASH",
+                            borough: "Manhattan"
+                        ))
+                    }
+                    for day in schedule.recyclingDays {
+                        routes.append(DSNYRoute(
+                            communityDistrict: schedule.districtSection,
+                            section: schedule.districtSection,
+                            route: "REC-\(schedule.districtSection)",
+                            dayOfWeek: day.rawValue,
+                            time: "6:00 AM",
+                            serviceType: "RECYCLING",
+                            borough: "Manhattan"
+                        ))
+                    }
+                    await MainActor.run { self.dsnyScheduleData[buildingId] = routes }
+                }
+            }
+
+            await MainActor.run {
+                self.criticalIssues = self.complianceIssues.filter { $0.severity == .critical || $0.severity == .high }.count
+                self.complianceScore = max(50, 100 - (self.complianceIssues.count * 5))
+                print("✅ Loaded \(self.complianceIssues.count) compliance issues, score: \(self.complianceScore)")
+            }
+        } catch {
+            print("❌ Error loading real compliance data (client join): \(error)")
+        }
+    }
+    
+    /// Load client buildings with real assignment data
+    private func loadClientBuildings() async {
+        // Prefer client_buildings join table via ClientService
+        guard let clientId = clientId else { return }
+        do {
+            let buildingCoords = try await container.client.getBuildingsForClient(clientId)
+
+            // Populate with-image records from DB for view usage
+            let ids = buildingCoords.map { $0.id }
+            if !ids.isEmpty {
+                let placeholders = ids.map { _ in "?" }.joined(separator: ",")
+                let rows = try await container.database.query("""
+                    SELECT id, name, address, latitude, longitude, imageAssetName, numberOfUnits, yearBuilt, squareFootage
+                    FROM buildings WHERE id IN (\(placeholders))
+                """, ids)
+
+                let withImages: [CoreTypes.BuildingWithImage] = rows.compactMap { row in
+                    guard let id = row["id"] as? String,
+                          let name = row["name"] as? String,
+                          let address = row["address"] as? String,
+                          let lat = row["latitude"] as? Double,
+                          let lon = row["longitude"] as? Double else { return nil }
+                    return CoreTypes.BuildingWithImage(
+                        id: id,
+                        name: name,
+                        address: address,
+                        latitude: lat,
+                        longitude: lon,
+                        imageAssetName: getImageAssetName(for: id),
+                        numberOfUnits: row["numberOfUnits"] as? Int,
+                        yearBuilt: row["yearBuilt"] as? Int,
+                        squareFootage: row["squareFootage"] as? Double
+                    )
+                }
+                await MainActor.run {
+                    self.clientBuildingsWithImages = withImages
+                }
+            }
+
+            await MainActor.run {
+                self.clientBuildings = buildingCoords
+                self.totalBuildings = buildingCoords.count
+                print("✅ Loaded \(self.totalBuildings) buildings for client via client_buildings")
+            }
+        } catch {
+            print("❌ Error loading client buildings via client service: \(error)")
+        }
+    }
+    
     // MARK: - Public Methods
     
     /// Load client-specific data
@@ -314,6 +465,10 @@ public final class ClientDashboardViewModel: ObservableObject {
             self.clientId = clientData.id
             self.clientName = currentUser.name
             self.clientEmail = currentUser.email
+            
+            // Load real building and compliance data
+            await loadClientBuildings()
+            await loadRealComplianceData()
             
             // Load only this client's buildings
             let clientBuildingIds = try? await container.client.getBuildingsForClient(clientData.id)
@@ -1800,9 +1955,16 @@ public final class ClientDashboardViewModel: ObservableObject {
     public func loadRealNYCAPIData() async {
         print("🗽 Loading NYC compliance data for client buildings (integration cache)...")
         
-        guard !clientBuildingsWithImages.isEmpty else {
-            print("⚠️ No client buildings to load NYC data for")
-            return
+        // Prefer with-images, fallback to coordinates
+        let targetBuildings: [CoreTypes.NamedCoordinate]
+        if clientBuildingsWithImages.isEmpty {
+            if clientBuildings.isEmpty {
+                print("⚠️ No client buildings to load NYC data for")
+                return
+            }
+            targetBuildings = clientBuildings
+        } else {
+            targetBuildings = clientBuildingsWithImages.map { $0.coordinate }
         }
         
         print("🔍 DEBUG: Loading NYC data for \(clientBuildingsWithImages.count) client buildings:")
@@ -1815,7 +1977,7 @@ public final class ClientDashboardViewModel: ObservableObject {
         await container.nycIntegration.performFullSync()
 
         // Populate local view model stores from NYCComplianceService / integration caches
-        for building in clientBuildingsWithImages {
+        for building in targetBuildings {
             let bid = building.id
             print("🔍 DEBUG: Loading NYC data for building \(building.name) (ID: \(bid))")
             

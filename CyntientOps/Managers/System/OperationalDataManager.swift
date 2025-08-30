@@ -1642,6 +1642,69 @@ public class OperationalDataManager: ObservableObject {
         setupCachedData()
     }
     
+    // MARK: - Production Readiness Health Logging
+    
+    /// Log comprehensive data health status for production verification
+    public func logDataHealth() async {
+        print("""
+        
+        =====================================
+        🚀 CyntientOps Production Data Health
+        =====================================
+        """)
+        
+        // Database information
+        do {
+            let workerCount = try await grdbManager.query("SELECT COUNT(*) as count FROM workers").first?["count"] as? Int64 ?? 0
+            let buildingCount = try await grdbManager.query("SELECT COUNT(*) as count FROM buildings").first?["count"] as? Int64 ?? 0
+            let todayTaskCount = try await grdbManager.query("""
+                SELECT COUNT(*) as count FROM routine_tasks 
+                WHERE date(scheduledDate) = date('now', 'localtime')
+            """).first?["count"] as? Int64 ?? 0
+            
+            print("📊 Database Status:")
+            print("   - Workers: \(workerCount)")
+            print("   - Buildings: \(buildingCount)")  
+            print("   - Today's Tasks: \(todayTaskCount)")
+            
+            // Operational data status
+            print("\n📋 OperationalDataManager Status:")
+            print("   - Real World Tasks: \(realWorldTasks.count)")
+            print("   - Data Version: \(Self.dataVersion)")
+            print("   - Checksum: \(generateChecksum().prefix(8))...")
+            
+            // Worker assignments per worker
+            print("\n👥 Worker Task Assignments:")
+            let workerNameToId = [
+                "Kevin Dutan": "4",
+                "Edwin Lema": "2", 
+                "Greg Hutson": "1",
+                "Mercedes Inamagua": "5",
+                "Luis Lopez": "6",
+                "Angel Guirachocha": "7",
+                "Shawn Magloire": "8"
+            ]
+            
+            for (workerName, workerId) in workerNameToId {
+                let workerTasks = realWorldTasks.filter { $0.assignedWorker == workerName }
+                print("   - \(workerName) (ID: \(workerId)): \(workerTasks.count) tasks")
+            }
+            
+            // Critical building status
+            print("\n🏢 Critical Buildings:")
+            let criticalBuildings = ["148 Chambers Street", "Rubin Museum", "131 Perry Street"]
+            for buildingName in criticalBuildings {
+                let buildingTasks = realWorldTasks.filter { $0.building.contains(buildingName) }
+                print("   - \(buildingName): \(buildingTasks.count) tasks")
+            }
+            
+        } catch {
+            print("❌ Error during health check: \(error)")
+        }
+        
+        print("\n✅ Production Data Health Check Complete\n")
+    }
+    
     // MARK: - Checksum Generation
     
     /// Generate SHA256 checksum of operational data for integrity verification

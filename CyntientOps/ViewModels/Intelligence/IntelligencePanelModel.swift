@@ -2,10 +2,8 @@
 //  IntelligencePanelModel.swift
 //  CyntientOps v6.0
 //
-//  ✅ INTELLIGENCE PANEL: State management for mini/expanded/full modes
-//  ✅ ROLE-BASED: Different tabs per Worker/Client/Admin roles
-//  ✅ REACTIVE: ObservableObject with published state
-//  ✅ COMPREHENSIVE: Handles all panel states and tab data
+//  ✅ LEGACY: Generic intelligence panel model used by previews
+//  ✅ NOTE: Runtime panels are role-specific and wired directly to their VMs
 //
 
 import Foundation
@@ -60,19 +58,21 @@ public extension IntelligenceTab {
         IntelligenceTab(key: "site_departure", title: "Site Dep.", icon: "location.slash", badgeCount: nil)
     ]
     
-    // Client tabs: Priorities, Workers, Portfolio, Analytics
+    // Client tabs: Priorities, Workers, Portfolio, Compliance, Analytics
     static let clientTabs: [IntelligenceTab] = [
         IntelligenceTab(key: "priorities", title: "Priorities", icon: "exclamationmark.triangle", badgeCount: nil),
         IntelligenceTab(key: "workers", title: "Workers", icon: "person.2", badgeCount: nil),
         IntelligenceTab(key: "portfolio", title: "Portfolio", icon: "building.2", badgeCount: nil),
+        IntelligenceTab(key: "compliance", title: "Compliance", icon: "checkmark.shield", badgeCount: nil),
         IntelligenceTab(key: "analytics", title: "Analytics", icon: "chart.bar", badgeCount: nil)
     ]
     
-    // Admin tabs: Priorities, Workers, Buildings, Analytics
+    // Admin tabs: Priorities, Workers, Buildings, Compliance, Analytics
     static let adminTabs: [IntelligenceTab] = [
         IntelligenceTab(key: "priorities", title: "Priorities", icon: "exclamationmark.triangle.fill", badgeCount: nil),
         IntelligenceTab(key: "workers", title: "Workers", icon: "person.3", badgeCount: nil),
         IntelligenceTab(key: "buildings", title: "Buildings", icon: "building.columns", badgeCount: nil),
+        IntelligenceTab(key: "compliance", title: "Compliance", icon: "checkmark.shield.fill", badgeCount: nil),
         IntelligenceTab(key: "analytics", title: "Analytics", icon: "chart.line.uptrend.xyaxis", badgeCount: nil)
     ]
 }

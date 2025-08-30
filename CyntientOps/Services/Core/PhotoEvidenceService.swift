@@ -388,6 +388,82 @@ public class PhotoEvidenceService: ObservableObject {
         
         return results.compactMap { CoreTypes.ProcessedPhoto.from(dictionary: $0) }
     }
+    
+    /// Get all photo evidences for admin overview
+    public func getAllPhotoEvidences() async throws -> [CoreTypes.ProcessedPhoto] {
+        let results = try await database.query("""
+            SELECT * FROM photos 
+            ORDER BY timestamp DESC
+        """)
+        
+        return results.compactMap { CoreTypes.ProcessedPhoto.from(dictionary: $0) }
+    }
+    
+    // MARK: - Validation
+    
+    /// Validate photo evidence for compliance and quality standards
+    public func validatePhotoEvidence(_ photos: [CoreTypes.ProcessedPhoto]) async throws -> [String: Any] {
+        var validationResults: [String: Any] = [:]
+        var validPhotos: [CoreTypes.ProcessedPhoto] = []
+        var issues: [String] = []
+        
+        for photo in photos {
+            // Check file exists
+            let filePath = photosDirectory.appendingPathComponent(photo.filePath)
+            guard FileManager.default.fileExists(atPath: filePath.path) else {
+                issues.append("Missing photo file: \(photo.filePath)")
+                continue
+            }
+            
+            // Check file size (must be > 0 and < 50MB)
+            guard photo.fileSize > 0 && photo.fileSize < 50_000_000 else {
+                issues.append("Invalid file size for photo: \(photo.id)")
+                continue
+            }
+            
+            // Check timestamp is recent (within last 7 days for most categories)
+            let daysSinceCapture = Calendar.current.dateComponents([.day], from: photo.timestamp, to: Date()).day ?? 0
+            if daysSinceCapture > 7 {
+                issues.append("Photo \(photo.id) is too old (\(daysSinceCapture) days)")
+                continue
+            }
+            
+            // Validate category
+            guard let category = CoreTypes.CyntientOpsPhotoCategory(rawValue: photo.category) else {
+                issues.append("Invalid category for photo: \(photo.id)")
+                continue
+            }
+            
+            // Category-specific validation
+            switch category {
+            case .compliance:
+                // Compliance photos need detailed notes
+                if photo.notes.isEmpty {
+                    issues.append("Compliance photo \(photo.id) missing required notes")
+                    continue
+                }
+            case .emergency:
+                // Emergency photos should be recent (within 24 hours)
+                if daysSinceCapture > 1 {
+                    issues.append("Emergency photo \(photo.id) too old for emergency category")
+                    continue
+                }
+            default:
+                break
+            }
+            
+            validPhotos.append(photo)
+        }
+        
+        validationResults["validPhotos"] = validPhotos
+        validationResults["issues"] = issues
+        validationResults["totalPhotos"] = photos.count
+        validationResults["validCount"] = validPhotos.count
+        validationResults["isValid"] = issues.isEmpty
+        validationResults["validationTimestamp"] = Date()
+        
+        return validationResults
+    }
 }
 
 // MARK: - Photo Errors

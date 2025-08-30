@@ -20,12 +20,12 @@ public struct AdminEmergencyManagementView: View {
         case warning = "Warning"
         case info = "Info"
         
-        var severity: CoreTypes.AlertSeverity? {
+        var priority: CoreTypes.AIPriority? {
             switch self {
             case .all: return nil
             case .critical: return .critical
-            case .warning: return .warning
-            case .info: return .info
+            case .warning: return .high
+            case .info: return .medium
             }
         }
     }
@@ -41,7 +41,7 @@ public struct AdminEmergencyManagementView: View {
             // Alerts List
             ScrollView {
                 LazyVStack(spacing: 12) {
-                    ForEach(filteredAlerts, id: \.alertId) { alert in
+                    ForEach(filteredAlerts, id: \.id) { alert in
                         AdminEmergencyAlertCard(
                             alert: alert,
                             onTap: { selectedAlert = alert },
@@ -137,15 +137,15 @@ public struct AdminEmergencyManagementView: View {
     }
     
     private var filteredAlerts: [CoreTypes.AdminAlert] {
-        if let severity = filterBy.severity {
-            return alerts.filter { $0.severity == severity }
+        if let priority = filterBy.priority {
+            return alerts.filter { $0.urgency == priority }
         }
         return alerts
     }
     
-    private var criticalCount: Int { alerts.filter { $0.severity == .critical }.count }
-    private var warningCount: Int { alerts.filter { $0.severity == .warning }.count }
-    private var infoCount: Int { alerts.filter { $0.severity == .info }.count }
+    private var criticalCount: Int { alerts.filter { $0.urgency == .critical }.count }
+    private var warningCount: Int { alerts.filter { $0.urgency == .high }.count }
+    private var infoCount: Int { alerts.filter { $0.urgency == .medium || $0.urgency == .low }.count }
     
     private func resolveAlert(_ alert: CoreTypes.AdminAlert) {
         // Handle alert resolution
@@ -204,8 +204,8 @@ struct AdminEmergencyAlertCard: View {
                         .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                         .lineLimit(1)
                     
-                    if let description = alert.description {
-                        Text(description)
+                    if !alert.description.isEmpty {
+                        Text(alert.description)
                             .font(.caption)
                             .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
                             .lineLimit(2)
@@ -216,7 +216,7 @@ struct AdminEmergencyAlertCard: View {
                             .font(.caption2)
                             .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
                         
-                        if let buildingId = alert.buildingId,
+                        if let buildingId = alert.affectedBuilding,
                            let buildingName = getBuildingName(buildingId) {
                             Text("• \\(buildingName)")
                                 .font(.caption2)
@@ -254,18 +254,18 @@ struct AdminEmergencyAlertCard: View {
     }
     
     private var severityIcon: String {
-        switch alert.severity {
+        switch alert.urgency {
         case .critical: return "exclamationmark.triangle.fill"
-        case .warning: return "exclamationmark.circle.fill"
-        case .info: return "info.circle.fill"
+        case .high: return "exclamationmark.circle.fill"
+        case .medium, .low: return "info.circle.fill"
         }
     }
     
     private var severityColor: Color {
-        switch alert.severity {
+        switch alert.urgency {
         case .critical: return CyntientOpsDesign.DashboardColors.critical
-        case .warning: return CyntientOpsDesign.DashboardColors.warning
-        case .info: return CyntientOpsDesign.DashboardColors.info
+        case .high: return CyntientOpsDesign.DashboardColors.warning
+        case .medium, .low: return CyntientOpsDesign.DashboardColors.info
         }
     }
     
@@ -290,8 +290,8 @@ struct AdminAlertDetailView: View {
                             .fontWeight(.bold)
                             .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                         
-                        if let description = alert.description {
-                            Text(description)
+                        if !alert.description.isEmpty {
+                            Text(alert.description)
                                 .font(.body)
                                 .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
                         }

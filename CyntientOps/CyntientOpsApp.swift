@@ -42,6 +42,23 @@ struct CyntientOpsApp: App {
         // Initialize Sentry as the very first step of the app's lifecycle.
         initializeSentry()
         
+        // Emergency memory reduction for production
+        URLCache.shared.memoryCapacity = 10_485_760  // 10MB (down from default 256MB)
+        URLCache.shared.diskCapacity = 52_428_800     // 50MB (down from default 250MB)
+        
+        // Monitor memory warnings and cleanup immediately
+        NotificationCenter.default.addObserver(
+            forName: UIApplication.didReceiveMemoryWarningNotification,
+            object: nil,
+            queue: .main
+        ) { _ in
+            print("⚠️ MEMORY WARNING - Emergency cleanup")
+            URLCache.shared.removeAllCachedResponses()
+            
+            // Send memory warning notification that ViewModels can listen to
+            NotificationCenter.default.post(name: .emergencyMemoryCleanup, object: nil)
+        }
+        
         // Log production configuration
         print("🚀 CyntientOps Production Ready")
     }
@@ -520,4 +537,11 @@ struct SplashView: View {
             }
         }
     }
+}
+
+
+// MARK: - Memory Management Extension
+
+extension Notification.Name {
+    static let emergencyMemoryCleanup = Notification.Name("emergencyMemoryCleanup")
 }

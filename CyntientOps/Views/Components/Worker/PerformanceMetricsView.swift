@@ -28,6 +28,7 @@ public struct PerformanceMetricsView: View {
             case .efficiency: return "speedometer"
             case .photoCompliance: return "camera.circle"
             case .averageTime: return "clock.circle"
+            @unknown default: return "questionmark.circle"
             }
         }
         
@@ -37,6 +38,7 @@ public struct PerformanceMetricsView: View {
             case .efficiency: return .blue
             case .photoCompliance: return .orange
             case .averageTime: return .purple
+            @unknown default: return .gray
             }
         }
     }
@@ -312,6 +314,8 @@ public struct PerformanceMetricsView: View {
                 baseValue = viewModel.photoComplianceRate
             case .averageTime:
                 baseValue = min(1.0, viewModel.averageTaskDuration / 3600) // Normalize to 0-1
+            @unknown default:
+                baseValue = viewModel.efficiency
             }
             
             // Add some variance for realistic chart
@@ -389,22 +393,30 @@ private struct MetricSummaryCard: View {
     
     private var trendIcon: String {
         switch trend {
-        case .up:
+        case .up, .improving:
             return "arrow.up.right"
-        case .down:
+        case .down, .declining:
             return "arrow.down.right"
         case .stable:
             return "minus"
+        case .unknown:
+            return "questionmark"
+        @unknown default:
+            return "questionmark"
         }
     }
     
     private var trendColor: Color {
         switch trend {
-        case .up:
+        case .up, .improving:
             return .green
-        case .down:
+        case .down, .declining:
             return .red
         case .stable:
+            return .gray
+        case .unknown:
+            return .gray
+        @unknown default:
             return .gray
         }
     }
@@ -564,13 +576,4 @@ private struct PerformanceDetailView: View {
     }
 }
 
-// MARK: - Previews
-
-#if DEBUG
-struct PerformanceMetricsView_Previews: PreviewProvider {
-    static var previews: some View {
-        PerformanceMetricsView(viewModel: WorkerProfileViewModel.preview())
-            .previewLayout(.sizeThatFits)
-    }
-}
-#endif
+// MARK: - PRODUCTION BUILD - No Previews

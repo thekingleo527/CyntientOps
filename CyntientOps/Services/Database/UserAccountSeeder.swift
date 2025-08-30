@@ -217,7 +217,7 @@ public final class UserAccountSeeder {
         ),
         UserAccount(
             id: "101",
-            name: "David Johnson", 
+            name: "David Edelman", 
             email: "David@jmrealty.org",
             password: "DavidJM2025!",
             role: "client",
@@ -225,66 +225,66 @@ public final class UserAccountSeeder {
             capabilities: nil
         ),
         UserAccount(
-            id: "102",
-            name: "Sarah Johnson",
-            email: "sarah@jmrealty.com",
-            password: "SarahJM2025!",
-            role: "client",
+            id: "111",
+            name: "Jerry Edelman",
+            email: "jedelman@jmrealty.org", 
+            password: "JerryJM2025!",
+            role: "admin",
             isActive: true,
             capabilities: nil
         ),
         
-        // Weber Farhat
+        // Weber Farhat - Moises Farhat
         UserAccount(
             id: "103",
-            name: "David Weber",
-            email: "david@weberfarhat.com",
-            password: "WeberFarhat2025!",
-            role: "client",
+            name: "Moises Farhat",
+            email: "mfarhat@farhatrealtymanagement.com",
+            password: "MoisesFarhat2025!",
+            role: "admin",
             isActive: true,
             capabilities: nil
         ),
         
-        // Solar One
+        // Solar One - Candace
         UserAccount(
             id: "104",
-            name: "Maria Rodriguez",
-            email: "maria@solarone.org",
-            password: "SolarOne2025!",
-            role: "client",
+            name: "Candace",
+            email: "candace@solar1.org",
+            password: "CandaceSolar2025!",
+            role: "admin",
             isActive: true,
             capabilities: nil
         ),
         
-        // Grand Elizabeth
+        // Grand Elizabeth LLC - Michelle
         UserAccount(
             id: "105",
-            name: "Robert Chen",
-            email: "robert@grandelizabeth.com",
-            password: "GrandEliz2025!",
-            role: "client",
+            name: "Michelle",
+            email: "michelle@remidgroup.com",
+            password: "Michelle41E2025!",
+            role: "admin",
             isActive: true,
             capabilities: nil
         ),
         
-        // Citadel Realty
+        // Citadel Realty - Stephen Shapiro
         UserAccount(
             id: "106",
-            name: "Alex Thompson",
-            email: "alex@citadelrealty.com",
-            password: "Citadel2025!",
-            role: "client",
+            name: "Stephen Shapiro",
+            email: "sshapiro@citadelre.com",
+            password: "StephenCit2025!",
+            role: "admin",
             isActive: true,
             capabilities: nil
         ),
         
-        // Corbel Property
+        // Corbel Property - Paul Lamban
         UserAccount(
             id: "107",
-            name: "Jennifer Lee",
-            email: "jennifer@corbelproperty.com",
-            password: "Corbel2025!",
-            role: "client",
+            name: "Paul Lamban",
+            email: "paul@corbelpm.com",
+            password: "PaulCorbel2025!",
+            role: "admin",
             isActive: true,
             capabilities: nil
         )

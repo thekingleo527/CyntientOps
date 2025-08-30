@@ -82,8 +82,11 @@ public actor ClientService {
     public func getClientForUser(email: String) async throws -> Client? {
         // Check cache first
         if let cached = getCachedClient(for: email) {
+            print("🔍 ClientService: Found cached client for \(email): \(cached.name)")
             return cached
         }
+        
+        print("🔍 ClientService: Looking up user by email: \(email)")
         
         // Get user ID from email
         let userResult = try await grdbManager.query(
@@ -91,9 +94,14 @@ public actor ClientService {
             [email]
         )
         
+        print("🔍 ClientService: User query result: \(userResult)")
+        
         guard let userId = userResult.first?["id"] as? String else {
+            print("❌ ClientService: No user found with email \(email)")
             return nil
         }
+        
+        print("🔍 ClientService: Found userId: \(userId) for email: \(email)")
         
         // Get client association
         let clientResult = try await grdbManager.query("""
@@ -103,9 +111,14 @@ public actor ClientService {
             WHERE cu.user_id = ?
         """, [userId])
         
+        print("🔍 ClientService: Client lookup result: \(clientResult)")
+        
         guard let row = clientResult.first else {
+            print("❌ ClientService: No client found for userId: \(userId)")
             return nil
         }
+        
+        print("🔍 ClientService: Found client: \(row)")
         
         // Get building IDs for client
         let buildingIds = try await getBuildingIdsForClient(row["id"] as? String ?? "")

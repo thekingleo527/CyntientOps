@@ -13,6 +13,14 @@ import Combine
 // MARK: - Supporting Types (using BuildingDetailViewModel types)
 // MaintenanceRecord types are defined in BuildingDetailViewModel as BDMaintenanceRecord
 
+enum ComplianceType: String, CaseIterable {
+    case all = "All"
+    case sanitation = "Sanitation"
+    case safety = "Safety"
+    case building = "Building"
+    case environmental = "Environmental"
+}
+
 struct MaintenanceRecordRow: View {
     let record: BDMaintenanceRecord
     
@@ -184,13 +192,6 @@ struct ComplianceHistoryList: View {
         case all = "All Time"
     }
     
-    enum ComplianceType: String, CaseIterable {
-        case all = "All"
-        case sanitation = "Sanitation"
-        case safety = "Safety"
-        case building = "Building"
-        case environmental = "Environmental"
-    }
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -213,7 +214,7 @@ struct ComplianceHistoryList: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
                         ForEach(ComplianceType.allCases, id: \.self) { type in
-                            ComplianceTypeFilterChip(
+                            ComplianceTypeHistoryFilterChip(
                                 type: type,
                                 isSelected: selectedType == type,
                                 action: { selectedType = type }
@@ -534,7 +535,7 @@ struct HistoryFilterBar: View {
                 HStack(spacing: 8) {
                     // Type filters
                     ForEach(FilterType.allCases, id: \.self) { type in
-                        FilterChip(
+                        HistoryFilterChip(
                             title: type.rawValue,
                             isActive: selectedType == type,
                             count: getFilterCount(for: type),
@@ -551,7 +552,7 @@ struct HistoryFilterBar: View {
                     
                     // Date range filters
                     ForEach(DateRange.allCases, id: \.self) { range in
-                        FilterChip(
+                        HistoryFilterChip(
                             title: range.rawValue,
                             isActive: selectedDateRange == range,
                             count: getDateRangeCount(for: range),
@@ -877,7 +878,7 @@ struct ComplianceRecordRow: View {
 }
 
 struct ComplianceTypeFilterChip: View {
-    let type: ComplianceHistoryList.ComplianceType
+    let type: ComplianceType
     let isSelected: Bool
     let action: () -> Void
     
@@ -1325,4 +1326,59 @@ struct ComplianceStats {
     let failed: Int
     let warnings: Int
     let passRate: Double
+}
+
+struct HistoryFilterChip: View {
+    let title: String
+    let isActive: Bool
+    let count: Int?
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 4) {
+                Text(title)
+                    .font(.caption)
+                    .fontWeight(isActive ? .semibold : .medium)
+                
+                if let count = count {
+                    Text("(\(count))")
+                        .font(.caption2)
+                        .opacity(0.8)
+                }
+            }
+            .foregroundColor(isActive ? .white : .primary)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(isActive ? Color.blue : Color.secondary.opacity(0.2))
+            )
+        }
+        .buttonStyle(PlainButtonStyle())
+    }
+}
+
+struct ComplianceTypeHistoryFilterChip: View {
+    let type: ComplianceType
+    let isSelected: Bool
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 4) {
+                Text(type.rawValue)
+                    .font(.caption)
+                    .fontWeight(isSelected ? .semibold : .medium)
+            }
+            .foregroundColor(isSelected ? .white : .primary)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(isSelected ? Color.blue : Color.secondary.opacity(0.2))
+            )
+        }
+        .buttonStyle(PlainButtonStyle())
+    }
 }

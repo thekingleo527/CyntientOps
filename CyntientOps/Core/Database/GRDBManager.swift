@@ -235,7 +235,7 @@ public final class GRDBManager {
             print("⚠️ Could not add status column to workers table: \(error)")
         }
         
-        // Buildings table
+        // Buildings table (augmented for production readiness)
         try db.execute(sql: """
             CREATE TABLE IF NOT EXISTS buildings (
                 id TEXT PRIMARY KEY,
@@ -256,8 +256,47 @@ public final class GRDBManager {
                 bin TEXT
             )
         """)
+
+        // Add production columns to buildings if they don't exist
+        do {
+            let columns = try db.columns(in: "buildings")
+            let have = { (name: String) in columns.contains { $0.name == name } }
+
+            if !have("isActive") {
+                try db.execute(sql: "ALTER TABLE buildings ADD COLUMN isActive INTEGER DEFAULT 1")
+            }
+            if !have("normalized_name") {
+                try db.execute(sql: "ALTER TABLE buildings ADD COLUMN normalized_name TEXT")
+            }
+            if !have("aliases") {
+                try db.execute(sql: "ALTER TABLE buildings ADD COLUMN aliases TEXT")
+            }
+            if !have("dsny_district") {
+                try db.execute(sql: "ALTER TABLE buildings ADD COLUMN dsny_district TEXT")
+            }
+            if !have("compliance_status") {
+                try db.execute(sql: "ALTER TABLE buildings ADD COLUMN compliance_status TEXT DEFAULT 'pending'")
+            }
+            if !have("client_id") {
+                try db.execute(sql: "ALTER TABLE buildings ADD COLUMN client_id TEXT")
+            }
+            if !have("borough") {
+                try db.execute(sql: "ALTER TABLE buildings ADD COLUMN borough TEXT")
+            }
+            if !have("compliance_score") {
+                try db.execute(sql: "ALTER TABLE buildings ADD COLUMN compliance_score REAL DEFAULT 1.0")
+            }
+            if !have("last_compliance_update") {
+                try db.execute(sql: "ALTER TABLE buildings ADD COLUMN last_compliance_update REAL")
+            }
+            if !have("bin_number") {
+                try db.execute(sql: "ALTER TABLE buildings ADD COLUMN bin_number TEXT")
+            }
+        } catch {
+            print("⚠️ Could not augment buildings schema: \(error)")
+        }
         
-        // Add BBL and BIN columns if they don't exist (for migration)
+        // Ensure BBL and BIN columns exist
         do {
             let columns = try db.columns(in: "buildings")
             if !columns.contains(where: { $0.name == "bbl" }) {
@@ -269,7 +308,7 @@ public final class GRDBManager {
                 print("✅ Added BIN column to buildings table")
             }
         } catch {
-            print("⚠️ Could not add BBL/BIN columns to buildings table: \(error)")
+            print("⚠️ Could not ensure BBL/BIN columns on buildings table: \(error)")
         }
         
         // Routine tasks table (main tasks table)

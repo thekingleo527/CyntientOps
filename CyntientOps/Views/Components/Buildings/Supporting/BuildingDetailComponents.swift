@@ -190,7 +190,7 @@ struct BuildingPhotoThumbnail: View {
 
 // MaintenanceRecordRow is defined in BuildingHistoryComponents.swift
 
-struct MaintenanceStatusBadge: View {
+struct BuildingMaintenanceStatusBadge: View {
     let status: String
     
     var body: some View {

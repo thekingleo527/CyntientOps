@@ -287,6 +287,15 @@ public class DatabaseInitializer: ObservableObject {
             print("✅ Operational data already exists")
             initializationProgress = 0.7
         }
+
+        // Seed client-building structure and relationships (ensures client dashboards have real data)
+        do {
+            let clientSeeder = ClientBuildingSeeder()
+            try await clientSeeder.seedClientStructure()
+            print("✅ Client-building structure seeded")
+        } catch {
+            print("⚠️ Client-building seeding failed: \(error)")
+        }
     }
     
     // MARK: - Phase 3: Verification
@@ -324,6 +333,17 @@ public class DatabaseInitializer: ObservableObject {
         Task {
             // BuildingMetricsService cache invalidation would happen here if needed
             print("✅ Database initialization complete - metrics cache ready")
+
+            // Compact boot health log
+            let health = await self.performHealthCheck()
+            if health.isHealthy, let stats = try? await self.getDatabaseStatistics() {
+                let workers = (stats["workers"] as? [String: Any])? ["active"] as? Int64 ?? 0
+                let buildings = (stats["buildings"] as? [String: Any])? ["total"] as? Int64 ?? 0
+                let tasks = (stats["tasks"] as? [String: Any])? ["total"] as? Int64 ?? 0
+                print("✅ CyntientOps Data Health — Active workers: \(workers), Buildings: \(buildings), Tasks: \(tasks)")
+            } else {
+                print("⚠️ Data health: \(health.message)")
+            }
         }
         
         // Additional background services can be started here

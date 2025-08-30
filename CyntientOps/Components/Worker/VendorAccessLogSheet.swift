@@ -204,7 +204,7 @@ struct VendorAccessLogSheet: View {
                             isSelected: selectedAccessType == accessType
                         ) {
                             selectedAccessType = accessType
-                            HapticManager.shared.impact(.light)
+                            HapticManager.impact(.light)
                         }
                     }
                 }
@@ -428,7 +428,7 @@ struct VendorAccessLogSheet: View {
                     await MainActor.run {
                         showingSuccess = true
                         isSubmitting = false
-                        HapticManager.shared.notification(.success)
+                        HapticManager.notification(.success)
                     }
                 }
                 
@@ -473,7 +473,7 @@ struct VendorAccessLogSheet: View {
                                     isSelected: selectedVendorType == vendorType
                                 ) {
                                     selectedVendorType = vendorType
-                                    HapticManager.shared.impact(.light)
+                                    HapticManager.impact(.light)
                                 }
                             }
                         }
@@ -663,10 +663,10 @@ struct CameraSheet: View {
 #if DEBUG
 struct VendorAccessLogSheet_Previews: PreviewProvider {
     static var previews: some View {
-        let container = ServiceContainer.shared
-        let mockViewModel = WorkerDashboardViewModel(container: container)
-        
-        VendorAccessLogSheet(viewModel: mockViewModel)
+        // Preview disabled: ServiceContainer requires async initialization
+        // Use simulator or TestFlight for testing VendorAccessLogSheet
+        Text("Preview not available - ServiceContainer requires async init")
+            .foregroundColor(.gray)
     }
 }
 #endif

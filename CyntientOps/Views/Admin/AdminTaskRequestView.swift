@@ -21,6 +21,7 @@ struct AdminTaskRequestView: View {
     
     @StateObject private var viewModel = AdminTaskRequestViewModel()
     @Environment(\.presentationMode) var presentationMode
+    @EnvironmentObject private var container: ServiceContainer
     @State private var showPhotoSelector = false
     @State private var showInventorySelector = false
     
@@ -80,7 +81,7 @@ struct AdminTaskRequestView: View {
             }
             .sheet(isPresented: $showInventorySelector) {
                 InventorySelectionView(
-                    buildingId: viewModel.selectedBuildingID,
+                    buildingId: viewModel.formData.selectedBuildingID,
                     selectedItems: $viewModel.requiredInventory,
                     onDismiss: { showInventorySelector = false }
                 )
@@ -160,30 +161,30 @@ struct AdminTaskRequestView: View {
                 Text("Admin Priority Override")
                     .fontWeight(.medium)
                 Spacer()
-                Toggle("", isOn: $viewModel.adminPriorityOverride)
+                Toggle("", isOn: $viewModel.adminOptions.priorityOverride)
             }
         }
     }
     
     private var taskDetailsSection: some View {
         Section("Task Details") {
-            TextField("Task Name", text: $viewModel.taskName)
+            TextField("Task Name", text: $viewModel.formData.taskName)
                 .autocapitalization(.words)
             
             ZStack(alignment: .topLeading) {
-                if viewModel.taskDescription.isEmpty {
+                if viewModel.formData.taskDescription.isEmpty {
                     Text("Describe what needs to be done...")
                         .foregroundColor(.gray)
                         .padding(.top, 8)
                         .padding(.leading, 5)
                 }
                 
-                TextEditor(text: $viewModel.taskDescription)
+                TextEditor(text: $viewModel.formData.taskDescription)
                     .frame(minHeight: 100)
                     .autocapitalization(.sentences)
             }
             
-            Picker("Category", selection: $viewModel.selectedCategory) {
+            Picker("Category", selection: $viewModel.formData.selectedCategory) {
                 ForEach(CoreTypes.TaskCategory.allCases, id: \.self) { category in
                     Label(
                         category.rawValue.capitalized,
@@ -193,7 +194,7 @@ struct AdminTaskRequestView: View {
                 }
             }
             
-            Picker("Priority", selection: $viewModel.selectedUrgency) {
+            Picker("Priority", selection: $viewModel.formData.selectedUrgency) {
                 ForEach(CoreTypes.TaskUrgency.allCases, id: \.self) { urgency in
                     HStack {
                         Circle()
@@ -202,7 +203,7 @@ struct AdminTaskRequestView: View {
                         
                         Text(urgency.rawValue.capitalized)
                         
-                        if viewModel.adminPriorityOverride {
+                        if viewModel.adminOptions.priorityOverride {
                             Image(systemName: "crown.fill")
                                 .font(.caption)
                                 .foregroundColor(.orange)
@@ -225,7 +226,7 @@ struct AdminTaskRequestView: View {
                 }
             }
             
-            Picker("Building", selection: $viewModel.selectedBuildingID) {
+            Picker("Building", selection: $viewModel.formData.selectedBuildingID) {
                 Text("Select a building").tag("")
                 
                 ForEach(viewModel.filteredBuildings) { building in
@@ -241,8 +242,8 @@ struct AdminTaskRequestView: View {
             }
             
             // Worker selection with skills context
-            if !viewModel.selectedBuildingID.isEmpty {
-                Picker("Assign to Worker", selection: $viewModel.selectedWorkerId) {
+            if !viewModel.formData.selectedBuildingID.isEmpty {
+                Picker("Assign to Worker", selection: $viewModel.formData.selectedWorkerId) {
                     ForEach(viewModel.availableWorkers) { worker in
                         VStack(alignment: .leading) {
                             Text(worker.name)
@@ -288,7 +289,7 @@ struct AdminTaskRequestView: View {
                     
                     ForEach(viewModel.suggestedWorkers.prefix(3)) { suggestion in
                         Button(action: {
-                            viewModel.selectedWorkerId = suggestion.worker.id
+                            viewModel.formData.selectedWorkerId = suggestion.worker.id
                         }) {
                             HStack {
                                 VStack(alignment: .leading, spacing: 2) {
@@ -323,31 +324,31 @@ struct AdminTaskRequestView: View {
     
     private var scheduleSection: some View {
         Section("Scheduling") {
-            DatePicker("Due Date", selection: $viewModel.selectedDate, displayedComponents: .date)
+            DatePicker("Due Date", selection: $viewModel.schedule.selectedDate, displayedComponents: .date)
             
-            Toggle("Add Start Time", isOn: $viewModel.addStartTime)
+            Toggle("Add Start Time", isOn: $viewModel.schedule.addStartTime)
             
-            if viewModel.addStartTime {
-                DatePicker("Start Time", selection: $viewModel.startTime, displayedComponents: .hourAndMinute)
+            if viewModel.schedule.addStartTime {
+                DatePicker("Start Time", selection: $viewModel.schedule.startTime, displayedComponents: .hourAndMinute)
             }
             
-            Toggle("Add End Time", isOn: $viewModel.addEndTime)
+            Toggle("Add End Time", isOn: $viewModel.schedule.addEndTime)
             
-            if viewModel.addEndTime {
-                DatePicker("End Time", selection: $viewModel.endTime, displayedComponents: .hourAndMinute)
-                    .disabled(!viewModel.addStartTime)
-                    .onChange(of: viewModel.startTime) { oldValue, newValue in
-                        if viewModel.endTime < newValue {
-                            viewModel.endTime = newValue.addingTimeInterval(3600)
+            if viewModel.schedule.addEndTime {
+                DatePicker("End Time", selection: $viewModel.schedule.endTime, displayedComponents: .hourAndMinute)
+                    .disabled(!viewModel.schedule.addStartTime)
+                    .onChange(of: viewModel.schedule.startTime) { oldValue, newValue in
+                        if viewModel.schedule.endTime < newValue {
+                            viewModel.schedule.endTime = newValue.addingTimeInterval(3600)
                         }
                     }
             }
             
             // Admin-only recurring option
-            Toggle("Recurring Task", isOn: $viewModel.isRecurring)
+            Toggle("Recurring Task", isOn: $viewModel.adminOptions.isRecurring)
             
-            if viewModel.isRecurring {
-                Picker("Frequency", selection: $viewModel.recurringFrequency) {
+            if viewModel.adminOptions.isRecurring {
+                Picker("Frequency", selection: $viewModel.adminOptions.recurringFrequency) {
                     Text("Daily").tag("daily")
                     Text("Weekly").tag("weekly")
                     Text("Monthly").tag("monthly")
@@ -462,8 +463,56 @@ struct AdminTaskRequestView: View {
     
     private func submitTaskAction() {
         Task { @MainActor in
-            await viewModel.submitTaskRequest()
+            await submitTaskRequest()
         }
+    }
+    
+    private func submitTaskRequest() async {
+        guard viewModel.isFormValid else { return }
+        
+        viewModel.isSubmitting = true
+        viewModel.errorMessage = nil
+        
+        // Get selected building and worker
+        let selectedBuilding = viewModel.availableBuildings.first(where: { $0.id == viewModel.formData.selectedBuildingID })
+        guard let currentWorker = viewModel.availableWorkers.first(where: { $0.id == viewModel.formData.selectedWorkerId }) else {
+            viewModel.errorMessage = "Please select a worker"
+            viewModel.isSubmitting = false
+            return
+        }
+        
+        // Create task with admin context
+        var taskPriority = viewModel.formData.selectedUrgency
+        if viewModel.adminOptions.priorityOverride {
+            taskPriority = .critical // Admin override always sets to critical
+        }
+        
+        let task = CoreTypes.ContextualTask(
+            id: UUID().uuidString,
+            title: viewModel.formData.taskName,
+            description: viewModel.formData.taskDescription,
+            dueDate: viewModel.schedule.selectedDate,
+            category: viewModel.formData.selectedCategory,
+            urgency: taskPriority,
+            building: selectedBuilding,
+            worker: currentWorker,
+            buildingId: viewModel.formData.selectedBuildingID,
+            priority: taskPriority
+        )
+        
+        do {
+            // Create task via service
+            try await container.tasks.createTask(task)
+            
+            // Success feedback
+            viewModel.showCompletionAlert = true
+            presentationMode.wrappedValue.dismiss()
+            
+        } catch {
+            viewModel.errorMessage = "Failed to create task: \(error.localizedDescription)"
+        }
+        
+        viewModel.isSubmitting = false
     }
 }
 
@@ -489,6 +538,7 @@ struct TaskFormData {
 }
 
 struct TaskSchedule {
+    var selectedDate: Date = Date().addingTimeInterval(86400)
     var addStartTime: Bool = false
     var startTime: Date = Date().addingTimeInterval(3600)
     var addEndTime: Bool = false
@@ -526,7 +576,7 @@ final class AdminTaskRequestViewModel: ObservableObject {
     private(set) var availableWorkers: [CoreTypes.WorkerProfile] = []
     private(set) var suggestedWorkers: [WorkerSuggestion] = []
     private(set) var availableInventory: [CoreTypes.InventoryItem] = []
-    private(set) var requiredInventory: [String: Int] = [:]
+    var requiredInventory: [String: Int] = [:]
     
     // OPTIMIZED: Trigger updates manually when data changes
     func updateAvailableData(buildings: [CoreTypes.NamedCoordinate], workers: [CoreTypes.WorkerProfile]) {
@@ -561,11 +611,11 @@ final class AdminTaskRequestViewModel: ObservableObject {
         
         // Set preselected context
         if let building = building {
-            selectedBuildingID = building.id
+            formData.selectedBuildingID = building.id
         }
         
         if let worker = worker {
-            selectedWorkerId = worker.id
+            formData.selectedWorkerId = worker.id
         }
         
         // Generate AI suggestions
@@ -585,11 +635,11 @@ final class AdminTaskRequestViewModel: ObservableObject {
     }
     
     func clearBuildingSelection() {
-        selectedBuildingID = ""
+        formData.selectedBuildingID = ""
     }
     
     func clearWorkerSelection() {
-        selectedWorkerId = ""
+        formData.selectedWorkerId = ""
     }
     
     // MARK: - Worker Intelligence
@@ -600,11 +650,11 @@ final class AdminTaskRequestViewModel: ObservableObject {
     }
     
     func getRelevantSkills(for worker: CoreTypes.WorkerProfile) -> String? {
-        let relevantSkills = worker.skills.filter { skill in
-            selectedCategory.rawValue.localizedCaseInsensitiveContains(skill) ||
-            taskName.localizedCaseInsensitiveContains(skill) ||
-            taskDescription.localizedCaseInsensitiveContains(skill)
-        }
+        let relevantSkills = worker.skills?.filter { skill in
+            formData.selectedCategory.rawValue.localizedCaseInsensitiveContains(skill) ||
+            formData.taskName.localizedCaseInsensitiveContains(skill) ||
+            formData.taskDescription.localizedCaseInsensitiveContains(skill)
+        } ?? []
         
         return relevantSkills.isEmpty ? nil : relevantSkills.joined(separator: ", ")
     }
@@ -631,9 +681,9 @@ final class AdminTaskRequestViewModel: ObservableObject {
         var score: Double = 0
         
         // Skills match
-        let relevantSkills = worker.skills.filter { skill in
-            selectedCategory.rawValue.localizedCaseInsensitiveContains(skill)
-        }
+        let relevantSkills = worker.skills?.filter { skill in
+            formData.selectedCategory.rawValue.localizedCaseInsensitiveContains(skill)
+        } ?? []
         score += Double(relevantSkills.count) * 0.3
         
         // Availability
@@ -642,7 +692,7 @@ final class AdminTaskRequestViewModel: ObservableObject {
         }
         
         // Experience (mock based on hire date)
-        let daysSinceHire = Calendar.current.dateComponents([.day], from: worker.hireDate, to: Date()).day ?? 0
+        let daysSinceHire = Calendar.current.dateComponents([.day], from: worker.hireDate ?? Date(), to: Date()).day ?? 0
         if daysSinceHire > 365 {
             score += 0.3
         }
@@ -663,86 +713,7 @@ final class AdminTaskRequestViewModel: ObservableObject {
     }
     
     // MARK: - Task Submission
-    
-    func submitTaskRequest() async {
-        guard isFormValid else { return }
-        
-        isSubmitting = true
-        errorMessage = nil
-        
-        // Get selected building and worker
-        let selectedBuilding = availableBuildings.first(where: { $0.id == selectedBuildingID })
-        guard let currentWorker = availableWorkers.first(where: { $0.id == selectedWorkerId }) else {
-            errorMessage = "Please select a worker"
-            isSubmitting = false
-            return
-        }
-        
-        // Create task with admin context
-        var taskPriority = selectedUrgency
-        if adminPriorityOverride {
-            taskPriority = .critical // Admin override always sets to critical
-        }
-        
-        let task = CoreTypes.ContextualTask(
-            id: UUID().uuidString,
-            title: taskName,
-            description: taskDescription,
-            dueDate: selectedDate,
-            category: selectedCategory,
-            urgency: taskPriority,
-            building: selectedBuilding,
-            worker: currentWorker,
-            buildingId: selectedBuildingID,
-            priority: taskPriority
-        )
-        
-        do {
-            // Create task via service
-            try await // TaskService injection needed.createTask(task)
-            
-            // Broadcast admin-created task update
-            let dashboardUpdate = CoreTypes.DashboardUpdate(
-                source: .admin,
-                type: .taskStarted,
-                buildingId: selectedBuildingID,
-                workerId: currentWorker.id,
-                data: [
-                    "taskId": task.id,
-                    "taskTitle": task.title,
-                    "taskCategory": task.category?.rawValue ?? "maintenance",
-                    "taskUrgency": task.urgency?.rawValue ?? "medium",
-                    "dueDate": ISO8601DateFormatter().string(from: task.dueDate ?? Date()),
-                    "adminCreated": "true",
-                    "adminPriorityOverride": adminPriorityOverride ? "true" : "false",
-                    "isRecurring": isRecurring ? "true" : "false"
-                ]
-            )
-            
-            DashboardSyncService.shared.broadcastAdminUpdate(dashboardUpdate)
-            
-            // Handle inventory and photo
-            if !requiredInventory.isEmpty {
-                recordInventoryRequirements(for: task.id)
-            }
-            
-            if attachPhoto, let photo = photo {
-                saveTaskPhoto(photo, for: task.id)
-            }
-            
-            // Handle recurring tasks
-            if isRecurring {
-                scheduleRecurringTask(baseTask: task)
-            }
-            
-            showCompletionAlert = true
-            isSubmitting = false
-            
-        } catch {
-            errorMessage = "Failed to create task: \(error.localizedDescription)"
-            isSubmitting = false
-        }
-    }
+    // Task submission moved to view to access ServiceContainer
     
     private func recordInventoryRequirements(for taskId: String) {
         print("Recording inventory requirements for admin task \(taskId)")
@@ -758,14 +729,15 @@ final class AdminTaskRequestViewModel: ObservableObject {
     }
     
     private func scheduleRecurringTask(baseTask: CoreTypes.ContextualTask) {
-        print("Scheduling recurring task: \(recurringFrequency)")
+        print("Scheduling recurring task: \(adminOptions.recurringFrequency)")
         // Implementation would schedule future tasks based on frequency
     }
 }
 
 // MARK: - Supporting Types
 
-struct WorkerSuggestion {
+struct WorkerSuggestion: Identifiable {
+    let id = UUID()
     let worker: CoreTypes.WorkerProfile
     let matchScore: Double
     let reason: String

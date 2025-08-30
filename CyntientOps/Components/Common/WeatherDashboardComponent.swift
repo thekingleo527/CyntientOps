@@ -123,7 +123,7 @@ struct WeatherDashboardComponent: View {
             
             LazyVStack(spacing: 4) {
                 ForEach(tasks, id: \.id) { task in
-                    TaskRowView(task: task, onTap: onTaskTap)
+                    WeatherTaskRowView(task: task, onTap: onTaskTap)
                 }
             }
         }

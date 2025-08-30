@@ -442,6 +442,7 @@ public struct CoreTypes {
         public var priority: TaskUrgency?
         public var frequency: TaskFrequency?
         public var requiresPhoto: Bool?
+        public var photoPaths: [String]
         public var estimatedDuration: TimeInterval?
         public var createdAt: Date
         public var updatedAt: Date
@@ -474,6 +475,7 @@ public struct CoreTypes {
             priority: TaskUrgency? = nil,
             frequency: TaskFrequency? = nil,
             requiresPhoto: Bool? = false,
+            photoPaths: [String] = [],
             estimatedDuration: TimeInterval? = nil,
             createdAt: Date = Date(),
             updatedAt: Date = Date()
@@ -495,6 +497,7 @@ public struct CoreTypes {
             self.priority = priority ?? urgency
             self.frequency = frequency
             self.requiresPhoto = requiresPhoto
+            self.photoPaths = photoPaths
             self.estimatedDuration = estimatedDuration
             self.createdAt = createdAt
             self.updatedAt = updatedAt
@@ -2047,6 +2050,8 @@ public struct CoreTypes {
         public let fileSize: Int64
         public let notes: String
         public let retentionDays: Int
+        public let validationStatus: String?
+        public let taskTitle: String?
         
         public init(
             id: String,
@@ -2058,7 +2063,9 @@ public struct CoreTypes {
             thumbnailPath: String,
             fileSize: Int64,
             notes: String = "",
-            retentionDays: Int = 30
+            retentionDays: Int = 30,
+            validationStatus: String? = nil,
+            taskTitle: String? = nil
         ) {
             self.id = id
             self.buildingId = buildingId
@@ -2070,6 +2077,15 @@ public struct CoreTypes {
             self.fileSize = fileSize
             self.notes = notes
             self.retentionDays = retentionDays
+            self.validationStatus = validationStatus
+            self.taskTitle = taskTitle
+        }
+        
+        // Computed properties for compatibility
+        public var photoURLs: [String] {
+            // For now, return empty array - this would normally be populated from actual storage
+            // In a real implementation, this might construct URLs from filePath
+            return []
         }
         
         public static func from(dictionary: [String: Any]) -> ProcessedPhoto? {
@@ -2087,6 +2103,8 @@ public struct CoreTypes {
             }
             
             let notes = dictionary["notes"] as? String ?? ""
+            let validationStatus = dictionary["validation_status"] as? String
+            let taskTitle = dictionary["task_title"] as? String
             
             return ProcessedPhoto(
                 id: id,
@@ -2098,7 +2116,9 @@ public struct CoreTypes {
                 thumbnailPath: thumbnailPath,
                 fileSize: fileSize,
                 notes: notes,
-                retentionDays: retentionDays
+                retentionDays: retentionDays,
+                validationStatus: validationStatus,
+                taskTitle: taskTitle
             )
         }
     }

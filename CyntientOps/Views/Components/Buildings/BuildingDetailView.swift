@@ -4329,7 +4329,7 @@ struct BuildingSanitationTab: View {
 
 // MARK: - Supporting Components for Sanitation Tab
 
-struct DSNYScheduleRow: View {
+public struct DSNYScheduleRow: View {
     let day: String
     let time: String
     let items: String

@@ -176,7 +176,7 @@ struct AdminPerformanceMetrics: View {
             await loadData()
         }
         .onReceive(dashboardSync.crossDashboardUpdates) { update in
-            if update.type == .performanceMetricsChanged || update.type == .buildingMetricsChanged {
+            if update.type == .buildingMetricsChanged {
                 Task {
                     await loadData()
                 }
@@ -363,7 +363,7 @@ struct AdminPerformanceMetrics: View {
                 }
                 .pickerStyle(MenuPickerStyle())
                 .foregroundColor(.blue)
-                .onChange(of: selectedTimeframe) { _ in
+                .onChange(of: selectedTimeframe) { 
                     Task { await loadData() }
                 }
             }
@@ -554,28 +554,24 @@ struct AdminPerformanceMetrics: View {
     private func loadData() async {
         isLoading = true
         
-        do {
-            // Load buildings
-            buildings = await container.operationalData.buildings
-            
-            // Load workers
-            let workerService = // WorkerService injection needed
-            workers = try await workerService.getAllActiveWorkers()
-            
-            // Generate performance data
-            performanceData = await generatePerformanceData()
-            
-            // Broadcast update
-            let update = CoreTypes.DashboardUpdate(
-                source: .admin,
-                type: .performanceMetricsChanged,
-                description: "Performance metrics refreshed - \(currentKPIs.count) KPIs loaded"
-            )
-            dashboardSync.broadcastUpdate(update)
-            
-        } catch {
-            print("❌ Failed to load performance metrics data: \(error)")
-        }
+        // Load buildings
+        buildings = await loadBuildingsFromOperationalData()
+        
+        // Load workers
+        workers = await loadWorkersFromOperationalData()
+        
+        // Generate performance data
+        performanceData = await generatePerformanceData()
+        
+        // Broadcast update
+        let update = CoreTypes.DashboardUpdate(
+            source: .admin,
+            type: .buildingMetricsChanged,
+            buildingId: "",
+            workerId: "",
+            data: ["description": "Performance metrics refreshed - \(currentKPIs.count) KPIs loaded"]
+        )
+        dashboardSync.broadcastAdminUpdate(update)
         
         isLoading = false
     }
@@ -604,15 +600,8 @@ struct AdminPerformanceMetrics: View {
     
     private func calculateEfficiency() async -> Double {
         // Calculate task completion efficiency
-        do {
-            let taskService = // TaskService injection needed
-            let allTasks = try await taskService.getAllTasks()
-            let completedTasks = allTasks.filter { $0.status == .completed }
-            
-            return allTasks.isEmpty ? 1.0 : Double(completedTasks.count) / Double(allTasks.count)
-        } catch {
-            return 0.75 // Fallback
-        }
+        // Calculate efficiency from operational data
+        return await calculateEfficiencyFromOperationalData()
     }
     
     private func calculateQuality() async -> Double {
@@ -725,6 +714,40 @@ struct AdminPerformanceMetrics: View {
             await loadData()
         }
     }
+    
+    // MARK: - Helper Methods
+    
+    private func loadBuildingsFromOperationalData() async -> [CoreTypes.NamedCoordinate] {
+        // Get buildings from container's building service
+        do {
+            return try await container.buildings.getAllBuildings()
+        } catch {
+            print("❌ Failed to load buildings: \(error)")
+            return []
+        }
+    }
+    
+    private func loadWorkersFromOperationalData() async -> [CoreTypes.WorkerProfile] {
+        // Get workers from container's worker service
+        do {
+            return try await container.workers.getAllActiveWorkers()
+        } catch {
+            print("❌ Failed to load workers: \(error)")
+            return []
+        }
+    }
+    
+    private func calculateEfficiencyFromOperationalData() async -> Double {
+        // Calculate efficiency from task completion rates
+        do {
+            let allTasks = try await container.tasks.getAllTasks()
+            let completedTasks = allTasks.filter { $0.status == .completed }
+            return allTasks.isEmpty ? 0.75 : Double(completedTasks.count) / Double(allTasks.count)
+        } catch {
+            print("❌ Failed to calculate efficiency: \(error)")
+            return 0.75 // Fallback efficiency
+        }
+    }
 }
 
 // MARK: - Supporting Views
@@ -759,14 +782,17 @@ struct PerformanceSummaryItem: View {
         case .up: return "arrow.up"
         case .down: return "arrow.down"
         case .stable: return "arrow.right"
+        @unknown default: return "questionmark"
         }
     }
     
     private var trendColor: Color {
         switch trend {
-        case .up: return .green
-        case .down: return .red
+        case .up, .improving: return .green
+        case .down, .declining: return .red
         case .stable: return .gray
+        case .unknown: return .gray
+        @unknown default: return .gray
         }
     }
 }
@@ -1216,13 +1242,4 @@ struct AdminBenchmarkComparisonView: View {
     }
 }
 
-#if DEBUG
-struct AdminPerformanceMetrics_Previews: PreviewProvider {
-    static var previews: some View {
-        AdminPerformanceMetrics()
-            .environmentObject(ServiceContainer())
-            .environmentObject(DashboardSyncService.shared)
-            .preferredColorScheme(.dark)
-    }
-}
-#endif
+// MARK: - PRODUCTION BUILD - No Previews

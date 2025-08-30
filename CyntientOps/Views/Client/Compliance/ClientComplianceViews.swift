@@ -86,7 +86,14 @@ struct ClientDSNYComplianceView: View {
                         if let s = schedules[b.id], !s.isEmpty {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(b.name).font(.subheadline).fontWeight(.medium).foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-                                ForEach(Array(s.prefix(2)), id: \.id) { sched in DSNYScheduleRow(day: sched.dayOfWeek, time: sched.time, items: sched.serviceType, isToday: sched.isToday) }
+                                ForEach(Array(s.prefix(2)), id: \.id) { sched in
+                                    DSNYScheduleRowInline(
+                                        day: sched.dayOfWeek,
+                                        time: sched.time, 
+                                        items: sched.serviceType,
+                                        isToday: sched.isToday
+                                    )
+                                }
                             }
                         }
                     }
@@ -156,4 +163,52 @@ struct DSNYViolationRow: View { let violation: DSNYViolation
 
 struct LL97EmissionRow: View { let emission: LL97Emission
     var body: some View { HStack(spacing: 12) { Circle().fill(emission.isCompliant ? CyntientOpsDesign.DashboardColors.success : CyntientOpsDesign.DashboardColors.warning).frame(width: 8, height: 8); VStack(alignment: .leading, spacing: 2) { Text("Carbon Emissions Report").font(.subheadline).fontWeight(.medium).foregroundColor(CyntientOpsDesign.DashboardColors.primaryText); Text("Report \(emission.reportingYear)").font(.caption).foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText) }; Spacer(); Text(emission.isCompliant ? "Compliant" : "Review Needed").font(.caption).fontWeight(.medium).foregroundColor(emission.isCompliant ? CyntientOpsDesign.DashboardColors.success : CyntientOpsDesign.DashboardColors.warning).padding(.horizontal, 8).padding(.vertical, 4).background((emission.isCompliant ? CyntientOpsDesign.DashboardColors.success : CyntientOpsDesign.DashboardColors.warning).opacity(0.2)).cornerRadius(6) }.padding(.vertical, 4) }
+}
+
+struct DSNYScheduleRowInline: View {
+    let day: String
+    let time: String
+    let items: String
+    let isToday: Bool
+    
+    var body: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(day)
+                    .font(.subheadline)
+                    .fontWeight(isToday ? .bold : .medium)
+                    .foregroundColor(isToday ? CyntientOpsDesign.DashboardColors.secondaryAction : CyntientOpsDesign.DashboardColors.primaryText)
+                
+                Text(time)
+                    .font(.caption)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+            }
+            
+            Spacer()
+            
+            VStack(alignment: .trailing, spacing: 4) {
+                Text(items)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                
+                if isToday {
+                    Text("Today")
+                        .font(.caption2)
+                        .fontWeight(.semibold)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryAction)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 2)
+                        .background(CyntientOpsDesign.DashboardColors.secondaryAction.opacity(0.1))
+                        .clipShape(Capsule())
+                }
+            }
+        }
+        .padding(.vertical, 8)
+        .padding(.horizontal, 12)
+        .background(
+            RoundedRectangle(cornerRadius: 8)
+                .fill(isToday ? CyntientOpsDesign.DashboardColors.cardBackground.opacity(0.8) : CyntientOpsDesign.DashboardColors.cardBackground.opacity(0.4))
+        )
+    }
 }

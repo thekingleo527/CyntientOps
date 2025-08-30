@@ -101,11 +101,17 @@ public class DatabaseMigrator {
             print("🔧 Running migration v7: Adding status column to workers table...")
             try addWorkerStatusColumn(db)
         }
+        
+        // MIGRATION v8: Add Worker Capabilities & Building Enhancements (Production Readiness)
+        migrator.registerMigration("v8_OperationalDataReady") { db in
+            print("🔧 Running migration v8: Aligning schema with OperationalDataManager...")
+            try addOperationalDataEnhancements(db)
+        }
     }
     
     /// Get total number of registered migrations
     private func getTotalMigrationsCount() -> Int {
-        return 7 // Update this as you add more migrations
+        return 8 // Update this as you add more migrations
     }
 }
 
@@ -372,6 +378,76 @@ extension DatabaseMigrator {
         } else {
             print("ℹ️ Status column already exists in workers table, skipping...")
         }
+    }
+    
+    /// v8: Add operational data enhancements for production readiness
+    private func addOperationalDataEnhancements(_ db: Database) throws {
+        print("🏗️ Adding operational data enhancements...")
+        
+        // 1. Ensure worker_capabilities exists with production schema (single row per worker)
+        try db.execute(sql: """
+            CREATE TABLE IF NOT EXISTS worker_capabilities (
+                worker_id TEXT PRIMARY KEY,
+                simplified_interface INTEGER DEFAULT 0,
+                language TEXT DEFAULT 'en',
+                requires_photo_for_sanitation INTEGER DEFAULT 1,
+                can_add_emergency_tasks INTEGER DEFAULT 0,
+                evening_mode_ui INTEGER DEFAULT 0,
+                priority_level INTEGER DEFAULT 0,
+                preferred_language TEXT DEFAULT 'en',
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (worker_id) REFERENCES workers(id)
+            )
+        """)
+        
+        // 2. Enhance buildings table with operational fields
+        let hasNormalizedName = try db.columnExists("normalized_name", inTable: "buildings")
+        if !hasNormalizedName {
+            try db.execute(sql: "ALTER TABLE buildings ADD COLUMN normalized_name TEXT")
+            try db.execute(sql: "ALTER TABLE buildings ADD COLUMN aliases TEXT")
+            try db.execute(sql: "ALTER TABLE buildings ADD COLUMN dsny_district TEXT")
+            try db.execute(sql: "ALTER TABLE buildings ADD COLUMN compliance_status TEXT DEFAULT 'pending'")
+            try db.execute(sql: "ALTER TABLE buildings ADD COLUMN client_id TEXT")
+            try db.execute(sql: "ALTER TABLE buildings ADD COLUMN borough TEXT")
+            
+            // Create indices for efficient lookups
+            try db.execute(sql: """
+                CREATE INDEX IF NOT EXISTS idx_buildings_normalized ON buildings(normalized_name)
+            """)
+            
+            try db.execute(sql: """
+                CREATE INDEX IF NOT EXISTS idx_buildings_compliance ON buildings(compliance_status)
+            """)
+        }
+        
+        // 3. Create worker_building_assignments table for multi-worker support
+        try db.execute(sql: """
+            CREATE TABLE IF NOT EXISTS worker_building_assignments (
+                id TEXT PRIMARY KEY,
+                worker_id TEXT NOT NULL,
+                building_id TEXT NOT NULL,
+                assignment_type TEXT DEFAULT 'regular',
+                is_primary INTEGER DEFAULT 0,
+                effective_date TEXT DEFAULT CURRENT_TIMESTAMP,
+                expiry_date TEXT,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (worker_id) REFERENCES workers(id),
+                FOREIGN KEY (building_id) REFERENCES buildings(id),
+                UNIQUE(worker_id, building_id)
+            )
+        """)
+        
+        // 4. Update 148 Chambers Street with proper normalization
+        try db.execute(sql: """
+            UPDATE buildings 
+            SET normalized_name = '148 chambers street',
+                aliases = '148 chambers st|148 chambers|chambers street 148',
+                borough = 'Manhattan'
+            WHERE name LIKE '%148 Chambers%'
+        """)
+        
+        print("✅ v8: Operational data enhancements completed successfully")
     }
 }
 
