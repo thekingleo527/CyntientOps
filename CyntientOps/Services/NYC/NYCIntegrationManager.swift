@@ -264,7 +264,7 @@ public final class NYCIntegrationManager: ObservableObject {
             },
             "311": {
                 do {
-                    _ = try await self.nycAPI.fetch311Complaints(bin: "1000001")
+                    _ = try await self.nycAPI.fetch311Complaints(address: "104 Franklin Street, New York, NY 10013")
                     return true
                 } catch {
                     return false

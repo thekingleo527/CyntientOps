@@ -70,6 +70,7 @@ public final class NYCAPIService: ObservableObject {
         case energyEfficiencyRating(bbl: String)
         case landmarksBuildings(bbl: String)
         case buildingFootprints(bin: String)
+        case buildingFootprintsNearby(lat: Double, lon: Double, radiusMeters: Int)
         case activeConstruction(address: String)
         case businessLicenses(address: String)
         case airQualityComplaints(address: String)
@@ -110,6 +111,9 @@ public final class NYCAPIService: ObservableObject {
                 return "\(APIConfig.landmarksBuildingsURL)?bbl=\(bbl)"
             case .buildingFootprints(let bin):
                 return "\(APIConfig.buildingFootprintsURL)?bin=\(bin)"
+            case .buildingFootprintsNearby(let lat, let lon, let r):
+                let whereClause = "$where=" + "within_circle(the_geom,\(lat),\(lon),\(r))".addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)!
+                return "\(APIConfig.buildingFootprintsURL)?\(whereClause)&$select=bin,bbl&$limit=1"
             case .activeConstruction(let address):
                 let encodedAddress = address.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
                 return "\(APIConfig.activeConstructionURL)?address=\(encodedAddress)"
@@ -140,11 +144,31 @@ public final class NYCAPIService: ObservableObject {
             case .energyEfficiencyRating(let bbl): return "energy_efficiency_\(bbl)"
             case .landmarksBuildings(let bbl): return "landmarks_\(bbl)"
             case .buildingFootprints(let bin): return "footprints_\(bin)"
+            case .buildingFootprintsNearby(let lat, let lon, let r): return "footprints_near_\(lat)_\(lon)_\(r)"
             case .activeConstruction(let address): return "construction_\(address.hashValue)"
             case .businessLicenses(let address): return "business_licenses_\(address.hashValue)"
             case .airQualityComplaints(let address): return "air_quality_\(address.hashValue)"
             }
         }
+    }
+
+    // MARK: - Footprints Helpers
+    public func resolveBinBbl(lat: Double, lon: Double, radiusMeters: Int = 25) async -> (bin: String?, bbl: String?) {
+        do {
+            let urlStr = APIEndpoint.buildingFootprintsNearby(lat: lat, lon: lon, radiusMeters: radiusMeters).url
+            guard let url = URL(string: urlStr) else { return (nil, nil) }
+            var request = URLRequest(url: url)
+            request.setValue("dbO8NmN2pMcmSQO7w56rTaFax", forHTTPHeaderField: "X-App-Token")
+            request.setValue("application/json", forHTTPHeaderField: "Accept")
+            let (data, response) = try await session.data(for: request)
+            guard let http = response as? HTTPURLResponse, http.statusCode == 200 else { return (nil, nil) }
+            if let arr = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]], let first = arr.first {
+                let bin = first["bin"] as? String
+                let bbl = first["bbl"] as? String
+                return (bin, bbl)
+            }
+        } catch { /* ignore */ }
+        return (nil, nil)
     }
     
     public enum APIStatus {
@@ -415,24 +439,14 @@ public final class NYCAPIService: ObservableObject {
         }
         complianceData.dsnyViolations = await dsnyViolations ?? []
 
-        // DSNY schedule: if district format "MN05" yields no results, retry with numerical only
-        let district = extractDistrict(from: bin)
-        var routes: [DSNYRoute] = []
-        if let firstTry = try? await fetchDSNYSchedule(district: district), !firstTry.isEmpty {
-            routes = firstTry
-        } else {
-            let numeric = district.filter { $0.isNumber }
-            if let secondTry = try? await fetchDSNYSchedule(district: numeric), !secondTry.isEmpty {
-                routes = secondTry
-            }
-        }
-        complianceData.dsnyRoutes = routes
+        // DSNY schedule handled by DSNYAPIService (location-based) elsewhere; leave empty here
+        complianceData.dsnyRoutes = []
 
         return complianceData
     }
 
     // MARK: - Utilities
-    fileprivate func normalizeBBL(_ raw: String) -> String {
+    public func normalizeBBL(_ raw: String) -> String {
         let digits = raw.filter { $0.isNumber }
         if digits.count == 10 { return digits }
         let parts = raw.replacingOccurrences(of: " ", with: "").split(separator: "-")

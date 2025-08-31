@@ -602,8 +602,8 @@ class AdminDashboardViewModel: ObservableObject {
             do {
                 print("🔢 Generating BBL for: \(building.name)")
                 
-                // Generate BBL from building coordinates (Manhattan pattern)
-                let bbl = generateBBLFromCoordinates(building.coordinate)
+                // Resolve BBL from building coordinates via NYC Footprints
+                let bbl = await generateBBLFromCoordinates(building.coordinate)
                 print("✅ Generated BBL \(bbl) for \(building.name)")
                 
                 // Fetch real DOF assessed value data
@@ -2288,18 +2288,15 @@ class AdminDashboardViewModel: ObservableObject {
         )
     }
     
-    /// Generate BBL from coordinates (simplified Manhattan pattern)
-    private func generateBBLFromCoordinates(_ coordinate: CLLocationCoordinate2D) -> String {
-        // Manhattan coordinates pattern (simplified)
-        if coordinate.latitude > 40.7000 && coordinate.latitude < 40.8000 &&
-           coordinate.longitude > -74.0200 && coordinate.longitude < -73.9000 {
-            let block = Int((coordinate.latitude - 40.7000) * 10000) % 2000 + 1000
-            let lot = Int((coordinate.longitude + 74.0000) * 10000) % 100 + 1
-            return "1\(String(format: "%05d", block))\(String(format: "%04d", lot))"
+    /// Resolve BBL from coordinates using NYC Building Footprints; falls back to normalized default
+    private func generateBBLFromCoordinates(_ coordinate: CLLocationCoordinate2D) async -> String {
+        let nycAPI = NYCAPIService.shared
+        let nearby = await nycAPI.resolveBinBbl(lat: coordinate.latitude, lon: coordinate.longitude)
+        if let bbl = nearby.bbl {
+            return NYCAPIService.shared.normalizeBBL(bbl)
         }
-        
-        // Default fallback BBL for testing
-        return "1010010001" // Manhattan default
+        // Default fallback: Manhattan 10010 area
+        return "1000100001"
     }
     
     /// Get pending reminders for today (using generic data)
