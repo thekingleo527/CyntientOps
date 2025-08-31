@@ -20,7 +20,7 @@ public class DSNYAPIService: ObservableObject {
     private let tonnageDataEndpoint = "ebb7-mvp5.json"
     
     // API Token (optional but recommended for higher rate limits)
-    private var apiToken: String? {
+    private static func readAPIToken() -> String? {
         if let keys = try? KeychainManager.shared.getNYCAPIKeys(), !keys.dsnyAPIKey.isEmpty { return keys.dsnyAPIKey }
         if let kc = try? KeychainManager.shared.getString(for: "DSNY_API_TOKEN"), !kc.isEmpty { return kc }
         if let soda = try? KeychainManager.shared.getString(for: "NYC_APP_TOKEN"), !soda.isEmpty { return soda }
@@ -44,7 +44,7 @@ public class DSNYAPIService: ObservableObject {
     private init() {
         let config = URLSessionConfiguration.default
         var headers: [String: String] = ["Accept": "application/json"]
-        if let token = apiToken, !token.isEmpty { headers["X-App-Token"] = token }
+        if let token = DSNYAPIService.readAPIToken(), !token.isEmpty { headers["X-App-Token"] = token }
         config.httpAdditionalHeaders = headers
         config.timeoutIntervalForRequest = 30
         config.timeoutIntervalForResource = 60
