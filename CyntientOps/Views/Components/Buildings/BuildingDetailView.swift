@@ -2897,7 +2897,8 @@ enum SpaceCategory: String, CaseIterable {
     }
 }
 
-// MARK: - View Model
+// MARK: - View Model (legacy, disabled)
+#if false
 @MainActor
 class BuildingDetailVM: ObservableObject {
     let buildingId: String
@@ -5154,3 +5155,4 @@ class BuildingDetailVM: ObservableObject {
         }
     }
 }
+#endif
