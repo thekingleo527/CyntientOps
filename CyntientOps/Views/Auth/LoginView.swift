@@ -369,45 +369,6 @@ struct LoginView: View {
     }
     
     
-    private func quickAccessButton(email: String, name: String, icon: String, color: Color) -> some View {
-        Button(action: {
-            Task {
-                await quickAccessLogin(email: email)
-            }
-        }) {
-            HStack(spacing: 12) {
-                ZStack {
-                    Circle()
-                        .fill(color.opacity(0.2))
-                        .frame(width: 36, height: 36)
-                    
-                    Image(systemName: icon)
-                        .font(.system(size: 16))
-                        .foregroundColor(color)
-                }
-                
-                Text(name)
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                    .foregroundColor(.white)
-                
-                Spacer()
-                
-                Image(systemName: "arrow.right")
-                    .font(.caption)
-                    .foregroundColor(.white.opacity(0.6))
-            }
-            .padding(12)
-            .background(Color.white.opacity(0.1))
-            .cornerRadius(12)
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(color.opacity(0.3), lineWidth: 1)
-            )
-        }
-        .buttonStyle(PlainButtonStyle())
-    }
-    
     // Helper function to get the correct password for each user (fallback only)
     private func getPasswordForEmail(_ email: String) -> String {
         switch email {
@@ -432,35 +393,7 @@ struct LoginView: View {
         }
     }
     
-    // Dev quick login flow that bypasses password when available, with seeding fallback
-    private func quickAccessLogin(email: String) async {
-        await MainActor.run {
-            self.email = email
-            self.password = "" // not used in dev quick login
-            self.isLoading = true
-            self.errorMessage = nil
-        }
-        
-        // Ensure DB is initialized before dev quick login
-        if !DatabaseInitializer.shared.isInitialized {
-            print("🧪 Quick Access: initializing database before login…")
-            try? await DatabaseInitializer.shared.initializeIfNeeded()
-        }
-        
-        do {
-            // Prefer dev quick login bypass
-            try await authManager.devQuickLogin(email: email)
-            await MainActor.run { self.isLoading = false }
-        } catch {
-            // Fallback to standard auth with seeded password (in case dev method unavailable)
-            print("⚠️ Dev quick login failed: \(error). Falling back to password auth.")
-            await MainActor.run {
-                self.password = getPasswordForEmail(email)
-            }
-            await performLogin()
-        }
-    }
-    #endif
+    
     
     private var isValidForm: Bool {
         !email.isEmpty && !password.isEmpty

@@ -3115,7 +3115,7 @@ class BuildingDetailVM: ObservableObject {
                     completionPercentage = 75
                 }
             }
-
+            
             // Load routines for this building from operational data (fallback to Route data later)
             let buildingTasks = operationalDataManager.getTasksForBuilding(buildingName)
             if !buildingTasks.isEmpty {
@@ -3143,560 +3143,166 @@ class BuildingDetailVM: ObservableObject {
                 todaysSpecialNote = completionPercentage >= 95 ? "Excellent performance today!" : "Some tasks still pending completion"
                 currentStatus = "Data loaded successfully"
             }
-
+            
             // Load last few DSNY tickets from local compliance history
             let tickets = await ComplianceHistoryService().getDSNYViolations(for: buildingId, limit: 5)
             await MainActor.run {
                 recentDSNYTickets = tickets
             }
-    }
-    
-    // MARK: - Additional Methods
-    func refreshData() async {
-        await loadBuildingData()
-    }
-    
-    func savePhoto(_ image: UIImage, category: CoreTypes.CyntientOpsPhotoCategory, notes: String) async {
-        // Implementation for saving photo
-        print("Saving photo for category: \(category), notes: \(notes)")
-    }
-    
-    func exportBuildingReport() {
-        // Implementation for exporting building report
-        print("Exporting building report for \(buildingName)")
-    }
-    
-    func initiateReorder(for category: String) {
-        // Implementation for reordering inventory
-        print("Initiating reorder for category: \(category)")
-    }
-    
-    func updateSpace(_ space: SpaceAccess) {
-        // Implementation for updating space
-        print("Updating space: \(space.name)")
-    }
-    
-    func toggleRoutineCompletion(_ routine: BDDailyRoutine) {
-        // Implementation for toggling routine completion
-        print("Toggling completion for routine: \(routine.title)")
-    }
-    
-    func loadInventoryData() {
-        // Implementation for loading inventory data
-        print("Loading inventory data for \(buildingName)")
-    }
-}
-// MARK: - Supporting View Components
-
-struct BuildingActivityRow: View {
-    let activity: BDBuildingDetailActivity
-    
-    var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: iconForActivity(activity.type))
-                .font(.caption)
-                .foregroundColor(colorForActivity(activity.type))
-                .frame(width: 24, height: 24)
-                .background(
-                    Circle()
-                        .fill(colorForActivity(activity.type).opacity(0.15))
-                )
-            
-            VStack(alignment: .leading, spacing: 2) {
-                Text(activity.description)
-                    .font(.subheadline)
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-                
-                HStack(spacing: 8) {
-                    if let worker = activity.workerName {
-                        Text(worker)
-                            .font(.caption)
-                            .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
-                    }
-                    
-                    Text(activity.timestamp, style: .relative)
-                        .font(.caption)
-                        .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
-                }
-            }
-            
-            Spacer()
+        }
+        
+        // MARK: - Additional Methods
+        func refreshData() async {
+            await loadBuildingData()
+        }
+        
+        func savePhoto(_ image: UIImage, category: CoreTypes.CyntientOpsPhotoCategory, notes: String) async {
+            // Implementation for saving photo
+            print("Saving photo for category: \(category), notes: \(notes)")
+        }
+        
+        func exportBuildingReport() {
+            // Implementation for exporting building report
+            print("Exporting building report for \(buildingName)")
+        }
+        
+        func initiateReorder(for category: String) {
+            // Implementation for reordering inventory
+            print("Initiating reorder for category: \(category)")
+        }
+        
+        func updateSpace(_ space: SpaceAccess) {
+            // Implementation for updating space
+            print("Updating space: \(space.name)")
+        }
+        
+        func toggleRoutineCompletion(_ routine: BDDailyRoutine) {
+            // Implementation for toggling routine completion
+            print("Toggling completion for routine: \(routine.title)")
+        }
+        
+        func loadInventoryData() {
+            // Implementation for loading inventory data
+            print("Loading inventory data for \(buildingName)")
         }
     }
+    // MARK: - Supporting View Components
     
-    private func iconForActivity(_ type: BDBuildingDetailActivity.ActivityType) -> String {
-        switch type {
-        case .taskCompleted: return "checkmark.circle"
-        case .photoAdded: return "camera"
-        case .issueReported: return "exclamationmark.triangle"
-        case .workerArrived: return "person.crop.circle.badge.checkmark"
-        case .workerDeparted: return "person.crop.circle.badge.minus"
-        case .routineCompleted: return "calendar.badge.checkmark"
-        case .inventoryUsed: return "shippingbox"
-        }
-    }
-    
-    private func colorForActivity(_ type: BDBuildingDetailActivity.ActivityType) -> Color {
-        switch type {
-        case .taskCompleted, .routineCompleted, .workerArrived:
-            return CyntientOpsDesign.DashboardColors.success
-        case .photoAdded:
-            return CyntientOpsDesign.DashboardColors.info
-        case .issueReported:
-            return CyntientOpsDesign.DashboardColors.warning
-        case .workerDeparted, .inventoryUsed:
-            return CyntientOpsDesign.DashboardColors.inactive
-        }
-    }
-}
-
-struct BuildingContactRow: View {
-    let name: String
-    let role: String
-    let phone: String?
-    let isEmergency: Bool
-    
-    var body: some View {
-        HStack {
-            Circle()
-                .fill(isEmergency ? CyntientOpsDesign.DashboardColors.critical.opacity(0.2) : CyntientOpsDesign.DashboardColors.info.opacity(0.2))
-                .frame(width: 40, height: 40)
-                .overlay(
-                    Image(systemName: isEmergency ? "phone.arrow.up.right" : "phone.fill")
-                        .foregroundColor(isEmergency ? CyntientOpsDesign.DashboardColors.critical : CyntientOpsDesign.DashboardColors.info)
-                )
-            
-            VStack(alignment: .leading, spacing: 2) {
-                Text(name)
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-                
-                Text(role)
+    struct BuildingActivityRow: View {
+        let activity: BDBuildingDetailActivity
+        
+        var body: some View {
+            HStack(spacing: 12) {
+                Image(systemName: iconForActivity(activity.type))
                     .font(.caption)
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
-            }
-            
-            Spacer()
-            
-            if let phone = phone {
-                Text(phone)
-                    .font(.caption)
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
-            }
-        }
-    }
-}
-
-struct BuildingFilterPill: View {
-    let title: String
-    let icon: String
-    let isSelected: Bool
-    let action: () -> Void
-    
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: 6) {
-                Image(systemName: icon)
-                    .font(.caption)
-                Text(title)
-                    .font(.caption)
-                    .fontWeight(isSelected ? .semibold : .regular)
-            }
-            .foregroundColor(isSelected ? .white : CyntientOpsDesign.DashboardColors.secondaryText)
-            .padding(.horizontal, 16)
-            .padding(.vertical, 8)
-            .background(
-                Capsule()
-                    .fill(isSelected ? CyntientOpsDesign.DashboardColors.primaryAction : CyntientOpsDesign.DashboardColors.glassOverlay)
-            )
-        }
-    }
-}
-
-struct EmptyStateMessage: View {
-    let message: String
-    
-    var body: some View {
-        Text(message)
-            .font(.subheadline)
-            .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 20)
-    }
-}
-
-struct DailyRoutineRow: View {
-    let routine: DailyRoutineTask
-    let onToggle: () -> Void
-    
-    var body: some View {
-        HStack {
-            Button(action: onToggle) {
-                Image(systemName: routine.isCompleted ? "checkmark.square.fill" : "square")
-                    .foregroundColor(routine.isCompleted ? CyntientOpsDesign.DashboardColors.success : CyntientOpsDesign.DashboardColors.tertiaryText)
-            }
-            
-            VStack(alignment: .leading, spacing: 2) {
-                Text(routine.title)
-                    .font(.subheadline)
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-                    .strikethrough(routine.isCompleted)
-                
-                HStack(spacing: 8) {
-                    if let time = routine.scheduledTime {
-                        Label(time, systemImage: "clock")
-                            .font(.caption)
-                            .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
-                    }
-                    
-                    if let worker = routine.workerName {
-                        Label(worker, systemImage: "person.fill")
-                            .font(.caption)
-                            .foregroundColor(CyntientOpsDesign.DashboardColors.info)
-                    }
-                }
-            }
-            
-            Spacer()
-        }
-    }
-}
-
-struct MaintenanceTaskRow: View {
-    let task: CoreTypes.MaintenanceTask
-    let onTap: () -> Void
-    
-    var body: some View {
-        Button(action: onTap) {
-            HStack {
-                Circle()
-                    .fill(urgencyColor.opacity(0.2))
-                    .frame(width: 40, height: 40)
-                    .overlay(
-                        Image(systemName: categoryIcon)
-                            .foregroundColor(urgencyColor)
+                    .foregroundColor(colorForActivity(activity.type))
+                    .frame(width: 24, height: 24)
+                    .background(
+                        Circle()
+                            .fill(colorForActivity(activity.type).opacity(0.15))
                     )
                 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(task.title)
+                    Text(activity.description)
+                        .font(.subheadline)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                    
+                    HStack(spacing: 8) {
+                        if let worker = activity.workerName {
+                            Text(worker)
+                                .font(.caption)
+                                .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                        }
+                        
+                        Text(activity.timestamp, style: .relative)
+                            .font(.caption)
+                            .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+                    }
+                }
+                
+                Spacer()
+            }
+        }
+        
+        private func iconForActivity(_ type: BDBuildingDetailActivity.ActivityType) -> String {
+            switch type {
+            case .taskCompleted: return "checkmark.circle"
+            case .photoAdded: return "camera"
+            case .issueReported: return "exclamationmark.triangle"
+            case .workerArrived: return "person.crop.circle.badge.checkmark"
+            case .workerDeparted: return "person.crop.circle.badge.minus"
+            case .routineCompleted: return "calendar.badge.checkmark"
+            case .inventoryUsed: return "shippingbox"
+            }
+        }
+        
+        private func colorForActivity(_ type: BDBuildingDetailActivity.ActivityType) -> Color {
+            switch type {
+            case .taskCompleted, .routineCompleted, .workerArrived:
+                return CyntientOpsDesign.DashboardColors.success
+            case .photoAdded:
+                return CyntientOpsDesign.DashboardColors.info
+            case .issueReported:
+                return CyntientOpsDesign.DashboardColors.warning
+            case .workerDeparted, .inventoryUsed:
+                return CyntientOpsDesign.DashboardColors.inactive
+            }
+        }
+    }
+    
+    struct BuildingContactRow: View {
+        let name: String
+        let role: String
+        let phone: String?
+        let isEmergency: Bool
+        
+        var body: some View {
+            HStack {
+                Circle()
+                    .fill(isEmergency ? CyntientOpsDesign.DashboardColors.critical.opacity(0.2) : CyntientOpsDesign.DashboardColors.info.opacity(0.2))
+                    .frame(width: 40, height: 40)
+                    .overlay(
+                        Image(systemName: isEmergency ? "phone.arrow.up.right" : "phone.fill")
+                            .foregroundColor(isEmergency ? CyntientOpsDesign.DashboardColors.critical : CyntientOpsDesign.DashboardColors.info)
+                    )
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(name)
                         .font(.subheadline)
                         .fontWeight(.medium)
                         .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                     
-                    HStack(spacing: 8) {
-                        if let dueDate = task.dueDate {
-                            Label(dueDate.formatted(date: .abbreviated, time: .omitted), systemImage: "calendar")
-                                .font(.caption)
-                                .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
-                        }
-                        
-                        Text(task.urgency.rawValue.capitalized)
-                            .font(.caption)
-                            .fontWeight(.medium)
-                            .foregroundColor(urgencyColor)
-                    }
-                }
-                
-                Spacer()
-                
-                Image(systemName: "chevron.right")
-                    .font(.caption)
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
-            }
-        }
-        .buttonStyle(.plain)
-    }
-    
-    private var urgencyColor: Color {
-        switch task.urgency {
-        case .low: return .green
-        case .medium, .normal: return .yellow
-        case .high: return .orange
-        case .urgent: return .purple
-        case .critical, .emergency: return .red
-        }
-    }
-    
-    private var categoryIcon: String {
-        switch task.category {
-        case .cleaning: return "sparkles"
-        case .maintenance: return "wrench"
-        case .repair: return "hammer"
-        case .inspection: return "magnifyingglass"
-        default: return "wrench.and.screwdriver"
-        }
-    }
-}
-
-struct DSNYViolationCard: View {
-    let violation: DSNYViolation
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text(violation.violationType)
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.critical)
-                
-                Spacer()
-                
-                if let fine = violation.fineAmount {
-                    Text("$\(Int(fine))")
+                    Text(role)
                         .font(.caption)
-                        .fontWeight(.bold)
-                        .foregroundColor(CyntientOpsDesign.DashboardColors.critical)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 2)
-                        .background(CyntientOpsDesign.DashboardColors.critical.opacity(0.1))
-                        .cornerRadius(4)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
                 }
-            }
-            
-            if let details = violation.violationDetails {
-                Text(details)
-                    .font(.caption)
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
-                    .lineLimit(2)
-            }
-            
-            HStack {
-                Text("Issued: \(violation.issueDate)")
-                    .font(.caption)
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
                 
                 Spacer()
                 
-                Text(violation.status.uppercased())
-                    .font(.caption)
-                    .fontWeight(.medium)
-                    .foregroundColor(violation.isActive ? CyntientOpsDesign.DashboardColors.critical : CyntientOpsDesign.DashboardColors.success)
-            }
-        }
-        .padding(12)
-        .background(CyntientOpsDesign.DashboardColors.critical.opacity(0.05))
-        .cornerRadius(8)
-        .overlay(
-            RoundedRectangle(cornerRadius: 8)
-                .stroke(CyntientOpsDesign.DashboardColors.critical.opacity(0.2), lineWidth: 1)
-        )
-    }
-}
-
-struct ComplianceRow: View {
-    let title: String
-    let status: CoreTypes.ComplianceStatus
-    let nextAction: String?
-    
-    var body: some View {
-        HStack(alignment: .top) {
-            Image(systemName: status == .compliant ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
-                .foregroundColor(CyntientOpsDesign.EnumColors.complianceStatus(status))
-            
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(.subheadline)
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-                
-                if let action = nextAction {
-                    Text(action)
+                if let phone = phone {
+                    Text(phone)
                         .font(.caption)
                         .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
                 }
             }
-            
-            Spacer()
         }
     }
-}
-
-struct SummaryStatCard: View {
-    let title: String
-    let value: String
-    let icon: String
-    let color: Color
     
-    var body: some View {
-        VStack(spacing: 8) {
-            Image(systemName: icon)
-                .font(.title2)
-                .foregroundColor(color)
-            
-            Text(value)
-                .font(.title3)
-                .fontWeight(.bold)
-                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-            
-            Text(title)
-                .font(.caption)
-                .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
-        }
-        .frame(maxWidth: .infinity)
-        .padding()
-        .cyntientOpsDarkCardBackground()
-    }
-}
-
-struct OnSiteWorkerRow: View {
-    let worker: BDAssignedWorker
-    
-    var body: some View {
-        HStack {
-            Circle()
-                .fill(CyntientOpsDesign.DashboardColors.success)
-                .frame(width: 8, height: 8)
-            
-            VStack(alignment: .leading, spacing: 2) {
-                Text(worker.name)
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-                
-                Text("Arrived \(Date().addingTimeInterval(-3600), style: .relative)")
-                    .font(.caption)
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
-            }
-            
-            Spacer()
-            
-            Text("On-site")
-                .font(.caption)
-                .fontWeight(.medium)
-                .foregroundColor(CyntientOpsDesign.DashboardColors.success)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 2)
-                .background(
-                    Capsule()
-                        .fill(CyntientOpsDesign.DashboardColors.success.opacity(0.15))
-                )
-        }
-    }
-}
-
-struct AssignedWorkerRow: View {
-    let worker: BDAssignedWorker
-    
-    var body: some View {
-        HStack {
-            Circle()
-                .fill(worker.isOnSite ? CyntientOpsDesign.DashboardColors.success : CyntientOpsDesign.DashboardColors.inactive)
-                .frame(width: 8, height: 8)
-            
-            VStack(alignment: .leading, spacing: 2) {
-                Text(worker.name)
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-                
-                Text(worker.schedule)
-                    .font(.caption)
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
-            }
-            
-            Spacer()
-        }
-    }
-}
-
-struct StatCard: View {
-    let title: String
-    let value: String
-    let icon: String
-    let color: Color
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Image(systemName: icon)
-                    .font(.caption)
-                    .foregroundColor(color)
-                Spacer()
-            }
-            
-            Text(value)
-                .font(.title3)
-                .fontWeight(.bold)
-                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-            
-            Text(title)
-                .font(.caption)
-                .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
-        }
-        .padding()
-        .frame(minWidth: 100)
-        .cyntientOpsDarkCardBackground()
-    }
-}
-
-struct MaintenanceHistoryRow: View {
-    let record: CoreTypes.MaintenanceRecord
-    
-    var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(record.description)
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-                
-                Text(record.completedAt, style: .date)
-                    .font(.caption)
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
-            }
-            
-            Spacer()
-            
-            if let cost = record.cost {
-                Text(cost.formatted(.currency(code: "USD")))
-                    .font(.caption)
-                    .fontWeight(.medium)
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryAction)
-            }
-        }
-    }
-}
-
-struct InventoryStatCard: View {
-    let title: String
-    let value: String
-    let icon: String
-    let color: Color
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Image(systemName: icon)
-                    .font(.caption)
-                    .foregroundColor(color)
-                Spacer()
-            }
-            
-            Text(value)
-                .font(.title3)
-                .fontWeight(.bold)
-                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-            
-            Text(title)
-                .font(.caption)
-                .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
-        }
-        .padding()
-        .frame(maxWidth: .infinity)
-        .cyntientOpsDarkCardBackground()
-    }
-}
-
-struct BuildingInventoryCategoryButton: View {
-    let category: CoreTypes.InventoryCategory
-    let isSelected: Bool
-    let action: () -> Void
-    
-    var body: some View {
-        Button(action: action) {
-            Text(category.rawValue.capitalized)
-                .font(.caption)
-                .fontWeight(isSelected ? .semibold : .regular)
+    struct BuildingFilterPill: View {
+        let title: String
+        let icon: String
+        let isSelected: Bool
+        let action: () -> Void
+        
+        var body: some View {
+            Button(action: action) {
+                HStack(spacing: 6) {
+                    Image(systemName: icon)
+                        .font(.caption)
+                    Text(title)
+                        .font(.caption)
+                        .fontWeight(isSelected ? .semibold : .regular)
+                }
                 .foregroundColor(isSelected ? .white : CyntientOpsDesign.DashboardColors.secondaryText)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 8)
@@ -3704,1453 +3310,1848 @@ struct BuildingInventoryCategoryButton: View {
                     Capsule()
                         .fill(isSelected ? CyntientOpsDesign.DashboardColors.primaryAction : CyntientOpsDesign.DashboardColors.glassOverlay)
                 )
-        }
-    }
-}
-
-// BuildingInventoryItemRow removed - using the one from BuildingInventoryComponents.swift
-
-struct AccessCodeChip: View {
-    let code: BDAccessCode
-    @State private var isRevealed = false
-    
-    var body: some View {
-        HStack(spacing: 8) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(code.location)
-                    .font(.caption)
-                    .fontWeight(.medium)
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-                
-                Text(isRevealed ? code.code : "••••")
-                    .font(.caption)
-                    .fontDesign(.monospaced)
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryAction)
-            }
-            
-            Button(action: { isRevealed.toggle() }) {
-                Image(systemName: isRevealed ? "eye.slash" : "eye")
-                    .font(.caption)
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
             }
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(
-            Capsule()
-                .fill(CyntientOpsDesign.DashboardColors.glassOverlay)
-        )
     }
-}
-
-struct SpaceCard: View {
-    let space: SpaceAccess
-    let onTap: () -> Void
     
-    var body: some View {
-        Button(action: onTap) {
-            VStack(alignment: .leading, spacing: 8) {
-                if let photo = space.thumbnail {
-                    Image(uiImage: photo)
-                        .resizable()
-                        .scaledToFill()
-                        .frame(height: 100)
-                        .clipped()
-                        .cornerRadius(8)
-                } else {
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(
-                            LinearGradient(
-                                gradient: Gradient(colors: [
-                                    CyntientOpsDesign.DashboardColors.primaryAction.opacity(0.3),
-                                    CyntientOpsDesign.DashboardColors.primaryAction.opacity(0.1)
-                                ]),
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .frame(height: 100)
-                        .overlay(
-                            Image(systemName: space.category.icon)
-                                .font(.title)
-                                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryAction.opacity(0.5))
-                        )
+    struct EmptyStateMessage: View {
+        let message: String
+        
+        var body: some View {
+            Text(message)
+                .font(.subheadline)
+                .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 20)
+        }
+    }
+    
+    struct DailyRoutineRow: View {
+        let routine: DailyRoutineTask
+        let onToggle: () -> Void
+        
+        var body: some View {
+            HStack {
+                Button(action: onToggle) {
+                    Image(systemName: routine.isCompleted ? "checkmark.square.fill" : "square")
+                        .foregroundColor(routine.isCompleted ? CyntientOpsDesign.DashboardColors.success : CyntientOpsDesign.DashboardColors.tertiaryText)
                 }
                 
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(space.name)
-                        .font(.caption)
-                        .fontWeight(.medium)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(routine.title)
+                        .font(.subheadline)
                         .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-                        .lineLimit(1)
+                        .strikethrough(routine.isCompleted)
                     
-                    HStack(spacing: 6) {
-                        if space.requiresKey {
-                            Label("Key", systemImage: "key.fill")
-                                .font(.caption2)
-                                .foregroundColor(CyntientOpsDesign.DashboardColors.warning)
+                    HStack(spacing: 8) {
+                        if let time = routine.scheduledTime {
+                            Label(time, systemImage: "clock")
+                                .font(.caption)
+                                .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
                         }
                         
-                        if space.accessCode != nil {
-                            Label("Code", systemImage: "lock.fill")
-                                .font(.caption2)
+                        if let worker = routine.workerName {
+                            Label(worker, systemImage: "person.fill")
+                                .font(.caption)
                                 .foregroundColor(CyntientOpsDesign.DashboardColors.info)
                         }
                     }
                 }
-                .padding(.horizontal, 8)
-                .padding(.bottom, 8)
-            }
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(CyntientOpsDesign.DashboardColors.glassOverlay)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(CyntientOpsDesign.DashboardColors.borderSubtle, lineWidth: 1)
-                    )
-            )
-        }
-        .buttonStyle(.plain)
-    }
-}
-
-struct BuildingEmergencyContactRow: View {
-    let name: String
-    let role: String
-    let phone: String
-    let isPrimary: Bool
-    let onCall: () -> Void
-    
-    var body: some View {
-        HStack {
-            Circle()
-                .fill(isPrimary ? CyntientOpsDesign.DashboardColors.critical.opacity(0.2) : CyntientOpsDesign.DashboardColors.info.opacity(0.2))
-                .frame(width: 44, height: 44)
-                .overlay(
-                    Image(systemName: "phone.fill")
-                        .foregroundColor(isPrimary ? CyntientOpsDesign.DashboardColors.critical : CyntientOpsDesign.DashboardColors.info)
-                )
-            
-            VStack(alignment: .leading, spacing: 2) {
-                Text(name)
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                 
-                Text(role)
-                    .font(.caption)
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
-                
-                Text(phone)
-                    .font(.caption)
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
-            }
-            
-            Spacer()
-            
-            Button(action: onCall) {
-                Image(systemName: "phone.arrow.up.right")
-                    .foregroundColor(.white)
-                    .frame(width: 36, height: 36)
-                    .background(
-                        Circle()
-                            .fill(isPrimary ? CyntientOpsDesign.DashboardColors.critical : CyntientOpsDesign.DashboardColors.info)
-                    )
+                Spacer()
             }
         }
     }
-}
-
-// EmergencyActionButton removed - using the public one from AccessModeComponents.swift
-
-struct BuildingProcedureRow: View {
-    let title: String
-    let icon: String
-    let color: Color
-    let steps: [String]
-    @State private var isExpanded = false
     
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Button(action: { withAnimation { isExpanded.toggle() } }) {
+    struct MaintenanceTaskRow: View {
+        let task: CoreTypes.MaintenanceTask
+        let onTap: () -> Void
+        
+        var body: some View {
+            Button(action: onTap) {
                 HStack {
-                    Image(systemName: icon)
-                        .foregroundColor(color)
+                    Circle()
+                        .fill(urgencyColor.opacity(0.2))
+                        .frame(width: 40, height: 40)
+                        .overlay(
+                            Image(systemName: categoryIcon)
+                                .foregroundColor(urgencyColor)
+                        )
                     
-                    Text(title)
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(task.title)
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                        
+                        HStack(spacing: 8) {
+                            if let dueDate = task.dueDate {
+                                Label(dueDate.formatted(date: .abbreviated, time: .omitted), systemImage: "calendar")
+                                    .font(.caption)
+                                    .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+                            }
+                            
+                            Text(task.urgency.rawValue.capitalized)
+                                .font(.caption)
+                                .fontWeight(.medium)
+                                .foregroundColor(urgencyColor)
+                        }
+                    }
                     
                     Spacer()
                     
                     Image(systemName: "chevron.right")
                         .font(.caption)
                         .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
-                        .rotationEffect(.degrees(isExpanded ? 90 : 0))
                 }
             }
             .buttonStyle(.plain)
-            
-            if isExpanded {
-                VStack(alignment: .leading, spacing: 6) {
-                    ForEach(Array(steps.enumerated()), id: \.offset) { index, step in
-                        HStack(alignment: .top, spacing: 8) {
-                            Text("\(index + 1).")
-                                .font(.caption)
-                                .fontWeight(.medium)
-                                .foregroundColor(color)
-                            
-                            Text(step)
-                                .font(.caption)
-                                .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
-                        }
+        }
+        
+        private var urgencyColor: Color {
+            switch task.urgency {
+            case .low: return .green
+            case .medium, .normal: return .yellow
+            case .high: return .orange
+            case .urgent: return .purple
+            case .critical, .emergency: return .red
+            }
+        }
+        
+        private var categoryIcon: String {
+            switch task.category {
+            case .cleaning: return "sparkles"
+            case .maintenance: return "wrench"
+            case .repair: return "hammer"
+            case .inspection: return "magnifyingglass"
+            default: return "wrench.and.screwdriver"
+            }
+        }
+    }
+    
+    struct DSNYViolationCard: View {
+        let violation: DSNYViolation
+        
+        var body: some View {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Text(violation.violationType)
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.critical)
+                    
+                    Spacer()
+                    
+                    if let fine = violation.fineAmount {
+                        Text("$\(Int(fine))")
+                            .font(.caption)
+                            .fontWeight(.bold)
+                            .foregroundColor(CyntientOpsDesign.DashboardColors.critical)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 2)
+                            .background(CyntientOpsDesign.DashboardColors.critical.opacity(0.1))
+                            .cornerRadius(4)
                     }
                 }
-                .padding(.leading, 28)
-                .transition(.opacity.combined(with: .move(edge: .top)))
+                
+                if let details = violation.violationDetails {
+                    Text(details)
+                        .font(.caption)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                        .lineLimit(2)
+                }
+                
+                HStack {
+                    Text("Issued: \(violation.issueDate)")
+                        .font(.caption)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+                    
+                    Spacer()
+                    
+                    Text(violation.status.uppercased())
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .foregroundColor(violation.isActive ? CyntientOpsDesign.DashboardColors.critical : CyntientOpsDesign.DashboardColors.success)
+                }
+            }
+            .padding(12)
+            .background(CyntientOpsDesign.DashboardColors.critical.opacity(0.05))
+            .cornerRadius(8)
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(CyntientOpsDesign.DashboardColors.critical.opacity(0.2), lineWidth: 1)
+            )
+        }
+    }
+    
+    struct ComplianceRow: View {
+        let title: String
+        let status: CoreTypes.ComplianceStatus
+        let nextAction: String?
+        
+        var body: some View {
+            HStack(alignment: .top) {
+                Image(systemName: status == .compliant ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
+                    .foregroundColor(CyntientOpsDesign.EnumColors.complianceStatus(status))
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(.subheadline)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                    
+                    if let action = nextAction {
+                        Text(action)
+                            .font(.caption)
+                            .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+                    }
+                }
+                
+                Spacer()
             }
         }
     }
-}
-
-// MARK: - Sheet Views
-
-struct BuildingAddInventoryItemSheet: View {
-    let buildingId: String
-    let onComplete: (Bool) -> Void
-    @Environment(\.dismiss) private var dismiss
     
-    var body: some View {
-        AddInventoryItemView(
-            buildingId: buildingId,
-            onComplete: { success in
-                onComplete(success)
-                dismiss()
+    struct SummaryStatCard: View {
+        let title: String
+        let value: String
+        let icon: String
+        let color: Color
+        
+        var body: some View {
+            VStack(spacing: 8) {
+                Image(systemName: icon)
+                    .font(.title2)
+                    .foregroundColor(color)
+                
+                Text(value)
+                    .font(.title3)
+                    .fontWeight(.bold)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                
+                Text(title)
+                    .font(.caption)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
             }
-        )
+            .frame(maxWidth: .infinity)
+            .padding()
+            .cyntientOpsDarkCardBackground()
+        }
     }
-}
-
-struct SpaceDetailSheet: View {
-    let space: SpaceAccess
-    let buildingName: String
-    let onUpdate: (SpaceAccess) -> Void
-    @Environment(\.dismiss) private var dismiss
     
-    var body: some View {
-        NavigationView {
-            VStack {
-                Text("Space Details")
-                    .font(.largeTitle)
-                Text(space.name)
-                    .font(.title)
-                Text(buildingName)
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
+    struct OnSiteWorkerRow: View {
+        let worker: BDAssignedWorker
+        
+        var body: some View {
+            HStack {
+                Circle()
+                    .fill(CyntientOpsDesign.DashboardColors.success)
+                    .frame(width: 8, height: 8)
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(worker.name)
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                    
+                    Text("Arrived \(Date().addingTimeInterval(-3600), style: .relative)")
+                        .font(.caption)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+                }
+                
+                Spacer()
+                
+                Text("On-site")
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.success)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 2)
+                    .background(
+                        Capsule()
+                            .fill(CyntientOpsDesign.DashboardColors.success.opacity(0.15))
+                    )
             }
-            .navigationTitle("Space Details")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Close") { dismiss() }
+        }
+    }
+    
+    struct AssignedWorkerRow: View {
+        let worker: BDAssignedWorker
+        
+        var body: some View {
+            HStack {
+                Circle()
+                    .fill(worker.isOnSite ? CyntientOpsDesign.DashboardColors.success : CyntientOpsDesign.DashboardColors.inactive)
+                    .frame(width: 8, height: 8)
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(worker.name)
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                    
+                    Text(worker.schedule)
+                        .font(.caption)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+                }
+                
+                Spacer()
+            }
+        }
+    }
+    
+    struct StatCard: View {
+        let title: String
+        let value: String
+        let icon: String
+        let color: Color
+        
+        var body: some View {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Image(systemName: icon)
+                        .font(.caption)
+                        .foregroundColor(color)
+                    Spacer()
+                }
+                
+                Text(value)
+                    .font(.title3)
+                    .fontWeight(.bold)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                
+                Text(title)
+                    .font(.caption)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+            }
+            .padding()
+            .frame(minWidth: 100)
+            .cyntientOpsDarkCardBackground()
+        }
+    }
+    
+    struct MaintenanceHistoryRow: View {
+        let record: CoreTypes.MaintenanceRecord
+        
+        var body: some View {
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(record.description)
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                    
+                    Text(record.completedAt, style: .date)
+                        .font(.caption)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+                }
+                
+                Spacer()
+                
+                if let cost = record.cost {
+                    Text(cost.formatted(.currency(code: "USD")))
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryAction)
                 }
             }
         }
     }
-}
-
-struct PhotoCaptureSheet: View {
-    let buildingId: String
-    let buildingName: String
-    let category: CoreTypes.CyntientOpsPhotoCategory
-    let onCapture: (UIImage, CoreTypes.CyntientOpsPhotoCategory, String) -> Void
-    @State private var capturedImage: UIImage?
-    @State private var notes = ""
-    @State private var selectedCategory: CoreTypes.CyntientOpsPhotoCategory
-    @Environment(\.dismiss) private var dismiss
     
-    init(buildingId: String, buildingName: String, category: CoreTypes.CyntientOpsPhotoCategory, onCapture: @escaping (UIImage, CoreTypes.CyntientOpsPhotoCategory, String) -> Void) {
-        self.buildingId = buildingId
-        self.buildingName = buildingName
-        self.category = category
-        self.onCapture = onCapture
-        self._selectedCategory = State(initialValue: category)
+    struct InventoryStatCard: View {
+        let title: String
+        let value: String
+        let icon: String
+        let color: Color
+        
+        var body: some View {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Image(systemName: icon)
+                        .font(.caption)
+                        .foregroundColor(color)
+                    Spacer()
+                }
+                
+                Text(value)
+                    .font(.title3)
+                    .fontWeight(.bold)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                
+                Text(title)
+                    .font(.caption)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+            }
+            .padding()
+            .frame(maxWidth: .infinity)
+            .cyntientOpsDarkCardBackground()
+        }
     }
     
-    var body: some View {
-        NavigationView {
-            if let image = capturedImage {
-                VStack {
-                    Image(uiImage: image)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(maxHeight: 300)
+    struct BuildingInventoryCategoryButton: View {
+        let category: CoreTypes.InventoryCategory
+        let isSelected: Bool
+        let action: () -> Void
+        
+        var body: some View {
+            Button(action: action) {
+                Text(category.rawValue.capitalized)
+                    .font(.caption)
+                    .fontWeight(isSelected ? .semibold : .regular)
+                    .foregroundColor(isSelected ? .white : CyntientOpsDesign.DashboardColors.secondaryText)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(
+                        Capsule()
+                            .fill(isSelected ? CyntientOpsDesign.DashboardColors.primaryAction : CyntientOpsDesign.DashboardColors.glassOverlay)
+                    )
+            }
+        }
+    }
+    
+    // BuildingInventoryItemRow removed - using the one from BuildingInventoryComponents.swift
+    
+    struct AccessCodeChip: View {
+        let code: BDAccessCode
+        @State private var isRevealed = false
+        
+        var body: some View {
+            HStack(spacing: 8) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(code.location)
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                     
-                    Form {
-                        Picker("Category", selection: $selectedCategory) {
-                            ForEach(CoreTypes.CyntientOpsPhotoCategory.allCases, id: \.self) { cat in
-                                Text(cat.rawValue.replacingOccurrences(of: "_", with: " ").capitalized)
-                                    .tag(cat)
+                    Text(isRevealed ? code.code : "••••")
+                        .font(.caption)
+                        .fontDesign(.monospaced)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryAction)
+                }
+                
+                Button(action: { isRevealed.toggle() }) {
+                    Image(systemName: isRevealed ? "eye.slash" : "eye")
+                        .font(.caption)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(
+                Capsule()
+                    .fill(CyntientOpsDesign.DashboardColors.glassOverlay)
+            )
+        }
+    }
+    
+    struct SpaceCard: View {
+        let space: SpaceAccess
+        let onTap: () -> Void
+        
+        var body: some View {
+            Button(action: onTap) {
+                VStack(alignment: .leading, spacing: 8) {
+                    if let photo = space.thumbnail {
+                        Image(uiImage: photo)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(height: 100)
+                            .clipped()
+                            .cornerRadius(8)
+                    } else {
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [
+                                        CyntientOpsDesign.DashboardColors.primaryAction.opacity(0.3),
+                                        CyntientOpsDesign.DashboardColors.primaryAction.opacity(0.1)
+                                    ]),
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .frame(height: 100)
+                            .overlay(
+                                Image(systemName: space.category.icon)
+                                    .font(.title)
+                                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryAction.opacity(0.5))
+                            )
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(space.name)
+                            .font(.caption)
+                            .fontWeight(.medium)
+                            .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                            .lineLimit(1)
+                        
+                        HStack(spacing: 6) {
+                            if space.requiresKey {
+                                Label("Key", systemImage: "key.fill")
+                                    .font(.caption2)
+                                    .foregroundColor(CyntientOpsDesign.DashboardColors.warning)
+                            }
+                            
+                            if space.accessCode != nil {
+                                Label("Code", systemImage: "lock.fill")
+                                    .font(.caption2)
+                                    .foregroundColor(CyntientOpsDesign.DashboardColors.info)
                             }
                         }
-                        
-                        TextField("Notes (optional)", text: $notes)
                     }
+                    .padding(.horizontal, 8)
+                    .padding(.bottom, 8)
+                }
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(CyntientOpsDesign.DashboardColors.glassOverlay)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(CyntientOpsDesign.DashboardColors.borderSubtle, lineWidth: 1)
+                        )
+                )
+            }
+            .buttonStyle(.plain)
+        }
+    }
+    
+    struct BuildingEmergencyContactRow: View {
+        let name: String
+        let role: String
+        let phone: String
+        let isPrimary: Bool
+        let onCall: () -> Void
+        
+        var body: some View {
+            HStack {
+                Circle()
+                    .fill(isPrimary ? CyntientOpsDesign.DashboardColors.critical.opacity(0.2) : CyntientOpsDesign.DashboardColors.info.opacity(0.2))
+                    .frame(width: 44, height: 44)
+                    .overlay(
+                        Image(systemName: "phone.fill")
+                            .foregroundColor(isPrimary ? CyntientOpsDesign.DashboardColors.critical : CyntientOpsDesign.DashboardColors.info)
+                    )
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(name)
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                     
+                    Text(role)
+                        .font(.caption)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                    
+                    Text(phone)
+                        .font(.caption)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+                }
+                
+                Spacer()
+                
+                Button(action: onCall) {
+                    Image(systemName: "phone.arrow.up.right")
+                        .foregroundColor(.white)
+                        .frame(width: 36, height: 36)
+                        .background(
+                            Circle()
+                                .fill(isPrimary ? CyntientOpsDesign.DashboardColors.critical : CyntientOpsDesign.DashboardColors.info)
+                        )
+                }
+            }
+        }
+    }
+    
+    // EmergencyActionButton removed - using the public one from AccessModeComponents.swift
+    
+    struct BuildingProcedureRow: View {
+        let title: String
+        let icon: String
+        let color: Color
+        let steps: [String]
+        @State private var isExpanded = false
+        
+        var body: some View {
+            VStack(alignment: .leading, spacing: 8) {
+                Button(action: { withAnimation { isExpanded.toggle() } }) {
                     HStack {
-                        Button("Retake") {
-                            capturedImage = nil
-                        }
-                        .foregroundColor(.red)
+                        Image(systemName: icon)
+                            .foregroundColor(color)
+                        
+                        Text(title)
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                         
                         Spacer()
                         
-                        Button("Save") {
-                            onCapture(image, selectedCategory, notes)
-                            dismiss()
-                        }
-                        .fontWeight(.semibold)
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+                            .rotationEffect(.degrees(isExpanded ? 90 : 0))
                     }
-                    .padding()
                 }
-                .navigationTitle("Photo Details")
+                .buttonStyle(.plain)
+                
+                if isExpanded {
+                    VStack(alignment: .leading, spacing: 6) {
+                        ForEach(Array(steps.enumerated()), id: \.offset) { index, step in
+                            HStack(alignment: .top, spacing: 8) {
+                                Text("\(index + 1).")
+                                    .font(.caption)
+                                    .fontWeight(.medium)
+                                    .foregroundColor(color)
+                                
+                                Text(step)
+                                    .font(.caption)
+                                    .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                            }
+                        }
+                    }
+                    .padding(.leading, 28)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+                }
+            }
+        }
+    }
+    
+    // MARK: - Sheet Views
+    
+    struct BuildingAddInventoryItemSheet: View {
+        let buildingId: String
+        let onComplete: (Bool) -> Void
+        @Environment(\.dismiss) private var dismiss
+        
+        var body: some View {
+            AddInventoryItemView(
+                buildingId: buildingId,
+                onComplete: { success in
+                    onComplete(success)
+                    dismiss()
+                }
+            )
+        }
+    }
+    
+    struct SpaceDetailSheet: View {
+        let space: SpaceAccess
+        let buildingName: String
+        let onUpdate: (SpaceAccess) -> Void
+        @Environment(\.dismiss) private var dismiss
+        
+        var body: some View {
+            NavigationView {
+                VStack {
+                    Text("Space Details")
+                        .font(.largeTitle)
+                    Text(space.name)
+                        .font(.title)
+                    Text(buildingName)
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+                .navigationTitle("Space Details")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Close") { dismiss() }
+                    }
+                }
+            }
+        }
+    }
+    
+    struct PhotoCaptureSheet: View {
+        let buildingId: String
+        let buildingName: String
+        let category: CoreTypes.CyntientOpsPhotoCategory
+        let onCapture: (UIImage, CoreTypes.CyntientOpsPhotoCategory, String) -> Void
+        @State private var capturedImage: UIImage?
+        @State private var notes = ""
+        @State private var selectedCategory: CoreTypes.CyntientOpsPhotoCategory
+        @Environment(\.dismiss) private var dismiss
+        
+        init(buildingId: String, buildingName: String, category: CoreTypes.CyntientOpsPhotoCategory, onCapture: @escaping (UIImage, CoreTypes.CyntientOpsPhotoCategory, String) -> Void) {
+            self.buildingId = buildingId
+            self.buildingName = buildingName
+            self.category = category
+            self.onCapture = onCapture
+            self._selectedCategory = State(initialValue: category)
+        }
+        
+        var body: some View {
+            NavigationView {
+                if let image = capturedImage {
+                    VStack {
+                        Image(uiImage: image)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(maxHeight: 300)
+                        
+                        Form {
+                            Picker("Category", selection: $selectedCategory) {
+                                ForEach(CoreTypes.CyntientOpsPhotoCategory.allCases, id: \.self) { cat in
+                                    Text(cat.rawValue.replacingOccurrences(of: "_", with: " ").capitalized)
+                                        .tag(cat)
+                                }
+                            }
+                            
+                            TextField("Notes (optional)", text: $notes)
+                        }
+                        
+                        HStack {
+                            Button("Retake") {
+                                capturedImage = nil
+                            }
+                            .foregroundColor(.red)
+                            
+                            Spacer()
+                            
+                            Button("Save") {
+                                onCapture(image, selectedCategory, notes)
+                                dismiss()
+                            }
+                            .fontWeight(.semibold)
+                        }
+                        .padding()
+                    }
+                    .navigationTitle("Photo Details")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("Cancel") { dismiss() }
+                        }
+                    }
+                } else {
+                    BuildingCameraView(image: $capturedImage)
+                        .navigationBarHidden(true)
+                }
+            }
+        }
+    }
+    
+    // MARK: - Camera View (Renamed to avoid conflicts)
+    struct BuildingCameraView: UIViewControllerRepresentable {
+        @Binding var image: UIImage?
+        @Environment(\.dismiss) private var dismiss
+        
+        func makeUIViewController(context: Context) -> UIImagePickerController {
+            let picker = UIImagePickerController()
+            picker.sourceType = .camera
+            picker.delegate = context.coordinator
+            return picker
+        }
+        
+        func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
+        
+        func makeCoordinator() -> Coordinator {
+            Coordinator(self)
+        }
+        
+        class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+            let parent: BuildingCameraView
+            
+            init(_ parent: BuildingCameraView) {
+                self.parent = parent
+            }
+            
+            func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
+                if let image = info[.originalImage] as? UIImage {
+                    parent.image = image
+                }
+                picker.dismiss(animated: true)
+            }
+            
+            func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+                parent.dismiss()
+            }
+        }
+    }
+    
+    struct MessageComposerView: View {
+        let recipients: [String]
+        let subject: String
+        let prefilledBody: String
+        @Environment(\.dismiss) private var dismiss
+        
+        var body: some View {
+            NavigationView {
+                VStack {
+                    Text("Message Composer")
+                        .font(.largeTitle)
+                    Text("To: \(recipients.joined(separator: ", "))")
+                    Text("Subject: \(subject)")
+                }
+                .navigationTitle("Compose Message")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
                         Button("Cancel") { dismiss() }
                     }
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Send") { dismiss() }
+                    }
                 }
-            } else {
-                BuildingCameraView(image: $capturedImage)
-                    .navigationBarHidden(true)
             }
         }
     }
-}
-
-// MARK: - Camera View (Renamed to avoid conflicts)
-struct BuildingCameraView: UIViewControllerRepresentable {
-    @Binding var image: UIImage?
-    @Environment(\.dismiss) private var dismiss
     
-    func makeUIViewController(context: Context) -> UIImagePickerController {
-        let picker = UIImagePickerController()
-        picker.sourceType = .camera
-        picker.delegate = context.coordinator
-        return picker
-    }
-    
-    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
-    
-    func makeCoordinator() -> Coordinator {
-        Coordinator(self)
-    }
-    
-    class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
-        let parent: BuildingCameraView
+    struct BuildingAddInventoryItemView: View {
+        let buildingId: String
+        let onComplete: (Bool) -> Void
         
-        init(_ parent: BuildingCameraView) {
-            self.parent = parent
-        }
-        
-        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
-            if let image = info[.originalImage] as? UIImage {
-                parent.image = image
-            }
-            picker.dismiss(animated: true)
-        }
-        
-        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
-            parent.dismiss()
-        }
-    }
-}
-
-struct MessageComposerView: View {
-    let recipients: [String]
-    let subject: String
-    let prefilledBody: String
-    @Environment(\.dismiss) private var dismiss
-    
-    var body: some View {
-        NavigationView {
+        var body: some View {
             VStack {
-                Text("Message Composer")
+                Text("Add Inventory Item")
                     .font(.largeTitle)
-                Text("To: \(recipients.joined(separator: ", "))")
-                Text("Subject: \(subject)")
-            }
-            .navigationTitle("Compose Message")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Send") { dismiss() }
+                Text("Building: \(buildingId)")
+                
+                Button("Save") {
+                    onComplete(true)
                 }
             }
         }
     }
-}
-
-struct BuildingAddInventoryItemView: View {
-    let buildingId: String
-    let onComplete: (Bool) -> Void
     
-    var body: some View {
-        VStack {
-            Text("Add Inventory Item")
-                .font(.largeTitle)
-            Text("Building: \(buildingId)")
-            
-            Button("Save") {
-                onComplete(true)
-            }
+    // MARK: - Building Sanitation Tab
+    
+    typealias BDDailyRoutine = LocalDailyRoutine
+    typealias BDAssignedWorker = AssignedWorker
+    typealias BDSpaceAccess = SpaceAccess
+    typealias BDAccessCode = AccessCode
+    typealias BuildingContact = BDBuildingContact
+    
+    struct BuildingSanitationTab: View {
+        let buildingId: String
+        let buildingName: String
+        @ObservedObject var viewModel: BuildingDetailViewModel
+        @State private var selectedFilter: SanitationFilter = .today
+        
+        enum SanitationFilter: String, CaseIterable {
+            case today = "Today"
+            case week = "This Week"
+            case schedule = "Full Schedule"
         }
-    }
-}
-
-// MARK: - Building Sanitation Tab
-
-typealias BDDailyRoutine = LocalDailyRoutine
-typealias BDAssignedWorker = AssignedWorker
-typealias BDSpaceAccess = SpaceAccess
-typealias BDAccessCode = AccessCode
-typealias BuildingContact = BDBuildingContact
-
-struct BuildingSanitationTab: View {
-    let buildingId: String
-    let buildingName: String
-    @ObservedObject var viewModel: BuildingDetailViewModel
-    @State private var selectedFilter: SanitationFilter = .today
-    
-    enum SanitationFilter: String, CaseIterable {
-        case today = "Today"
-        case week = "This Week"
-        case schedule = "Full Schedule"
-    }
-    
-    var body: some View {
-        VStack(spacing: 20) {
-            // DSNY Schedule overview
-            dsnyScheduleCard
-                .animatedGlassAppear(delay: 0.1)
-            
-            // Filter picker
-            Picker("Filter", selection: $selectedFilter) {
-                ForEach(SanitationFilter.allCases, id: \.self) { filter in
-                    Text(filter.rawValue).tag(filter)
+        
+        var body: some View {
+            VStack(spacing: 20) {
+                // DSNY Schedule overview
+                dsnyScheduleCard
+                    .animatedGlassAppear(delay: 0.1)
+                
+                // Filter picker
+                Picker("Filter", selection: $selectedFilter) {
+                    ForEach(SanitationFilter.allCases, id: \.self) { filter in
+                        Text(filter.rawValue).tag(filter)
+                    }
                 }
+                .pickerStyle(SegmentedPickerStyle())
+                .padding(.horizontal)
+                
+                // Sanitation tasks for today
+                sanitationTasksCard
+                    .animatedGlassAppear(delay: 0.2)
+                
+                // Compliance status
+                sanitationComplianceCard
+                    .animatedGlassAppear(delay: 0.3)
             }
-            .pickerStyle(SegmentedPickerStyle())
-            .padding(.horizontal)
-            
-            // Sanitation tasks for today
-            sanitationTasksCard
-                .animatedGlassAppear(delay: 0.2)
-            
-            // Compliance status
-            sanitationComplianceCard
-                .animatedGlassAppear(delay: 0.3)
+            .padding()
         }
-        .padding()
-    }
-    
-    private var dsnyScheduleCard: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Label(selectedFilter == .schedule ? "DSNY Monthly Schedule" : "DSNY Collection Schedule", systemImage: "trash.circle.fill")
-                .font(.headline)
-                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-            
-            VStack(spacing: 12) {
-                if selectedFilter == .schedule {
-                    // Show full month schedule using real DSNY data
-                    ScrollView {
-                        VStack(spacing: 8) {
-                            ForEach(generateRealDSNYSchedule(), id: \.day) { scheduleItem in
+        
+        private var dsnyScheduleCard: some View {
+            VStack(alignment: .leading, spacing: 16) {
+                Label(selectedFilter == .schedule ? "DSNY Monthly Schedule" : "DSNY Collection Schedule", systemImage: "trash.circle.fill")
+                    .font(.headline)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                
+                VStack(spacing: 12) {
+                    if selectedFilter == .schedule {
+                        // Show full month schedule using real DSNY data
+                        ScrollView {
+                            VStack(spacing: 8) {
+                                ForEach(generateRealDSNYSchedule(), id: \.day) { scheduleItem in
+                                    DSNYScheduleRow(
+                                        day: scheduleItem.day,
+                                        time: scheduleItem.time,
+                                        items: scheduleItem.items,
+                                        isToday: scheduleItem.isToday
+                                    )
+                                }
+                            }
+                        }
+                        .frame(maxHeight: 300)
+                    } else {
+                        // Show current week schedule using real DSNY data from dailyRoutines
+                        let dsnyRoutines = viewModel.dailyRoutines.filter { $0.title.contains("DSNY") }
+                        
+                        if dsnyRoutines.isEmpty {
+                            // Fallback to default schedule if no real data
+                            DSNYScheduleRow(
+                                day: "Today",
+                                time: "8:00 PM - Set Out",
+                                items: "Trash, Recycling",
+                                isToday: true
+                            )
+                            
+                            DSNYScheduleRow(
+                                day: "Monday",
+                                time: "6:00 AM - Collection",
+                                items: "Regular Pickup",
+                                isToday: false
+                            )
+                        } else {
+                            // Use real DSNY routines from OperationalDataManager
+                            ForEach(dsnyRoutines.prefix(4), id: \.id) { routine in
                                 DSNYScheduleRow(
-                                    day: scheduleItem.day,
-                                    time: scheduleItem.time,
-                                    items: scheduleItem.items,
-                                    isToday: scheduleItem.isToday
+                                    day: routine.isCompleted ? "Completed" : "Today",
+                                    time: routine.scheduledTime ?? "8:00 PM",
+                                    items: routine.title.replacingOccurrences(of: "DSNY: ", with: ""),
+                                    isToday: !routine.isCompleted
                                 )
                             }
                         }
                     }
-                    .frame(maxHeight: 300)
-                } else {
-                    // Show current week schedule using real DSNY data from dailyRoutines
-                    let dsnyRoutines = viewModel.dailyRoutines.filter { $0.title.contains("DSNY") }
+                }
+            }
+            .padding()
+            .cyntientOpsDarkCardBackground()
+        }
+        
+        private func generateRealDSNYSchedule() -> [(day: String, time: String, items: String, isToday: Bool)] {
+            // Use real DSNY data from OperationalDataManager if available
+            let dsnyRoutines = viewModel.dailyRoutines.filter { $0.title.contains("DSNY") }
+            
+            if !dsnyRoutines.isEmpty {
+                // Use real DSNY routine data
+                return dsnyRoutines.map { routine in
+                    let dayName = routine.isCompleted ? "✅ Completed" : Calendar.current.isDateInToday(Date()) ? "Today" : "Scheduled"
+                    return (
+                        day: dayName,
+                        time: routine.scheduledTime ?? "8:00 PM",
+                        items: routine.title.replacingOccurrences(of: "DSNY: ", with: ""),
+                        isToday: Calendar.current.isDateInToday(Date()) && !routine.isCompleted
+                    )
+                }
+            }
+            
+            // Fallback to generated schedule if no real data
+            return generateMonthlyDSNYSchedule()
+        }
+        
+        private func generateMonthlyDSNYSchedule() -> [(day: String, time: String, items: String, isToday: Bool)] {
+            let calendar = Calendar.current
+            let now = Date()
+            let startOfMonth = calendar.dateInterval(of: .month, for: now)?.start ?? now
+            let daysInMonth = calendar.range(of: .day, in: .month, for: now)?.count ?? 30
+            
+            var schedule: [(day: String, time: String, items: String, isToday: Bool)] = []
+            
+            for day in 1...daysInMonth {
+                guard let date = calendar.date(byAdding: .day, value: day - 1, to: startOfMonth) else { continue }
+                
+                let dayOfWeek = calendar.component(.weekday, from: date)
+                let dayName = calendar.weekdaySymbols[dayOfWeek - 1]
+                let dayNumber = calendar.component(.day, from: date)
+                let isToday = calendar.isDate(date, inSameDayAs: now)
+                
+                // Monday, Wednesday, Friday collection (2, 4, 6 in weekday where Sunday = 1)
+                if dayOfWeek == 2 || dayOfWeek == 4 || dayOfWeek == 6 {
+                    schedule.append((
+                        day: "\(dayName) \(dayNumber)",
+                        time: "6:00 AM - Collection",
+                        items: "Regular Pickup",
+                        isToday: isToday
+                    ))
                     
-                    if dsnyRoutines.isEmpty {
-                        // Fallback to default schedule if no real data
-                        DSNYScheduleRow(
-                            day: "Today",
+                    // Add set-out the night before
+                    if let previousDay = calendar.date(byAdding: .day, value: -1, to: date) {
+                        let prevDayOfWeek = calendar.component(.weekday, from: previousDay)
+                        let prevDayName = calendar.weekdaySymbols[prevDayOfWeek - 1]
+                        let prevDayNumber = calendar.component(.day, from: previousDay)
+                        let isPrevToday = calendar.isDate(previousDay, inSameDayAs: now)
+                        
+                        schedule.append((
+                            day: "\(prevDayName) \(prevDayNumber)",
                             time: "8:00 PM - Set Out",
                             items: "Trash, Recycling",
-                            isToday: true
-                        )
-                        
-                        DSNYScheduleRow(
-                            day: "Monday",
-                            time: "6:00 AM - Collection",
-                            items: "Regular Pickup",
-                            isToday: false
-                        )
-                    } else {
-                        // Use real DSNY routines from OperationalDataManager
-                        ForEach(dsnyRoutines.prefix(4), id: \.id) { routine in
-                            DSNYScheduleRow(
-                                day: routine.isCompleted ? "Completed" : "Today",
-                                time: routine.scheduledTime ?? "8:00 PM",
-                                items: routine.title.replacingOccurrences(of: "DSNY: ", with: ""),
-                                isToday: !routine.isCompleted
-                            )
-                        }
+                            isToday: isPrevToday
+                        ))
                     }
                 }
             }
-        }
-        .padding()
-        .cyntientOpsDarkCardBackground()
-    }
-    
-    private func generateRealDSNYSchedule() -> [(day: String, time: String, items: String, isToday: Bool)] {
-        // Use real DSNY data from OperationalDataManager if available
-        let dsnyRoutines = viewModel.dailyRoutines.filter { $0.title.contains("DSNY") }
-        
-        if !dsnyRoutines.isEmpty {
-            // Use real DSNY routine data
-            return dsnyRoutines.map { routine in
-                let dayName = routine.isCompleted ? "✅ Completed" : Calendar.current.isDateInToday(Date()) ? "Today" : "Scheduled"
-                return (
-                    day: dayName,
-                    time: routine.scheduledTime ?? "8:00 PM",
-                    items: routine.title.replacingOccurrences(of: "DSNY: ", with: ""),
-                    isToday: Calendar.current.isDateInToday(Date()) && !routine.isCompleted
-                )
-            }
+            
+            return schedule.sorted { $0.day < $1.day }
         }
         
-        // Fallback to generated schedule if no real data
-        return generateMonthlyDSNYSchedule()
-    }
-    
-    private func generateMonthlyDSNYSchedule() -> [(day: String, time: String, items: String, isToday: Bool)] {
-        let calendar = Calendar.current
-        let now = Date()
-        let startOfMonth = calendar.dateInterval(of: .month, for: now)?.start ?? now
-        let daysInMonth = calendar.range(of: .day, in: .month, for: now)?.count ?? 30
-        
-        var schedule: [(day: String, time: String, items: String, isToday: Bool)] = []
-        
-        for day in 1...daysInMonth {
-            guard let date = calendar.date(byAdding: .day, value: day - 1, to: startOfMonth) else { continue }
-            
-            let dayOfWeek = calendar.component(.weekday, from: date)
-            let dayName = calendar.weekdaySymbols[dayOfWeek - 1]
-            let dayNumber = calendar.component(.day, from: date)
-            let isToday = calendar.isDate(date, inSameDayAs: now)
-            
-            // Monday, Wednesday, Friday collection (2, 4, 6 in weekday where Sunday = 1)
-            if dayOfWeek == 2 || dayOfWeek == 4 || dayOfWeek == 6 {
-                schedule.append((
-                    day: "\(dayName) \(dayNumber)",
-                    time: "6:00 AM - Collection",
-                    items: "Regular Pickup",
-                    isToday: isToday
-                ))
-                
-                // Add set-out the night before
-                if let previousDay = calendar.date(byAdding: .day, value: -1, to: date) {
-                    let prevDayOfWeek = calendar.component(.weekday, from: previousDay)
-                    let prevDayName = calendar.weekdaySymbols[prevDayOfWeek - 1]
-                    let prevDayNumber = calendar.component(.day, from: previousDay)
-                    let isPrevToday = calendar.isDate(previousDay, inSameDayAs: now)
-                    
-                    schedule.append((
-                        day: "\(prevDayName) \(prevDayNumber)",
-                        time: "8:00 PM - Set Out",
-                        items: "Trash, Recycling",
-                        isToday: isPrevToday
-                    ))
-                }
-            }
-        }
-        
-        return schedule.sorted { $0.day < $1.day }
-    }
-    
-    private var sanitationTasksCard: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Label("Sanitation Tasks", systemImage: "checkmark.circle.fill")
-                .font(.headline)
-                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-            
-            let sanitationTasks = viewModel.dailyRoutines.filter { $0.title.contains("DSNY") || $0.title.contains("Trash") }
-            
-            if sanitationTasks.isEmpty {
-                EmptyStateMessage(message: "No sanitation tasks scheduled")
-            } else {
-                VStack(spacing: 12) {
-                    ForEach(sanitationTasks) { routine in
-                        BDSanitationTaskRow(routine: BDDailyRoutine(
-                            id: routine.id,
-                            title: routine.title,
-                            scheduledTime: routine.scheduledTime,
-                            isCompleted: routine.isCompleted,
-                            assignedWorker: routine.assignedWorker
-                        )) {
-                            viewModel.toggleRoutineCompletion(routine)
-                        }
-                    }
-                }
-            }
-        }
-        .padding()
-        .cyntientOpsDarkCardBackground()
-    }
-    
-    private var sanitationComplianceCard: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Label("DSNY Compliance & Violations", systemImage: "exclamationmark.triangle.fill")
-                .font(.headline)
-                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-            
-            VStack(spacing: 12) {
-                ComplianceRow(
-                    title: "DSNY Compliance Status",
-                    status: viewModel.dsnyCompliance,
-                    nextAction: viewModel.nextDSNYAction
-                )
-                
-                // Real DSNY Violations Section - Now using real NYC API data
-                if !viewModel.rawDSNYViolations.isEmpty {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Active DSNY Violations (\(viewModel.rawDSNYViolations.count))")
-                            .font(.subheadline)
-                            .fontWeight(.semibold)
-                            .foregroundColor(CyntientOpsDesign.DashboardColors.warning)
-                        
-                        let recentViolations: [DSNYViolation] = Array(viewModel.rawDSNYViolations.prefix(3))
-                        ForEach(recentViolations, id: \.id) { violation in
-                            HStack {
-                                Circle()
-                                    .fill(violation.isActive ? CyntientOpsDesign.DashboardColors.critical : CyntientOpsDesign.DashboardColors.success)
-                                    .frame(width: 8, height: 8)
-                                
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(violation.violationType)
-                                        .font(.caption)
-                                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-                                    
-                                    Text("Issued: \(violation.issueDate)")
-                                        .font(.caption2)
-                                        .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
-                                }
-                                
-                                Spacer()
-                                
-                                Text((violation.fineAmount ?? 0) > 0 ? "$\(Int(violation.fineAmount ?? 0))" : "Pending")
-                                    .font(.caption)
-                                    .foregroundColor((violation.fineAmount ?? 0) > 0 ? CyntientOpsDesign.DashboardColors.critical : CyntientOpsDesign.DashboardColors.warning)
-                            }
-                        }
-                    }
-                } else {
-                    Text("✅ No active DSNY violations")
-                        .font(.subheadline)
-                        .foregroundColor(CyntientOpsDesign.DashboardColors.success)
-                }
-
-                // Recent DSNY Tickets - leverage historical ticket data
-                let tickets = viewModel.recentDSNYTickets
-                if !tickets.isEmpty {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Recent DSNY Tickets (\(tickets.count))")
-                            .font(.subheadline)
-                            .fontWeight(.semibold)
-                            .foregroundColor(CyntientOpsDesign.DashboardColors.warning)
-                        ForEach(Array(tickets.prefix(3)), id: \.id) { t in
-                            HStack {
-                                Circle()
-                                    .fill(CyntientOpsDesign.DashboardColors.critical)
-                                    .frame(width: 8, height: 8)
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(t.type)
-                                        .font(.caption)
-                                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-                                    Text("Issued: \(t.issueDate, style: .date)")
-                                        .font(.caption2)
-                                        .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
-                                }
-                                Spacer()
-                                Text(t.fineAmount > 0 ? "$\(Int(t.fineAmount))" : "Pending")
-                                    .font(.caption)
-                                    .foregroundColor(t.fineAmount > 0 ? CyntientOpsDesign.DashboardColors.critical : CyntientOpsDesign.DashboardColors.warning)
-                            }
-                        }
-                    }
-                }
-
-                ComplianceRow(
-                    title: "Set-Out Schedule",
-                    status: .compliant,
-                    nextAction: "Next set-out: Today 8:00 PM"
-                )
-            }
-        }
-        .padding()
-        .cyntientOpsDarkCardBackground()
-    }
-}
-
-// MARK: - Supporting Components for Sanitation Tab
-
-public struct DSNYScheduleRow: View {
-    let day: String
-    let time: String
-    let items: String
-    let isToday: Bool
-    
-    var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(day)
-                    .font(.subheadline)
-                    .fontWeight(isToday ? .bold : .medium)
-                    .foregroundColor(isToday ? CyntientOpsDesign.DashboardColors.secondaryAction : CyntientOpsDesign.DashboardColors.primaryText)
-                
-                Text(time)
-                    .font(.caption)
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
-            }
-            
-            Spacer()
-            
-            VStack(alignment: .trailing, spacing: 4) {
-                Text(items)
-                    .font(.subheadline)
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-                
-                if isToday {
-                    Text("TODAY")
-                        .font(.caption2)
-                        .fontWeight(.bold)
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 2)
-                        .background(CyntientOpsDesign.DashboardColors.secondaryAction)
-                        .cornerRadius(4)
-                }
-            }
-        }
-        .padding(.vertical, 4)
-    }
-}
-
-// MARK: - Building Media Tab
-
-struct BuildingMediaTab: View {
-    let buildingId: String
-    let buildingName: String
-    let container: ServiceContainer
-    @ObservedObject var viewModel: BuildingDetailViewModel
-    
-    @State private var isLoading = true
-    @State private var mediaItems: [CoreTypes.ProcessedPhoto] = []
-    @State private var selectedCategory: CoreTypes.CyntientOpsPhotoCategory? = nil
-    @State private var selectedMediaType: String = "all" // all | image | video
-    @State private var selectedSpaceId: String? = nil
-    @State private var latestBySpace: [String: CoreTypes.ProcessedPhoto] = [:]
-    @State private var showPairs: Bool = false
-    @State private var showViewer: Bool = false
-    @State private var viewerItem: CoreTypes.ProcessedPhoto? = nil
-    
-    private var photosDirectory: URL {
-        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("Photos")
-    }
-    private var videosDirectory: URL {
-        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("Videos")
-    }
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            // Header + filters
-            HStack {
-                Label("Media", systemImage: "photo.on.rectangle.angled")
+        private var sanitationTasksCard: some View {
+            VStack(alignment: .leading, spacing: 16) {
+                Label("Sanitation Tasks", systemImage: "checkmark.circle.fill")
                     .font(.headline)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-                Spacer()
-                Menu {
-                    Button("All Categories") { selectedCategory = nil; Task { await loadMedia() } }
-                    ForEach(CoreTypes.CyntientOpsPhotoCategory.allCases, id: \.self) { cat in
-                        Button(cat.displayName) { selectedCategory = cat; Task { await loadMedia(selectedSpaceId) } }
-                    }
-                } label: {
-                    Label(selectedCategory?.displayName ?? "All", systemImage: "line.3.horizontal.decrease.circle")
-                }
-                .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
-            }
-            // Media type filter
-            Picker("Type", selection: $selectedMediaType) {
-                Text("All").tag("all")
-                Text("Images").tag("image")
-                Text("Videos").tag("video")
-            }
-            .pickerStyle(.segmented)
-            .onChange(of: selectedMediaType) { _ in
-                Task { await loadMedia(selectedSpaceId) }
-            }
-            // Location chips
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 10) {
-                    Button(action: { selectedSpaceId = nil; Task { await loadMedia(nil) } }) {
-                        Label("All Locations", systemImage: "square.grid.2x2").font(.caption)
-                    }
-                    .padding(.horizontal, 10).padding(.vertical, 6)
-                    .background((selectedSpaceId == nil ? CyntientOpsDesign.DashboardColors.secondaryAction : Color.clear).opacity(0.2))
-                    .cornerRadius(8)
-                    ForEach(viewModel.spaces) { space in
-                        Button(action: { selectedSpaceId = space.id; Task { await loadMedia(space.id) } }) {
-                            HStack(spacing: 6) {
-                                Image(systemName: "key.fill").font(.caption2)
-                                Text(space.name).font(.caption)
+                
+                let sanitationTasks = viewModel.dailyRoutines.filter { $0.title.contains("DSNY") || $0.title.contains("Trash") }
+                
+                if sanitationTasks.isEmpty {
+                    EmptyStateMessage(message: "No sanitation tasks scheduled")
+                } else {
+                    VStack(spacing: 12) {
+                        ForEach(sanitationTasks) { routine in
+                            BDSanitationTaskRow(routine: BDDailyRoutine(
+                                id: routine.id,
+                                title: routine.title,
+                                scheduledTime: routine.scheduledTime,
+                                isCompleted: routine.isCompleted,
+                                assignedWorker: routine.assignedWorker
+                            )) {
+                                viewModel.toggleRoutineCompletion(routine)
                             }
                         }
-                        .padding(.horizontal, 10).padding(.vertical, 6)
-                        .background((selectedSpaceId == space.id ? CyntientOpsDesign.DashboardColors.secondaryAction : Color.clear).opacity(0.2))
-                        .cornerRadius(8)
                     }
                 }
             }
-            
-            if isLoading {
+            .padding()
+            .cyntientOpsDarkCardBackground()
+        }
+        
+        private var sanitationComplianceCard: some View {
+            VStack(alignment: .leading, spacing: 16) {
+                Label("DSNY Compliance & Violations", systemImage: "exclamationmark.triangle.fill")
+                    .font(.headline)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                
                 VStack(spacing: 12) {
-                    ProgressView()
-                    Text("Loading media...")
-                        .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 32)
-                .glassCard()
-            } else if mediaItems.isEmpty && selectedSpaceId != nil {
-                EmptyStateMessage(message: "No media found for this building")
-            } else {
-                if selectedSpaceId == nil {
-                    // Utility Rooms albums
-                    if !viewModel.spaces.isEmpty {
+                    ComplianceRow(
+                        title: "DSNY Compliance Status",
+                        status: viewModel.dsnyCompliance,
+                        nextAction: viewModel.nextDSNYAction
+                    )
+                    
+                    // Real DSNY Violations Section - Now using real NYC API data
+                    if !viewModel.rawDSNYViolations.isEmpty {
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("Utility Rooms").font(.subheadline).foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
-                            let cols = [GridItem(.adaptive(minimum: 140), spacing: 12)]
-                            LazyVGrid(columns: cols, spacing: 12) {
-                                ForEach(viewModel.spaces) { space in
-                                    VStack(alignment: .leading, spacing: 6) {
-                                        ZStack(alignment: .bottomLeading) {
-                                            if let latest = latestBySpace[space.id] {
-                                                thumbnailView(for: latest).frame(height: 90).clipped()
-                                            } else {
-                                                ZStack { Color.gray.opacity(0.15); Image(systemName: "photo").foregroundColor(.gray) }.frame(height: 90)
-                                            }
-                                            Text(space.name)
-                                                .font(.caption)
-                                                .padding(6)
-                                                .background(Color.black.opacity(0.4))
-                                                .cornerRadius(6)
-                                                .foregroundColor(.white)
-                                                .padding(6)
-                                        }
-                                        Button("Open Album") { selectedSpaceId = space.id; Task { await loadMedia(space.id) } }
+                            Text("Active DSNY Violations (\(viewModel.rawDSNYViolations.count))")
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                                .foregroundColor(CyntientOpsDesign.DashboardColors.warning)
+                            
+                            let recentViolations: [DSNYViolation] = Array(viewModel.rawDSNYViolations.prefix(3))
+                            ForEach(recentViolations, id: \.id) { violation in
+                                HStack {
+                                    Circle()
+                                        .fill(violation.isActive ? CyntientOpsDesign.DashboardColors.critical : CyntientOpsDesign.DashboardColors.success)
+                                        .frame(width: 8, height: 8)
+                                    
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(violation.violationType)
                                             .font(.caption)
-                                            .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryAction)
+                                            .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                                        
+                                        Text("Issued: \(violation.issueDate)")
+                                            .font(.caption2)
+                                            .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
                                     }
-                                    .glassCard()
+                                    
+                                    Spacer()
+                                    
+                                    Text((violation.fineAmount ?? 0) > 0 ? "$\(Int(violation.fineAmount ?? 0))" : "Pending")
+                                        .font(.caption)
+                                        .foregroundColor((violation.fineAmount ?? 0) > 0 ? CyntientOpsDesign.DashboardColors.critical : CyntientOpsDesign.DashboardColors.warning)
+                                }
+                            }
+                        }
+                    } else {
+                        Text("✅ No active DSNY violations")
+                            .font(.subheadline)
+                            .foregroundColor(CyntientOpsDesign.DashboardColors.success)
+                    }
+                    
+                    // Recent DSNY Tickets - leverage historical ticket data
+                    let tickets = viewModel.recentDSNYTickets
+                    if !tickets.isEmpty {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Recent DSNY Tickets (\(tickets.count))")
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                                .foregroundColor(CyntientOpsDesign.DashboardColors.warning)
+                            ForEach(Array(tickets.prefix(3)), id: \.id) { t in
+                                HStack {
+                                    Circle()
+                                        .fill(CyntientOpsDesign.DashboardColors.critical)
+                                        .frame(width: 8, height: 8)
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(t.type)
+                                            .font(.caption)
+                                            .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                                        Text("Issued: \(t.issueDate, style: .date)")
+                                            .font(.caption2)
+                                            .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+                                    }
+                                    Spacer()
+                                    Text(t.fineAmount > 0 ? "$\(Int(t.fineAmount))" : "Pending")
+                                        .font(.caption)
+                                        .foregroundColor(t.fineAmount > 0 ? CyntientOpsDesign.DashboardColors.critical : CyntientOpsDesign.DashboardColors.warning)
                                 }
                             }
                         }
                     }
-                    // Recent media grid
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Recent Media").font(.subheadline).foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
-                        mediaGrid(items: mediaItems)
-                    }
-                } else {
-                    // Pairing toggle for before/after
-                    HStack {
-                        Toggle(isOn: $showPairs) {
-                            Text("Pair Before/After")
-                                .font(.caption)
-                                .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
-                        }
-                        .toggleStyle(SwitchToggleStyle(tint: CyntientOpsDesign.DashboardColors.secondaryAction))
-                        Spacer()
-                    }
-                    if showPairs {
-                        pairedView(items: mediaItems)
-                    } else {
-                        mediaGrid(items: mediaItems)
-                    }
-                }
-            }
-        }
-        .task { await loadMedia(); await loadLatestForSpaces() }
-        .sheet(isPresented: $showViewer) {
-            if let item = viewerItem {
-                MediaViewer(item: item, photosDirectory: photosDirectory, videosDirectory: videosDirectory)
-            }
-        }
-    }
-    
-    @ViewBuilder
-    private func thumbnailView(for item: CoreTypes.ProcessedPhoto) -> some View {
-        let thumbURL = photosDirectory.appendingPathComponent(item.thumbnailPath)
-        if let image = UIImage(contentsOfFile: thumbURL.path) {
-            ZStack {
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFill()
-                    .clipped()
-                if item.mediaType == "video" {
-                    Image(systemName: "play.circle.fill")
-                        .font(.system(size: 28, weight: .semibold))
-                        .foregroundColor(.white)
-                        .shadow(radius: 2)
-                }
-            }
-        } else {
-            ZStack {
-                Color.gray.opacity(0.2)
-                Image(systemName: "photo")
-                    .foregroundColor(.gray)
-            }
-        }
-    }
-    
-    private func loadMedia(_ spaceId: String? = nil) async {
-        isLoading = true
-        let cat = selectedCategory
-        do {
-            let mt = (selectedMediaType == "all") ? nil : selectedMediaType
-            let items = try await container.photos.getRecentMedia(buildingId: buildingId, category: cat, spaceId: spaceId, mediaType: mt, limit: 50)
-            await MainActor.run {
-                self.mediaItems = items
-                self.isLoading = false
-            }
-        } catch {
-            await MainActor.run {
-                self.mediaItems = []
-                self.isLoading = false
-            }
-        }
-    }
-    
-    private func loadLatestForSpaces() async {
-        var map: [String: CoreTypes.ProcessedPhoto] = [:]
-        for space in viewModel.spaces {
-            if let latest = try? await container.photos.getLatestMediaForSpace(buildingId: buildingId, spaceId: space.id) {
-                map[space.id] = latest
-            }
-        }
-        await MainActor.run { self.latestBySpace = map }
-    }
-    
-    @ViewBuilder
-    private func mediaGrid(items: [CoreTypes.ProcessedPhoto]) -> some View {
-        let columns = [GridItem(.adaptive(minimum: 96), spacing: 12)]
-        ScrollView {
-            LazyVGrid(columns: columns, spacing: 12) {
-                ForEach(items, id: \.id) { item in
-                    Button {
-                        viewerItem = item
-                        showViewer = true
-                    } label: {
-                        VStack(spacing: 6) {
-                            thumbnailView(for: item)
-                                .frame(width: 100, height: 100)
-                                .background(Color.black.opacity(0.1))
-                                .cornerRadius(8)
-                            Text(item.category)
-                                .font(.caption2)
-                                .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
-                        }
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-        }
-        .glassCard()
-    }
-
-    @ViewBuilder
-    private func pairedView(items: [CoreTypes.ProcessedPhoto]) -> some View {
-        // Build pairs for before/after by day
-        let df = DateFormatter(); df.dateFormat = "yyyy-MM-dd"
-        var buckets: [String: (before: [CoreTypes.ProcessedPhoto], after: [CoreTypes.ProcessedPhoto])] = [:]
-        for item in items {
-            let day = df.string(from: item.timestamp)
-            if buckets[day] == nil { buckets[day] = ([], []) }
-            if item.category == CoreTypes.CyntientOpsPhotoCategory.beforeWork.rawValue {
-                buckets[day]?.before.append(item)
-            } else if item.category == CoreTypes.CyntientOpsPhotoCategory.afterWork.rawValue {
-                buckets[day]?.after.append(item)
-            }
-        }
-        VStack(alignment: .leading, spacing: 12) {
-            ForEach(buckets.keys.sorted(by: >), id: \.self) { day in
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(day).font(.caption).foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
-                    let before = buckets[day]?.before.first
-                    let after = buckets[day]?.after.first
-                    HStack(spacing: 12) {
-                        VStack(spacing: 4) {
-                            Text("Before").font(.caption2).foregroundColor(.gray)
-                            if let b = before { thumbnailView(for: b).frame(width: 110, height: 110).cornerRadius(8) } else { placeholderThumb }
-                        }
-                        VStack(spacing: 4) {
-                            Text("After").font(.caption2).foregroundColor(.gray)
-                            if let a = after { thumbnailView(for: a).frame(width: 110, height: 110).cornerRadius(8) } else { placeholderThumb }
-                        }
-                    }
-                }
-                .glassCard()
-            }
-        }
-    }
-    
-    private var placeholderThumb: some View {
-        ZStack { Color.gray.opacity(0.1); Image(systemName: "photo").foregroundColor(.gray) }.frame(width: 110, height: 110).cornerRadius(8)
-    }
-}
-
-// MARK: - Media Viewer
-private struct MediaViewer: View {
-    let item: CoreTypes.ProcessedPhoto
-    let photosDirectory: URL
-    let videosDirectory: URL
-    @State private var player: AVPlayer? = nil
-
-    var body: some View {
-        Group {
-            if item.mediaType == "video" {
-                if let url = urlForVideo() {
-                    VideoPlayer(player: AVPlayer(url: url))
-                        .onAppear { player?.play() }
-                        .onDisappear { player?.pause() }
-                } else {
-                    unsupportedView
-                }
-            } else {
-                if let image = loadImage() {
-                    Image(uiImage: image)
-                        .resizable()
-                        .scaledToFit()
-                        .background(Color.black)
-                } else {
-                    unsupportedView
-                }
-            }
-        }
-    }
-
-    private func loadImage() -> UIImage? {
-        let path = photosDirectory.appendingPathComponent(item.filePath).path
-        return UIImage(contentsOfFile: path)
-    }
-
-    private func urlForVideo() -> URL? {
-        let url = videosDirectory.appendingPathComponent(item.filePath)
-        return FileManager.default.fileExists(atPath: url.path) ? url : nil
-    }
-
-    private var unsupportedView: some View {
-        VStack(spacing: 8) {
-            Image(systemName: "exclamationmark.triangle")
-                .foregroundColor(.yellow)
-            Text("Unable to load media")
-                .foregroundColor(.white)
-        }
-        .padding()
-        .background(Color.black)
-    }
-}
-
-struct SanitationTaskRow: View {
-    let routine: DailyRoutineTask
-    let onToggle: () -> Void
-    
-    var body: some View {
-        HStack {
-            Button(action: onToggle) {
-                Image(systemName: routine.isCompleted ? "checkmark.circle.fill" : "circle")
-                    .font(.title2)
-                    .foregroundColor(routine.isCompleted ? .green : CyntientOpsDesign.DashboardColors.tertiaryText)
-            }
-            .buttonStyle(PlainButtonStyle())
-            
-            VStack(alignment: .leading, spacing: 4) {
-                Text(routine.title)
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-                    .strikethrough(routine.isCompleted)
-                
-                HStack(spacing: 12) {
-                    if let time = routine.scheduledTime {
-                        Label(time, systemImage: "clock")
-                            .font(.caption)
-                            .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
-                    }
                     
-                    if let worker = routine.workerName {
-                        Label(worker, systemImage: "person")
-                            .font(.caption)
-                            .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
-                    }
+                    ComplianceRow(
+                        title: "Set-Out Schedule",
+                        status: .compliant,
+                        nextAction: "Next set-out: Today 8:00 PM"
+                    )
                 }
             }
-            
-            Spacer()
-            
-            if routine.isCompleted {
-                Image(systemName: "checkmark.circle.fill")
-                    .foregroundColor(.green)
-            }
-        }
-        .padding(.vertical, 8)
-        .background(routine.isCompleted ? Color.green.opacity(0.1) : Color.clear)
-        .cornerRadius(8)
-    }
-}
-
-struct BDSanitationTaskRow: View {
-    let routine: BDDailyRoutine
-    let onToggle: () -> Void
-    
-    var body: some View {
-        HStack {
-            Button(action: onToggle) {
-                Image(systemName: routine.isCompleted ? "checkmark.circle.fill" : "circle")
-                    .font(.system(size: 20))
-                    .foregroundColor(routine.isCompleted ? .green : .gray)
-            }
-            
-            VStack(alignment: .leading, spacing: 4) {
-                Text(routine.title)
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-                
-                if let worker = routine.assignedWorker {
-                    Text("Assigned to: \(worker)")
-                        .font(.caption)
-                        .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
-                }
-                
-                if let time = routine.scheduledTime {
-                    Text("Scheduled: \(time)")
-                        .font(.caption)
-                        .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
-                }
-            }
-            
-            Spacer()
-            
-            if routine.isCompleted {
-                Image(systemName: "checkmark.circle.fill")
-                    .foregroundColor(.green)
-            }
-        }
-        .padding(.vertical, 8)
-        .background(routine.isCompleted ? Color.green.opacity(0.1) : Color.clear)
-        .cornerRadius(8)
-    }
-}
-
-struct BDDailyRoutineRow: View {
-    let routine: BDDailyRoutine
-    let onToggle: () -> Void
-    
-    var body: some View {
-        HStack(spacing: 12) {
-            Button(action: onToggle) {
-                Image(systemName: routine.isCompleted ? "checkmark.circle.fill" : "circle")
-                    .font(.system(size: 20))
-                    .foregroundColor(routine.isCompleted ? .green : .gray)
-            }
-            
-            VStack(alignment: .leading, spacing: 4) {
-                Text(routine.title)
-                    .font(.subheadline)
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-                    .strikethrough(routine.isCompleted)
-                
-                if let time = routine.scheduledTime {
-                    Text(time)
-                        .font(.caption)
-                        .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
-                }
-            }
-            
-            Spacer()
-            
-            if routine.isCompleted {
-                Image(systemName: "checkmark.circle.fill")
-                    .foregroundColor(.green)
-            }
-        }
-        .padding(.vertical, 8)
-        .background(routine.isCompleted ? Color.green.opacity(0.1) : Color.clear)
-        .cornerRadius(8)
-    }
-}
-
-// MARK: - Building Routes Tab
-
-struct BuildingRoutesTab: View {
-    let buildingId: String
-    let buildingName: String
-    let container: ServiceContainer
-    let viewModel: BuildingDetailViewModel
-    @State private var selectedDate = Date()
-    @State private var routeData: [RouteSequence] = []
-    @State private var isLoading = true
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            // Header
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Operational Routes")
-                    .font(.title2)
-                    .fontWeight(.bold)
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-                
-                Text("View worker routes and sequences for this building")
-                    .font(.subheadline)
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
-            }
-            
-            // Date Picker
-            DatePicker("Select Date", selection: $selectedDate, displayedComponents: [.date])
-                .datePickerStyle(.compact)
-                .onChange(of: selectedDate) { _, _ in
-                    loadRouteData()
-                }
-                .glassCard(cornerRadius: 12)
-            
-            if isLoading {
-                // Loading state
-                VStack(spacing: 16) {
-                    ProgressView()
-                        .scaleEffect(1.5)
-                    Text("Loading routes...")
-                        .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 40)
-                .glassCard()
-            } else if routeData.isEmpty {
-                // Empty state
-                VStack(spacing: 16) {
-                    Image(systemName: "map.circle")
-                        .font(.system(size: 48))
-                        .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
-                    
-                    Text("No Routes Scheduled")
-                        .font(.headline)
-                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-                    
-                    Text("No worker routes found for this building on the selected date")
-                        .font(.subheadline)
-                        .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
-                        .multilineTextAlignment(.center)
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 40)
-                .glassCard()
-            } else {
-                // Routes list
-                LazyVStack(spacing: 12) {
-                    ForEach(routeData, id: \.id) { sequence in
-                        RouteSequenceCard(sequence: sequence, container: container)
-                    }
-                }
-            }
-        }
-        .task {
-            loadRouteData()
+            .padding()
+            .cyntientOpsDarkCardBackground()
         }
     }
     
-    private func loadRouteData() {
-        isLoading = true
+    // MARK: - Supporting Components for Sanitation Tab
+    
+    public struct DSNYScheduleRow: View {
+        let day: String
+        let time: String
+        let items: String
+        let isToday: Bool
         
-        Task {
-            _ = Calendar.current.component(.weekday, from: selectedDate)
-            let routes = container.routes
-            let allRoutes = routes.routes
-            
-            // Filter sequences for this building
-            let buildingSequences = allRoutes.flatMap { route in
-                route.sequences.filter { sequence in
-                    sequence.buildingId == buildingId ||
-                    (buildingId.contains("17th") && sequence.buildingId.contains("17th")) ||
-                    (buildingId.contains("18th") && sequence.buildingId.contains("18th"))
-                }
-            }
-            
-            await MainActor.run {
-                self.routeData = buildingSequences
-                self.isLoading = false
-            }
-        }
-    }
-}
-
-// MARK: - Route Sequence Card
-
-struct RouteSequenceCard: View {
-    let sequence: RouteSequence
-    let container: ServiceContainer
-    @State private var isExpanded = false
-    @State private var workerName = "Unknown Worker"
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            // Header
+        var body: some View {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(sequence.buildingName)
-                        .font(.headline)
-                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                    Text(day)
+                        .font(.subheadline)
+                        .fontWeight(isToday ? .bold : .medium)
+                        .foregroundColor(isToday ? CyntientOpsDesign.DashboardColors.secondaryAction : CyntientOpsDesign.DashboardColors.primaryText)
                     
-                    HStack(spacing: 16) {
-                        Label(workerName, systemImage: "person.fill")
-                        Label(CoreTypes.DateUtils.timeFormatter.string(from: sequence.arrivalTime), systemImage: "clock.fill")
-                        Label(formatDuration(sequence.estimatedDuration), systemImage: "timer")
-                    }
-                    .font(.caption)
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                    Text(time)
+                        .font(.caption)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
                 }
                 
                 Spacer()
                 
                 VStack(alignment: .trailing, spacing: 4) {
-                    sequenceTypeIcon
+                    Text(items)
+                        .font(.subheadline)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                     
-                    Button(action: { withAnimation { isExpanded.toggle() } }) {
-                        Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                    if isToday {
+                        Text("TODAY")
+                            .font(.caption2)
+                            .fontWeight(.bold)
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 2)
+                            .background(CyntientOpsDesign.DashboardColors.secondaryAction)
+                            .cornerRadius(4)
+                    }
+                }
+            }
+            .padding(.vertical, 4)
+        }
+    }
+    
+    // MARK: - Building Media Tab
+    
+    struct BuildingMediaTab: View {
+        let buildingId: String
+        let buildingName: String
+        let container: ServiceContainer
+        @ObservedObject var viewModel: BuildingDetailViewModel
+        
+        @State private var isLoading = true
+        @State private var mediaItems: [CoreTypes.ProcessedPhoto] = []
+        @State private var selectedCategory: CoreTypes.CyntientOpsPhotoCategory? = nil
+        @State private var selectedMediaType: String = "all" // all | image | video
+        @State private var selectedSpaceId: String? = nil
+        @State private var latestBySpace: [String: CoreTypes.ProcessedPhoto] = [:]
+        @State private var showPairs: Bool = false
+        @State private var showViewer: Bool = false
+        @State private var viewerItem: CoreTypes.ProcessedPhoto? = nil
+        
+        private var photosDirectory: URL {
+            FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+                .appendingPathComponent("Photos")
+        }
+        private var videosDirectory: URL {
+            FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+                .appendingPathComponent("Videos")
+        }
+        
+        var body: some View {
+            VStack(alignment: .leading, spacing: 16) {
+                // Header + filters
+                HStack {
+                    Label("Media", systemImage: "photo.on.rectangle.angled")
+                        .font(.headline)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                    Spacer()
+                    Menu {
+                        Button("All Categories") { selectedCategory = nil; Task { await loadMedia() } }
+                        ForEach(CoreTypes.CyntientOpsPhotoCategory.allCases, id: \.self) { cat in
+                            Button(cat.displayName) { selectedCategory = cat; Task { await loadMedia(selectedSpaceId) } }
+                        }
+                    } label: {
+                        Label(selectedCategory?.displayName ?? "All", systemImage: "line.3.horizontal.decrease.circle")
+                    }
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                }
+                // Media type filter
+                Picker("Type", selection: $selectedMediaType) {
+                    Text("All").tag("all")
+                    Text("Images").tag("image")
+                    Text("Videos").tag("video")
+                }
+                .pickerStyle(.segmented)
+                .onChange(of: selectedMediaType) { _ in
+                    Task { await loadMedia(selectedSpaceId) }
+                }
+                // Location chips
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 10) {
+                        Button(action: { selectedSpaceId = nil; Task { await loadMedia(nil) } }) {
+                            Label("All Locations", systemImage: "square.grid.2x2").font(.caption)
+                        }
+                        .padding(.horizontal, 10).padding(.vertical, 6)
+                        .background((selectedSpaceId == nil ? CyntientOpsDesign.DashboardColors.secondaryAction : Color.clear).opacity(0.2))
+                        .cornerRadius(8)
+                        ForEach(viewModel.spaces) { space in
+                            Button(action: { selectedSpaceId = space.id; Task { await loadMedia(space.id) } }) {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "key.fill").font(.caption2)
+                                    Text(space.name).font(.caption)
+                                }
+                            }
+                            .padding(.horizontal, 10).padding(.vertical, 6)
+                            .background((selectedSpaceId == space.id ? CyntientOpsDesign.DashboardColors.secondaryAction : Color.clear).opacity(0.2))
+                            .cornerRadius(8)
+                        }
+                    }
+                }
+                
+                if isLoading {
+                    VStack(spacing: 12) {
+                        ProgressView()
+                        Text("Loading media...")
+                            .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 32)
+                    .glassCard()
+                } else if mediaItems.isEmpty && selectedSpaceId != nil {
+                    EmptyStateMessage(message: "No media found for this building")
+                } else {
+                    if selectedSpaceId == nil {
+                        // Utility Rooms albums
+                        if !viewModel.spaces.isEmpty {
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Utility Rooms").font(.subheadline).foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                                let cols = [GridItem(.adaptive(minimum: 140), spacing: 12)]
+                                LazyVGrid(columns: cols, spacing: 12) {
+                                    ForEach(viewModel.spaces) { space in
+                                        VStack(alignment: .leading, spacing: 6) {
+                                            ZStack(alignment: .bottomLeading) {
+                                                if let latest = latestBySpace[space.id] {
+                                                    thumbnailView(for: latest).frame(height: 90).clipped()
+                                                } else {
+                                                    ZStack { Color.gray.opacity(0.15); Image(systemName: "photo").foregroundColor(.gray) }.frame(height: 90)
+                                                }
+                                                Text(space.name)
+                                                    .font(.caption)
+                                                    .padding(6)
+                                                    .background(Color.black.opacity(0.4))
+                                                    .cornerRadius(6)
+                                                    .foregroundColor(.white)
+                                                    .padding(6)
+                                            }
+                                            Button("Open Album") { selectedSpaceId = space.id; Task { await loadMedia(space.id) } }
+                                                .font(.caption)
+                                                .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryAction)
+                                        }
+                                        .glassCard()
+                                    }
+                                }
+                            }
+                        }
+                        // Recent media grid
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Recent Media").font(.subheadline).foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                            mediaGrid(items: mediaItems)
+                        }
+                    } else {
+                        // Pairing toggle for before/after
+                        HStack {
+                            Toggle(isOn: $showPairs) {
+                                Text("Pair Before/After")
+                                    .font(.caption)
+                                    .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                            }
+                            .toggleStyle(SwitchToggleStyle(tint: CyntientOpsDesign.DashboardColors.secondaryAction))
+                            Spacer()
+                        }
+                        if showPairs {
+                            pairedView(items: mediaItems)
+                        } else {
+                            mediaGrid(items: mediaItems)
+                        }
+                    }
+                }
+            }
+            .task { await loadMedia(); await loadLatestForSpaces() }
+            .sheet(isPresented: $showViewer) {
+                if let item = viewerItem {
+                    MediaViewer(item: item, photosDirectory: photosDirectory, videosDirectory: videosDirectory)
+                }
+            }
+        }
+        
+        @ViewBuilder
+        private func thumbnailView(for item: CoreTypes.ProcessedPhoto) -> some View {
+            let thumbURL = photosDirectory.appendingPathComponent(item.thumbnailPath)
+            if let image = UIImage(contentsOfFile: thumbURL.path) {
+                ZStack {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFill()
+                        .clipped()
+                    if item.mediaType == "video" {
+                        Image(systemName: "play.circle.fill")
+                            .font(.system(size: 28, weight: .semibold))
+                            .foregroundColor(.white)
+                            .shadow(radius: 2)
+                    }
+                }
+            } else {
+                ZStack {
+                    Color.gray.opacity(0.2)
+                    Image(systemName: "photo")
+                        .foregroundColor(.gray)
+                }
+            }
+        }
+        
+        private func loadMedia(_ spaceId: String? = nil) async {
+            isLoading = true
+            let cat = selectedCategory
+            do {
+                let mt = (selectedMediaType == "all") ? nil : selectedMediaType
+                let items = try await container.photos.getRecentMedia(buildingId: buildingId, category: cat, spaceId: spaceId, mediaType: mt, limit: 50)
+                await MainActor.run {
+                    self.mediaItems = items
+                    self.isLoading = false
+                }
+            } catch {
+                await MainActor.run {
+                    self.mediaItems = []
+                    self.isLoading = false
+                }
+            }
+        }
+        
+        private func loadLatestForSpaces() async {
+            var map: [String: CoreTypes.ProcessedPhoto] = [:]
+            for space in viewModel.spaces {
+                if let latest = try? await container.photos.getLatestMediaForSpace(buildingId: buildingId, spaceId: space.id) {
+                    map[space.id] = latest
+                }
+            }
+            await MainActor.run { self.latestBySpace = map }
+        }
+        
+        @ViewBuilder
+        private func mediaGrid(items: [CoreTypes.ProcessedPhoto]) -> some View {
+            let columns = [GridItem(.adaptive(minimum: 96), spacing: 12)]
+            ScrollView {
+                LazyVGrid(columns: columns, spacing: 12) {
+                    ForEach(items, id: \.id) { item in
+                        Button {
+                            viewerItem = item
+                            showViewer = true
+                        } label: {
+                            VStack(spacing: 6) {
+                                thumbnailView(for: item)
+                                    .frame(width: 100, height: 100)
+                                    .background(Color.black.opacity(0.1))
+                                    .cornerRadius(8)
+                                Text(item.category)
+                                    .font(.caption2)
+                                    .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+            .glassCard()
+        }
+        
+        @ViewBuilder
+        private func pairedView(items: [CoreTypes.ProcessedPhoto]) -> some View {
+            // Build pairs for before/after by day
+            let df = DateFormatter(); df.dateFormat = "yyyy-MM-dd"
+            var buckets: [String: (before: [CoreTypes.ProcessedPhoto], after: [CoreTypes.ProcessedPhoto])] = [:]
+            for item in items {
+                let day = df.string(from: item.timestamp)
+                if buckets[day] == nil { buckets[day] = ([], []) }
+                if item.category == CoreTypes.CyntientOpsPhotoCategory.beforeWork.rawValue {
+                    buckets[day]?.before.append(item)
+                } else if item.category == CoreTypes.CyntientOpsPhotoCategory.afterWork.rawValue {
+                    buckets[day]?.after.append(item)
+                }
+            }
+            VStack(alignment: .leading, spacing: 12) {
+                ForEach(buckets.keys.sorted(by: >), id: \.self) { day in
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(day).font(.caption).foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                        let before = buckets[day]?.before.first
+                        let after = buckets[day]?.after.first
+                        HStack(spacing: 12) {
+                            VStack(spacing: 4) {
+                                Text("Before").font(.caption2).foregroundColor(.gray)
+                                if let b = before { thumbnailView(for: b).frame(width: 110, height: 110).cornerRadius(8) } else { placeholderThumb }
+                            }
+                            VStack(spacing: 4) {
+                                Text("After").font(.caption2).foregroundColor(.gray)
+                                if let a = after { thumbnailView(for: a).frame(width: 110, height: 110).cornerRadius(8) } else { placeholderThumb }
+                            }
+                        }
+                    }
+                    .glassCard()
+                }
+            }
+        }
+        
+        private var placeholderThumb: some View {
+            ZStack { Color.gray.opacity(0.1); Image(systemName: "photo").foregroundColor(.gray) }.frame(width: 110, height: 110).cornerRadius(8)
+        }
+    }
+    
+    // MARK: - Media Viewer
+    private struct MediaViewer: View {
+        let item: CoreTypes.ProcessedPhoto
+        let photosDirectory: URL
+        let videosDirectory: URL
+        @State private var player: AVPlayer? = nil
+        
+        var body: some View {
+            Group {
+                if item.mediaType == "video" {
+                    if let url = urlForVideo() {
+                        VideoPlayer(player: AVPlayer(url: url))
+                            .onAppear { player?.play() }
+                            .onDisappear { player?.pause() }
+                    } else {
+                        unsupportedView
+                    }
+                } else {
+                    if let image = loadImage() {
+                        Image(uiImage: image)
+                            .resizable()
+                            .scaledToFit()
+                            .background(Color.black)
+                    } else {
+                        unsupportedView
+                    }
+                }
+            }
+        }
+        
+        private func loadImage() -> UIImage? {
+            let path = photosDirectory.appendingPathComponent(item.filePath).path
+            return UIImage(contentsOfFile: path)
+        }
+        
+        private func urlForVideo() -> URL? {
+            let url = videosDirectory.appendingPathComponent(item.filePath)
+            return FileManager.default.fileExists(atPath: url.path) ? url : nil
+        }
+        
+        private var unsupportedView: some View {
+            VStack(spacing: 8) {
+                Image(systemName: "exclamationmark.triangle")
+                    .foregroundColor(.yellow)
+                Text("Unable to load media")
+                    .foregroundColor(.white)
+            }
+            .padding()
+            .background(Color.black)
+        }
+    }
+    
+    struct SanitationTaskRow: View {
+        let routine: DailyRoutineTask
+        let onToggle: () -> Void
+        
+        var body: some View {
+            HStack {
+                Button(action: onToggle) {
+                    Image(systemName: routine.isCompleted ? "checkmark.circle.fill" : "circle")
+                        .font(.title2)
+                        .foregroundColor(routine.isCompleted ? .green : CyntientOpsDesign.DashboardColors.tertiaryText)
+                }
+                .buttonStyle(PlainButtonStyle())
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(routine.title)
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                        .strikethrough(routine.isCompleted)
+                    
+                    HStack(spacing: 12) {
+                        if let time = routine.scheduledTime {
+                            Label(time, systemImage: "clock")
+                                .font(.caption)
+                                .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+                        }
+                        
+                        if let worker = routine.workerName {
+                            Label(worker, systemImage: "person")
+                                .font(.caption)
+                                .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+                        }
+                    }
+                }
+                
+                Spacer()
+                
+                if routine.isCompleted {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundColor(.green)
+                }
+            }
+            .padding(.vertical, 8)
+            .background(routine.isCompleted ? Color.green.opacity(0.1) : Color.clear)
+            .cornerRadius(8)
+        }
+    }
+    
+    struct BDSanitationTaskRow: View {
+        let routine: BDDailyRoutine
+        let onToggle: () -> Void
+        
+        var body: some View {
+            HStack {
+                Button(action: onToggle) {
+                    Image(systemName: routine.isCompleted ? "checkmark.circle.fill" : "circle")
+                        .font(.system(size: 20))
+                        .foregroundColor(routine.isCompleted ? .green : .gray)
+                }
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(routine.title)
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                    
+                    if let worker = routine.assignedWorker {
+                        Text("Assigned to: \(worker)")
+                            .font(.caption)
+                            .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                    }
+                    
+                    if let time = routine.scheduledTime {
+                        Text("Scheduled: \(time)")
                             .font(.caption)
                             .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
                     }
                 }
+                
+                Spacer()
+                
+                if routine.isCompleted {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundColor(.green)
+                }
             }
-            
-            // Operations list (expandable)
-            if isExpanded {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Operations")
+            .padding(.vertical, 8)
+            .background(routine.isCompleted ? Color.green.opacity(0.1) : Color.clear)
+            .cornerRadius(8)
+        }
+    }
+    
+    struct BDDailyRoutineRow: View {
+        let routine: BDDailyRoutine
+        let onToggle: () -> Void
+        
+        var body: some View {
+            HStack(spacing: 12) {
+                Button(action: onToggle) {
+                    Image(systemName: routine.isCompleted ? "checkmark.circle.fill" : "circle")
+                        .font(.system(size: 20))
+                        .foregroundColor(routine.isCompleted ? .green : .gray)
+                }
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(routine.title)
                         .font(.subheadline)
-                        .fontWeight(.semibold)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                        .strikethrough(routine.isCompleted)
+                    
+                    if let time = routine.scheduledTime {
+                        Text(time)
+                            .font(.caption)
+                            .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                    }
+                }
+                
+                Spacer()
+                
+                if routine.isCompleted {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundColor(.green)
+                }
+            }
+            .padding(.vertical, 8)
+            .background(routine.isCompleted ? Color.green.opacity(0.1) : Color.clear)
+            .cornerRadius(8)
+        }
+    }
+    
+    // MARK: - Building Routes Tab
+    
+    struct BuildingRoutesTab: View {
+        let buildingId: String
+        let buildingName: String
+        let container: ServiceContainer
+        let viewModel: BuildingDetailViewModel
+        @State private var selectedDate = Date()
+        @State private var routeData: [RouteSequence] = []
+        @State private var isLoading = true
+        
+        var body: some View {
+            VStack(alignment: .leading, spacing: 20) {
+                // Header
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Operational Routes")
+                        .font(.title2)
+                        .fontWeight(.bold)
                         .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                     
-                    ForEach(sequence.operations, id: \.id) { operation in
-                        HStack(spacing: 12) {
-                            Image(systemName: operationIcon(for: operation.category))
-                                .font(.system(size: 14))
-                                .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryAction)
-                                .frame(width: 20)
-                            
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(operation.name)
-                                    .font(.subheadline)
-                                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-                                
-                                if let instructions = operation.instructions {
-                                    Text(instructions)
-                                        .font(.caption)
-                                        .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
-                                        .lineLimit(2)
-                                }
-                            }
-                            
-                            Spacer()
-                            
-                            Text(formatDuration(operation.estimatedDuration))
+                    Text("View worker routes and sequences for this building")
+                        .font(.subheadline)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                }
+                
+                // Date Picker
+                DatePicker("Select Date", selection: $selectedDate, displayedComponents: [.date])
+                    .datePickerStyle(.compact)
+                    .onChange(of: selectedDate) { _, _ in
+                        loadRouteData()
+                    }
+                    .glassCard(cornerRadius: 12)
+                
+                if isLoading {
+                    // Loading state
+                    VStack(spacing: 16) {
+                        ProgressView()
+                            .scaleEffect(1.5)
+                        Text("Loading routes...")
+                            .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 40)
+                    .glassCard()
+                } else if routeData.isEmpty {
+                    // Empty state
+                    VStack(spacing: 16) {
+                        Image(systemName: "map.circle")
+                            .font(.system(size: 48))
+                            .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+                        
+                        Text("No Routes Scheduled")
+                            .font(.headline)
+                            .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                        
+                        Text("No worker routes found for this building on the selected date")
+                            .font(.subheadline)
+                            .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                            .multilineTextAlignment(.center)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 40)
+                    .glassCard()
+                } else {
+                    // Routes list
+                    LazyVStack(spacing: 12) {
+                        ForEach(routeData, id: \.id) { sequence in
+                            RouteSequenceCard(sequence: sequence, container: container)
+                        }
+                    }
+                }
+            }
+            .task {
+                loadRouteData()
+            }
+        }
+        
+        private func loadRouteData() {
+            isLoading = true
+            
+            Task {
+                _ = Calendar.current.component(.weekday, from: selectedDate)
+                let routes = container.routes
+                let allRoutes = routes.routes
+                
+                // Filter sequences for this building
+                let buildingSequences = allRoutes.flatMap { route in
+                    route.sequences.filter { sequence in
+                        sequence.buildingId == buildingId ||
+                        (buildingId.contains("17th") && sequence.buildingId.contains("17th")) ||
+                        (buildingId.contains("18th") && sequence.buildingId.contains("18th"))
+                    }
+                }
+                
+                await MainActor.run {
+                    self.routeData = buildingSequences
+                    self.isLoading = false
+                }
+            }
+        }
+    }
+    
+    // MARK: - Route Sequence Card
+    
+    struct RouteSequenceCard: View {
+        let sequence: RouteSequence
+        let container: ServiceContainer
+        @State private var isExpanded = false
+        @State private var workerName = "Unknown Worker"
+        
+        var body: some View {
+            VStack(alignment: .leading, spacing: 12) {
+                // Header
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(sequence.buildingName)
+                            .font(.headline)
+                            .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                        
+                        HStack(spacing: 16) {
+                            Label(workerName, systemImage: "person.fill")
+                            Label(CoreTypes.DateUtils.timeFormatter.string(from: sequence.arrivalTime), systemImage: "clock.fill")
+                            Label(formatDuration(sequence.estimatedDuration), systemImage: "timer")
+                        }
+                        .font(.caption)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                    }
+                    
+                    Spacer()
+                    
+                    VStack(alignment: .trailing, spacing: 4) {
+                        sequenceTypeIcon
+                        
+                        Button(action: { withAnimation { isExpanded.toggle() } }) {
+                            Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                                 .font(.caption)
                                 .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
                         }
-                        .padding(.vertical, 4)
                     }
                 }
-                .padding(.top, 8)
+                
+                // Operations list (expandable)
+                if isExpanded {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Operations")
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                            .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                        
+                        ForEach(sequence.operations, id: \.id) { operation in
+                            HStack(spacing: 12) {
+                                Image(systemName: operationIcon(for: operation.category))
+                                    .font(.system(size: 14))
+                                    .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryAction)
+                                    .frame(width: 20)
+                                
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(operation.name)
+                                        .font(.subheadline)
+                                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                                    
+                                    if let instructions = operation.instructions {
+                                        Text(instructions)
+                                            .font(.caption)
+                                            .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                                            .lineLimit(2)
+                                    }
+                                }
+                                
+                                Spacer()
+                                
+                                Text(formatDuration(operation.estimatedDuration))
+                                    .font(.caption)
+                                    .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+                            }
+                            .padding(.vertical, 4)
+                        }
+                    }
+                    .padding(.top, 8)
+                }
+            }
+            .padding()
+            .glassCard()
+            .task {
+                // Load worker name (placeholder logic)
+                workerName = "Kevin Dutan" // This would come from the route data
             }
         }
-        .padding()
-        .glassCard()
-        .task {
-            // Load worker name (placeholder logic)
-            workerName = "Kevin Dutan" // This would come from the route data
-        }
-    }
-    
-    private var sequenceTypeIcon: some View {
-        let (icon, color) = sequenceTypeIconAndColor(sequence.sequenceType)
-        return Image(systemName: icon)
-            .font(.system(size: 16))
-            .foregroundColor(color)
-    }
-    
-    private func sequenceTypeIconAndColor(_ type: RouteSequence.SequenceType) -> (String, Color) {
-        switch type {
-        case .buildingCheck:
-            return ("building.2.fill", .blue)
-        case .indoorCleaning:
-            return ("house.fill", .green)
-        case .outdoorCleaning:
-            return ("sun.max.fill", .orange)
-        case .maintenance:
-            return ("wrench.and.screwdriver.fill", .purple)
-        case .inspection:
-            return ("magnifyingglass", .cyan)
-        case .sanitation:
-            return ("trash.circle.fill", .orange)
-        case .operations:
-            return ("gearshape.fill", .gray)
-        @unknown default:
-            return ("square.dashed", .gray)
-        }
-    }
-    
-    private func operationIcon(for category: OperationTask.TaskCategory) -> String {
-        switch category {
-        case .sweeping: return "wind"
-        case .hosing: return "drop.fill"
-        case .vacuuming: return "tornado"
-        case .mopping: return "mop"
-        case .trashCollection: return "trash.fill"
-        case .dsnySetout: return "trash"
-        case .maintenance: return "wrench.fill"
-        case .buildingInspection: return "magnifyingglass"
-        case .posterRemoval: return "doc.text.fill"
-        case .treepitCleaning: return "leaf.fill"
-        case .stairwellCleaning: return "stairs"
-        case .binManagement: return "trash.circle.fill"
-        case .laundryRoom: return "washer"
-        }
-    }
-    
-    private func formatDuration(_ seconds: TimeInterval) -> String {
-        let hours = Int(seconds) / 3600
-        let minutes = (Int(seconds) % 3600) / 60
         
-        if hours > 0 {
-            return minutes > 0 ? "\(hours)h \(minutes)m" : "\(hours)h"
-        } else {
-            return "\(minutes)m"
+        private var sequenceTypeIcon: some View {
+            let (icon, color) = sequenceTypeIconAndColor(sequence.sequenceType)
+            return Image(systemName: icon)
+                .font(.system(size: 16))
+                .foregroundColor(color)
+        }
+        
+        private func sequenceTypeIconAndColor(_ type: RouteSequence.SequenceType) -> (String, Color) {
+            switch type {
+            case .buildingCheck:
+                return ("building.2.fill", .blue)
+            case .indoorCleaning:
+                return ("house.fill", .green)
+            case .outdoorCleaning:
+                return ("sun.max.fill", .orange)
+            case .maintenance:
+                return ("wrench.and.screwdriver.fill", .purple)
+            case .inspection:
+                return ("magnifyingglass", .cyan)
+            case .sanitation:
+                return ("trash.circle.fill", .orange)
+            case .operations:
+                return ("gearshape.fill", .gray)
+            @unknown default:
+                return ("square.dashed", .gray)
+            }
+        }
+        
+        private func operationIcon(for category: OperationTask.TaskCategory) -> String {
+            switch category {
+            case .sweeping: return "wind"
+            case .hosing: return "drop.fill"
+            case .vacuuming: return "tornado"
+            case .mopping: return "mop"
+            case .trashCollection: return "trash.fill"
+            case .dsnySetout: return "trash"
+            case .maintenance: return "wrench.fill"
+            case .buildingInspection: return "magnifyingglass"
+            case .posterRemoval: return "doc.text.fill"
+            case .treepitCleaning: return "leaf.fill"
+            case .stairwellCleaning: return "stairs"
+            case .binManagement: return "trash.circle.fill"
+            case .laundryRoom: return "washer"
+            }
+        }
+        
+        private func formatDuration(_ seconds: TimeInterval) -> String {
+            let hours = Int(seconds) / 3600
+            let minutes = (Int(seconds) % 3600) / 60
+            
+            if hours > 0 {
+                return minutes > 0 ? "\(hours)h \(minutes)m" : "\(hours)h"
+            } else {
+                return "\(minutes)m"
+            }
         }
     }
 }

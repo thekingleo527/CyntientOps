@@ -990,28 +990,6 @@ struct FrancoStatusIndicator: View {
     }
 }
 
-                }
-                
-                Text("Action Colors").font(.headline).padding(.top)
-                HStack(spacing: 16) {
-                    ColorSwatch(color: CyntientOpsDesign.DashboardColors.primaryAction, label: "Primary")
-                    ColorSwatch(color: CyntientOpsDesign.DashboardColors.secondaryAction, label: "Secondary")
-                    ColorSwatch(color: CyntientOpsDesign.DashboardColors.tertiaryAction, label: "Tertiary")
-                }
-                
-                Text("Status Colors").font(.headline).padding(.top)
-                HStack(spacing: 16) {
-                    ColorSwatch(color: CyntientOpsDesign.DashboardColors.success, label: "Success")
-                    ColorSwatch(color: CyntientOpsDesign.DashboardColors.warning, label: "Warning")
-                    ColorSwatch(color: CyntientOpsDesign.DashboardColors.critical, label: "Critical")
-                    ColorSwatch(color: CyntientOpsDesign.DashboardColors.info, label: "Info")
-                }
-            }
-        }
-        .padding()
-    }
-    .background(CyntientOpsDesign.DashboardColors.baseBackground)
-}
 
 // Helper view for color preview
 struct ColorSwatch: View {
