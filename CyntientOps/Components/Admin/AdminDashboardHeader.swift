@@ -161,32 +161,3 @@ struct AdminHeaderMetric: View {
     }
 }
 
-#if DEBUG
-struct AdminDashboardHeader_Previews: PreviewProvider {
-    static var previews: some View {
-        VStack(spacing: 0) {
-            AdminDashboardHeader(
-                adminName: "Sarah Martinez",
-                totalBuildings: 16,
-                activeWorkers: 5,
-                criticalAlerts: 2,
-                syncStatus: .synced
-            )
-            .frame(height: 80)
-            
-            AdminDashboardHeader(
-                adminName: "John Administrator",
-                totalBuildings: 8,
-                activeWorkers: 3,
-                criticalAlerts: 0,
-                syncStatus: .syncing
-            )
-            .frame(height: 80)
-            
-            Spacer()
-        }
-        .background(Color.black)
-        .preferredColorScheme(.dark)
-    }
-}
-#endif

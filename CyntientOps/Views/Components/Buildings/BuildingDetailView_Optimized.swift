@@ -78,20 +78,5 @@ extension BuildingDetailView {
     }
 }
 
-#if DEBUG
-#Preview {
-    NavigationView {
-        BuildingDetailView(
-            building: CoreTypes.NamedCoordinate(
-                id: "building_1",
-                name: "Sample Building",
-                address: "123 Main St, New York, NY",
-                latitude: 40.7128,
-                longitude: -74.0060
-            ),
-            container: ServiceContainer() // This will fail in preview but shows structure
-        )
-    }
-}
-#endif
+
 #endif

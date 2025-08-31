@@ -63,6 +63,3 @@ struct SimpleSplashView: View {
     }
 }
 
-#Preview {
-    SimpleSplashView()
-}

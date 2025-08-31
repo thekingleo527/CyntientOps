@@ -29,7 +29,7 @@ public struct AngelGuiracochaRoutes {
             hour: 18, minute: 0,
             ops: [
                 OperationTask(id: "w18_stage_bins", name: "Stage Bins for Collection", category: .dsnySetout, location: .curbside, estimatedDuration: 45*60, isWeatherSensitive: true, skillLevel: .basic, instructions: "Follow DSNY schedule for the day"),
-                OperationTask(id: "w18_cardboard", name: "Cardboard Break-down", category: .sanitation, location: .trashArea, estimatedDuration: 20*60, isWeatherSensitive: true, skillLevel: .basic)
+                OperationTask(id: "w18_cardboard", name: "Cardboard Break-down", category: .trashCollection, location: .trashArea, estimatedDuration: 20*60, isWeatherSensitive: true, skillLevel: .basic)
             ]
         )
 
@@ -50,7 +50,7 @@ public struct AngelGuiracochaRoutes {
             buildingName: "12 West 18th Street",
             hour: 21, minute: 0,
             ops: [
-                OperationTask(id: "w18_checklist", name: "End-of-Shift Checklist", category: .operations, location: .interior, estimatedDuration: 30*60, isWeatherSensitive: false, skillLevel: .basic)
+                OperationTask(id: "w18_checklist", name: "End-of-Shift Checklist", category: .maintenance, location: .hallway, estimatedDuration: 30*60, isWeatherSensitive: false, skillLevel: .basic)
             ]
         )
 
@@ -62,7 +62,7 @@ public struct AngelGuiracochaRoutes {
             startTime: startTime,
             estimatedEndTime: endTime,
             sequences: [setout, sweep, wrap],
-            routeType: .operations
+            routeType: .eveningOperations
         )
     }
 
@@ -82,4 +82,3 @@ public struct AngelGuiracochaRoutes {
         )
     }
 }
-

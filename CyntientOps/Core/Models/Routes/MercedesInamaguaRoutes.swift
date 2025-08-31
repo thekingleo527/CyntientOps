@@ -70,7 +70,7 @@ public struct MercedesInamaguaRoutes {
                     id: "135_lobby",
                     name: "Lobby Wipe-down",
                     category: .sweeping,
-                    location: .lobby,
+                    location: .entrance,
                     estimatedDuration: 30 * 60,
                     isWeatherSensitive: false,
                     skillLevel: .basic
@@ -90,7 +90,7 @@ public struct MercedesInamaguaRoutes {
                     id: "117_touchups",
                     name: "Afternoon Touch-ups",
                     category: .maintenance,
-                    location: .interior,
+                    location: .hallway,
                     estimatedDuration: 60 * 60,
                     isWeatherSensitive: false,
                     skillLevel: .basic
@@ -126,4 +126,3 @@ public struct MercedesInamaguaRoutes {
         )
     }
 }
-

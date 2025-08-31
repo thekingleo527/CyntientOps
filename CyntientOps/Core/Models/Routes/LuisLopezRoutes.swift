@@ -39,7 +39,7 @@ public struct LuisLopezRoutes {
             buildingName: "41 Elizabeth Street",
             hour: 9, minute: 30,
             ops: [
-                OperationTask(id: "elizabeth_lobby", name: "Lobby/Entrance", category: .sweeping, location: .lobby, estimatedDuration: 30*60, isWeatherSensitive: false, skillLevel: .basic),
+                OperationTask(id: "elizabeth_lobby", name: "Lobby/Entrance", category: .sweeping, location: .entrance, estimatedDuration: 30*60, isWeatherSensitive: false, skillLevel: .basic),
                 OperationTask(id: "elizabeth_hall", name: "Hallway Vacuum", category: .vacuuming, location: .hallway, estimatedDuration: 45*60, isWeatherSensitive: false, skillLevel: .basic)
             ],
             dependencies: [franklinAM.id]
@@ -51,7 +51,7 @@ public struct LuisLopezRoutes {
             buildingName: "36 Walker Street",
             hour: 13, minute: 0,
             ops: [
-                OperationTask(id: "walker_repairs", name: "Minor Repairs & Touch-ups", category: .maintenance, location: .interior, estimatedDuration: 90*60, isWeatherSensitive: false, skillLevel: .intermediate)
+                OperationTask(id: "walker_repairs", name: "Minor Repairs & Touch-ups", category: .maintenance, location: .hallway, estimatedDuration: 90*60, isWeatherSensitive: false, skillLevel: .intermediate)
             ]
         )
 

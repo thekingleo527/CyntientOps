@@ -127,6 +127,7 @@ struct GlassCard<Content: View>: View {
 }
 
 // MARK: - Preview
+/* Preview removed for production
 struct GlassCard_Previews: PreviewProvider {
     static var previews: some View {
         ZStack {
@@ -163,3 +164,4 @@ struct GlassCard_Previews: PreviewProvider {
         }
     }
 }
+*/

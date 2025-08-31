@@ -78,6 +78,3 @@ public struct AdminSettingsView: View {
     }
 }
 
-#Preview {
-    AdminSettingsView()
-}

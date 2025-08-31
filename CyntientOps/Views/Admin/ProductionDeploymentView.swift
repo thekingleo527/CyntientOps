@@ -193,6 +193,3 @@ public struct ProductionDeploymentView: View {
     }
 }
 
-#Preview {
-    ProductionDeploymentView()
-}

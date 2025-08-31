@@ -127,6 +127,3 @@ struct RetryButtonStyle: ButtonStyle {
     }
 }
 
-#Preview {
-    InitializationView(viewModel: InitializationViewModel())
-}
