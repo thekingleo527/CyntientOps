@@ -499,19 +499,7 @@ struct WorkerDashboardView: View {
         return "\(firstInitial)\(lastInitial)".uppercased()
     }
     
-    private func handleHeaderRoute(_ route: WorkerHeaderRoute) {
-        switch route {
-        case .mainMenu:
-            // Handle main menu
-            break
-        case .profile:
-            sheet = .profile
-        case .clockAction:
-            handleClockAction()
-        case .novaChat:
-            sheet = .novaChat
-        }
-    }
+    // Header route handler removed; WorkerSimpleHeader uses explicit actions
     
     private func getCurrentBuildingCoordinate() -> NamedCoordinate? {
         guard let building = viewModel.currentBuilding else { return nil }

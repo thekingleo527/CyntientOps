@@ -4503,9 +4503,9 @@ class BuildingDetailVM: ObservableObject {
                     Text("Videos").tag("video")
                 }
                 .pickerStyle(.segmented)
-                .onChange(of: selectedMediaType) { _ in
-                    Task { await loadMedia(selectedSpaceId) }
-                }
+            .onChange(of: selectedMediaType) { _, _ in
+                Task { await loadMedia(selectedSpaceId) }
+            }
                 // Location chips
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 10) {
@@ -4685,41 +4685,40 @@ class BuildingDetailVM: ObservableObject {
             .glassCard()
         }
         
-        @ViewBuilder
-        private func pairedView(items: [CoreTypes.ProcessedPhoto]) -> some View {
-            // Build pairs for before/after by day
-            let df = DateFormatter(); df.dateFormat = "yyyy-MM-dd"
-            var buckets: [String: (before: [CoreTypes.ProcessedPhoto], after: [CoreTypes.ProcessedPhoto])] = [:]
-            for item in items {
-                let day = df.string(from: item.timestamp)
-                if buckets[day] == nil { buckets[day] = ([], []) }
-                if item.category == CoreTypes.CyntientOpsPhotoCategory.beforeWork.rawValue {
-                    buckets[day]?.before.append(item)
-                } else if item.category == CoreTypes.CyntientOpsPhotoCategory.afterWork.rawValue {
-                    buckets[day]?.after.append(item)
-                }
-            }
-            VStack(alignment: .leading, spacing: 12) {
-                ForEach(buckets.keys.sorted(by: >), id: \.self) { day in
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(day).font(.caption).foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
-                        let before = buckets[day]?.before.first
-                        let after = buckets[day]?.after.first
-                        HStack(spacing: 12) {
-                            VStack(spacing: 4) {
-                                Text("Before").font(.caption2).foregroundColor(.gray)
-                                if let b = before { thumbnailView(for: b).frame(width: 110, height: 110).cornerRadius(8) } else { placeholderThumb }
-                            }
-                            VStack(spacing: 4) {
-                                Text("After").font(.caption2).foregroundColor(.gray)
-                                if let a = after { thumbnailView(for: a).frame(width: 110, height: 110).cornerRadius(8) } else { placeholderThumb }
-                            }
-                        }
-                    }
-                    .glassCard()
-                }
+    private func pairedView(items: [CoreTypes.ProcessedPhoto]) -> some View {
+        // Build pairs for before/after by day
+        let df = DateFormatter(); df.dateFormat = "yyyy-MM-dd"
+        var buckets: [String: (before: [CoreTypes.ProcessedPhoto], after: [CoreTypes.ProcessedPhoto])] = [:]
+        for item in items {
+            let day = df.string(from: item.timestamp)
+            if buckets[day] == nil { buckets[day] = ([], []) }
+            if item.category == CoreTypes.CyntientOpsPhotoCategory.beforeWork.rawValue {
+                buckets[day]?.before.append(item)
+            } else if item.category == CoreTypes.CyntientOpsPhotoCategory.afterWork.rawValue {
+                buckets[day]?.after.append(item)
             }
         }
+        return VStack(alignment: .leading, spacing: 12) {
+            ForEach(buckets.keys.sorted(by: >), id: \.self) { day in
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(day).font(.caption).foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                    let before = buckets[day]?.before.first
+                    let after = buckets[day]?.after.first
+                    HStack(spacing: 12) {
+                        VStack(spacing: 4) {
+                            Text("Before").font(.caption2).foregroundColor(.gray)
+                            if let b = before { thumbnailView(for: b).frame(width: 110, height: 110).cornerRadius(8) } else { placeholderThumb }
+                        }
+                        VStack(spacing: 4) {
+                            Text("After").font(.caption2).foregroundColor(.gray)
+                            if let a = after { thumbnailView(for: a).frame(width: 110, height: 110).cornerRadius(8) } else { placeholderThumb }
+                        }
+                    }
+                }
+                .glassCard()
+            }
+        }
+    }
         
         private var placeholderThumb: some View {
             ZStack { Color.gray.opacity(0.1); Image(systemName: "photo").foregroundColor(.gray) }.frame(width: 110, height: 110).cornerRadius(8)

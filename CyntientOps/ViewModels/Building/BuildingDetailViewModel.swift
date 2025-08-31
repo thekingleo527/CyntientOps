@@ -364,6 +364,7 @@ public class BuildingDetailViewModel: ObservableObject {
     @Published var rawDOBPermits: [DOBPermit] = []
     @Published var rawDSNYSchedule: [DSNYRoute] = []
     @Published var rawDSNYViolations: [DSNYViolation] = []
+    @Published var recentDSNYTickets: [ComplianceHistoryService.DSNYTicket] = []
     @Published var rawLL97Data: [LL97Emission] = []
     @Published var facadeFilings: [FacadeFiling] = []
     @Published var facadeNextDueDate: Date? = nil
@@ -1120,6 +1121,14 @@ public class BuildingDetailViewModel: ObservableObject {
                 // Facade compliance data
                 self.facadeFilings = facadeHistory
                 self.facadeNextDueDate = ll11NextDue
+            }
+
+            // Persist and retrieve recent DSNY tickets from compliance history
+            let history = ComplianceHistoryService(database: container.database)
+            await history.persistDSNYViolations(buildingId: buildingId, violations: dsnyViolations)
+            let recent = await history.getDSNYViolations(for: buildingId, limit: 5)
+            await MainActor.run {
+                self.recentDSNYTickets = recent
             }
         } catch {
             print("⚠️ Error loading compliance: \(error)")
