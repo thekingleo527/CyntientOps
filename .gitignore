@@ -127,3 +127,7 @@ DerivedData/
 *.db-shm
 cyntientops.bundle.lock
 .DS_Store
+
+# SwiftPM local Packages
+CyntientOps/Packages
+Packages/
