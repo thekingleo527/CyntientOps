@@ -4219,11 +4219,16 @@ class BuildingDetailVM: ObservableObject {
         }
         
         private func generateRealDSNYSchedule() -> [(day: String, time: String, items: String, isToday: Bool)] {
-            // Use real DSNY data from OperationalDataManager if available
+            // Prefer real DSNY schedule via DSNYAPIService (rawDSNYSchedule)
+            if !viewModel.rawDSNYSchedule.isEmpty {
+                return viewModel.rawDSNYSchedule.map { route in
+                    (day: route.dayOfWeek, time: route.time, items: route.serviceType, isToday: route.isToday)
+                }
+            }
+
+            // Use real DSNY tasks from OperationalDataManager if available
             let dsnyRoutines = viewModel.dailyRoutines.filter { $0.title.contains("DSNY") }
-            
             if !dsnyRoutines.isEmpty {
-                // Use real DSNY routine data
                 return dsnyRoutines.map { routine in
                     let dayName = routine.isCompleted ? "✅ Completed" : Calendar.current.isDateInToday(Date()) ? "Today" : "Scheduled"
                     return (
@@ -4234,7 +4239,7 @@ class BuildingDetailVM: ObservableObject {
                     )
                 }
             }
-            
+
             // Fallback to generated schedule if no real data
             return generateMonthlyDSNYSchedule()
         }

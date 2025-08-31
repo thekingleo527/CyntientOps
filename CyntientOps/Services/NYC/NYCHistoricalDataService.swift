@@ -446,3 +446,71 @@ extension NYCAPIService {
         return try decoder.decode([T].self, from: data)
     }
 }
+
+// MARK: - Monthly Aggregator
+
+public struct MonthlyAggregates {
+    public let months: [String]
+    public let hpdViolations: [String: Int]
+    public let dsnyViolations: [String: Int]
+    public let complaints311: [String: Int]
+    public let dobPermits: [String: Int]
+    public let fdnyInspections: [String: Int]
+}
+
+extension NYCHistoricalDataService {
+    /// Compute simple monthly aggregates (YYYY-MM) for a building from loaded historical data
+    public func getMonthlyAggregates(for buildingId: String) -> MonthlyAggregates? {
+        guard let data = buildingHistoricalData[buildingId] else { return nil }
+        var monthsSet = Set<String>()
+        var hpd: [String: Int] = [:]
+        var dsny: [String: Int] = [:]
+        var c311: [String: Int] = [:]
+        var dob: [String: Int] = [:]
+        var fdny: [String: Int] = [:]
+
+        // Helpers
+        func monthKey(_ d: Date) -> String {
+            let comps = Calendar.current.dateComponents([.year, .month], from: d)
+            let y = comps.year ?? 0
+            let m = comps.month ?? 0
+            return String(format: "%04d-%02d", y, m)
+        }
+        func bump(_ dict: inout [String: Int], key: String) { dict[key, default: 0] += 1 }
+
+        // HPD (inspectionDate is String)
+        let iso = ISO8601DateFormatter()
+        for v in data.hpdViolations {
+            if let s = v.inspectionDate as String?, let d = iso.date(from: s) {
+                let k = monthKey(d); monthsSet.insert(k); bump(&hpd, key: k)
+            }
+        }
+        // DSNY violations (issueDate is String)
+        for v in data.dsnyViolations {
+            if let d = iso.date(from: v.issueDate) {
+                let k = monthKey(d); monthsSet.insert(k); bump(&dsny, key: k)
+            }
+        }
+        // 311 complaints (createdDate is String)
+        for c in data.complaints311 {
+            if let d = iso.date(from: c.createdDate) {
+                let k = monthKey(d); monthsSet.insert(k); bump(&c311, key: k)
+            }
+        }
+        // DOB permits (issuanceDate is String?)
+        for p in data.dobPermits {
+            if let s = p.issuanceDate, let d = iso.date(from: s) {
+                let k = monthKey(d); monthsSet.insert(k); bump(&dob, key: k)
+            }
+        }
+        // FDNY inspections (inspectionDate is String)
+        for i in data.fdnyInspections {
+            if let d = iso.date(from: i.inspectionDate) {
+                let k = monthKey(d); monthsSet.insert(k); bump(&fdny, key: k)
+            }
+        }
+
+        let months = monthsSet.sorted()
+        return MonthlyAggregates(months: months, hpdViolations: hpd, dsnyViolations: dsny, complaints311: c311, dobPermits: dob, fdnyInspections: fdny)
+    }
+}

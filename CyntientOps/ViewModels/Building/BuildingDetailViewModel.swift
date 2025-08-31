@@ -1040,7 +1040,22 @@ public class BuildingDetailViewModel: ObservableObject {
             let hpdViolations = complianceService.getHPDViolations(for: buildingId)
             let dobPermits = complianceService.getDOBPermits(for: buildingId)
             let dsnyViolations = complianceService.getDSNYViolations(for: buildingId)
-            let dsnySchedule = complianceService.getDSNYSchedule(for: buildingId)
+            // Prefer location-based DSNY schedule via DSNYAPIService for accuracy
+            var dsnySchedule: [DSNYRoute] = []
+            do {
+                let building = CoreTypes.NamedCoordinate(
+                    id: buildingId,
+                    name: buildingName,
+                    address: buildingAddress,
+                    latitude: coordinate.latitude,
+                    longitude: coordinate.longitude
+                )
+                let schedule = try await DSNYAPIService.shared.getSchedule(for: building)
+                dsnySchedule = DSNYRoute.fromBuildingSchedule(schedule)
+            } catch {
+                // Fall back to compliance service schedule if available
+                dsnySchedule = complianceService.getDSNYSchedule(for: buildingId)
+            }
             let ll97Data = complianceService.getLL97Emissions(for: buildingId)
             let facadeHistory = await complianceService.getFacadeHistory(buildingId: buildingId)
             let ll11NextDue = await complianceService.getLL11NextDueDate(buildingId: buildingId)
