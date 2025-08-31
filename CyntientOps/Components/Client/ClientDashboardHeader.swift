@@ -50,21 +50,21 @@ struct ClientDashboardHeader: View {
                     icon: "building.2",
                     value: "\(activeBuildings)",
                     label: "Buildings",
-                    color: .blue
+                    color: Color.blue
                 )
                 
                 ClientHeaderMetric(
                     icon: "shield.checkered",
                     value: "\(complianceScore)%",
                     label: "Compliance",
-                    color: complianceScore >= 90 ? .green : .orange
+                    color: complianceScore >= 90 ? Color.green : Color.orange
                 )
                 
                 ClientHeaderMetric(
                     icon: "dollarsign.circle",
                     value: "$\(Int(portfolioValue/1000))K",
                     label: "Budget",
-                    color: .cyan
+                    color: Color.cyan
                 )
             }
             
