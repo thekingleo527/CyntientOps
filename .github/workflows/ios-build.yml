@@ -1,0 +1,38 @@
+name: iOS Build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    name: Build CyntientOps (Simulator)
+    runs-on: macos-14
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: |
+          sudo xcode-select -s /Applications/Xcode.app
+          xcodebuild -version
+
+      - name: Resolve Swift Package dependencies
+        run: |
+          xcodebuild -resolvePackageDependencies \
+            -project CyntientOps/CyntientOps.xcodeproj
+
+      - name: Build (Debug, iPhone Simulator)
+        run: |
+          set -eo pipefail
+          xcodebuild \
+            -project CyntientOps/CyntientOps.xcodeproj \
+            -scheme CyntientOps \
+            -sdk iphonesimulator \
+            -configuration Debug \
+            -destination 'platform=iOS Simulator,name=iPhone 15' \
+            -quiet \
+            build | xcpretty || exit 1
+
