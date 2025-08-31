@@ -560,13 +560,4 @@ struct TaskListView: View {
     }
 }
 
-// MARK: - Preview
-
-struct SimplifiedDashboard_Previews: PreviewProvider {
-    static var previews: some View {
-        // Preview requires ServiceContainer - placeholder for now
-        Text("SimplifiedDashboard Preview")
-            .foregroundColor(.white)
-            .preferredColorScheme(.dark)
-    }
-}
+ 

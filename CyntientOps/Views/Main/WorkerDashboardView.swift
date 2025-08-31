@@ -45,6 +45,8 @@ struct WorkerDashboardView: View {
     @State private var intelligencePanelExpanded = false
     @State private var selectedNovaTab: IntelligenceTab = .routines
     @State private var showingFullScreenTab: IntelligenceTab? = nil
+    @State private var showingSiteDeparture = false
+    @State private var siteDepartureVM: SiteDepartureViewModel? = nil
     
     // MARK: - Intelligence Tabs
     enum IntelligenceTab: String, CaseIterable {
@@ -89,15 +91,16 @@ struct WorkerDashboardView: View {
                     .ignoresSafeArea()
                 
                 VStack(spacing: 0) {
-                    // Unified Header: CyntientOps Logo + Nova Avatar + Worker Status Pill
-                    WorkerHeaderV3B(
-                        name: getWorkerName(),
-                        initials: getWorkerInitials(),
-                        photoURL: nil,
-                        nextTaskName: viewModel.nextPriorityTitle,
-                        showClockPill: true,
-                        isNovaProcessing: false, // novaManager.isProcessing not available
-                        onRoute: handleHeaderRoute
+                    // Role-specific header (simple, focused)
+                    WorkerSimpleHeader(
+                        workerName: getWorkerName(),
+                        workerId: viewModel.workerProfile?.id ?? "",
+                        isNovaProcessing: false,
+                        clockInStatus: viewModel.isClockedIn ? .clockedIn(building: viewModel.currentBuilding?.name ?? "", time: viewModel.clockedInAt ?? Date()) : .notClockedIn,
+                        onLogoTap: { /* Optional: show menu or map */ },
+                        onNovaPress: { sheet = .novaChat },
+                        onProfileTap: { sheet = .profile },
+                        onClockAction: { handleClockAction() }
                     )
                     .zIndex(100)
                     
@@ -172,6 +175,43 @@ struct WorkerDashboardView: View {
                 workerSheetContent(for: route)
             }
         }
+        .sheet(isPresented: $showingSiteDeparture) {
+            if let vm = siteDepartureVM {
+                SiteDepartureSheet(viewModel: vm) {
+                    Task { await viewModel.clockOut() }
+                }
+            }
+        }
+        .sheet(isPresented: $showingVendorAccess) {
+            VendorAccessLogSheetLight(viewModel: viewModel) {
+                showingVendorAccess = false
+            }
+        }
+        .sheet(isPresented: $showingQuickNote) {
+            QuickNoteSheet(viewModel: viewModel)
+        }
+        .fullScreenCover(isPresented: $showingCamera) {
+            CyntientOpsImagePicker(
+                image: .constant(nil),
+                onImagePicked: { image in
+                    // Store quick photo as after-work note for current building
+                    if let wid = viewModel.worker?.id,
+                       let building = viewModel.currentBuilding {
+                        Task {
+                            _ = try? await container.photos.captureQuick(
+                                image: image,
+                                category: .afterWork,
+                                buildingId: building.id,
+                                workerId: wid,
+                                notes: "Quick photo captured from dashboard"
+                            )
+                        }
+                    }
+                    showingCamera = false
+                },
+                sourceType: .camera
+            )
+        }
         .task {
             await viewModel.refreshData()
         }
@@ -185,6 +225,37 @@ struct WorkerDashboardView: View {
                 }
             }
         )
+        .overlay(alignment: .trailing) {
+            // Persistent quick actions rail
+            VStack(spacing: 12) {
+                Button(action: { handleClockAction() }) {
+                    Image(systemName: viewModel.isClockedIn ? "clock.fill" : "clock")
+                        .foregroundColor(.white)
+                        .padding(10)
+                        .background(.ultraThinMaterial, in: Circle())
+                }
+                Button(action: { showingVendorAccess = true }) {
+                    Image(systemName: "person.badge.key.fill")
+                        .foregroundColor(.white)
+                        .padding(10)
+                        .background(.ultraThinMaterial, in: Circle())
+                }
+                Button(action: { showingCamera = true }) {
+                    Image(systemName: "camera.fill")
+                        .foregroundColor(.white)
+                        .padding(10)
+                        .background(.ultraThinMaterial, in: Circle())
+                }
+                Button(action: { showingQuickNote = true }) {
+                    Image(systemName: "note.text")
+                        .foregroundColor(.white)
+                        .padding(10)
+                        .background(.ultraThinMaterial, in: Circle())
+                }
+            }
+            .padding(.trailing, 12)
+            .padding(.bottom, 100)
+        }
     }
     
     // MARK: - Hero Section with Two Glass Cards
@@ -517,6 +588,12 @@ struct WorkerDashboardView: View {
             })
             .first
     }
+
+    private func sequenceTimeRange(_ seq: RouteSequence) -> String {
+        let start = CoreTypes.DateUtils.timeFormatter.string(from: seq.arrivalTime)
+        let end = CoreTypes.DateUtils.timeFormatter.string(from: seq.arrivalTime.addingTimeInterval(seq.estimatedDuration))
+        return "\(start) – \(end)"
+    }
     
     private func getNextTaskTitle() -> String {
         return getNextTask()?.title ?? "No urgent tasks"
@@ -527,11 +604,33 @@ struct WorkerDashboardView: View {
             !task.isCompleted && (task.urgency == .urgent || task.urgency == .critical || task.urgency == .emergency)
         }
     }
+
     
-    private func handleClockAction() {
+    private func formatDurationMinutes(_ seconds: TimeInterval) -> String {
+        let minutes = Int(seconds / 60)
+        return "\(minutes) min"
+    }
+private func handleClockAction() {
         Task {
             if viewModel.isClockedIn {
-                await viewModel.clockOut()
+                if let wid = viewModel.worker?.id ?? authManager.workerId,
+                   let cb = viewModel.currentBuilding {
+                    let named = NamedCoordinate(
+                        id: cb.id,
+                        name: cb.name,
+                        address: cb.address,
+                        latitude: cb.coordinate.latitude,
+                        longitude: cb.coordinate.longitude
+                    )
+                    siteDepartureVM = SiteDepartureViewModel(
+                        workerId: wid,
+                        currentBuilding: named,
+                        container: container
+                    )
+                    showingSiteDeparture = true
+                } else {
+                    await viewModel.clockOut()
+                }
             } else {
                 if let building = viewModel.assignedBuildings.first {
                     let coordinate = NamedCoordinate(
@@ -722,13 +821,52 @@ struct WorkerDashboardView: View {
             .padding()
             .background(.ultraThinMaterial)
             
-            // Tasks list
+            // Routines list based on today's route sequences
             ScrollView {
-                LazyVStack(spacing: 12) {
-                    ForEach(viewModel.todaysTasks, id: \.id) { task in
-                        WorkerTaskRowView(task: task, onTap: {
-                            sheet = .taskDetail(task.id)
-                        })
+                VStack(spacing: 14) {
+                    let workerId = viewModel.worker?.id ?? authManager.workerId ?? ""
+                    if let route = container.routes.getCurrentRoute(for: workerId) {
+                        ForEach(route.sequences, id: \.id) { seq in
+                            VStack(alignment: .leading, spacing: 8) {
+                                HStack {
+                                    Text(seq.buildingName)
+                                        .font(.headline)
+                                        .foregroundColor(.white)
+                                    Spacer()
+                                    Text(sequenceTimeRange(seq))
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                                ForEach(seq.operations, id: \.id) { op in
+                                    HStack {
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text(op.name)
+                                                .font(.subheadline)
+                                                .foregroundColor(.white)
+                                            if let notes = op.instructions, !notes.isEmpty {
+                                                Text(notes)
+                                                    .font(.caption)
+                                                    .foregroundColor(.secondary)
+                                            }
+                                        }
+                                        Spacer()
+                                        Text(formatDurationMinutes(op.estimatedDuration))
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                    }
+                                    .padding(8)
+                                    .background(.regularMaterial)
+                                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                                }
+                            }
+                            .padding()
+                            .background(.ultraThinMaterial)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                        }
+                    } else {
+                        Text("No route available for today")
+                            .foregroundColor(.secondary)
+                            .padding()
                     }
                 }
                 .padding()

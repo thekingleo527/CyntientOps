@@ -466,6 +466,14 @@ public final class GRDBManager {
                 FOREIGN KEY (worker_id) REFERENCES workers(id)
             )
         """)
+
+        // Columns added in v9: space_id and media_type (image/video)
+        do { try db.execute(sql: "ALTER TABLE photos ADD COLUMN space_id TEXT") } catch { /* ignore if exists */ }
+        do { try db.execute(sql: "ALTER TABLE photos ADD COLUMN media_type TEXT DEFAULT 'image'") } catch { /* ignore if exists */ }
+
+        // Indices for new columns
+        try db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_photos_space ON photos(space_id)")
+        try db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_photos_media_type ON photos(media_type)")
         
         // Site departure logs (from paste.txt)
         try db.execute(sql: """

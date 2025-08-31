@@ -519,12 +519,4 @@ struct SettingsRow: View {
 }
 
 
-// MARK: - Preview Provider
-
-struct ProfileView_Previews: PreviewProvider {
-    static var previews: some View {
-        ProfileView()
-            .environmentObject(NewAuthManager.shared)
-            .preferredColorScheme(.dark)
-    }
-}
+ 

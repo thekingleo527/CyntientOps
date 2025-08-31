@@ -63,45 +63,4 @@ private struct ScrollOffsetPreferenceKey: PreferenceKey {
     }
 }
 
-// MARK: - Preview Provider
-
-struct TrackableScrollView_Previews: PreviewProvider {
-    @State static var scrollOffset: CGFloat = 0
-    
-    static var previews: some View {
-        ZStack {
-            Color.black.ignoresSafeArea()
-            
-            TrackableScrollView(contentOffset: $scrollOffset) {
-                VStack(spacing: 20) {
-                    ForEach(0..<20) { index in
-                        Text("Item \(index)")
-                            .font(.headline)
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.blue.opacity(0.3))
-                            .cornerRadius(12)
-                    }
-                }
-                .padding()
-            }
-            
-            VStack {
-                HStack {
-                    Text("Scroll Offset: \(Int(scrollOffset))")
-                        .font(.caption)
-                        .foregroundColor(.white)
-                        .padding(8)
-                        .background(Color.black.opacity(0.7))
-                        .cornerRadius(8)
-                    
-                    Spacer()
-                }
-                .padding()
-                
-                Spacer()
-            }
-        }
-    }
-}
+ 

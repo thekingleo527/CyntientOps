@@ -339,10 +339,4 @@ private struct ActionRow: View {
     }
 }
 
-// MARK: - Preview
-
-#Preview("Worker Feedback View") {
-    WorkerFeedbackView()
-        .frame(maxWidth: 400)
-        .padding()
-}
+ 

@@ -915,30 +915,4 @@ extension CoreTypes {
     }
 }
 
-#if DEBUG
-struct NovaClientIntelligenceBar_Previews: PreviewProvider {
-    static var previews: some View {
-        Text("NovaClientIntelligenceBar Preview")
-            .foregroundColor(.white)
-        /*
-        VStack {
-            Spacer()
-            
-            NovaClientIntelligenceBar(
-                container: ServiceContainer(),
-                clientContext: [
-                    "clientName": "JM Realty Group",
-                    "totalBuildings": 9,
-                    "portfolioHealth": 0.85,
-                    "estimatedSavings": 12000.0,
-                    "complianceScore": 0.94,
-                    "criticalViolations": 1
-                ]
-            )
-        }
-        .background(Color.black)
-        .preferredColorScheme(.dark)
-        */
-    }
-}
-#endif
+// Preview removed

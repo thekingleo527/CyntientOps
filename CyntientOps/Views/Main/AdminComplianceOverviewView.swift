@@ -613,12 +613,4 @@ struct ComplianceViolationDetailView: View {
     }
 }
 
-#if DEBUG
-struct AdminComplianceOverviewView_Previews: PreviewProvider {
-    static var previews: some View {
-        AdminComplianceOverviewView()
-            .environmentObject(ServiceContainer())
-            .preferredColorScheme(.dark)
-    }
-}
-#endif
+// Preview removed

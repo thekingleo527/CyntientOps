@@ -1665,7 +1665,8 @@ public class WorkerDashboardViewModel: ObservableObject {
                     print("  \(index + 1). \(task.title) at \(timeStr) (\(task.category))")
                 }
             } else {
-                print("⚠️ DEBUG: NO TASKS LOADED - This is why Kevin's dashboard is empty!")
+                // Likely after-hours or no remaining items for today; schedules may show tomorrow preview
+                print("ℹ️ DEBUG: No tasks remaining for today; showing tomorrow's preview on schedule cards if available.")
             }
             
             // Update hero tile properties after tasks are loaded
@@ -1753,6 +1754,10 @@ public class WorkerDashboardViewModel: ObservableObject {
             )
             
             if let currentWeather = weatherArray.first {
+                // Also publish WeatherSnapshot so WeatherRibbonView can render immediately
+                if let snap = WeatherSnapshot.from(current: currentWeather, hourly: weatherArray) {
+                    await MainActor.run { self.weather = snap }
+                }
                 // Convert CoreTypes.WeatherCondition to our local WeatherCondition
                 let condition: WeatherCondition
                 switch currentWeather.condition {
@@ -1789,6 +1794,28 @@ public class WorkerDashboardViewModel: ObservableObject {
         } catch {
             print("❌ Failed to load weather data: \(error)")
             await loadDefaultWeather(for: building)
+            // Fallback WeatherSnapshot to keep ribbon visible
+            let fallbackCurrent = CoreTypes.WeatherData(
+                temperature: 72,
+                condition: .clear,
+                humidity: 0.5,
+                windSpeed: 8,
+                outdoorWorkRisk: .low,
+                timestamp: Date()
+            )
+            let fallbackHourly = (0..<12).map { i in
+                CoreTypes.WeatherData(
+                    temperature: 72 + Double(Int.random(in: -5...5)),
+                    condition: .clear,
+                    humidity: 0.5,
+                    windSpeed: 8,
+                    outdoorWorkRisk: .low,
+                    timestamp: Date().addingTimeInterval(Double(i) * 3600)
+                )
+            }
+            if let snap = WeatherSnapshot.from(current: fallbackCurrent, hourly: fallbackHourly) {
+                await MainActor.run { self.weather = snap }
+            }
         }
     }
     

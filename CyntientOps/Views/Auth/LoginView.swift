@@ -331,10 +331,7 @@ struct LoginView: View {
                         }
                     }
                     
-                    // Development quick access section (remove in production)
-                    #if DEBUG
-                    developerAccessButton
-                    #endif
+                    
                     
                     // Footer
                     Text("© 2025 Franco Management Enterprises")
@@ -371,58 +368,6 @@ struct LoginView: View {
         }
     }
     
-    #if DEBUG
-    private var developerAccessButton: some View {
-        GlassCard(intensity: GlassIntensity.thin, cornerRadius: 20) {
-            Button(action: {
-                showingDeveloperSheet = true
-            }) {
-                HStack(spacing: 12) {
-                    ZStack {
-                        Circle()
-                            .fill(Color.purple.opacity(0.2))
-                            .frame(width: 40, height: 40)
-                        
-                        Image(systemName: "wrench.and.screwdriver")
-                            .font(.system(size: 18, weight: .medium))
-                            .foregroundColor(.purple)
-                    }
-                    
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Developer Access")
-                            .font(.headline)
-                            .foregroundColor(.white)
-                        
-                        Text("Quick login for testing")
-                            .font(.caption)
-                            .foregroundColor(.white.opacity(0.7))
-                    }
-                    
-                    Spacer()
-                    
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(.purple)
-                }
-                .padding(16)
-            }
-            .buttonStyle(PlainButtonStyle())
-        }
-        .padding(.horizontal, 24)
-        .padding(.top, 16)
-        .offset(y: quickAccessOffset)
-        .opacity(quickAccessOpacity)
-        .onAppear {
-            withAnimation(.spring(response: 0.8, dampingFraction: 0.7).delay(0.6)) {
-                quickAccessOffset = 0
-                quickAccessOpacity = 1
-            }
-        }
-        .sheet(isPresented: $showingDeveloperSheet) {
-            DeveloperLoginSheet()
-                .environmentObject(authManager)
-        }
-    }
     
     private func quickAccessButton(email: String, name: String, icon: String, color: Color) -> some View {
         Button(action: {
@@ -673,11 +618,4 @@ extension View {
     }
 }
 
-// MARK: - Preview
-
-struct LoginView_Previews: PreviewProvider {
-    static var previews: some View {
-        LoginView()
-            .preferredColorScheme(.dark)
-    }
-}
+ 

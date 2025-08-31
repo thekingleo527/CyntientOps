@@ -1485,12 +1485,14 @@ public final class ClientDashboardViewModel: ObservableObject {
     
     /// Calculate monthly operational costs using real DOF API property data
     private func calculateMonthlyOperationalCosts() {
+        // Use buildingsList (already derived from clientBuildings when ready)
+        // This avoids early-zero logs before clientBuildings is populated
         print("💰 Starting monthly cost calculation with real DOF data...")
-        print("   - Client buildings count: \(clientBuildings.count)")
+        print("   - Client buildings count: \(buildingsList.count)")
         print("   - Client buildings with images count: \(clientBuildingsWithImages.count)")
         print("   - Building metrics count: \(buildingMetrics.count)")
         
-        guard !clientBuildings.isEmpty else {
+        guard !buildingsList.isEmpty else {
             print("⚠️ No client buildings available for cost calculation")
             return
         }

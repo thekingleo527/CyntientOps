@@ -211,41 +211,4 @@ struct CircularProgressView: View {
     }
 }
 
-// MARK: - Preview
-
-#Preview {
-    let sampleTasks = [
-        DSNYTask(
-            id: "1",
-            buildingId: CanonicalIDs.Buildings.springStreet178,
-            buildingName: "178 Spring Street",
-            taskType: .binRetrieval,
-            scheduledTime: DSNYTime(hour: 10, minute: 30),
-            assignedWorkerId: "edwin",
-            collectionDay: .monday,
-            instructions: "Bring trash bins back inside after DSNY collection. Glass door area - coordinate with entrance cleaning",
-            isCompleted: false,
-            completedAt: nil,
-            completedBy: nil
-        ),
-        DSNYTask(
-            id: "2",
-            buildingId: CanonicalIDs.Buildings.chambers148,
-            buildingName: "148 Chambers Street",
-            taskType: .binRetrieval,
-            scheduledTime: DSNYTime(hour: 12, minute: 0),
-            assignedWorkerId: "edwin",
-            collectionDay: .monday,
-            instructions: "Part of Edwin's structured morning sequence",
-            isCompleted: true,
-            completedAt: Date(),
-            completedBy: "edwin"
-        )
-    ]
-    
-    DSNYBinTaskCard(tasks: sampleTasks) { taskId in
-        print("Completed task: \(taskId)")
-    }
-    .padding()
-    .background(CyntientOpsDesign.DashboardColors.baseBackground)
-}
+ 

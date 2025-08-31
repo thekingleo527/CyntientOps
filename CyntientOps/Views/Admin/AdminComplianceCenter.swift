@@ -895,15 +895,6 @@ struct AdminScheduleInspectionView: View {
     }
 }
 
-#if DEBUG
-struct AdminComplianceCenter_Previews: PreviewProvider {
-    static var previews: some View {
-        AdminComplianceCenter()
-            .environmentObject(ServiceContainer())
-            .environmentObject(DashboardSyncService.shared)
-            .preferredColorScheme(.dark)
-    }
-}
-#endif
+// Preview removed to avoid constructing async ServiceContainer in previews
 
 #endif

@@ -2048,6 +2048,7 @@ public struct CoreTypes {
         public let filePath: String
         public let thumbnailPath: String
         public let fileSize: Int64
+        public let mediaType: String
         public let notes: String
         public let retentionDays: Int
         public let validationStatus: String?
@@ -2062,6 +2063,7 @@ public struct CoreTypes {
             filePath: String,
             thumbnailPath: String,
             fileSize: Int64,
+            mediaType: String = "image",
             notes: String = "",
             retentionDays: Int = 30,
             validationStatus: String? = nil,
@@ -2075,6 +2077,7 @@ public struct CoreTypes {
             self.filePath = filePath
             self.thumbnailPath = thumbnailPath
             self.fileSize = fileSize
+            self.mediaType = mediaType
             self.notes = notes
             self.retentionDays = retentionDays
             self.validationStatus = validationStatus
@@ -2103,6 +2106,7 @@ public struct CoreTypes {
             }
             
             let notes = dictionary["notes"] as? String ?? ""
+            let mediaType = dictionary["media_type"] as? String ?? "image"
             let validationStatus = dictionary["validation_status"] as? String
             let taskTitle = dictionary["task_title"] as? String
             
@@ -2115,6 +2119,7 @@ public struct CoreTypes {
                 filePath: filePath,
                 thumbnailPath: thumbnailPath,
                 fileSize: fileSize,
+                mediaType: mediaType,
                 notes: notes,
                 retentionDays: retentionDays,
                 validationStatus: validationStatus,

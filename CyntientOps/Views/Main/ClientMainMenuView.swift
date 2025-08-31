@@ -542,17 +542,25 @@ struct ClientBuildingListRow: View {
     var body: some View {
         Button(action: onTap) {
             HStack(spacing: 16) {
-                // Building icon with performance indicator
+                // Building preview with performance indicator
                 ZStack(alignment: .bottomTrailing) {
-                    Image(systemName: "building.2.fill")
-                        .font(.title2)
-                        .foregroundColor(CyntientOpsDesign.DashboardColors.clientPrimary)
-                        .frame(width: 44, height: 44)
-                        .background(
-                            Circle()
-                                .fill(CyntientOpsDesign.DashboardColors.clientPrimary.opacity(0.1))
-                        )
-                    
+                    if let asset = BuildingAssets.assetName(for: building.id), UIImage(named: asset) != nil {
+                        Image(asset)
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .frame(width: 56, height: 40)
+                            .clipped()
+                            .cornerRadius(6)
+                    } else {
+                        Image(systemName: "building.2.fill")
+                            .font(.title2)
+                            .foregroundColor(CyntientOpsDesign.DashboardColors.clientPrimary)
+                            .frame(width: 44, height: 44)
+                            .background(
+                                Circle()
+                                    .fill(CyntientOpsDesign.DashboardColors.clientPrimary.opacity(0.1))
+                            )
+                    }
                     Circle()
                         .fill(performanceColor)
                         .frame(width: 12, height: 12)
@@ -968,11 +976,4 @@ struct ClientBuildingDetailViewPlaceholder: View {
     }
 }
 
-// MARK: - Preview Provider
-
-struct ClientMainMenuView_Previews: PreviewProvider {
-    static var previews: some View {
-        ClientMainMenuViewV6()
-            .preferredColorScheme(.dark)
-    }
-}
+ 

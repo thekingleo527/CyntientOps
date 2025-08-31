@@ -2,6 +2,7 @@ import SwiftUI
 
 struct WorkerHeroNowNext: View {
     @ObservedObject var viewModel: WorkerDashboardViewModel
+    var onTaskTap: ((TaskRowVM) -> Void)? = nil
 
     var body: some View {
         HStack(spacing: 12) {
@@ -27,6 +28,8 @@ struct WorkerHeroNowNext: View {
                     }
                     Spacer()
                 }
+                .contentShape(Rectangle())
+                .onTapGesture { onTaskTap?(t) }
             }
             if tasks.isEmpty {
                 Text("All clear").font(.caption).foregroundColor(.gray)
@@ -47,4 +50,3 @@ struct WorkerHeroNowNext: View {
         return Array(viewModel.upcoming.dropFirst(2).prefix(2))
     }
 }
-

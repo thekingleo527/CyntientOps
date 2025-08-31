@@ -777,13 +777,4 @@ struct AdminTaskHelpers {
     }
 }
 
-// MARK: - Preview
-
-struct AdminTaskRequestView_Previews: PreviewProvider {
-    static var previews: some View {
-        AdminTaskRequestView(
-            preselectedBuilding: nil,
-            preselectedWorker: nil
-        )
-    }
-}
+ 

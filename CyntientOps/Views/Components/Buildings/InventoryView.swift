@@ -1285,14 +1285,4 @@ extension CoreTypes.InventoryCategory {
     }
 }
 
-// MARK: - Preview
-
-struct InventoryView_Previews: PreviewProvider {
-    static var previews: some View {
-        InventoryView(
-            buildingId: "14",
-            buildingName: "Rubin Museum"
-        )
-        .preferredColorScheme(.dark)
-    }
-}
+ 

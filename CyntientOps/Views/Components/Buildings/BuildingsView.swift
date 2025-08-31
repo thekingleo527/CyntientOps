@@ -533,6 +533,11 @@ struct BuildingRowCard: View {
     }
     
     private var buildingImageAssetName: String? {
+        if let id = CanonicalIDs.Buildings.getId(for: building.name) ?? building.id,
+           let mapped = BuildingAssets.assetName(for: id) {
+            return mapped
+        }
+        // Fallback: derive from address
         let address = building.address
         return address
             .replacingOccurrences(of: " ", with: "_")
@@ -754,14 +759,4 @@ struct BuildingMapPin: View {
     }
 }
 
-// MARK: - Preview
-
-struct BuildingsView_Previews: PreviewProvider {
-    static var previews: some View {
-        // Use a simple view for preview since ServiceContainer requires async init
-        Text("BuildingsView Preview")
-            .foregroundColor(.white)
-            .background(Color.black)
-            .preferredColorScheme(.dark)
-    }
-}
+ 

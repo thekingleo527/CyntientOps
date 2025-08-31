@@ -113,6 +113,19 @@ extension View {
     }
 }
 
+// MARK: - CyntientOps Naming Aliases (Franco → CyntientOps)
+extension View {
+    /// Preferred alias for francoGlassCard
+    func glassCard(intensity: GlassIntensity = .regular) -> some View {
+        self.francoGlassCard(intensity: intensity)
+    }
+    
+    /// Preferred alias for francoGlassCardCompact
+    func glassCardCompact(intensity: GlassIntensity = .thin) -> some View {
+        self.francoGlassCardCompact(intensity: intensity)
+    }
+}
+
 // MARK: - Glass Animation Modifiers (Extracted from GlassMorphismStyles)
 
 struct PulsingGlassModifier: ViewModifier {

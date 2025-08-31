@@ -48,11 +48,10 @@ public final class RouteManager: ObservableObject {
         // Edwin Lema's complete weekly schedule  
         allRoutes.append(contentsOf: EdwinLemaRoutes.getWeeklyRoutes())
         
-        // TODO: Add other workers when available
-        // allRoutes.append(contentsOf: GregHutsonRoutes.getWeeklyRoutes())
-        // allRoutes.append(contentsOf: MercedesInamaguaRoutes.getWeeklyRoutes())
-        // allRoutes.append(contentsOf: LuisLopezRoutes.getWeeklyRoutes())
-        // allRoutes.append(contentsOf: AngelGuirachochaRoutes.getWeeklyRoutes())
+        // Additional workers
+        allRoutes.append(contentsOf: MercedesInamaguaRoutes.getWeeklyRoutes())
+        allRoutes.append(contentsOf: LuisLopezRoutes.getWeeklyRoutes())
+        allRoutes.append(contentsOf: AngelGuiracochaRoutes.getWeeklyRoutes())
         
         routes = allRoutes
         print("✅ RouteManager: Loaded \(routes.count) worker routes across \(Set(routes.map { $0.workerId }).count) workers")

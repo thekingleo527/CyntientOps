@@ -421,18 +421,4 @@ extension Notification.Name {
     static let workerPreferencesChanged = Notification.Name("workerPreferencesChanged")
 }
 
-// MARK: - Preview
-struct WorkerPreferencesView_Previews: PreviewProvider {
-    static var previews: some View {
-        Group {
-            WorkerPreferencesView(workerId: "4") // Kevin
-                .environmentObject(ThemeManager.shared)
-                .environment(\.locale, .init(identifier: "en"))
-            
-            WorkerPreferencesView(workerId: "5") // Mercedes
-                .environmentObject(ThemeManager.shared)
-                .environment(\.locale, .init(identifier: "es"))
-                .preferredColorScheme(.dark)
-        }
-    }
-}
+ 

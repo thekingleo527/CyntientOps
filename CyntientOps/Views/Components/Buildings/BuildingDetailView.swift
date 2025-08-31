@@ -14,6 +14,7 @@ import SwiftUI
 import MapKit
 import MessageUI
 import CoreLocation
+import AVKit
 
 // MARK: - Supporting Types that aren't in CoreTypes
 
@@ -240,24 +241,33 @@ struct BuildingDetailView: View {
                             )
                         )
                 } else {
-                    // Fallback gradient background
-                    LinearGradient(
-                        gradient: Gradient(colors: [
-                            CyntientOpsDesign.DashboardColors.primaryAction.opacity(0.3),
-                            CyntientOpsDesign.DashboardColors.primaryAction.opacity(0.1)
-                        ]),
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                    .frame(height: isHeaderExpanded ? 180 : 100)
-                    
-                    // Building icon overlay for fallback
-                    HStack {
-                        Spacer()
-                        Image(systemName: viewModel.buildingIcon)
-                            .font(.system(size: 50))
-                            .foregroundColor(CyntientOpsDesign.DashboardColors.primaryAction.opacity(0.2))
-                            .padding()
+                    // Try to load a mapped preview image for this building
+                    if let mapped = BuildingAssets.assetName(for: viewModel.buildingId), UIImage(named: mapped) != nil {
+                        Image(mapped)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(height: isHeaderExpanded ? 180 : 100)
+                            .clipped()
+                    } else {
+                        // Fallback gradient background
+                        LinearGradient(
+                            gradient: Gradient(colors: [
+                                CyntientOpsDesign.DashboardColors.primaryAction.opacity(0.3),
+                                CyntientOpsDesign.DashboardColors.primaryAction.opacity(0.1)
+                            ]),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                        .frame(height: isHeaderExpanded ? 180 : 100)
+                        
+                        // Building icon overlay for fallback
+                        HStack {
+                            Spacer()
+                            Image(systemName: viewModel.buildingIcon)
+                                .font(.system(size: 50))
+                                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryAction.opacity(0.2))
+                                .padding()
+                        }
                     }
                 }
                 
@@ -465,6 +475,14 @@ struct BuildingDetailView: View {
                         buildingName: buildingName,
                         viewModel: viewModel
                     )
+                
+                case .media:
+                    BuildingMediaTab(
+                        buildingId: buildingId,
+                        buildingName: buildingName,
+                        container: container,
+                        viewModel: viewModel
+                    )
                     
                 case .inventory:
                     BuildingInventoryTab(
@@ -661,6 +679,7 @@ enum BuildingDetailTab: String, CaseIterable {
     case workers = "Workers"
     case maintenance = "Maintenance"
     case sanitation = "Sanitation"
+    case media = "Media"
     case inventory = "Inventory"
     case spaces = "Spaces"
     case emergency = "Emergency"
@@ -673,6 +692,7 @@ enum BuildingDetailTab: String, CaseIterable {
         case .workers: return "person.3.fill"
         case .maintenance: return "wrench.and.screwdriver.fill"
         case .sanitation: return "trash.circle.fill"
+        case .media: return "photo.on.rectangle.angled"
         case .inventory: return "shippingbox.fill"
         case .spaces: return "key.fill"
         case .emergency: return "phone.arrow.up.right"
@@ -3018,6 +3038,7 @@ class BuildingDetailVM: ObservableObject {
     // MARK: - Additional Properties
     @Published var buildingSize: String = "Medium"
     @Published var rawDSNYViolations: [DSNYViolation] = []
+    @Published var recentDSNYTickets: [ComplianceHistoryService.DSNYTicket] = []
     
     init(buildingId: String, buildingName: String, buildingAddress: String) {
         self.buildingId = buildingId
@@ -3077,6 +3098,9 @@ class BuildingDetailVM: ObservableObject {
                 await MainActor.run {
                     workersPresent = workersForBuilding
                     workersOnSite = workersForBuilding.count
+                    assignedWorkers = workersForBuilding.map { name in
+                        AssignedWorker(id: UUID().uuidString, name: name, schedule: "Assigned", isOnSite: true)
+                    }
                 }
             }
             
@@ -3091,6 +3115,26 @@ class BuildingDetailVM: ObservableObject {
                     completionPercentage = 75
                 }
             }
+
+            // Load routines for this building from operational data (fallback to Route data later)
+            let buildingTasks = operationalDataManager.getTasksForBuilding(buildingName)
+            if !buildingTasks.isEmpty {
+                let routines: [LocalDailyRoutine] = buildingTasks.prefix(12).map { t in
+                    LocalDailyRoutine(
+                        id: UUID().uuidString,
+                        title: t.taskName,
+                        scheduledTime: t.startHour.map { String(format: "%02d:00", $0) },
+                        isCompleted: false,
+                        assignedWorker: t.assignedWorker,
+                        requiredInventory: []
+                    )
+                }
+                await MainActor.run {
+                    dailyRoutines = routines
+                    totalRoutines = routines.count
+                    completedRoutines = routines.filter { $0.isCompleted }.count
+                }
+            }
             
             // Set compliance status based on completion
             await MainActor.run {
@@ -3098,6 +3142,12 @@ class BuildingDetailVM: ObservableObject {
                 nextCriticalTask = completionPercentage < 90 ? "HVAC System Inspection" : nil
                 todaysSpecialNote = completionPercentage >= 95 ? "Excellent performance today!" : "Some tasks still pending completion"
                 currentStatus = "Data loaded successfully"
+            }
+
+            // Load last few DSNY tickets from local compliance history
+            let tickets = await ComplianceHistoryService().getDSNYViolations(for: buildingId, limit: 5)
+            await MainActor.run {
+                recentDSNYTickets = tickets
             }
     }
     
@@ -4314,7 +4364,37 @@ struct BuildingSanitationTab: View {
                         .font(.subheadline)
                         .foregroundColor(CyntientOpsDesign.DashboardColors.success)
                 }
-                
+
+                // Recent DSNY Tickets - leverage historical ticket data
+                let tickets = viewModel.recentDSNYTickets
+                if !tickets.isEmpty {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Recent DSNY Tickets (\(tickets.count))")
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                            .foregroundColor(CyntientOpsDesign.DashboardColors.warning)
+                        ForEach(Array(tickets.prefix(3)), id: \.id) { t in
+                            HStack {
+                                Circle()
+                                    .fill(CyntientOpsDesign.DashboardColors.critical)
+                                    .frame(width: 8, height: 8)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(t.type)
+                                        .font(.caption)
+                                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                                    Text("Issued: \(t.issueDate, style: .date)")
+                                        .font(.caption2)
+                                        .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+                                }
+                                Spacer()
+                                Text(t.fineAmount > 0 ? "$\(Int(t.fineAmount))" : "Pending")
+                                    .font(.caption)
+                                    .foregroundColor(t.fineAmount > 0 ? CyntientOpsDesign.DashboardColors.critical : CyntientOpsDesign.DashboardColors.warning)
+                            }
+                        }
+                    }
+                }
+
                 ComplianceRow(
                     title: "Set-Out Schedule",
                     status: .compliant,
@@ -4368,6 +4448,333 @@ public struct DSNYScheduleRow: View {
             }
         }
         .padding(.vertical, 4)
+    }
+}
+
+// MARK: - Building Media Tab
+
+struct BuildingMediaTab: View {
+    let buildingId: String
+    let buildingName: String
+    let container: ServiceContainer
+    @ObservedObject var viewModel: BuildingDetailViewModel
+    
+    @State private var isLoading = true
+    @State private var mediaItems: [CoreTypes.ProcessedPhoto] = []
+    @State private var selectedCategory: CoreTypes.CyntientOpsPhotoCategory? = nil
+    @State private var selectedMediaType: String = "all" // all | image | video
+    @State private var selectedSpaceId: String? = nil
+    @State private var latestBySpace: [String: CoreTypes.ProcessedPhoto] = [:]
+    @State private var showPairs: Bool = false
+    @State private var showViewer: Bool = false
+    @State private var viewerItem: CoreTypes.ProcessedPhoto? = nil
+    
+    private var photosDirectory: URL {
+        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("Photos")
+    }
+    private var videosDirectory: URL {
+        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("Videos")
+    }
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            // Header + filters
+            HStack {
+                Label("Media", systemImage: "photo.on.rectangle.angled")
+                    .font(.headline)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                Spacer()
+                Menu {
+                    Button("All Categories") { selectedCategory = nil; Task { await loadMedia() } }
+                    ForEach(CoreTypes.CyntientOpsPhotoCategory.allCases, id: \.self) { cat in
+                        Button(cat.displayName) { selectedCategory = cat; Task { await loadMedia(selectedSpaceId) } }
+                    }
+                } label: {
+                    Label(selectedCategory?.displayName ?? "All", systemImage: "line.3.horizontal.decrease.circle")
+                }
+                .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+            }
+            // Media type filter
+            Picker("Type", selection: $selectedMediaType) {
+                Text("All").tag("all")
+                Text("Images").tag("image")
+                Text("Videos").tag("video")
+            }
+            .pickerStyle(.segmented)
+            .onChange(of: selectedMediaType) { _ in
+                Task { await loadMedia(selectedSpaceId) }
+            }
+            // Location chips
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    Button(action: { selectedSpaceId = nil; Task { await loadMedia(nil) } }) {
+                        Label("All Locations", systemImage: "square.grid.2x2").font(.caption)
+                    }
+                    .padding(.horizontal, 10).padding(.vertical, 6)
+                    .background((selectedSpaceId == nil ? CyntientOpsDesign.DashboardColors.secondaryAction : Color.clear).opacity(0.2))
+                    .cornerRadius(8)
+                    ForEach(viewModel.spaces) { space in
+                        Button(action: { selectedSpaceId = space.id; Task { await loadMedia(space.id) } }) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "key.fill").font(.caption2)
+                                Text(space.name).font(.caption)
+                            }
+                        }
+                        .padding(.horizontal, 10).padding(.vertical, 6)
+                        .background((selectedSpaceId == space.id ? CyntientOpsDesign.DashboardColors.secondaryAction : Color.clear).opacity(0.2))
+                        .cornerRadius(8)
+                    }
+                }
+            }
+            
+            if isLoading {
+                VStack(spacing: 12) {
+                    ProgressView()
+                    Text("Loading media...")
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 32)
+                .glassCard()
+            } else if mediaItems.isEmpty && selectedSpaceId != nil {
+                EmptyStateMessage(message: "No media found for this building")
+            } else {
+                if selectedSpaceId == nil {
+                    // Utility Rooms albums
+                    if !viewModel.spaces.isEmpty {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Utility Rooms").font(.subheadline).foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                            let cols = [GridItem(.adaptive(minimum: 140), spacing: 12)]
+                            LazyVGrid(columns: cols, spacing: 12) {
+                                ForEach(viewModel.spaces) { space in
+                                    VStack(alignment: .leading, spacing: 6) {
+                                        ZStack(alignment: .bottomLeading) {
+                                            if let latest = latestBySpace[space.id] {
+                                                thumbnailView(for: latest).frame(height: 90).clipped()
+                                            } else {
+                                                ZStack { Color.gray.opacity(0.15); Image(systemName: "photo").foregroundColor(.gray) }.frame(height: 90)
+                                            }
+                                            Text(space.name)
+                                                .font(.caption)
+                                                .padding(6)
+                                                .background(Color.black.opacity(0.4))
+                                                .cornerRadius(6)
+                                                .foregroundColor(.white)
+                                                .padding(6)
+                                        }
+                                        Button("Open Album") { selectedSpaceId = space.id; Task { await loadMedia(space.id) } }
+                                            .font(.caption)
+                                            .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryAction)
+                                    }
+                                    .glassCard()
+                                }
+                            }
+                        }
+                    }
+                    // Recent media grid
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Recent Media").font(.subheadline).foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                        mediaGrid(items: mediaItems)
+                    }
+                } else {
+                    // Pairing toggle for before/after
+                    HStack {
+                        Toggle(isOn: $showPairs) {
+                            Text("Pair Before/After")
+                                .font(.caption)
+                                .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                        }
+                        .toggleStyle(SwitchToggleStyle(tint: CyntientOpsDesign.DashboardColors.secondaryAction))
+                        Spacer()
+                    }
+                    if showPairs {
+                        pairedView(items: mediaItems)
+                    } else {
+                        mediaGrid(items: mediaItems)
+                    }
+                }
+            }
+        }
+        .task { await loadMedia(); await loadLatestForSpaces() }
+        .sheet(isPresented: $showViewer) {
+            if let item = viewerItem {
+                MediaViewer(item: item, photosDirectory: photosDirectory, videosDirectory: videosDirectory)
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private func thumbnailView(for item: CoreTypes.ProcessedPhoto) -> some View {
+        let thumbURL = photosDirectory.appendingPathComponent(item.thumbnailPath)
+        if let image = UIImage(contentsOfFile: thumbURL.path) {
+            ZStack {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+                    .clipped()
+                if item.mediaType == "video" {
+                    Image(systemName: "play.circle.fill")
+                        .font(.system(size: 28, weight: .semibold))
+                        .foregroundColor(.white)
+                        .shadow(radius: 2)
+                }
+            }
+        } else {
+            ZStack {
+                Color.gray.opacity(0.2)
+                Image(systemName: "photo")
+                    .foregroundColor(.gray)
+            }
+        }
+    }
+    
+    private func loadMedia(_ spaceId: String? = nil) async {
+        isLoading = true
+        let cat = selectedCategory
+        do {
+            let mt = (selectedMediaType == "all") ? nil : selectedMediaType
+            let items = try await container.photos.getRecentMedia(buildingId: buildingId, category: cat, spaceId: spaceId, mediaType: mt, limit: 50)
+            await MainActor.run {
+                self.mediaItems = items
+                self.isLoading = false
+            }
+        } catch {
+            await MainActor.run {
+                self.mediaItems = []
+                self.isLoading = false
+            }
+        }
+    }
+    
+    private func loadLatestForSpaces() async {
+        var map: [String: CoreTypes.ProcessedPhoto] = [:]
+        for space in viewModel.spaces {
+            if let latest = try? await container.photos.getLatestMediaForSpace(buildingId: buildingId, spaceId: space.id) {
+                map[space.id] = latest
+            }
+        }
+        await MainActor.run { self.latestBySpace = map }
+    }
+    
+    @ViewBuilder
+    private func mediaGrid(items: [CoreTypes.ProcessedPhoto]) -> some View {
+        let columns = [GridItem(.adaptive(minimum: 96), spacing: 12)]
+        ScrollView {
+            LazyVGrid(columns: columns, spacing: 12) {
+                ForEach(items, id: \.id) { item in
+                    Button {
+                        viewerItem = item
+                        showViewer = true
+                    } label: {
+                        VStack(spacing: 6) {
+                            thumbnailView(for: item)
+                                .frame(width: 100, height: 100)
+                                .background(Color.black.opacity(0.1))
+                                .cornerRadius(8)
+                            Text(item.category)
+                                .font(.caption2)
+                                .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        .glassCard()
+    }
+
+    @ViewBuilder
+    private func pairedView(items: [CoreTypes.ProcessedPhoto]) -> some View {
+        // Build pairs for before/after by day
+        let df = DateFormatter(); df.dateFormat = "yyyy-MM-dd"
+        var buckets: [String: (before: [CoreTypes.ProcessedPhoto], after: [CoreTypes.ProcessedPhoto])] = [:]
+        for item in items {
+            let day = df.string(from: item.timestamp)
+            if buckets[day] == nil { buckets[day] = ([], []) }
+            if item.category == CoreTypes.CyntientOpsPhotoCategory.beforeWork.rawValue {
+                buckets[day]?.before.append(item)
+            } else if item.category == CoreTypes.CyntientOpsPhotoCategory.afterWork.rawValue {
+                buckets[day]?.after.append(item)
+            }
+        }
+        VStack(alignment: .leading, spacing: 12) {
+            ForEach(buckets.keys.sorted(by: >), id: \.self) { day in
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(day).font(.caption).foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                    let before = buckets[day]?.before.first
+                    let after = buckets[day]?.after.first
+                    HStack(spacing: 12) {
+                        VStack(spacing: 4) {
+                            Text("Before").font(.caption2).foregroundColor(.gray)
+                            if let b = before { thumbnailView(for: b).frame(width: 110, height: 110).cornerRadius(8) } else { placeholderThumb }
+                        }
+                        VStack(spacing: 4) {
+                            Text("After").font(.caption2).foregroundColor(.gray)
+                            if let a = after { thumbnailView(for: a).frame(width: 110, height: 110).cornerRadius(8) } else { placeholderThumb }
+                        }
+                    }
+                }
+                .glassCard()
+            }
+        }
+    }
+    
+    private var placeholderThumb: some View {
+        ZStack { Color.gray.opacity(0.1); Image(systemName: "photo").foregroundColor(.gray) }.frame(width: 110, height: 110).cornerRadius(8)
+    }
+}
+
+// MARK: - Media Viewer
+private struct MediaViewer: View {
+    let item: CoreTypes.ProcessedPhoto
+    let photosDirectory: URL
+    let videosDirectory: URL
+    @State private var player: AVPlayer? = nil
+
+    var body: some View {
+        Group {
+            if item.mediaType == "video" {
+                if let url = urlForVideo() {
+                    VideoPlayer(player: AVPlayer(url: url))
+                        .onAppear { player?.play() }
+                        .onDisappear { player?.pause() }
+                } else {
+                    unsupportedView
+                }
+            } else {
+                if let image = loadImage() {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFit()
+                        .background(Color.black)
+                } else {
+                    unsupportedView
+                }
+            }
+        }
+    }
+
+    private func loadImage() -> UIImage? {
+        let path = photosDirectory.appendingPathComponent(item.filePath).path
+        return UIImage(contentsOfFile: path)
+    }
+
+    private func urlForVideo() -> URL? {
+        let url = videosDirectory.appendingPathComponent(item.filePath)
+        return FileManager.default.fileExists(atPath: url.path) ? url : nil
+    }
+
+    private var unsupportedView: some View {
+        VStack(spacing: 8) {
+            Image(systemName: "exclamationmark.triangle")
+                .foregroundColor(.yellow)
+            Text("Unable to load media")
+                .foregroundColor(.white)
+        }
+        .padding()
+        .background(Color.black)
     }
 }
 
@@ -4529,7 +4936,7 @@ struct BuildingRoutesTab: View {
             // Date Picker
             DatePicker("Select Date", selection: $selectedDate, displayedComponents: [.date])
                 .datePickerStyle(.compact)
-                .onChange(of: selectedDate) { _ in
+                .onChange(of: selectedDate) { _, _ in
                     loadRouteData()
                 }
                 .glassCard(cornerRadius: 12)
@@ -4746,6 +5153,4 @@ struct RouteSequenceCard: View {
             return "\(minutes)m"
         }
     }
-}
-
 }

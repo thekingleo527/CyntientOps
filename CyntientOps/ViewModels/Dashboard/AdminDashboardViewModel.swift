@@ -56,7 +56,7 @@ class AdminDashboardViewModel: ObservableObject {
     
     // Computed property for sync status - using CoreTypes.DashboardSyncStatus
     @Published var dashboardSyncStatus: CoreTypes.DashboardSyncStatus = .synced
-    @Published var historicalLoadMonths: Int = 6
+    @Published var historicalLoadMonths: Int = 12
     @Published var historicalLoadedAt: Date?
     @Published var complianceTrendText: String = ""
     

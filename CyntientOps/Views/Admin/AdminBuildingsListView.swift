@@ -120,6 +120,9 @@ struct AdminBuildingListItem: View {
     let onTap: () -> Void
     
     var buildingImageAssetName: String? {
+        if let mapped = BuildingAssets.assetName(for: building.id) {
+            return mapped
+        }
         let address = building.address
         return address
             .replacingOccurrences(of: " ", with: "_")

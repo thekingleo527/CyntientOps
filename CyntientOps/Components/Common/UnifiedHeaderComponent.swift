@@ -484,29 +484,4 @@ extension UnifiedHeaderComponent {
 
 // MARK: - Preview Support
 
-#if DEBUG
-struct UnifiedHeaderComponent_Previews: PreviewProvider {
-    static var previews: some View {
-        Group {
-            // Admin Header
-            UnifiedHeaderComponent.adminHeader()
-                .previewDisplayName("Admin Header")
-            
-            // Client Header
-            UnifiedHeaderComponent.clientHeader()
-                .previewDisplayName("Client Header")
-            
-            // Worker Header
-            UnifiedHeaderComponent.workerHeader()
-                .previewDisplayName("Worker Header")
-            
-            // Simple Header
-            UnifiedHeaderComponent.simpleHeader(title: "Task Detail")
-                .previewDisplayName("Simple Header")
-        }
-        .environmentObject(ServiceContainer())
-        .preferredColorScheme(.dark)
-        .previewLayout(.sizeThatFits)
-    }
-}
-#endif
+// Preview removed to avoid constructing async ServiceContainer in previews

@@ -14,7 +14,7 @@ public final class ProductionCredentialsManager: ObservableObject {
     
     public static let shared = ProductionCredentialsManager()
     
-    private let keychainService = "com.francomanagement.cyntientops.credentials"
+    private let keychainService = "com.cyntientops.credentials"
     
     // MARK: - Published Properties
     @Published public var credentialsStatus: [String: CredentialStatus] = [:]

@@ -69,17 +69,29 @@ public struct EdwinLemaRoutes {
             dayOfWeek: 3, // Tuesday
             startTime: startTime,
             estimatedEndTime: endTime,
-            sequences: [
+            sequences: {
+                var seq: [RouteSequence] = []
                 // Start directly with building sequence (no park)
-                springSt178Sequence(day: "Tuesday", time: 8, 0, isBinDay: true), // Tuesday bin day
-                franklin104Sequence(day: "Tuesday", time: 9, 0),
-                chambers148Sequence(day: "Tuesday", time: 9, 30, isBinDay: true), // Tuesday bin day
-                // More time for building walkthroughs and repairs
-                buildingWalkthroughsSequence(day: "Tuesday", time: 10, 30),
-                vendorAccessSequence(day: "Tuesday", time: 12, 0),
-                afternoonRepairsSequence(day: "Tuesday", time: 13, 30),
-                boilerBlowdownSequence(day: "Tuesday", time: 15, 0)
-            ],
+                seq.append(springSt178Sequence(day: "Tuesday", time: 8, 0, isBinDay: true))
+                // After Spring, go to Franklin and Walker
+                seq.append(franklin104Sequence(day: "Tuesday", time: 9, 0))
+                seq.append(walker36Sequence(day: "Tuesday", time: 9, 30))
+                // Chambers if bin retrieval day
+                let day = DSNYCollectionSchedule.CollectionDay.tuesday
+                if DSNYCollectionSchedule.hasCollection(buildingId: CanonicalIDs.Buildings.chambers148, on: day) {
+                    seq.append(chambers148Sequence(day: "Tuesday", time: 10, 30, isBinDay: true))
+                }
+                // 123 1st Ave on bin retrieval day
+                if DSNYCollectionSchedule.hasCollection(buildingId: CanonicalIDs.Buildings.firstAvenue123, on: day) {
+                    seq.append(firstAve123BinRetrievalSequence(day: "Tuesday", time: 11, 15))
+                }
+                // Continue with general ops
+                seq.append(buildingWalkthroughsSequence(day: "Tuesday", time: 12, 0))
+                seq.append(vendorAccessSequence(day: "Tuesday", time: 13, 0))
+                seq.append(afternoonRepairsSequence(day: "Tuesday", time: 14, 0))
+                seq.append(boilerBlowdownSequence(day: "Tuesday", time: 15, 0))
+                return seq
+            }(),
             routeType: .afternoonMaintenance
         )
     }

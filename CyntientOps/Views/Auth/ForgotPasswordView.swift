@@ -454,11 +454,4 @@ struct ForgotPasswordView: View {
     }
 }
 
-// MARK: - Preview
-
-struct ForgotPasswordView_Previews: PreviewProvider {
-    static var previews: some View {
-        ForgotPasswordView()
-            .preferredColorScheme(.dark)
-    }
-}
+ 

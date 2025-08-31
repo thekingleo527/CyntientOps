@@ -1043,9 +1043,4 @@ struct EnergyFieldView: View {
     }
 }
 
-// MARK: - Preview
-
-#Preview {
-    NovaHolographicView()
-        .environmentObject(NovaAIManager.shared)
-}
+ 

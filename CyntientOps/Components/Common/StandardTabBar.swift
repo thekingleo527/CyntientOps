@@ -537,40 +537,4 @@ struct WorkerTabBar: View {
 
 // MARK: - Preview Support
 
-#if DEBUG
-struct StandardTabBar_Previews: PreviewProvider {
-    @State static var selectedTab = "dashboard"
-    
-    static var previews: some View {
-        Group {
-            // Admin Tab Bar
-            VStack {
-                Spacer()
-                AdminTabBar(selectedTab: $selectedTab, onTabTap: nil)
-            }
-            .background(Color.black)
-            .previewDisplayName("Admin Tab Bar")
-            
-            // Client Tab Bar
-            VStack {
-                Spacer()
-                ClientTabBar(selectedTab: $selectedTab, onTabTap: nil)
-            }
-            .background(Color.black)
-            .previewDisplayName("Client Tab Bar")
-            
-            // Worker Tab Bar
-            VStack {
-                Spacer()
-                WorkerTabBar(selectedTab: $selectedTab, onTabTap: nil)
-            }
-            .background(Color.black)
-            .previewDisplayName("Worker Tab Bar")
-        }
-        .environmentObject(ServiceContainer())
-        .environmentObject(DashboardSyncService.shared)
-        .preferredColorScheme(.dark)
-        .previewLayout(.sizeThatFits)
-    }
-}
-#endif
+// Preview removed to avoid constructing async ServiceContainer in previews

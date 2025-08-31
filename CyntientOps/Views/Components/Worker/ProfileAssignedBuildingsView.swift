@@ -668,14 +668,4 @@ private struct ProfileTaskRowView: View {
     }
 }
 
-// MARK: - Previews
-
-#if DEBUG && false
-// Preview disabled to avoid dependency on unavailable WorkerProfileViewModel.preview()
-struct ProfileAssignedBuildingsView_Previews: PreviewProvider {
-    static var previews: some View {
-        EmptyView()
-            .previewLayout(.sizeThatFits)
-    }
-}
-#endif
+ 

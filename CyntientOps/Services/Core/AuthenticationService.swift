@@ -24,7 +24,7 @@ public final class AuthenticationService: ObservableObject {
     private let maxLoginAttempts = 5
     private let lockoutDuration: TimeInterval = 900 // 15 minutes
     private let sessionDuration: TimeInterval = 86400 // 24 hours
-    private let keychainService = "com.francomanagement.cyntientops"
+    private let keychainService = "com.cyntientops.app"
     
     public init(database: GRDBManager) {
         self.database = database

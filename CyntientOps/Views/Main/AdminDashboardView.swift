@@ -99,13 +99,13 @@ public struct AdminDashboardView: View {
                     .ignoresSafeArea()
                 
                 VStack(spacing: 0) {
-                    // Header (mirroring client)
-                    AdminHeaderV3B(
-                        adminName: "System Administrator",
-                        portfolioCount: viewModel.buildingCount,
-                        complianceScore: viewModel.complianceScore,
-                        hasAlerts: hasUrgentItems(),
-                        onRoute: handleHeaderRoute
+                    // Header (role-specific)
+                    AdminDashboardHeader(
+                        adminName: authManager.currentUser?.name ?? "Administrator",
+                        totalBuildings: viewModel.buildingCount,
+                        activeWorkers: viewModel.workersActive,
+                        criticalAlerts: viewModel.criticalAlerts.count,
+                        syncStatus: viewModel.dashboardSyncStatus
                     )
                     .zIndex(100)
                     
@@ -178,16 +178,6 @@ public struct AdminDashboardView: View {
         }
         .task {
             await viewModel.initialize()
-        }
-    }
-    
-    // MARK: - Header Actions
-    private func handleHeaderRoute(_ route: AdminHeaderV3B.HeaderRoute) {
-        switch route {
-        case .profile: activeSheet = .profile
-        case .chat: activeSheet = .chat
-        case .settings: activeSheet = .settings
-        case .logout: handleLogout()
         }
     }
     
@@ -1753,14 +1743,14 @@ struct AdminProfileView: View {
     }
 }
 
-struct AdminBuildingsListView: View {
+struct AdminBuildingsListPlaceholder: View {
     let buildings: [CoreTypes.NamedCoordinate]
     let buildingMetrics: [String: CoreTypes.BuildingMetrics]
     let onSelectBuilding: (CoreTypes.NamedCoordinate) -> Void
     
     var body: some View {
         VStack {
-            Text("Buildings List")
+            Text("Buildings List (Placeholder)")
                 .font(.title2)
                 .fontWeight(.semibold)
         }
@@ -1821,13 +1811,4 @@ struct AdminPortfolioMapView: View {
 
 #endif
 
-// MARK: - Preview
-struct AdminDashboardView_Previews: PreviewProvider {
-    static var previews: some View {
-        Text("Admin Dashboard Preview")
-            .foregroundColor(.white)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(Color.black)
-            .preferredColorScheme(.dark)
-    }
-}
+ 

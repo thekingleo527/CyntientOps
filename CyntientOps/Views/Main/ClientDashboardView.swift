@@ -152,13 +152,13 @@ struct ClientDashboardView: View {
                     .ignoresSafeArea()
                 
                 VStack(spacing: 0) {
-                // Header
-                ClientHeaderV3B(
+                // Header (role-specific)
+                ClientDashboardHeader(
                     clientName: getClientName(),
                     portfolioValue: viewModel.portfolioMarketValue > 0 ? viewModel.portfolioMarketValue : viewModel.portfolioAssessedValue,
-                    complianceScore: viewModel.complianceOverview.overallScore,
-                    hasAlerts: hasUrgentItems(),
-                    onRoute: handleHeaderRoute
+                    activeBuildings: viewModel.buildingsList.count,
+                    complianceScore: Int(viewModel.complianceOverview.overallScore * 100),
+                    onProfileTap: { sheet = .profile }
                 )
                 .zIndex(100)
                 
@@ -267,15 +267,6 @@ struct ClientDashboardView: View {
         }
         .task {
             await viewModel.refreshData()
-        }
-    }
-    
-    // MARK: - Header Actions
-    private func handleHeaderRoute(_ route: ClientHeaderV3B.HeaderRoute) {
-        switch route {
-        case .profile: sheet = .profile
-        case .chat: sheet = .chat
-        case .settings: sheet = .settings
         }
     }
     
@@ -2749,15 +2740,5 @@ struct ClientNovaIntelligenceBar: View {
         }
     }
     
-    // MARK: - Preview
     
-    struct ClientDashboardView_Previews: PreviewProvider {
-        static var previews: some View {
-            Text("ClientDashboardView Preview")
-                .foregroundColor(.white)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color.black)
-                .preferredColorScheme(.dark)
-        }
-    }
 }

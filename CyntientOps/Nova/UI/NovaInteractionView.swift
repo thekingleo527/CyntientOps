@@ -1835,16 +1835,7 @@ extension View {
     }
 }
 
-// MARK: - Preview
-
-#Preview {
-    // Note: Preview requires a ServiceContainer instance
-    // This would need to be provided by the parent view in actual usage
-    Text("NovaInteractionView Preview")
-        .foregroundColor(.white)
-        .background(Color.black)
-        .preferredColorScheme(.dark)
-}
+ 
 
 // MARK: - 📝 COMPILATION FIXES
 /*

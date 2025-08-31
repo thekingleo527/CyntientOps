@@ -622,11 +622,13 @@ class WorkerProfileLocalViewModel: ObservableObject {
     
     private var workerService: WorkerService?
     private var taskService: TaskService?
+    private var routeManager: RouteManager?
     private let workerMetricsService = WorkerMetricsService.shared
     
     func configure(with container: ServiceContainer) {
         self.workerService = container.workers
         self.taskService = container.tasks
+        self.routeManager = container.routes
     }
     
     func loadWorkerData(workerId: String) async {
@@ -734,112 +736,53 @@ class WorkerProfileLocalViewModel: ObservableObject {
     // MARK: - Private Methods (Per Design Brief)
     
     private func loadWeeklySchedule(for workerId: String) async {
-        // Load real weekly schedule from OperationalDataManager
-        do {
-            let operationalData = OperationalDataManager.shared
-            let weeklyScheduleItems = try await operationalData.getWorkerWeeklySchedule(for: workerId)
-            
-            // Group schedule items by date
-            let calendar = Calendar.current
-            let groupedByDate = Dictionary(grouping: weeklyScheduleItems) { item in
-                calendar.startOfDay(for: item.startTime)
-            }
-            
-            var schedule: [DayScheduleItem] = []
-            
-            // Create schedule for next 7 days (excluding weekends if no data)
-            for dayOffset in 0..<7 {
-                guard let date = calendar.date(byAdding: .day, value: dayOffset, to: Date()) else { continue }
-                let dayStart = calendar.startOfDay(for: date)
-                
-                let dayItems = groupedByDate[dayStart] ?? []
-                
-                // Skip days with no scheduled items (typically weekends)
-                if dayItems.isEmpty {
-                    let weekday = calendar.component(.weekday, from: date)
-                    if weekday == 1 || weekday == 7 { continue } // Skip weekends if no data
-                }
-                
-                // Calculate total hours and task count for the day
-                let totalHours = dayItems.reduce(0.0) { sum, item in
-                    sum + (Double(item.estimatedDuration) / 60.0) // Convert minutes to hours
-                }
-                
-                let taskCount = dayItems.count
-                let startTime = dayItems.first?.startTime ?? calendar.date(bySettingHour: 8, minute: 0, second: 0, of: date) ?? date
-                let endTime = dayItems.last?.endTime ?? calendar.date(bySettingHour: 16, minute: 0, second: 0, of: date) ?? date
-                
-                // Get the primary building for the day (most tasks)
-                let buildingCounts = Dictionary(grouping: dayItems, by: \.buildingName)
+        // Prefer RouteManager sequences for an accurate weekly plan
+        guard let routeManager = routeManager else { return }
+        let calendar = Calendar.current
+        var schedule: [DayScheduleItem] = []
+        
+        for dayOffset in 0..<7 {
+            guard let date = calendar.date(byAdding: .day, value: dayOffset, to: Date()) else { continue }
+            let weekday = calendar.component(.weekday, from: date)
+            if let route = routeManager.getRoute(for: workerId, dayOfWeek: weekday) {
+                let sortedSeq = route.sequences.sorted { $0.arrivalTime < $1.arrivalTime }
+                let start = sortedSeq.first?.arrivalTime ?? calendar.date(bySettingHour: 8, minute: 0, second: 0, of: date) ?? date
+                let end = sortedSeq.last.map { $0.arrivalTime.addingTimeInterval($0.estimatedDuration) } ?? calendar.date(bySettingHour: 16, minute: 0, second: 0, of: date) ?? date
+                let taskCount = sortedSeq.reduce(0) { $0 + $1.operations.count }
+                let totalHours = sortedSeq.reduce(0.0) { $0 + ($1.estimatedDuration / 3600.0) }
+                let buildingCounts = Dictionary(grouping: sortedSeq, by: \.buildingName)
                 let primaryBuilding = buildingCounts.max(by: { $0.value.count < $1.value.count })?.key ?? "Multiple Buildings"
-                
-                let daySchedule = DayScheduleItem(
-                    id: "\(workerId)-\(date.timeIntervalSince1970)",
-                    date: date,
-                    title: taskCount > 0 ? primaryBuilding : "No scheduled tasks",
-                    startTime: startTime,
-                    endTime: endTime,
-                    taskCount: taskCount,
-                    totalHours: totalHours
+                schedule.append(
+                    DayScheduleItem(
+                        id: "\(workerId)-\(date.timeIntervalSince1970)",
+                        date: date,
+                        title: taskCount > 0 ? primaryBuilding : "No scheduled tasks",
+                        startTime: start,
+                        endTime: end,
+                        taskCount: taskCount,
+                        totalHours: totalHours
+                    )
                 )
-                
-                schedule.append(daySchedule)
-            }
-            
-            await MainActor.run {
-                weeklySchedule = schedule
-                print("✅ Loaded real weekly schedule for worker \(workerId): \(schedule.count) days, \(weeklyScheduleItems.count) total items")
-            }
-        } catch {
-            print("❌ Failed to load real weekly schedule for worker \(workerId): \(error)")
-            
-            // Fallback to empty schedule
-            await MainActor.run {
-                weeklySchedule = []
             }
         }
+        await MainActor.run { weeklySchedule = schedule }
     }
     
     private func loadAssignedBuildings(for workerId: String) async {
-        // Load real assigned buildings from OperationalDataManager
-        do {
-            let operationalData = OperationalDataManager.shared
-            let routineSchedules = try await operationalData.getWorkerRoutineSchedules(for: workerId)
-            
-            // Create building summaries from routine data
-            let groupedBuildings = Dictionary(grouping: routineSchedules, by: \.buildingId)
-            var uniqueBuildings: [BuildingSummary] = []
-            
-            // Get today's schedule once for efficiency
-            let todayTasks = try? await operationalData.getWorkerScheduleForDate(workerId: workerId, date: Date())
-            
-            for (buildingId, routines) in groupedBuildings {
-                guard let firstRoutine = routines.first else { continue }
-                
-                // Count tasks for this building
-                let buildingTasksToday = todayTasks?.filter { $0.buildingId == buildingId }.count ?? 0
-                
-                let buildingSummary = BuildingSummary(
-                    id: buildingId,
-                    name: firstRoutine.buildingName,
-                    address: firstRoutine.buildingAddress,
-                    todayTaskCount: buildingTasksToday
-                )
-                uniqueBuildings.append(buildingSummary)
-            }
-            
-            await MainActor.run {
-                assignedBuildings = uniqueBuildings
-                print("✅ Loaded \(uniqueBuildings.count) assigned buildings for worker \(workerId) from real operational data")
-            }
-        } catch {
-            print("❌ Failed to load assigned buildings for worker \(workerId): \(error)")
-            
-            // Fallback to empty buildings
-            await MainActor.run {
-                assignedBuildings = []
+        // Use RouteManager routes for this worker to determine real assigned buildings
+        guard let routeManager = routeManager else { return }
+        var buildingMap: [String: (name: String, count: Int)] = [:]
+        for day in 1...7 {
+            if let route = routeManager.getRoute(for: workerId, dayOfWeek: day) {
+                for seq in route.sequences {
+                    buildingMap[seq.buildingId] = (seq.buildingName, (buildingMap[seq.buildingId]?.count ?? 0) + 1)
+                }
             }
         }
+        let summaries = buildingMap.map { (id, val) in
+            BuildingSummary(id: id, name: val.name, address: CanonicalIDs.Buildings.getName(for: id) ?? val.name, todayTaskCount: 0)
+        }
+        await MainActor.run { assignedBuildings = summaries }
     }
 }
 

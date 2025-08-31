@@ -254,11 +254,3 @@ struct AdminMenuItemRow: View {
     }
 }
 
-#if DEBUG
-struct AdminMainMenuView_Previews: PreviewProvider {
-    static var previews: some View {
-        AdminMainMenuView()
-            .preferredColorScheme(.dark)
-    }
-}
-#endif

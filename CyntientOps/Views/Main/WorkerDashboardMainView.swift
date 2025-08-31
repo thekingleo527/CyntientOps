@@ -62,33 +62,28 @@ struct WorkerDashboardMainView: View {
             // Main Content
             VStack(spacing: 0) {
                 // Header (60px) - Fixed
-                WorkerHeaderV3B(
-                    name: viewModel.workerProfile?.name ?? "Worker",
-                    initials: String((viewModel.workerProfile?.name ?? "W").prefix(2)).uppercased(),
-                    photoURL: nil,
-                    nextTaskName: viewModel.todaysTasks.first?.title,
-                    showClockPill: false, // Only profile pill on right
+                WorkerSimpleHeader(
+                    workerName: viewModel.workerProfile?.name ?? "Worker",
+                    workerId: viewModel.workerProfile?.id ?? "",
                     isNovaProcessing: false,
-                    onRoute: { route in
-                        switch route {
-                        case .mainMenu:
-                            showingProfile = true
-                        case .profile:
-                            showingProfile = true
-                        case .clockAction:
-                            showingProfile = true
-                        case .novaChat:
-                            showingProfile = true
-                        }
-                    }
+                    clockInStatus: viewModel.isCurrentlyClockedIn ? .clockedIn(building: viewModel.currentBuilding?.name ?? "", time: Date()) : .notClockedIn,
+                    onLogoTap: { /* no-op */ },
+                    onNovaPress: { showingProfile = true },
+                    onProfileTap: { showingProfile = true },
+                    onClockAction: { handleClockAction() }
                 )
-                .frame(height: 60)
                 .frame(height: 60)
                 
                 // Worker Hero Card (simplified for MainView)
                 VStack(spacing: 16) {
                     // Hero: Now / Next cards
-                    WorkerHeroNowNext(viewModel: viewModel)
+                    WorkerHeroNowNext(viewModel: viewModel) { tapped in
+                        // Find underlying task by id and open details if available
+                        if let task = viewModel.todaysTasks.first(where: { $0.id == tapped.id }) {
+                            selectedTask = task
+                            showingTaskDetail = true
+                        }
+                    }
                         .padding(.horizontal)
                     HStack {
                         VStack(alignment: .leading, spacing: 4) {

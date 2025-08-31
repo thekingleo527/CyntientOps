@@ -493,16 +493,4 @@ struct BuildingTaskRow: View {
     }
 }
 
-// MARK: - Preview
-
-struct BuildingMapDetailView_Previews: PreviewProvider {
-    static var previews: some View {
-        NavigationStack {
-            // Use a simple view for preview since ServiceContainer requires async init
-            Text("BuildingMapDetailView Preview")
-                .foregroundColor(.white)
-                .background(Color.black)
-        }
-        .preferredColorScheme(.dark)
-    }
-}
+ 

@@ -293,6 +293,11 @@ public final class ServiceContainer: ObservableObject {
             // Initialize operational data if needed
             try await operationalData.initializeOperationalData()
             
+            // Initialize real data sources (NYC APIs, assignments, property data)
+            let realInit = RealDataInitializationService(serviceContainer: self)
+            await realInit.initializeRealDataSources()
+            print(realInit.getInitializationSummary())
+
             print("✅ Background data initialization complete")
         } catch {
             print("❌ Background initialization failed: \(error)")

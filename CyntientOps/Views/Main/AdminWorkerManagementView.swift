@@ -1206,10 +1206,10 @@ struct WorkerCard: View {
             VStack(alignment: .leading, spacing: 12) {
                 // Header
                 HStack {
-                    WorkerAvatar(workerName: worker.name, size: .medium)
+                    WorkerAvatar(workerName: CanonicalIDs.Workers.getName(for: worker.id) ?? worker.name, size: .medium)
                     
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(worker.name)
+                        Text(CanonicalIDs.Workers.getName(for: worker.id) ?? worker.name)
                             .francoTypography(CyntientOpsDesign.Typography.subheadline)
                             .fontWeight(.medium)
                             .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
@@ -1994,12 +1994,4 @@ struct WorkerAlert: Identifiable {
     }
 }
 
-// MARK: - Preview
-
-struct AdminWorkerManagementView_Previews: PreviewProvider {
-    static var previews: some View {
-        AdminWorkerManagementView()
-            // .environmentObject(DashboardSyncService.shared) // TODO: Remove shared pattern
-            .preferredColorScheme(.dark)
-    }
-}
+ 

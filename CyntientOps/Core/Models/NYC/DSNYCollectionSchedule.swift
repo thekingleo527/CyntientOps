@@ -67,6 +67,23 @@ public struct DSNYCollectionSchedule {
                         WasteStreamGuidance(wasteType: WasteType.compost, collectionDays: [CollectionDay.tuesday], containerType: ContainerType.brownBin, specialInstructions: "Brown bins - organics collection")
                     ]
                 )
+
+            case CanonicalIDs.Buildings.perry131:
+                schedules[buildingId] = BuildingDSNYSchedule(
+                    buildingId: buildingId,
+                    buildingName: "131 Perry Street",
+                    unitCount: 3, // 3 residential units
+                    collectionDays: [CollectionDay.tuesday, CollectionDay.friday], // Align with Perry corridor
+                    binSetOutTime: DSNYTime(hour: 19, minute: 0),
+                    binRetrievalTime: DSNYTime(hour: 8, minute: 30),
+                    binLocation: "curbside",
+                    specialInstructions: "Align with 68 Perry Street bin cadence",
+                    wasteStreams: [
+                        WasteStreamGuidance(wasteType: WasteType.trash, collectionDays: [.tuesday, .friday], containerType: ContainerType.blackBin, specialInstructions: "Black bins required for ≤9 residential units"),
+                        WasteStreamGuidance(wasteType: WasteType.recycling, collectionDays: [.friday], containerType: ContainerType.greenBin, specialInstructions: "Green bins - standard recycling"),
+                        WasteStreamGuidance(wasteType: WasteType.compost, collectionDays: [.tuesday], containerType: ContainerType.brownBin, specialInstructions: "Brown bins - organics collection")
+                    ]
+                )
                 
             case CanonicalIDs.Buildings.firstAvenue123:
                 schedules[buildingId] = BuildingDSNYSchedule(
@@ -101,6 +118,23 @@ public struct DSNYCollectionSchedule {
                         WasteStreamGuidance(wasteType: WasteType.compost, collectionDays: [CollectionDay.tuesday, CollectionDay.thursday], containerType: ContainerType.brownBin, specialInstructions: "Brown bins - organics collection")
                     ]
                 )
+
+            case CanonicalIDs.Buildings.westSeventeenth117:
+                schedules[buildingId] = BuildingDSNYSchedule(
+                    buildingId: buildingId,
+                    buildingName: "117 West 17th Street",
+                    unitCount: 8, // Residential floors
+                    collectionDays: [CollectionDay.tuesday, CollectionDay.thursday, CollectionDay.saturday], // Align with W 17th corridor
+                    binSetOutTime: DSNYTime(hour: 19, minute: 0),
+                    binRetrievalTime: DSNYTime(hour: 10, minute: 45),
+                    binLocation: "curbside",
+                    specialInstructions: "Match neighboring West 17th cadence",
+                    wasteStreams: [
+                        WasteStreamGuidance(wasteType: WasteType.trash, collectionDays: [.tuesday, .thursday, .saturday], containerType: ContainerType.blackBin, specialInstructions: "Black bins for residential"),
+                        WasteStreamGuidance(wasteType: WasteType.recycling, collectionDays: [.thursday, .saturday], containerType: ContainerType.greenBin, specialInstructions: "Green bins - standard recycling"),
+                        WasteStreamGuidance(wasteType: WasteType.compost, collectionDays: [.tuesday, .thursday], containerType: ContainerType.brownBin, specialInstructions: "Brown bins - organics collection")
+                    ]
+                )
                 
             case CanonicalIDs.Buildings.westSeventeenth138:
                 schedules[buildingId] = BuildingDSNYSchedule(
@@ -116,6 +150,23 @@ public struct DSNYCollectionSchedule {
                         WasteStreamGuidance(wasteType: WasteType.trash, collectionDays: [.tuesday, .thursday, .saturday], containerType: ContainerType.blackBin, specialInstructions: "Black bins required for 8 residential units"),
                         WasteStreamGuidance(wasteType: WasteType.recycling, collectionDays: [CollectionDay.thursday, CollectionDay.saturday], containerType: ContainerType.greenBin, specialInstructions: "Green bins - same as 136 W 17th"),
                         WasteStreamGuidance(wasteType: WasteType.compost, collectionDays: [CollectionDay.tuesday, CollectionDay.thursday], containerType: ContainerType.brownBin, specialInstructions: "Brown bins - organics collection")
+                    ]
+                )
+
+            case CanonicalIDs.Buildings.westEighteenth112:
+                schedules[buildingId] = BuildingDSNYSchedule(
+                    buildingId: buildingId,
+                    buildingName: "112 West 18th Street",
+                    unitCount: 6,
+                    collectionDays: [CollectionDay.tuesday, CollectionDay.thursday, CollectionDay.saturday], // Align with nearby blocks
+                    binSetOutTime: DSNYTime(hour: 19, minute: 0),
+                    binRetrievalTime: DSNYTime(hour: 9, minute: 30),
+                    binLocation: "curbside",
+                    specialInstructions: "Coordinate with hallway/lobby clean",
+                    wasteStreams: [
+                        WasteStreamGuidance(wasteType: WasteType.trash, collectionDays: [.tuesday, .thursday, .saturday], containerType: ContainerType.blackBin, specialInstructions: "Black bins for ≤9 residential units"),
+                        WasteStreamGuidance(wasteType: WasteType.recycling, collectionDays: [.thursday, .saturday], containerType: ContainerType.greenBin, specialInstructions: "Green bins - standard recycling"),
+                        WasteStreamGuidance(wasteType: WasteType.compost, collectionDays: [.tuesday, .thursday], containerType: ContainerType.brownBin, specialInstructions: "Brown bins - organics collection")
                     ]
                 )
                 
@@ -144,6 +195,30 @@ public struct DSNYCollectionSchedule {
         
         return schedules
     }()
+
+    // MARK: - Bin Management Lists
+
+    /// Returns all buildings that are managed via individual bins with their schedules
+    public static func getBinManagementBuildings() -> [BuildingDSNYSchedule] {
+        return Array(buildingCollectionSchedules.values)
+            .sorted { $0.buildingName < $1.buildingName }
+    }
+
+    /// Plan of set-out (evening before) and retrieval (collection day) for each bin-managed building
+    public static func getBinManagementPlan() -> [BinManagementPlan] {
+        return buildingCollectionSchedules.values.map { schedule in
+            let retrievalDays = schedule.collectionDays
+            let setOutDays = retrievalDays.map { $0.previousDay() }
+            return BinManagementPlan(
+                buildingId: schedule.buildingId,
+                buildingName: schedule.buildingName,
+                setOutDays: setOutDays,
+                retrievalDays: retrievalDays,
+                binSetOutTime: schedule.binSetOutTime,
+                binRetrievalTime: schedule.binRetrievalTime
+            )
+        }.sorted { $0.buildingName < $1.buildingName }
+    }
     
     // MARK: - Schedule Query Methods
     
@@ -220,6 +295,10 @@ public struct DSNYCollectionSchedule {
             // Kevin handles Perry Street
             return workerId == CanonicalIDs.Workers.kevinDutan
             
+        case CanonicalIDs.Buildings.perry131:
+            // Align with Perry corridor – Kevin
+            return workerId == CanonicalIDs.Workers.kevinDutan
+
         case CanonicalIDs.Buildings.firstAvenue123:
             // Kevin handles 1st Ave during his M W F afternoon rotation
             return workerId == CanonicalIDs.Workers.kevinDutan && 
@@ -233,6 +312,18 @@ public struct DSNYCollectionSchedule {
             } else {
                 return workerId == CanonicalIDs.Workers.kevinDutan
             }
+
+        case CanonicalIDs.Buildings.westSeventeenth117:
+            // Same pattern as adjacent West 17th buildings
+            if day == CollectionDay.saturday {
+                return workerId == CanonicalIDs.Workers.edwinLema
+            } else {
+                return workerId == CanonicalIDs.Workers.kevinDutan
+            }
+
+        case CanonicalIDs.Buildings.westEighteenth112:
+            // Default Kevin assignment for this corridor
+            return workerId == CanonicalIDs.Workers.kevinDutan
             
         default:
             return false
@@ -310,6 +401,18 @@ public enum CollectionDay: String, CaseIterable {
         case .saturday: return CollectionDay.sunday
         }
     }
+
+    public func previousDay() -> CollectionDay {
+        switch self {
+        case .sunday: return CollectionDay.saturday
+        case .monday: return CollectionDay.sunday
+        case .tuesday: return CollectionDay.monday
+        case .wednesday: return CollectionDay.tuesday
+        case .thursday: return CollectionDay.wednesday
+        case .friday: return CollectionDay.thursday
+        case .saturday: return CollectionDay.friday
+        }
+    }
 }
 
 // BinLocation is now defined in CoreTypes.swift to avoid duplication
@@ -383,4 +486,15 @@ extension DSNYCollectionSchedule {
     public static func needsBinRetrieval(buildingId: String, on day: CollectionDay) -> Bool {
         return hasCollection(buildingId: buildingId, on: day)
     }
+}
+
+// MARK: - Summary Types
+
+public struct BinManagementPlan {
+    public let buildingId: String
+    public let buildingName: String
+    public let setOutDays: [CollectionDay]
+    public let retrievalDays: [CollectionDay]
+    public let binSetOutTime: DSNYTime
+    public let binRetrievalTime: DSNYTime
 }

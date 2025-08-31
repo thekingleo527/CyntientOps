@@ -105,30 +105,4 @@ private struct HourlyStripView: View {
     }
 }
 
-// MARK: - Preview
-
-#Preview {
-    let sampleCurrent = WeatherSnapshot.Current(
-        tempF: 72,
-        condition: "Partly Cloudy",
-        windMph: 8
-    )
-    
-    let sampleHourly = (0..<12).map { hour in
-        WeatherSnapshot.HourBlock(
-            date: Date().addingTimeInterval(Double(hour * 3600)),
-            precipProb: Double.random(in: 0...0.8),
-            windMph: Double.random(in: 5...25),
-            tempF: 72 + Double.random(in: -10...10)
-        )
-    }
-    
-    let snapshot = WeatherSnapshot(current: sampleCurrent, hourly: sampleHourly)
-    
-    return VStack {
-        WeatherRibbonView(snapshot: snapshot)
-        Spacer()
-    }
-    .padding()
-    .background(Color.black.gradient)
-}
+ 

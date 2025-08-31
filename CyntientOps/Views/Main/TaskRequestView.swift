@@ -270,7 +270,7 @@ final class TaskRequestViewModel: ObservableObject {
         CoreTypes.WorkerProfile(
             id: "4",
             name: "Kevin Dutan",
-            email: "kevin.dutan@francomanagement.com",
+            email: "kevin.dutan@cyntientops.com",
             phoneNumber: "555-0104",
             role: CoreTypes.UserRole.worker,
             skills: ["Cleaning", "Sanitation", "Operations"],
@@ -282,7 +282,7 @@ final class TaskRequestViewModel: ObservableObject {
         CoreTypes.WorkerProfile(
             id: "2",
             name: "Edwin Lema",
-            email: "edwin.lema@francomanagement.com",
+            email: "edwin.lema@cyntientops.com",
             phoneNumber: "555-0102",
             role: CoreTypes.UserRole.worker,
             skills: ["Cleaning", "Maintenance"],
@@ -294,7 +294,7 @@ final class TaskRequestViewModel: ObservableObject {
         CoreTypes.WorkerProfile(
             id: "1",
             name: "Greg Hutson",
-            email: "greg.hutson@francomanagement.com",
+            email: "greg.hutson@cyntientops.com",
             phoneNumber: "555-0101",
             role: CoreTypes.UserRole.worker,
             skills: ["Building Systems", "Cleaning"],
@@ -306,7 +306,7 @@ final class TaskRequestViewModel: ObservableObject {
         CoreTypes.WorkerProfile(
             id: "5",
             name: "Mercedes Inamagua",
-            email: "mercedes.inamagua@francomanagement.com",
+            email: "mercedes.inamagua@cyntientops.com",
             phoneNumber: "555-0105",
             role: CoreTypes.UserRole.worker,
             skills: ["Deep Cleaning", "Maintenance"],
@@ -318,7 +318,7 @@ final class TaskRequestViewModel: ObservableObject {
         CoreTypes.WorkerProfile(
             id: "7",
             name: "Angel Guirachocha",
-            email: "angel.guirachocha@francomanagement.com",
+            email: "angel.guirachocha@cyntientops.com",
             phoneNumber: "555-0107",
             role: CoreTypes.UserRole.worker,
             skills: ["Evening Operations", "Security"],
@@ -1171,10 +1171,4 @@ extension CoreTypes.InventoryItem {
     }
 }
 
-// MARK: - Preview
-
-struct TaskRequestView_Previews: PreviewProvider {
-    static var previews: some View {
-        TaskRequestView()
-    }
-}
+ 

@@ -988,11 +988,4 @@ struct TaskFilterOptions {
     var urgencies: Set<CoreTypes.TaskUrgency> = []
 }
 
-// MARK: - Preview Provider
-
-struct TaskTimelineView_Previews: PreviewProvider {
-    static var previews: some View {
-        TaskTimelineView(workerId: "4", workerName: "Kevin Dutan")
-            .preferredColorScheme(.dark)
-    }
-}
+ 

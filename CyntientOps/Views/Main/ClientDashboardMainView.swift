@@ -76,7 +76,7 @@ struct ClientDashboardMainView: View {
                 // Add the MapRevealContainer here
                 MapRevealContainer(
                     buildings: contextEngine.clientBuildings,
-                    isRevealed: .constant(false),
+                    isRevealed: $isPortfolioMapRevealed,
                     container: container,
                     onBuildingTap: { building in
                         selectedBuildingId = building.id
@@ -1136,12 +1136,4 @@ struct ViolationSummaryCard: View {
     }
 }
 
-// MARK: - Preview
-#if DEBUG
-struct ClientDashboardMainView_Previews: PreviewProvider {
-    static var previews: some View {
-        Text("Client Dashboard Preview")
-            .preferredColorScheme(.dark)
-    }
-}
-#endif
+ 

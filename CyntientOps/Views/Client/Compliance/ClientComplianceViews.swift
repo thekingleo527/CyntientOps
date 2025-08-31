@@ -58,11 +58,26 @@ struct ClientDSNYComplianceView: View {
     let buildings: [CoreTypes.NamedCoordinate]
     @Environment(\.dismiss) private var dismiss
     var body: some View {
-        ScrollView { VStack(alignment: .leading, spacing: 16) { dsnyViolationsSummary; dsnySchedulesSection } .padding() }
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                ComplianceSummaryCard(
+                    title: "DSNY Sanitation",
+                    totalCount: totalViolations,
+                    activeCount: activeViolations,
+                    icon: "trash.fill",
+                    color: .green
+                )
+                dsnyViolationsSummary
+                dsnySchedulesSection
+            }
+            .padding()
+        }
         .background(CyntientOpsDesign.DashboardColors.baseBackground)
         .navigationBarBackButtonHidden(true)
         .toolbar { ToolbarItem(placement: .navigationBarLeading) { Button("Back") { dismiss() }.foregroundColor(CyntientOpsDesign.DashboardColors.clientPrimary) } }
     }
+    private var totalViolations: Int { violations.values.flatMap { $0 }.count }
+    private var activeViolations: Int { violations.values.flatMap { $0 }.filter { $0.isActive }.count }
     private var dsnyViolationsSummary: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Sanitation Violations").font(.headline).foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)

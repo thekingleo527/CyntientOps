@@ -990,62 +990,6 @@ struct FrancoStatusIndicator: View {
     }
 }
 
-// MARK: - Preview Helpers (Updated for Dark Theme)
-#Preview("Loading States") {
-    VStack(spacing: 20) {
-        FrancoLoadingView(message: "Loading worker data...", role: .worker)
-        FrancoLoadingView(message: "Loading admin panel...", role: .admin)
-        FrancoLoadingView(message: "Loading client reports...", role: .client)
-    }
-    .padding()
-    .background(CyntientOpsDesign.DashboardColors.baseBackground)
-}
-
-#Preview("Empty States") {
-    VStack(spacing: 20) {
-        FrancoEmptyState(
-            icon: "building.2",
-            title: "No Buildings Assigned",
-            message: "You don't have any buildings assigned yet.",
-            action: { print("Refresh tapped") },
-            actionTitle: "Refresh",
-            role: .worker
-        )
-    }
-    .padding()
-    .background(CyntientOpsDesign.DashboardColors.baseBackground)
-}
-
-#Preview("Metrics Components") {
-    VStack(spacing: 20) {
-        FrancoMetricsProgress(value: 0.75, role: .worker)
-        FrancoMetricsProgress(value: 0.45, role: .admin)
-        FrancoMetricsProgress(value: 0.92, role: .client)
-        
-        HStack(spacing: 16) {
-            FrancoStatusIndicator(isActive: true, role: .worker)
-            FrancoStatusIndicator(isActive: false, role: .admin)
-            FrancoStatusIndicator(isActive: true, role: .client)
-        }
-    }
-    .padding()
-    .background(CyntientOpsDesign.DashboardColors.baseBackground)
-}
-
-#Preview("Color Swatches") {
-    ScrollView {
-        VStack(alignment: .leading, spacing: 20) {
-            Text("Dark Elegance Color Palette")
-                .font(.largeTitle)
-                .fontWeight(.bold)
-                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-            
-            Group {
-                Text("Base Colors").font(.headline)
-                HStack(spacing: 16) {
-                    ColorSwatch(color: CyntientOpsDesign.DashboardColors.baseBackground, label: "Base")
-                    ColorSwatch(color: CyntientOpsDesign.DashboardColors.cardBackground, label: "Card")
-                    ColorSwatch(color: CyntientOpsDesign.DashboardColors.glassOverlay, label: "Glass")
                 }
                 
                 Text("Action Colors").font(.headline).padding(.top)

@@ -312,14 +312,4 @@ struct AssignedBuildingCard: View {
     }
 }
 
-// MARK: - Preview
-
-struct AssignedBuildingsView_Previews: PreviewProvider {
-    static var previews: some View {
-        // Use a simple view for preview since ServiceContainer requires async init
-        Text("AssignedBuildingsView Preview")
-            .foregroundColor(.white)
-            .background(Color.black)
-            .preferredColorScheme(.dark)
-    }
-}
+ 

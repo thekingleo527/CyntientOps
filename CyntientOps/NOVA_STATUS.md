@@ -1,1 +1,0 @@
-# Nova Architecture Complete

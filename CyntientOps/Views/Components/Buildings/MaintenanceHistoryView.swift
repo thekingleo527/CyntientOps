@@ -1099,13 +1099,4 @@ struct ToggleRow: View {
     }
 }
 
-// MARK: - Preview Support
-
-struct MaintenanceHistoryView_Previews: PreviewProvider {
-    static var previews: some View {
-        NavigationView {
-            MaintenanceHistoryView(buildingID: "14")
-        }
-        .preferredColorScheme(.dark)
-    }
-}
+ 

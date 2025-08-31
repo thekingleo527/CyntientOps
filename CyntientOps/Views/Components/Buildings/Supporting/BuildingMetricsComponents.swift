@@ -680,14 +680,4 @@ extension CoreTypes.TrendDirection {
     }
 }
 
-// MARK: - Preview Support
-
-#Preview("Metrics Dashboard") {
-    NavigationView {
-        BuildingMetricsDashboard(
-            buildingId: "14",
-            buildingName: "Rubin Museum"
-        )
-    }
-    .preferredColorScheme(.dark)
-}
+ 
