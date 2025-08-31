@@ -35,6 +35,7 @@
 		231932382E42E91200640977 /* SimplifiedDashboard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231932042E42E91200640977 /* SimplifiedDashboard.swift */; };
 		231932392E42E91200640977 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231931E82E42E91200640977 /* OnboardingView.swift */; };
 		2319323A2E42E91200640977 /* AssignedBuildingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231931F42E42E91200640977 /* AssignedBuildingsView.swift */; };
+		23B0CDH12E70810000640977 /* ClientDashboardHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23B0CDH02E70810000640977 /* ClientDashboardHeader.swift */; };
 		23B0MED12E70800100640977 /* BuildingMediaTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23B0MED02E70800100640977 /* BuildingMediaTab.swift */; };
 		2319323B2E42E91200640977 /* AdminReportsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231932082E42E91200640977 /* AdminReportsView.swift */; };
 		2319323C2E42E91200640977 /* ClientDashboardMainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2319320B2E42E91200640977 /* ClientDashboardMainView.swift */; };
@@ -370,6 +371,7 @@
 		231931F72E42E91200640977 /* BuildingSelectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuildingSelectionView.swift; sourceTree = "<group>"; };
 		231931F82E42E91200640977 /* BuildingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuildingsView.swift; sourceTree = "<group>"; };
 		231931F92E42E91200640977 /* InventoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryView.swift; sourceTree = "<group>"; };
+		23B0CDH02E70810000640977 /* ClientDashboardHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClientDashboardHeader.swift; sourceTree = "<group>"; };
 		23B0MED02E70800100640977 /* BuildingMediaTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuildingMediaTab.swift; sourceTree = "<group>"; };
 		231931FA2E42E91200640977 /* MaintenanceHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MaintenanceHistoryView.swift; sourceTree = "<group>"; };
 		231931FB2E42E91200640977 /* MaintenanceTaskView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MaintenanceTaskView.swift; sourceTree = "<group>"; };
@@ -1404,6 +1406,7 @@
 			isa = PBXGroup;
 			children = (
 				231933CC2E42EC7200640977 /* ClientDashboardComponents.swift */,
+				23B0CDH02E70810000640977 /* ClientDashboardHeader.swift */,
 			);
 			path = Client;
 			sourceTree = "<group>";
@@ -2177,6 +2180,7 @@
 				23486D8A2E5FEA5A0040DA52 /* RouteOperationalBridge.swift in Sources */,
 				231933042E42E9CD00640977 /* DashboardSyncService.swift in Sources */,
 				231933052E42E9CD00640977 /* ClientService.swift in Sources */,
+				23B0CDH12E70810000640977 /* ClientDashboardHeader.swift in Sources */,
 				23B0MED12E70800100640977 /* BuildingMediaTab.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
