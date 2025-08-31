@@ -154,20 +154,25 @@ public final class NYCAPIService: ObservableObject {
 
     // MARK: - Footprints Helpers
     public func resolveBinBbl(lat: Double, lon: Double, radiusMeters: Int = 25) async -> (bin: String?, bbl: String?) {
-        do {
-            let urlStr = APIEndpoint.buildingFootprintsNearby(lat: lat, lon: lon, radiusMeters: radiusMeters).url
-            guard let url = URL(string: urlStr) else { return (nil, nil) }
-            var request = URLRequest(url: url)
-            request.setValue("dbO8NmN2pMcmSQO7w56rTaFax", forHTTPHeaderField: "X-App-Token")
-            request.setValue("application/json", forHTTPHeaderField: "Accept")
-            let (data, response) = try await session.data(for: request)
-            guard let http = response as? HTTPURLResponse, http.statusCode == 200 else { return (nil, nil) }
-            if let arr = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]], let first = arr.first {
-                let bin = first["bin"] as? String
-                let bbl = first["bbl"] as? String
-                return (bin, bbl)
+        let radii = [radiusMeters, 50, 100, 150]
+        for r in radii {
+            do {
+                let urlStr = APIEndpoint.buildingFootprintsNearby(lat: lat, lon: lon, radiusMeters: r).url
+                guard let url = URL(string: urlStr) else { continue }
+                var request = URLRequest(url: url)
+                if let token = appToken() { request.setValue(token, forHTTPHeaderField: "X-App-Token") }
+                request.setValue("application/json", forHTTPHeaderField: "Accept")
+                let (data, response) = try await session.data(for: request)
+                guard let http = response as? HTTPURLResponse, http.statusCode == 200 else { continue }
+                if let arr = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]], let first = arr.first {
+                    let bin = first["bin"] as? String
+                    let bbl = first["bbl"] as? String
+                    if bin != nil || bbl != nil { return (bin, bbl) }
+                }
+            } catch {
+                if let ue = error as? URLError, ue.code == .cancelled { continue }
             }
-        } catch { /* ignore */ }
+        }
         return (nil, nil)
     }
     

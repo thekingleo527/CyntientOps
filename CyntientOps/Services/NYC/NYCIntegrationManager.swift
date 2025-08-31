@@ -274,14 +274,18 @@ public final class NYCIntegrationManager: ObservableObject {
         
         for (name, check) in endpoints {
             let startTime = Date()
-            let isHealthy = await check()
+            var healthy = await check()
+            if !healthy {
+                // Soft retry for transient cancellation
+                try? await Task.sleep(nanoseconds: 300_000_000)
+                healthy = await check()
+            }
             let responseTime = Date().timeIntervalSince(startTime)
-            
             apiHealth[name] = APIHealth(
                 name: name,
-                isHealthy: isHealthy,
-                lastSuccessfulCall: isHealthy ? Date() : apiHealth[name]?.lastSuccessfulCall,
-                errorCount: isHealthy ? 0 : (apiHealth[name]?.errorCount ?? 0) + 1,
+                isHealthy: healthy,
+                lastSuccessfulCall: healthy ? Date() : apiHealth[name]?.lastSuccessfulCall,
+                errorCount: healthy ? 0 : (apiHealth[name]?.errorCount ?? 0) + 1,
                 averageResponseTime: responseTime
             )
         }

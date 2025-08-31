@@ -20,7 +20,14 @@ public class DSNYAPIService: ObservableObject {
     private let tonnageDataEndpoint = "ebb7-mvp5.json"
     
     // API Token (optional but recommended for higher rate limits)
-    private let apiToken: String? = ProcessInfo.processInfo.environment["DSNY_API_TOKEN"]
+    private var apiToken: String? {
+        // Prefer Keychain/ProductionCredentialsManager
+        if let kc = ProductionCredentialsManager.shared.retrieveCredential(key: "DSNY_API_TOKEN"), !kc.isEmpty { return kc }
+        // Accept general NYC app token env var as well
+        if let env = ProcessInfo.processInfo.environment["NYC_APP_TOKEN"], !env.isEmpty { return env }
+        // Fallback to DSNY-specific env var
+        return ProcessInfo.processInfo.environment["DSNY_API_TOKEN"]
+    }
     
     // Cache for schedules
     @Published private var scheduleCache: [String: DSNY.BuildingSchedule] = [:]
@@ -37,10 +44,9 @@ public class DSNYAPIService: ObservableObject {
     
     private init() {
         let config = URLSessionConfiguration.default
-        config.httpAdditionalHeaders = [
-            "Accept": "application/json",
-            "X-App-Token": apiToken ?? ""
-        ]
+        var headers: [String: String] = ["Accept": "application/json"]
+        if let token = apiToken, !token.isEmpty { headers["X-App-Token"] = token }
+        config.httpAdditionalHeaders = headers
         config.timeoutIntervalForRequest = 30
         config.timeoutIntervalForResource = 60
         
