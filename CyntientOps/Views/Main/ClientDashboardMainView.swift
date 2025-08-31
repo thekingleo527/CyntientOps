@@ -26,6 +26,7 @@ struct ClientDashboardMainView: View {
     @State private var selectedBuildingId: String?
     @State private var showingBuildingSelector = false
     @State private var isPortfolioHeroCollapsed = false
+    @State private var isPortfolioMapRevealed = false
     @State private var showCostData = true
     @State private var showingProfile = false
     @State private var refreshID = UUID()

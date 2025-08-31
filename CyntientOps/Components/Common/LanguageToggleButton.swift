@@ -166,12 +166,3 @@ struct SettingsLanguageToggle: View {
     }
 }
 
-#Preview {
-    VStack(spacing: 20) {
-        LanguageToggleButton()
-        HeaderLanguageToggle()
-        SettingsLanguageToggle()
-    }
-    .padding()
-    .environmentObject(LanguageManager.shared)
-}

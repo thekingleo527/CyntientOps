@@ -300,6 +300,7 @@ public struct WorkerInfoRow: View {
 
 // MARK: - Preview
 
+/* Preview removed for production
 struct WorkerAvatar_Previews: PreviewProvider {
     static var previews: some View {
         VStack(spacing: CyntientOpsDesign.Spacing.lg) {
@@ -333,6 +334,7 @@ struct WorkerAvatar_Previews: PreviewProvider {
         .preferredColorScheme(.dark)
     }
 }
+*/
 
 // MARK: - CoreTypes.WorkerStatus Extensions
 

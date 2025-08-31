@@ -123,18 +123,3 @@ struct SignatureCanvasView: UIViewRepresentable {
     }
 }
 
-#if DEBUG
-struct SignaturePad_Previews: PreviewProvider {
-    static var previews: some View {
-        SignaturePad(
-            onSignatureCapture: { signature in
-                print("Signature captured: \(signature.prefix(50))...")
-            },
-            onClear: {
-                print("Signature cleared")
-            }
-        )
-        .padding()
-    }
-}
-#endif

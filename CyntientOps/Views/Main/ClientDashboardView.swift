@@ -448,9 +448,8 @@ struct ClientDashboardView: View {
     
 }
 
-// MARK: - Client Header Component
-
-struct ClientHeaderV3B: View {
+// Legacy ClientHeaderV3B removed in favor of ClientDashboardHeader
+/* struct ClientHeaderV3B: View {
     enum HeaderRoute: Identifiable {
         case profile, chat, settings
         
@@ -594,7 +593,7 @@ struct ClientHeaderV3B: View {
         let last = components.count > 1 ? String(components.last?.first ?? "X") : ""
         return "\(first)\(last)".uppercased()
     }
-}
+} */
 
 // MARK: - Client Real-time Hero Card
 

@@ -77,7 +77,7 @@ public struct EdwinLemaRoutes {
                 seq.append(franklin104Sequence(day: "Tuesday", time: 9, 0))
                 seq.append(walker36Sequence(day: "Tuesday", time: 9, 30))
                 // Chambers if bin retrieval day
-                let day = DSNYCollectionSchedule.CollectionDay.tuesday
+                let day = CollectionDay.tuesday
                 if DSNYCollectionSchedule.hasCollection(buildingId: CanonicalIDs.Buildings.chambers148, on: day) {
                     seq.append(chambers148Sequence(day: "Tuesday", time: 10, 30, isBinDay: true))
                 }
@@ -849,6 +849,61 @@ public struct EdwinLemaRoutes {
             ],
             sequenceType: .inspection,
             isFlexible: true // Very flexible - can be moved based on vendor needs
+        )
+    }
+    
+    /// 36 Walker Street sequence (sidewalk hose)
+    private static func walker36Sequence(day: String, time hour: Int, _ minute: Int) -> RouteSequence {
+        let arrivalTime = Calendar.current.date(bySettingHour: hour, minute: minute, second: 0, of: Date()) ?? Date()
+        
+        return RouteSequence(
+            id: "edwin_walker36_\(day.lowercased())",
+            buildingId: CanonicalIDs.Buildings.walker36,
+            buildingName: "36 Walker Street",
+            arrivalTime: arrivalTime,
+            estimatedDuration: 15 * 60, // 15 minutes
+            operations: [
+                OperationTask(
+                    id: "walker36_sidewalk_hose_\(day.lowercased())",
+                    name: "Sidewalk Hosing - 36 Walker Street",
+                    category: .hosing,
+                    location: .sidewalk,
+                    estimatedDuration: 15 * 60,
+                    isWeatherSensitive: true,
+                    skillLevel: .basic,
+                    instructions: "\(day): Hose and clean sidewalk in front of 36 Walker Street"
+                )
+            ],
+            sequenceType: .outdoorCleaning,
+            isFlexible: false,
+            dependencies: ["edwin_franklin104_\(day.lowercased())"]
+        )
+    }
+    
+    /// 123 1st Avenue bin retrieval sequence (bin collection only)
+    private static func firstAve123BinRetrievalSequence(day: String, time hour: Int, _ minute: Int) -> RouteSequence {
+        let arrivalTime = Calendar.current.date(bySettingHour: hour, minute: minute, second: 0, of: Date()) ?? Date()
+        
+        return RouteSequence(
+            id: "edwin_firstave123_bin_\(day.lowercased())",
+            buildingId: CanonicalIDs.Buildings.firstAvenue123,
+            buildingName: "123 1st Avenue - Bin Retrieval",
+            arrivalTime: arrivalTime,
+            estimatedDuration: 10 * 60, // 10 minutes for bin retrieval only
+            operations: [
+                OperationTask(
+                    id: "firstave123_bin_retrieval_\(day.lowercased())",
+                    name: "Bin Collection - 123 1st Avenue",
+                    category: .trashCollection,
+                    location: .sidewalk,
+                    estimatedDuration: 10 * 60,
+                    isWeatherSensitive: false,
+                    skillLevel: .basic,
+                    instructions: "\(day): Collect and return bins for 123 1st Avenue on collection day"
+                )
+            ],
+            sequenceType: .sanitation,
+            isFlexible: false
         )
     }
 }

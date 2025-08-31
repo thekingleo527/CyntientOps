@@ -202,31 +202,3 @@ extension View {
     }
 }
 
-// MARK: - Preview Helper
-
-struct AIAssistantImageLoader_Previews: PreviewProvider {
-    static var previews: some View {
-        VStack(spacing: 30) {
-            // Test different sizes
-            AIAssistantImageLoader.circularAIAssistantView(diameter: 40)
-            AIAssistantImageLoader.circularAIAssistantView(diameter: 60)
-            AIAssistantImageLoader.circularAIAssistantView(diameter: 80, borderColor: .blue)
-            
-            // Test the debug function
-            Button("Debug Available Assets") {
-                AIAssistantImageLoader.debugAvailableAssets()
-            }
-            .padding()
-            .background(Color.blue)
-            .foregroundColor(.white)
-            .cornerRadius(8)
-        }
-        .padding()
-        .background(Color.black)
-        .preferredColorScheme(.dark)
-        .onAppear {
-            // Automatically run debug on preview
-            AIAssistantImageLoader.debugAvailableAssets()
-        }
-    }
-}

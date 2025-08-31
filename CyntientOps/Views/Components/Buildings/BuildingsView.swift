@@ -533,8 +533,8 @@ struct BuildingRowCard: View {
     }
     
     private var buildingImageAssetName: String? {
-        if let id = CanonicalIDs.Buildings.getId(for: building.name) ?? building.id,
-           let mapped = BuildingAssets.assetName(for: id) {
+        let id = CanonicalIDs.Buildings.getId(for: building.name) ?? building.id
+        if let mapped = BuildingAssets.assetName(for: id) {
             return mapped
         }
         // Fallback: derive from address

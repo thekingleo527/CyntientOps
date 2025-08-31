@@ -66,7 +66,7 @@ public actor ComplianceHistoryService {
                     v.issueDate ?? ISO8601DateFormatter().string(from: Date()),
                     v.fineAmount ?? 0.0,
                     v.isActive ? "active" : "resolved",
-                    v.description ?? ""
+                    v.violationDetails ?? ""
                 ])
             } catch {
                 continue

@@ -496,35 +496,3 @@ public struct AccessTypeDetector {
     }
 }
 
-// MARK: - Preview
-
-struct AccessModeComponents_Previews: PreviewProvider {
-    static var previews: some View {
-        let sampleBuilding = NamedCoordinate(
-            id: "14",
-            name: "Rubin Museum",
-            address: "150 W 17th St",
-            latitude: 40.7402,
-            longitude: -73.9980
-        )
-        
-        ScrollView {
-            VStack(spacing: CyntientOpsDesign.Spacing.lg) {
-                AccessModeCard(building: sampleBuilding, accessType: .coverage) {
-                    print("Coverage mode tapped")
-                }
-                
-                AccessModeCard(building: sampleBuilding, accessType: .emergency) {
-                    print("Emergency mode tapped")
-                }
-                
-                AccessModeCard(building: sampleBuilding, accessType: .training) {
-                    print("Training mode tapped")
-                }
-            }
-            .padding()
-        }
-        .background(CyntientOpsDesign.DashboardColors.baseBackground)
-        .preferredColorScheme(.dark)
-    }
-}

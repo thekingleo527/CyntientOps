@@ -445,9 +445,7 @@ extension AssetImageDebugger {
     }
 }
 
-struct AssetDebuggerView_Previews: PreviewProvider {
-    static var previews: some View { AssetDebuggerView() }
-}
+
 
 // MARK: - Quick Access Functions for Console Debugging
 

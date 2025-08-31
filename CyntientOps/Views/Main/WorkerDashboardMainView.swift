@@ -66,7 +66,7 @@ struct WorkerDashboardMainView: View {
                     workerName: viewModel.workerProfile?.name ?? "Worker",
                     workerId: viewModel.workerProfile?.id ?? "",
                     isNovaProcessing: false,
-                    clockInStatus: viewModel.isCurrentlyClockedIn ? .clockedIn(building: viewModel.currentBuilding?.name ?? "", time: Date()) : .notClockedIn,
+                    clockInStatus: viewModel.isCurrentlyClockedIn ? WorkerSimpleHeader.ClockInStatus.clockedIn(building: viewModel.currentBuilding?.name ?? "", time: Date()) : WorkerSimpleHeader.ClockInStatus.notClockedIn,
                     onLogoTap: { /* no-op */ },
                     onNovaPress: { showingProfile = true },
                     onProfileTap: { showingProfile = true },

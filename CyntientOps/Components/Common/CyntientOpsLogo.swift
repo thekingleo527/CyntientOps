@@ -133,31 +133,3 @@ struct CyntientOpsLogo: View {
     }
 }
 
-#if DEBUG
-struct CyntientOpsLogo_Previews: PreviewProvider {
-    static var previews: some View {
-        VStack(spacing: 20) {
-            // Different sizes
-            HStack(spacing: 20) {
-                CyntientOpsLogo(size: 24, style: .iconOnly)
-                CyntientOpsLogo(size: 32, style: .iconOnly)
-                CyntientOpsLogo(size: 48, style: .iconOnly)
-            }
-            
-            // Full logo variants
-            CyntientOpsLogo(size: 32, style: .full)
-            CyntientOpsLogo(size: 48, style: .full)
-            
-            // Minimal variants
-            HStack(spacing: 20) {
-                CyntientOpsLogo(size: 24, style: .minimal)
-                CyntientOpsLogo(size: 32, style: .minimal)
-                CyntientOpsLogo(size: 48, style: .minimal)
-            }
-        }
-        .padding()
-        .background(Color.black)
-        .preferredColorScheme(.dark)
-    }
-}
-#endif
