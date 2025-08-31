@@ -874,7 +874,7 @@ class AdminDashboardViewModel: ObservableObject {
                 SELECT w.*, wc.language, wc.simplified_interface 
                 FROM workers w
                 LEFT JOIN worker_capabilities wc ON w.id = wc.worker_id
-                WHERE w.isActive = 1
+                WHERE w.isActive = 1 AND w.role = 'worker'
             """)
             
             activeWorkers = rows.compactMap { row -> CoreTypes.WorkerProfile? in
@@ -933,18 +933,25 @@ class AdminDashboardViewModel: ObservableObject {
     @MainActor
     private func loadPortfolioMetrics() async {
         // Calculate portfolio metrics based on loaded data
+        let activeHpd = hpdViolationsData.values.flatMap { $0 }.filter { $0.isActive }.count
+        let totalHpd = hpdViolationsData.values.flatMap { $0 }.count
+        let activeDsny = dsnyViolationsByBuilding.values.flatMap { $0 }.filter { $0.isActive }.count
+        let totalDsny = dsnyViolationsByBuilding.values.flatMap { $0 }.count
+        let totalViol = totalHpd + totalDsny
+        let activeViol = activeHpd + activeDsny
+        let compliancePct: Double = totalViol == 0 ? 1.0 : max(0.0, 1.0 - (Double(activeViol) / Double(totalViol)))
         portfolioMetrics = CoreTypes.PortfolioMetrics(
             id: "portfolio_main",
             totalBuildings: buildings.count,
             totalWorkers: workers.count,
             activeWorkers: activeWorkers.count,
-            overallCompletionRate: 0.78,
+            overallCompletionRate: tasks.isEmpty ? 0.0 : Double(tasks.filter { $0.isCompleted }.count) / Double(tasks.count),
             criticalIssues: getPressingTasks().filter { $0.urgency == .critical }.count,
             totalTasks: ongoingTasks.count,
             completedTasks: tasks.filter { $0.isCompleted }.count,
             pendingTasks: ongoingTasks.count,
             overdueTasks: ongoingTasks.filter { $0.isOverdue }.count,
-            complianceScore: 85.0, // This should be calculated from real data
+            complianceScore: compliancePct * 100.0,
             lastUpdated: Date()
         )
         print("✅ Portfolio metrics calculated")

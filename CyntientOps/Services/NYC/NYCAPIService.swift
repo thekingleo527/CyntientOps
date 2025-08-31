@@ -63,6 +63,7 @@ public final class NYCAPIService: ObservableObject {
         case fdnyInspections(bin: String)
         case conEdisonOutages(zip: String)
         case complaints311(bin: String)
+        case complaints311Address(address: String)
         case dofPropertyAssessment(bbl: String)
         case dofTaxBills(bbl: String)
         case dofTaxLiens(bbl: String)
@@ -78,7 +79,8 @@ public final class NYCAPIService: ObservableObject {
             case .hpdViolations(let bin):
                 return "\(APIConfig.hpdURL)?bin=\(bin)"
             case .dobPermits(let bin):
-                return "\(APIConfig.dobURL)?bin=\(bin)"
+                // DOB Permit Issuance dataset uses column name `bin__`
+                return "\(APIConfig.dobURL)?bin__=\(bin)"
             case .dsnySchedule(let district):
                 return "\(APIConfig.dsnyURL)?community_district=\(district)"
             case .dsnyViolations(let bin):
@@ -93,6 +95,9 @@ public final class NYCAPIService: ObservableObject {
                 return "https://storm.coned.com/stormcenter_external/default.html?zip=\(zip)"
             case .complaints311(let bin):
                 return "\(APIConfig.complaints311URL)?bin=\(bin)"
+            case .complaints311Address(let address):
+                let encoded = address.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? address
+                return "\(APIConfig.complaints311URL)?incident_address=\(encoded)"
             case .dofPropertyAssessment(let bbl):
                 return "\(APIConfig.dofURL)?bbl=\(bbl)"
             case .dofTaxBills(let bbl):
@@ -128,6 +133,7 @@ public final class NYCAPIService: ObservableObject {
             case .fdnyInspections(let bin): return "fdny_inspections_\(bin)"
             case .conEdisonOutages(let zip): return "coned_outages_\(zip)"
             case .complaints311(let bin): return "311_complaints_\(bin)"
+            case .complaints311Address(let address): return "311_complaints_addr_\(address.hashValue)"
             case .dofPropertyAssessment(let bbl): return "dof_property_\(bbl)"
             case .dofTaxBills(let bbl): return "dof_tax_bills_\(bbl)"
             case .dofTaxLiens(let bbl): return "dof_tax_liens_\(bbl)"
@@ -183,7 +189,8 @@ public final class NYCAPIService: ObservableObject {
     
     /// Fetch LL97 compliance data
     public func fetchLL97Compliance(bbl: String) async throws -> [LL97Emission] {
-        let endpoint = APIEndpoint.ll97Compliance(bbl: bbl)
+        let normBBL = normalizeBBL(bbl)
+        let endpoint = APIEndpoint.ll97Compliance(bbl: normBBL)
         return try await fetch(endpoint)
     }
     
@@ -207,37 +214,50 @@ public final class NYCAPIService: ObservableObject {
     
     /// Fetch 311 complaints
     public func fetch311Complaints(bin: String) async throws -> [Complaint311] {
+        // Note: 311 dataset (erm2-nwe9) does not expose BIN; this call may return broad results.
+        // Prefer address-based variant when possible.
         let endpoint = APIEndpoint.complaints311(bin: bin)
+        return try await fetch(endpoint)
+    }
+
+    /// Fetch 311 complaints for a specific address (preferred)
+    public func fetch311Complaints(address: String) async throws -> [Complaint311] {
+        let endpoint = APIEndpoint.complaints311Address(address: address)
         return try await fetch(endpoint)
     }
     
     /// Fetch DOF Property Assessment data
     public func fetchDOFPropertyAssessment(bbl: String) async throws -> [DOFPropertyAssessment] {
-        let endpoint = APIEndpoint.dofPropertyAssessment(bbl: bbl)
+        let normBBL = normalizeBBL(bbl)
+        let endpoint = APIEndpoint.dofPropertyAssessment(bbl: normBBL)
         return try await fetch(endpoint)
     }
     
     /// Fetch DOF Tax Bills for a property
     public func fetchDOFTaxBills(bbl: String) async throws -> [DOFTaxBill] {
-        let endpoint = APIEndpoint.dofTaxBills(bbl: bbl)
+        let normBBL = normalizeBBL(bbl)
+        let endpoint = APIEndpoint.dofTaxBills(bbl: normBBL)
         return try await fetch(endpoint)
     }
     
     /// Fetch DOF Tax Liens for a property
     public func fetchDOFTaxLiens(bbl: String) async throws -> [DOFTaxLien] {
-        let endpoint = APIEndpoint.dofTaxLiens(bbl: bbl)
+        let normBBL = normalizeBBL(bbl)
+        let endpoint = APIEndpoint.dofTaxLiens(bbl: normBBL)
         return try await fetch(endpoint)
     }
     
     /// Fetch Energy Efficiency Rating for a building
     public func fetchEnergyEfficiencyRating(bbl: String) async throws -> [EnergyEfficiencyRating] {
-        let endpoint = APIEndpoint.energyEfficiencyRating(bbl: bbl)
+        let normBBL = normalizeBBL(bbl)
+        let endpoint = APIEndpoint.energyEfficiencyRating(bbl: normBBL)
         return try await fetch(endpoint)
     }
     
     /// Fetch Landmarks Buildings data
     public func fetchLandmarksBuildings(bbl: String) async throws -> [LandmarksBuilding] {
-        let endpoint = APIEndpoint.landmarksBuildings(bbl: bbl)
+        let normBBL = normalizeBBL(bbl)
+        let endpoint = APIEndpoint.landmarksBuildings(bbl: normBBL)
         return try await fetch(endpoint)
     }
     
@@ -331,6 +351,23 @@ public final class NYCAPIService: ObservableObject {
                 
             default:
                 let errorMessage = "HTTP \(httpResponse.statusCode)"
+                // Fallback for 400s: return cached data if available to avoid zeroing metrics
+                if httpResponse.statusCode == 400 {
+                    if let cached: [T] = cache.get(key: endpoint.cacheKey) {
+                        await MainActor.run {
+                            apiStatus[endpoint] = .success(Date())
+                        }
+                        print("⚠️ NYC API 400 for \(endpoint). Using cached value.")
+                        return cached
+                    } else {
+                        // No cache: degrade gracefully with empty result
+                        await MainActor.run {
+                            apiStatus[endpoint] = .error(errorMessage)
+                        }
+                        print("⚠️ NYC API 400 for \(endpoint). No cache available.")
+                        return []
+                    }
+                }
                 await MainActor.run {
                     apiStatus[endpoint] = .error(errorMessage)
                 }
@@ -350,27 +387,73 @@ public final class NYCAPIService: ObservableObject {
     
     /// Fetch all compliance data for a building
     public func fetchBuildingCompliance(bin: String, bbl: String) async -> BuildingComplianceData {
+        return await fetchBuildingCompliance(bin: bin, bbl: bbl, address: nil)
+    }
+
+    /// Preferred variant that allows address-based 311 lookup
+    public func fetchBuildingCompliance(bin: String, bbl: String, address: String?) async -> BuildingComplianceData {
         var complianceData = BuildingComplianceData(bin: bin, bbl: bbl)
-        
-        // Fetch all APIs concurrently
+
+        // Fetch primary datasets concurrently
         async let hpdViolations = try? fetchHPDViolations(bin: bin)
         async let dobPermits = try? fetchDOBPermits(bin: bin)
         async let fdnyInspections = try? fetchFDNYInspections(bin: bin)
         async let ll97Data = try? fetchLL97Compliance(bbl: bbl)
-        async let complaints = try? fetch311Complaints(bin: bin)
         async let dsnyViolations = try? fetchDSNYViolations(bin: bin)
-        async let dsnyRoutes = try? fetchDSNYSchedule(district: extractDistrict(from: bin))
-        
-        // Wait for all results
+
+        // Wait for concurrent results
         complianceData.hpdViolations = await hpdViolations ?? []
         complianceData.dobPermits = await dobPermits ?? []
         complianceData.fdnyInspections = await fdnyInspections ?? []
         complianceData.ll97Emissions = await ll97Data ?? []
-        complianceData.complaints311 = await complaints ?? []
+        // 311: prefer address-based lookup when available (sequential to avoid async closure issue)
+        if let address = address, let addrComplaints = try? await fetch311Complaints(address: address) {
+            complianceData.complaints311 = addrComplaints
+        } else {
+            let binComplaints = (try? await fetch311Complaints(bin: bin)) ?? []
+            complianceData.complaints311 = binComplaints
+        }
         complianceData.dsnyViolations = await dsnyViolations ?? []
-        complianceData.dsnyRoutes = await dsnyRoutes ?? []
-        
+
+        // DSNY schedule: if district format "MN05" yields no results, retry with numerical only
+        let district = extractDistrict(from: bin)
+        var routes: [DSNYRoute] = []
+        if let firstTry = try? await fetchDSNYSchedule(district: district), !firstTry.isEmpty {
+            routes = firstTry
+        } else {
+            let numeric = district.filter { $0.isNumber }
+            if let secondTry = try? await fetchDSNYSchedule(district: numeric), !secondTry.isEmpty {
+                routes = secondTry
+            }
+        }
+        complianceData.dsnyRoutes = routes
+
         return complianceData
+    }
+
+    // MARK: - Utilities
+    fileprivate func normalizeBBL(_ raw: String) -> String {
+        let digits = raw.filter { $0.isNumber }
+        if digits.count == 10 { return digits }
+        let parts = raw.replacingOccurrences(of: " ", with: "").split(separator: "-")
+        if parts.count == 3,
+           let b = parts.first, let blk = parts.dropFirst().first, let lot = parts.last,
+           let borough = Int(b), let block = Int(blk), let lotNum = Int(lot), (1...5).contains(borough) {
+            return "\(borough)\(String(format: "%05d", block))\(String(format: "%04d", lotNum))"
+        }
+        if digits.count >= 7 {
+            let bStr = String(digits.prefix(1))
+            let rest = String(digits.dropFirst())
+            let lotPart = String(rest.suffix(4))
+            let blockPart = String(rest.dropLast(4))
+            let borough = Int(bStr) ?? 0
+            let block = Int(blockPart) ?? 0
+            let lot = Int(lotPart) ?? 0
+            if (1...5).contains(borough) {
+                return "\(borough)\(String(format: "%05d", block))\(String(format: "%04d", lot))"
+            }
+        }
+        return digits
     }
     
     /// Refresh all building data
@@ -387,7 +470,7 @@ public final class NYCAPIService: ObservableObject {
             bin = extractBIN(from: building)
             bbl = extractBBL(from: building)
             
-            _ = await fetchBuildingCompliance(bin: bin, bbl: bbl)
+            _ = await fetchBuildingCompliance(bin: bin, bbl: bbl, address: building.address)
             
             // Respect rate limits
             try? await Task.sleep(nanoseconds: UInt64(APIConfig.rateLimitDelay * 1_000_000_000))

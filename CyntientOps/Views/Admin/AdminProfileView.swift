@@ -11,6 +11,8 @@ import SwiftUI
 public struct AdminProfileView: View {
     @ObservedObject var viewModel: AdminDashboardViewModel
     @EnvironmentObject private var authManager: NewAuthManager
+    @StateObject private var languageManager = LanguageManager.shared
+    @AppStorage("preferredLanguage") private var preferredLanguage: String = "en"
     @Environment(\.dismiss) private var dismiss
     
     @State private var showLogoutConfirmation = false
@@ -29,6 +31,23 @@ public struct AdminProfileView: View {
                 
                 // System Information
                 systemInfoSection
+
+                // Language Toggle
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Language")
+                        .font(.headline)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                    Picker("Language", selection: $preferredLanguage) {
+                        Text("English").tag("en")
+                        Text("Español").tag("es")
+                    }
+                    .pickerStyle(.segmented)
+                    .onChange(of: preferredLanguage) { _, new in
+                        languageManager.setLanguage(code: new)
+                    }
+                }
+                .padding()
+                .cyntientOpsDarkCardBackground()
                 
                 // Logout Section
                 logoutSection

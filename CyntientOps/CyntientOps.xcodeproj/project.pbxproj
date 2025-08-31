@@ -321,6 +321,8 @@
 		23B2116C2E52FCEB00481C3C /* ClientDashboardPortfolioHeroCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23B2116B2E52FCEB00481C3C /* ClientDashboardPortfolioHeroCard.swift */; };
 
 		23E8FB0F2E43436300F8771C /* AdminContextEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23E8FB0E2E43436300F8771C /* AdminContextEngine.swift */; };
+		23AAB0012E70B00100123456 /* DeveloperLoginBoard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23AAB0002E70B00100123456 /* DeveloperLoginBoard.swift */; };
+		23AAB0032E70B00100123457 /* SeededCredentials.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23AAB0022E70B00100123457 /* SeededCredentials.swift */; };
 		23F82D522E5E4CB30097E7B1 /* MemoryPressureMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23F82D4F2E5E4CB30097E7B1 /* MemoryPressureMonitor.swift */; };
 		23F82D532E5E4CB30097E7B1 /* BatchedUIUpdater.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23F82D4E2E5E4CB30097E7B1 /* BatchedUIUpdater.swift */; };
 		23F82D542E5E4CB30097E7B1 /* TaskPoolManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23F82D512E5E4CB30097E7B1 /* TaskPoolManager.swift */; };
@@ -335,6 +337,8 @@
 		23FAE4AE2E51376E008AD66F /* ClientShiftPlannerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23FAE4A52E51376E008AD66F /* ClientShiftPlannerSheet.swift */; };
 		23FAE4AF2E51376E008AD66F /* PortfolioOverviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23FAE4A72E51376E008AD66F /* PortfolioOverviewView.swift */; };
 		23FFF0022E5F999900640977 /* AdminReportsTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23FFF0012E5F999900640977 /* AdminReportsTypes.swift */; };
+		23AAA0012E70A00100123456 /* VendorAccessLogSheetLight.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23AAA0002E70A00100123456 /* VendorAccessLogSheetLight.swift */; };
+		23AAA0032E70A00100123457 /* SiteDepartureSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23AAA0022E70A00100123457 /* SiteDepartureSheet.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -359,6 +363,8 @@
 		231931E72E42E91200640977 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
 		231931E82E42E91200640977 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		231931E92E42E91200640977 /* SignUpView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignUpView.swift; sourceTree = "<group>"; };
+		23AAB0002E70B00100123456 /* DeveloperLoginBoard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeveloperLoginBoard.swift; sourceTree = "<group>"; };
+		23AAB0022E70B00100123457 /* SeededCredentials.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeededCredentials.swift; sourceTree = "<group>"; };
 		231931EB2E42E91200640977 /* BuildingComplianceComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuildingComplianceComponents.swift; sourceTree = "<group>"; };
 		231931EC2E42E91200640977 /* BuildingDetailComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuildingDetailComponents.swift; sourceTree = "<group>"; };
 		231931ED2E42E91200640977 /* BuildingHistoryComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuildingHistoryComponents.swift; sourceTree = "<group>"; };
@@ -646,6 +652,8 @@
 		23486DCC2E60935B0040DA52 /* PerformanceMetricsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerformanceMetricsView.swift; sourceTree = "<group>"; };
 		23486DCD2E60935B0040DA52 /* ProfileAssignedBuildingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileAssignedBuildingsView.swift; sourceTree = "<group>"; };
 		23486DCE2E60935B0040DA52 /* QuickNoteSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickNoteSheet.swift; sourceTree = "<group>"; };
+		23AAA0002E70A00100123456 /* VendorAccessLogSheetLight.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VendorAccessLogSheetLight.swift; sourceTree = "<group>"; };
+		23AAA0022E70A00100123457 /* SiteDepartureSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SiteDepartureSheet.swift; sourceTree = "<group>"; };
 		23486DCF2E60935B0040DA52 /* WeeklyScheduleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeeklyScheduleView.swift; sourceTree = "<group>"; };
 		23486DD02E60935B0040DA52 /* WorkerHeroNowNext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkerHeroNowNext.swift; sourceTree = "<group>"; };
 		23486DD12E60935B0040DA52 /* WorkerIntelligencePanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkerIntelligencePanel.swift; sourceTree = "<group>"; };
@@ -721,6 +729,8 @@
 				231931E72E42E91200640977 /* LoginView.swift */,
 				231931E82E42E91200640977 /* OnboardingView.swift */,
 				231931E92E42E91200640977 /* SignUpView.swift */,
+				23AAB0002E70B00100123456 /* DeveloperLoginBoard.swift */,
+				23AAB0022E70B00100123457 /* SeededCredentials.swift */,
 			);
 			path = Auth;
 			sourceTree = "<group>";
@@ -1638,6 +1648,7 @@
 			children = (
 				23486DA32E6092EF0040DA52 /* UpcomingTaskListView.swift */,
 				23486DA42E6092EF0040DA52 /* WeatherRibbonView.swift */,
+				23AAA0022E70A00100123457 /* SiteDepartureSheet.swift */,
 			);
 			path = Worker;
 			sourceTree = "<group>";
@@ -1686,6 +1697,7 @@
 				23486DCC2E60935B0040DA52 /* PerformanceMetricsView.swift */,
 				23486DCD2E60935B0040DA52 /* ProfileAssignedBuildingsView.swift */,
 				23486DCE2E60935B0040DA52 /* QuickNoteSheet.swift */,
+				23AAA0002E70A00100123456 /* VendorAccessLogSheetLight.swift */,
 				23486DCF2E60935B0040DA52 /* WeeklyScheduleView.swift */,
 				23486DD02E60935B0040DA52 /* WorkerHeroNowNext.swift */,
 				23486DD12E60935B0040DA52 /* WorkerIntelligencePanel.swift */,
@@ -2024,6 +2036,8 @@
 				23486D9B2E5FF82A0040DA52 /* BuildingRoutesTab.swift in Sources */,
 				231934302E42EC7200640977 /* AdaptiveGlassModifier.swift in Sources */,
 				231934312E42EC7200640977 /* ImagePicker.swift in Sources */,
+				23AAA0012E70A00100123456 /* VendorAccessLogSheetLight.swift in Sources */,
+				23AAA0032E70A00100123457 /* SiteDepartureSheet.swift in Sources */,
 				231934322E42EC7200640977 /* WeatherTasksSection.swift in Sources */,
 				231934332E42EC7200640977 /* GlassDeckContainer.swift in Sources */,
 				231934342E42EC7200640977 /* PropertyCard.swift in Sources */,
@@ -2189,6 +2203,8 @@
 				23B0CDH12E70810000640977 /* ClientDashboardHeader.swift in Sources */,
 				23B0CDM12E70812000640977 /* ClientHeaderMetric.swift in Sources */,
 				23B0WSH12E70818000640977 /* WorkerSimpleHeader.swift in Sources */,
+				23AAB0012E70B00100123456 /* DeveloperLoginBoard.swift in Sources */,
+				23AAB0032E70B00100123457 /* SeededCredentials.swift in Sources */,
 				23B0MED12E70800100640977 /* BuildingMediaTab.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

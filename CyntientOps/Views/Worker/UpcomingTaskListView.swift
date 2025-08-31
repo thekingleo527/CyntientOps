@@ -10,6 +10,7 @@ import SwiftUI
 
 struct UpcomingTaskListView: View {
     let rows: [TaskRowVM]
+    var onTaskTap: ((TaskRowVM) -> Void)? = nil
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -35,7 +36,9 @@ struct UpcomingTaskListView: View {
             } else {
                 VStack(spacing: 8) {
                     ForEach(rows) { row in
-                        UpcomingTaskRowView(row: row)
+                        UpcomingTaskRowView(row: row) {
+                            onTaskTap?(row)
+                        }
                     }
                 }
             }
@@ -49,7 +52,8 @@ struct UpcomingTaskListView: View {
 
 private struct UpcomingTaskRowView: View {
     let row: TaskRowVM
-    
+    var onTap: (() -> Void)? = nil
+
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             // Title and time
@@ -93,6 +97,8 @@ private struct UpcomingTaskRowView: View {
         }
         .padding(12)
         .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .contentShape(Rectangle())
+        .onTapGesture { onTap?() }
     }
 }
 

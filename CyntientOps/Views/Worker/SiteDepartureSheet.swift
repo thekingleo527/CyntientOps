@@ -69,7 +69,11 @@ struct SiteDepartureSheet: View {
                                     if let b = task.building?.name { Text(b).font(.caption).foregroundColor(.secondary) }
                                 }
                             }
+#if os(iOS)
+                            .toggleStyle(SwitchToggleStyle())
+#else
                             .toggleStyle(.checkbox)
+#endif
                         }
                     }
 
@@ -105,4 +109,3 @@ struct SiteDepartureSheet: View {
         }
     }
 }
-

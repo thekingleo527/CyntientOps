@@ -47,6 +47,9 @@ struct WorkerDashboardView: View {
     @State private var showingFullScreenTab: IntelligenceTab? = nil
     @State private var showingSiteDeparture = false
     @State private var siteDepartureVM: SiteDepartureViewModel? = nil
+    @State private var showingVendorAccess = false
+    @State private var showingQuickNote = false
+    @State private var showingCamera = false
     
     // MARK: - Intelligence Tabs
     enum IntelligenceTab: String, CaseIterable {
@@ -69,15 +72,7 @@ struct WorkerDashboardView: View {
     
     var body: some View {
         MapRevealContainer(
-            buildings: viewModel.assignedBuildings.map { building in
-                NamedCoordinate(
-                    id: building.id,
-                    name: building.name,
-                    address: building.address,
-                    latitude: building.coordinate.latitude,
-                    longitude: building.coordinate.longitude
-                )
-            },
+            buildings: mapBuildings,
             currentBuildingId: viewModel.currentBuilding?.id,
             isRevealed: $isPortfolioMapRevealed,
             container: container,
@@ -96,7 +91,7 @@ struct WorkerDashboardView: View {
                         workerName: getWorkerName(),
                         workerId: viewModel.workerProfile?.id ?? "",
                         isNovaProcessing: false,
-                        clockInStatus: viewModel.isClockedIn ? .clockedIn(building: viewModel.currentBuilding?.name ?? "", time: viewModel.clockedInAt ?? Date()) : .notClockedIn,
+                        clockInStatus: viewModel.isClockedIn ? .clockedIn(building: viewModel.currentBuilding?.name ?? "", time: viewModel.clockInTime ?? Date()) : .notClockedIn,
                         onLogoTap: { /* Optional: show menu or map */ },
                         onNovaPress: { sheet = .novaChat },
                         onProfileTap: { sheet = .profile },
@@ -119,9 +114,11 @@ struct WorkerDashboardView: View {
                             
                             // Upcoming Tasks (weather-aware, intelligent ordering)
                             if !viewModel.upcoming.isEmpty {
-                                UpcomingTaskListView(rows: viewModel.upcoming)
-                                    .padding(.horizontal, CyntientOpsDesign.Spacing.md)
-                                    .animatedGlassAppear(delay: 0.4)
+                                UpcomingTaskListView(rows: viewModel.upcoming) { tapped in
+                                    sheet = .taskDetail(tapped.taskId)
+                                }
+                                .padding(.horizontal, CyntientOpsDesign.Spacing.md)
+                                .animatedGlassAppear(delay: 0.4)
                             }
                         }
                         .padding(.top, CyntientOpsDesign.Spacing.md)
@@ -255,6 +252,18 @@ struct WorkerDashboardView: View {
             }
             .padding(.trailing, 12)
             .padding(.bottom, 100)
+        }
+    }
+
+    private var mapBuildings: [NamedCoordinate] {
+        viewModel.assignedBuildings.map { building in
+            NamedCoordinate(
+                id: building.id,
+                name: building.name,
+                address: building.address,
+                latitude: building.coordinate.latitude,
+                longitude: building.coordinate.longitude
+            )
         }
     }
     

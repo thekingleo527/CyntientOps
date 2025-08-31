@@ -9,6 +9,9 @@
 //
 
 import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#endif
 import MapKit
 import CoreLocation
 
@@ -105,7 +108,9 @@ public struct AdminDashboardView: View {
                         totalBuildings: viewModel.buildingCount,
                         activeWorkers: viewModel.workersActive,
                         criticalAlerts: viewModel.criticalAlerts.count,
-                        syncStatus: viewModel.dashboardSyncStatus
+                        syncStatus: viewModel.dashboardSyncStatus,
+                        onProfileTap: { activeSheet = .profile },
+                        onNovaTap: { activeSheet = .chat }
                     )
                     .zIndex(100)
                     
@@ -162,6 +167,9 @@ public struct AdminDashboardView: View {
                         onVerificationSummary: {
                             activeSheet = .verificationSummary
                         },
+                        onHPD: { activeSheet = .compliance },
+                        onDOB: { activeSheet = .compliance },
+                        onDSNY: { activeSheet = .compliance },
                         viewModel: viewModel
                     )
                     .padding(.horizontal, 16)
@@ -332,7 +340,7 @@ struct AdminUrgentItemsSection: View {
                 
                 if workersNeedingAttention > 0 {
                     AdminUrgentItem(
-                        icon: "person.badge.exclamationmark",
+                        icon: coSafeSystemSymbol("person.badge.exclamationmark", fallback: "person.fill.questionmark"),
                         title: "Workers Need Attention",
                         count: workersNeedingAttention,
                         color: CyntientOpsDesign.DashboardColors.warning,
@@ -344,6 +352,15 @@ struct AdminUrgentItemsSection: View {
         .padding(16)
         .cyntientOpsDarkCardBackground(cornerRadius: 12)
     }
+}
+
+// MARK: - Symbol Fallback Utility
+private func coSafeSystemSymbol(_ name: String, fallback: String) -> String {
+#if canImport(UIKit)
+    return UIImage(systemName: name) != nil ? name : fallback
+#else
+    return name
+#endif
 }
 
 struct AdminUrgentItem: View {
@@ -820,15 +837,25 @@ struct AdminNovaIntelligenceBar: View {
     let onEmergencyBroadcast: () -> Void
     let onExampleReport: () -> Void
     let onVerificationSummary: () -> Void
+    let onHPD: () -> Void
+    let onDOB: () -> Void
+    let onDSNY: () -> Void
     @ObservedObject var viewModel: AdminDashboardViewModel
+    
+    // Panel accordion state with persistence
+    enum PanelState: String { case collapsed, half, expanded }
+    @AppStorage("panelState.admin") private var storedPanelState: String = PanelState.half.rawValue
+    @State private var panelState: PanelState = .half
+    @State private var dragOffset: CGFloat = 0
     
     var body: some View {
         VStack(spacing: 0) {
             // Intelligence Content Panel with Dynamic Height
             intelligenceContentPanel
-                .frame(height: getIntelligencePanelHeight())
+                .frame(height: getPanelHeight())
                 .animation(CyntientOpsDesign.Animations.spring, value: selectedTab)
-                .animation(CyntientOpsDesign.Animations.spring, value: viewModel.intelligencePanelExpanded)
+                .animation(CyntientOpsDesign.Animations.spring, value: panelState)
+                .gesture(panelDrag)
             
             // Tab Bar with Proper Spacing
             HStack(spacing: 0) {
@@ -851,28 +878,40 @@ struct AdminNovaIntelligenceBar: View {
         }
         .background(CyntientOpsDesign.DashboardColors.cardBackground)
         .clipShape(RoundedRectangle(cornerRadius: 16))
+        .onAppear {
+            panelState = PanelState(rawValue: storedPanelState) ?? .half
+            viewModel.intelligencePanelExpanded = panelState != .collapsed
+        }
+        .onChange(of: panelState) { _, new in
+            storedPanelState = new.rawValue
+            viewModel.intelligencePanelExpanded = new != .collapsed
+        }
     }
     
-    // MARK: - Dynamic Panel Height
+    private func getPanelHeight() -> CGFloat {
+        let full: CGFloat = 380
+        let half: CGFloat = 0.4 * UIScreen.main.bounds.height
+        let collapsed: CGFloat = 64
+        switch panelState {
+        case .collapsed: return collapsed
+        case .half: return min(half, full)
+        case .expanded: return max(half, full)
+        }
+    }
     
-    private func getIntelligencePanelHeight() -> CGFloat {
-        if !viewModel.intelligencePanelExpanded {
-            return 60
-        }
-        
-        switch selectedTab {
-        case .priorities:
-            let hasItems = !criticalAlerts.isEmpty || portfolioMetrics.criticalIssues > 0
-            return hasItems ? 260 : 180  // Taller for streaming broadcast
-        case .workers:
-            return workers.count > 3 ? 220 : 180
-        case .buildings:
-            return buildings.count > 3 ? 200 : 160
-        case .compliance:
-            return 220  // Space for compliance data
-        case .analytics:
-            return 200
-        }
+    private var panelDrag: some Gesture {
+        DragGesture(minimumDistance: 8)
+            .onChanged { value in dragOffset = value.translation.height }
+            .onEnded { value in
+                withAnimation(CyntientOpsDesign.Animations.spring) {
+                    if value.translation.height < -50 { // drag up
+                        panelState = (panelState == .half) ? .expanded : .half
+                    } else if value.translation.height > 50 { // drag down
+                        panelState = (panelState == .half) ? .collapsed : .half
+                    }
+                    dragOffset = 0
+                }
+            }
     }
     
     @ViewBuilder
@@ -903,7 +942,10 @@ struct AdminNovaIntelligenceBar: View {
                             hpdOpenCount: viewModel.hpdViolationsData.values.flatMap { $0 }.filter { $0.isActive }.count,
                             dobActivePermits: viewModel.dobPermitsData.values.flatMap { $0 }.filter { !$0.isExpired }.count,
                             dsnyViolationsCount: viewModel.dsnyViolationsByBuilding.values.flatMap { $0 }.filter { $0.isActive }.count,
-                            onMapToggle: onMapToggle
+                            onMapToggle: onMapToggle,
+                            onHPD: onHPD,
+                            onDOB: onDOB,
+                            onDSNY: onDSNY
                         )
                         
                     case .compliance:
@@ -1283,18 +1325,47 @@ struct AdminWorkersContent: View {
                     .foregroundColor(CyntientOpsDesign.DashboardColors.adminAccent)
             }
             
-            ForEach(workers.prefix(4), id: \.id) { worker in
-                AdminWorkerStatusRow(worker: worker)
-            }
-            
-            if workers.count > 4 {
-                Button("View All Workers") {
-                    // Handle view all
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    ForEach(workers, id: \.id) { worker in
+                        AdminWorkerPill(worker: worker)
+                    }
                 }
-                .font(.caption)
-                .foregroundColor(CyntientOpsDesign.DashboardColors.adminAccent)
+                .padding(.vertical, 4)
             }
         }
+    }
+}
+
+struct AdminWorkerPill: View {
+    let worker: CoreTypes.WorkerProfile
+    var body: some View {
+        HStack(spacing: 8) {
+            Circle()
+                .fill(worker.isClockedIn ? CyntientOpsDesign.DashboardColors.success : CyntientOpsDesign.DashboardColors.warning)
+                .frame(width: 8, height: 8)
+            Text(initials(from: worker.name))
+                .font(.caption2)
+                .foregroundColor(.white)
+                .frame(width: 18, height: 18)
+                .background(Color.white.opacity(0.08))
+                .clipShape(Circle())
+            Text(worker.name)
+                .font(.caption)
+                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                .lineLimit(1)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(Color.white.opacity(0.06))
+        .cornerRadius(14)
+    }
+
+    private func initials(from name: String) -> String {
+        let parts = name.split(separator: " ")
+        let first = parts.first?.prefix(1) ?? "?"
+        let last = parts.dropFirst().first?.prefix(1) ?? ""
+        return String(first + last)
     }
 }
 
@@ -1337,6 +1408,9 @@ struct AdminBuildingsContent: View {
     let dobActivePermits: Int
     let dsnyViolationsCount: Int
     let onMapToggle: () -> Void
+    let onHPD: () -> Void
+    let onDOB: () -> Void
+    let onDSNY: () -> Void
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -1360,35 +1434,35 @@ struct AdminBuildingsContent: View {
                 GridItem(.flexible()),
                 GridItem(.flexible())
             ], spacing: 8) {
-                AdminBuildingStatusTile(
+                Button(action: onMapToggle) { AdminBuildingStatusTile(
                     title: "Total",
                     count: buildings.count,
                     color: CyntientOpsDesign.DashboardColors.adminAccent
-                )
+                ) }.buttonStyle(.plain)
                 
-                AdminBuildingStatusTile(
+                Button(action: { onHPD() }) { AdminBuildingStatusTile(
                     title: "Issues",
                     count: portfolioMetrics.criticalIssues,
                     color: portfolioMetrics.criticalIssues > 0 ? CyntientOpsDesign.DashboardColors.critical : CyntientOpsDesign.DashboardColors.success
-                )
+                ) }.buttonStyle(.plain)
 
-                AdminBuildingStatusTile(
+                Button(action: { onDSNY() }) { AdminBuildingStatusTile(
                     title: "DSNY Open",
                     count: dsnyViolationsCount,
                     color: dsnyViolationsCount > 0 ? CyntientOpsDesign.DashboardColors.warning : CyntientOpsDesign.DashboardColors.success
-                )
+                ) }.buttonStyle(.plain)
 
-                AdminBuildingStatusTile(
+                Button(action: { onHPD() }) { AdminBuildingStatusTile(
                     title: "HPD Open",
                     count: hpdOpenCount,
                     color: hpdOpenCount > 0 ? CyntientOpsDesign.DashboardColors.warning : CyntientOpsDesign.DashboardColors.success
-                )
+                ) }.buttonStyle(.plain)
 
-                AdminBuildingStatusTile(
+                Button(action: { onDOB() }) { AdminBuildingStatusTile(
                     title: "DOB Active",
                     count: dobActivePermits,
                     color: dobActivePermits > 0 ? CyntientOpsDesign.DashboardColors.info : CyntientOpsDesign.DashboardColors.success
-                )
+                ) }.buttonStyle(.plain)
             }
         }
     }

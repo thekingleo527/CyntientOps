@@ -14,6 +14,8 @@ struct AdminDashboardHeader: View {
     let activeWorkers: Int
     let criticalAlerts: Int
     let syncStatus: CoreTypes.DashboardSyncStatus
+    let onProfileTap: () -> Void
+    let onNovaTap: () -> Void
     
     private var syncStatusColor: Color {
         switch syncStatus {
@@ -26,96 +28,44 @@ struct AdminDashboardHeader: View {
     }
     
     var body: some View {
-        HStack(spacing: 16) {
-            // Admin Info Section
-            HStack(spacing: 12) {
-                // CyntientOps Logo
-                ZStack {
-                    Circle()
-                        .stroke(
-                            LinearGradient(
-                                colors: [.blue, .cyan],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            ),
-                            lineWidth: 2
-                        )
-                        .frame(width: 44, height: 44)
-                    
-                    // Stylized "CO" for CyntientOps
-                    Text("CO")
-                        .font(.system(size: 18, weight: .bold, design: .rounded))
-                        .foregroundStyle(
-                            LinearGradient(
-                                colors: [.white, .gray.opacity(0.8)],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                        )
-                }
-                
-                // Admin Details
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(adminName)
-                        .font(.headline)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.white)
-                        .lineLimit(1)
-                    
-                    Text("Administrator")
-                        .font(.caption)
-                        .foregroundColor(.gray)
-                }
-            }
-            
+        HStack(spacing: 12) {
+            // Left: CyntientOps logo
+            CyntientOpsLogo(size: .compact)
+
             Spacer()
-            
-            // Key Metrics
-            HStack(spacing: 20) {
-                AdminHeaderMetric(
-                    icon: "building.2",
-                    value: "\(totalBuildings)",
-                    label: "Buildings",
-                    color: .blue
-                )
-                
-                AdminHeaderMetric(
-                    icon: "person.3",
-                    value: "\(activeWorkers)",
-                    label: "Active",
-                    color: .green
-                )
-                
-                if criticalAlerts > 0 {
-                    AdminHeaderMetric(
-                        icon: "exclamationmark.triangle.fill",
-                        value: "\(criticalAlerts)",
-                        label: "Alerts",
-                        color: .red
-                    )
-                }
-            }
-            
-            // System Status
-            VStack(alignment: .trailing, spacing: 2) {
-                HStack(spacing: 6) {
+
+            // Center: Nova avatar (persistent)
+            NovaAvatar(
+                size: .persistent,
+                isActive: false,
+                hasUrgentInsights: false,
+                isBusy: false,
+                onTap: onNovaTap,
+                onLongPress: { onNovaTap() }
+            )
+
+            Spacer()
+
+            // Right: Admin pill
+            Button(action: onProfileTap) {
+                HStack(spacing: 8) {
                     Circle()
-                        .fill(syncStatusColor)
-                        .frame(width: 8, height: 8)
-                    
-                    Text(syncStatus.rawValue.capitalized)
+                        .fill(Color.white.opacity(0.08))
+                        .frame(width: 32, height: 32)
+                        .overlay(Text(initials(from: adminName)).font(.caption).foregroundColor(.white))
+                    Image(systemName: "chevron.down")
                         .font(.caption)
-                        .fontWeight(.medium)
-                        .foregroundColor(syncStatusColor)
+                        .foregroundColor(.white.opacity(0.7))
                 }
-                
-                Text(Date().formatted(.dateTime.hour().minute()))
-                    .font(.caption2)
-                    .foregroundColor(.gray)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(Color.white.opacity(0.06))
+                .cornerRadius(16)
             }
+            .buttonStyle(.plain)
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 20)
+        .padding(.vertical, 12)
         .background(
             LinearGradient(
                 colors: [
@@ -135,29 +85,9 @@ struct AdminDashboardHeader: View {
     }
 }
 
-struct AdminHeaderMetric: View {
-    let icon: String
-    let value: String
-    let label: String
-    let color: Color
-    
-    var body: some View {
-        VStack(spacing: 4) {
-            HStack(spacing: 4) {
-                Image(systemName: icon)
-                    .font(.system(size: 12))
-                    .foregroundColor(color)
-                
-                Text(value)
-                    .font(.headline)
-                    .fontWeight(.bold)
-                    .foregroundColor(.white)
-            }
-            
-            Text(label)
-                .font(.caption2)
-                .foregroundColor(.gray)
-        }
-    }
+private func initials(from name: String) -> String {
+    let parts = name.split(separator: " ")
+    let first = parts.first?.prefix(1) ?? "A"
+    let last = parts.dropFirst().first?.prefix(1) ?? ""
+    return String(first + last)
 }
-

@@ -10,70 +10,45 @@ import SwiftUI
 
 struct ClientDashboardHeader: View {
     let clientName: String
-    let portfolioValue: Double
-    let activeBuildings: Int
-    let complianceScore: Int
     let onProfileTap: () -> Void
+    let onNovaTap: () -> Void
     
     var body: some View {
-        HStack(spacing: 16) {
-            // Client Info
-            HStack(spacing: 10) {
-                ZStack {
-                    Circle()
-                        .fill(Color.purple.opacity(0.2))
-                        .frame(width: 40, height: 40)
-                    
-                    Image(systemName: "person.circle.fill")
-                        .font(.system(size: 20))
-                        .foregroundColor(.purple)
-                }
-                
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(clientName)
-                        .font(.headline)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.white)
-                        .lineLimit(1)
-                    
-                    Text("Portfolio Owner")
-                        .font(.caption)
-                        .foregroundColor(.gray)
-                }
-            }
-            
+        HStack(spacing: 12) {
+            // Left: CyntientOps logo
+            CyntientOpsLogo(size: .compact)
+
             Spacer()
-            
-            // Key Metrics
-            HStack(spacing: 16) {
-                ClientHeaderMetric(
-                    icon: "building.2",
-                    value: "\(activeBuildings)",
-                    label: "Buildings",
-                    color: Color.blue
-                )
-                
-                ClientHeaderMetric(
-                    icon: "shield.checkered",
-                    value: "\(complianceScore)%",
-                    label: "Compliance",
-                    color: complianceScore >= 90 ? Color.green : Color.orange
-                )
-                
-                ClientHeaderMetric(
-                    icon: "dollarsign.circle",
-                    value: "$\(Int(portfolioValue/1000))K",
-                    label: "Budget",
-                    color: Color.cyan
-                )
-            }
-            
-            // Profile Button
+
+            // Center: Nova avatar
+            NovaAvatar(
+                size: .persistent,
+                isActive: false,
+                hasUrgentInsights: false,
+                isBusy: false,
+                onTap: onNovaTap,
+                onLongPress: { onNovaTap() }
+            )
+
+            Spacer()
+
+            // Right: Client pill
             Button(action: onProfileTap) {
-                Image(systemName: "gearshape")
-                    .font(.system(size: 18))
-                    .foregroundColor(.white)
+                HStack(spacing: 8) {
+                    Circle()
+                        .fill(Color.white.opacity(0.08))
+                        .frame(width: 32, height: 32)
+                        .overlay(Text(initials(from: clientName)).font(.caption).foregroundColor(.white))
+                    Image(systemName: "chevron.down")
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.7))
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(Color.white.opacity(0.06))
+                .cornerRadius(16)
             }
+            .buttonStyle(.plain)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 15)
@@ -87,11 +62,13 @@ struct ClientDashboardHeader: View {
                 endPoint: .trailing
             )
         )
-        .overlay(
-            Rectangle()
-                .frame(height: 0.5)
-                .foregroundColor(.white.opacity(0.1)),
-            alignment: .bottom
-        )
+        .overlay(Rectangle().frame(height: 0.5).foregroundColor(.white.opacity(0.1)), alignment: .bottom)
     }
+}
+
+private func initials(from name: String) -> String {
+    let parts = name.split(separator: " ")
+    let first = parts.first?.prefix(1) ?? "C"
+    let last = parts.dropFirst().first?.prefix(1) ?? ""
+    return String(first + last)
 }

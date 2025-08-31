@@ -124,7 +124,7 @@ struct WorkerSimpleHeader: View {
                 .overlay(
                     Rectangle()
                         .frame(height: 0.5)
-                        .foregroundColor(CyntientOpsDesign.DashboardColors.borderColor.opacity(0.3)),
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.borderSubtle.opacity(0.3)),
                     alignment: .bottom
                 )
         )
@@ -161,8 +161,9 @@ struct WorkerSimpleHeader: View {
     
     private func timeWorked(from startTime: Date) -> String {
         let duration = Date().timeIntervalSince(startTime)
-        let hours = Int(duration) / 3600
-        let minutes = Int(duration % 3600) / 60
+        let seconds = Int(duration)
+        let hours = seconds / 3600
+        let minutes = (seconds % 3600) / 60
         
         if hours > 0 {
             return "\(hours)h \(minutes)m"
@@ -222,4 +223,3 @@ struct CyntientOpsLogo: View {
         }
     }
 }
-

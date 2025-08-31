@@ -155,10 +155,8 @@ struct ClientDashboardView: View {
                 // Header (role-specific)
                 ClientDashboardHeader(
                     clientName: getClientName(),
-                    portfolioValue: viewModel.portfolioMarketValue > 0 ? viewModel.portfolioMarketValue : viewModel.portfolioAssessedValue,
-                    activeBuildings: viewModel.buildingsList.count,
-                    complianceScore: Int(viewModel.complianceOverview.overallScore * 100),
-                    onProfileTap: { sheet = .profile }
+                    onProfileTap: { sheet = .profile },
+                    onNovaTap: { sheet = .chat }
                 )
                 .zIndex(100)
                 

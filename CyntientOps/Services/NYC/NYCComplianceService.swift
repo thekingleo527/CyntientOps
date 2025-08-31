@@ -76,7 +76,7 @@ public final class NYCComplianceService: ObservableObject {
         let bin = extractBIN(from: building)
         let bbl = extractBBL(from: building)
         
-        let buildingCompliance = await nycAPI.fetchBuildingCompliance(bin: bin, bbl: bbl)
+        let buildingCompliance = await nycAPI.fetchBuildingCompliance(bin: bin, bbl: bbl, address: building.address)
         
         // Convert to our format
         let nycCompliance = NYCBuildingCompliance(

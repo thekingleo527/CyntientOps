@@ -88,6 +88,13 @@ public final class GRDBManager {
             // Ensure base schema exists
             try dbPool.write { db in
                 try self.createTables(db)
+                try self.applySchemaRepairMigration(db)
+            }
+            // Bump user_version for tracking
+            try dbPool.write { db in
+                try db.execute(sql: "PRAGMA user_version = 120")
+                let uv = try Int.fetchOne(db, sql: "PRAGMA user_version") ?? -1
+                print("🔢 PRAGMA user_version = \(uv)")
             }
         }
 
@@ -137,13 +144,29 @@ public final class GRDBManager {
                     var config = Configuration()
                     config.readonly = false
                     dbPool = try DatabasePool(path: dbPath, configuration: config)
-                    try dbPool.write { db in try self.createTables(db) }
+                    try dbPool.write { db in
+                        try self.createTables(db)
+                        try self.applySchemaRepairMigration(db)
+                    }
+                    try dbPool.write { db in
+                        try db.execute(sql: "PRAGMA user_version = 120")
+                        let uv = try Int.fetchOne(db, sql: "PRAGMA user_version") ?? -1
+                        print("🔢 PRAGMA user_version = \(uv)")
+                    }
                     print("✅ Database recovery (simple) successful")
                 } catch let recoveryError {
                     print("❌ Database recovery (simple) failed: \(recoveryError)")
                     do {
                         dbPool = try DatabasePool(path: ":memory:")
-                        try dbPool.write { db in try self.createTables(db) }
+                        try dbPool.write { db in
+                            try self.createTables(db)
+                            try self.applySchemaRepairMigration(db)
+                        }
+                        try dbPool.write { db in
+                            try db.execute(sql: "PRAGMA user_version = 120")
+                            let uv = try Int.fetchOne(db, sql: "PRAGMA user_version") ?? -1
+                            print("🔢 PRAGMA user_version = \(uv)")
+                        }
                         print("⚠️ Using in-memory database - non-persistent")
                     } catch {
                         print("💥 Fatal: Unable to create in-memory database: \(error)")
@@ -467,9 +490,19 @@ public final class GRDBManager {
             )
         """)
 
-        // Columns added in v9: space_id and media_type (image/video)
-        do { try db.execute(sql: "ALTER TABLE photos ADD COLUMN space_id TEXT") } catch { /* ignore if exists */ }
-        do { try db.execute(sql: "ALTER TABLE photos ADD COLUMN media_type TEXT DEFAULT 'image'") } catch { /* ignore if exists */ }
+        // Columns added in v9: space_id and media_type (image/video) — idempotent
+        do {
+            let photoCols = try db.columns(in: "photos")
+            let have = { (name: String) in photoCols.contains { $0.name == name } }
+            if !have("space_id") {
+                try db.execute(sql: "ALTER TABLE photos ADD COLUMN space_id TEXT")
+            }
+            if !have("media_type") {
+                try db.execute(sql: "ALTER TABLE photos ADD COLUMN media_type TEXT DEFAULT 'image'")
+            }
+        } catch {
+            print("⚠️ Could not ensure photos extra columns: \(error)")
+        }
 
         // Indices for new columns
         try db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_photos_space ON photos(space_id)")
@@ -1513,6 +1546,95 @@ public final class GRDBManager {
         } catch {
             print("Failed to get database stats: \(error)")
             return DatabaseStats(workers: 0, buildings: 0, tasks: 0, isHealthy: false)
+        }
+    }
+}
+
+// MARK: - Targeted Schema Repair Migration (v120)
+
+extension GRDBManager {
+    fileprivate func applySchemaRepairMigration(_ db: Database) throws {
+        func tableExists(_ name: String) throws -> Bool {
+            try !Row.fetchAll(db, sql: "SELECT name FROM sqlite_master WHERE type='table' AND name=?", arguments: [name]).isEmpty
+        }
+        func columnExists(_ table: String, _ name: String) throws -> Bool {
+            let cols = try db.columns(in: table)
+            return cols.contains { $0.name == name }
+        }
+
+        // 1) photos: add space_id, media_type if missing
+        if try tableExists("photos") {
+            if try !columnExists("photos", "space_id") {
+                try db.execute(sql: "ALTER TABLE photos ADD COLUMN space_id TEXT")
+            }
+            if try !columnExists("photos", "media_type") {
+                try db.execute(sql: "ALTER TABLE photos ADD COLUMN media_type TEXT DEFAULT 'image'")
+            }
+        }
+
+        // 2) workers: add assignedBuildingIds (JSON string) if missing
+        if try tableExists("workers"), try !columnExists("workers", "assignedBuildingIds") {
+            try db.execute(sql: "ALTER TABLE workers ADD COLUMN assignedBuildingIds TEXT")
+        }
+
+        // 3) task_templates (needed for JOIN tt.estimated_duration …)
+        if try !tableExists("task_templates") {
+            try db.execute(sql: """
+                CREATE TABLE task_templates (
+                    id TEXT PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    estimated_duration INTEGER DEFAULT 3600,
+                    required_tools TEXT DEFAULT '',
+                    safety_notes TEXT DEFAULT ''
+                )
+            """)
+        } else {
+            if try !columnExists("task_templates", "estimated_duration") {
+                try db.execute(sql: "ALTER TABLE task_templates ADD COLUMN estimated_duration INTEGER DEFAULT 3600")
+            }
+            if try !columnExists("task_templates", "required_tools") {
+                try db.execute(sql: "ALTER TABLE task_templates ADD COLUMN required_tools TEXT DEFAULT ''")
+            }
+            if try !columnExists("task_templates", "safety_notes") {
+                try db.execute(sql: "ALTER TABLE task_templates ADD COLUMN safety_notes TEXT DEFAULT ''")
+            }
+        }
+
+        // 4) inventory table expected by some queries
+        if try !tableExists("inventory") {
+            try db.execute(sql: """
+                CREATE TABLE inventory (
+                    id TEXT PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    category TEXT,
+                    quantity INTEGER DEFAULT 0,
+                    minStock INTEGER DEFAULT 0,
+                    unitCost REAL DEFAULT 0,
+                    location TEXT,
+                    buildingId TEXT NOT NULL REFERENCES buildings(id) ON DELETE CASCADE
+                )
+            """)
+        }
+
+        // 5) clients and mapping
+        if try !tableExists("clients") {
+            try db.execute(sql: """
+                CREATE TABLE clients (
+                    id TEXT PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    contact_email TEXT,
+                    contact_phone TEXT
+                )
+            """)
+        }
+        if try !tableExists("client_buildings") {
+            try db.execute(sql: """
+                CREATE TABLE client_buildings (
+                    client_id TEXT NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+                    building_id TEXT NOT NULL REFERENCES buildings(id) ON DELETE CASCADE,
+                    PRIMARY KEY (client_id, building_id)
+                )
+            """)
         }
     }
 }

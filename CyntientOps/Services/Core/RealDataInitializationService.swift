@@ -192,6 +192,9 @@ public final class RealDataInitializationService: ObservableObject {
             
             if isConnected {
                 print("   ✅ NYC API connectivity verified")
+                // Perform full sync immediately to populate real-world data
+                await serviceContainer.nycIntegration.performFullSync()
+                print("   ✅ NYC API full compliance sync completed")
             } else {
                 print("   ⚠️ NYC API connectivity issues - will use generated data")
             }

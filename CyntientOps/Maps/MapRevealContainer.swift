@@ -103,9 +103,9 @@ struct MapRevealContainer<Content: View>: View {
             
             // Main content overlay
             content()
-                // When revealed, slide content up to expose the map underneath
-                .offset(y: (isRevealed ? -UIScreen.main.bounds.height * 0.35 : 0) + dragOffset)
-                .opacity(isRevealed ? 0.85 : 1.0)
+                // When revealed, move content fully off-screen for true fullscreen map
+                .offset(y: (isRevealed ? -UIScreen.main.bounds.height : 0) + dragOffset)
+                .opacity(isRevealed ? 0.0 : 1.0)
                 .safeAreaInset(edge: .bottom) {
                     if isRevealed {
                         Color.clear

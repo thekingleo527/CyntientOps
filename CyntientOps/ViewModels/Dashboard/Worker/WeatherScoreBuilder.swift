@@ -130,16 +130,20 @@ public enum WeatherScoreBuilder {
 
 public struct TaskRowVM: Identifiable {
     public let id = UUID()
+    public let taskId: String
+    public let task: CoreTypes.ContextualTask
     public let title: String
     public let time: String
     public let building: String
     public let chip: WeatherChip?
     public let advice: String?
-    
+
     public init(scored: ScoredTask) {
+        self.task = scored.task
+        self.taskId = scored.task.id
         self.title = scored.task.title
         self.time = scored.task.dueDate?.formatted(date: .omitted, time: .shortened) ?? "No time"
-        self.building = "Building" // TODO: Extract from task context
+        self.building = scored.task.buildingName ?? "Building"
         self.chip = scored.chip
         self.advice = scored.advice
     }

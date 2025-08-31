@@ -124,6 +124,16 @@ public class LanguageManager: ObservableObject {
         UserDefaults.standard.set(newLanguage, forKey: "user_current_language_\(authManager.currentUser?.id ?? "")")
     }
     
+    /// Set language explicitly (used by admin/client profile toggles)
+    public func setLanguage(code: String) {
+        let normalized = (code == "es") ? "es" : "en"
+        currentLanguage = normalized
+        // Persist user override if authenticated
+        if let uid = authManager.currentUser?.id {
+            UserDefaults.standard.set(normalized, forKey: "user_current_language_\(uid)")
+        }
+    }
+    
     /// Reset to English (used on logout or initialization)
     private func resetToEnglish() {
         currentLanguage = "en"

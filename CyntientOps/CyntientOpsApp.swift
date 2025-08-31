@@ -32,6 +32,10 @@ struct CyntientOpsApp: App {
     @StateObject private var contextEngine = WorkerContextEngine.shared
     private let locationManager = LocationManager.shared
     @StateObject private var languageManager = LanguageManager.shared
+#if DEBUG
+    // Developer toggle (unused now but kept for future): start on LoginView
+    @AppStorage("devAlwaysShowLogin") private var devAlwaysShowLogin: Bool = false
+#endif
     
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     @State private var showingSplash = true
@@ -67,6 +71,8 @@ struct CyntientOpsApp: App {
     var body: some Scene {
         WindowGroup {
             ZStack {
+                // Determine if we should show authenticated content
+                let shouldShowAuthenticated: Bool = authManager.isAuthenticated
                 // The main app flow is determined by a series of state checks,
                 // ensuring the correct view is shown at each stage of the launch sequence.
                 if showingSplash {
@@ -101,7 +107,7 @@ struct CyntientOpsApp: App {
                     })
                     .environmentObject(languageManager) // Always English for onboarding
                     .transition(.opacity)
-                } else if authManager.isAuthenticated {
+                } else if shouldShowAuthenticated {
                     // Step 4: If the user is authenticated, show the main app content.
                     if let container = serviceContainer {
                         ContentView()
@@ -133,12 +139,11 @@ struct CyntientOpsApp: App {
                 } else {
                     // Step 5: Ensure data is properly initialized before showing login
                     if dbInitializer.isInitialized {
-                        // Data ready - show login (always English)
+                        // Data ready - show login (with developer board accessible from dropdown)
                         LoginView()
                             .environmentObject(authManager)
-                            .environmentObject(languageManager) // Always English for login
+                            .environmentObject(languageManager)
                             .transition(.opacity)
-                            // PRODUCTION: No debug toolbar in field deployment
                     } else {
                         // Data not ready - show initialization
                         VStack(spacing: 12) {

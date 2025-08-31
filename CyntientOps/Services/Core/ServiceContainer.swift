@@ -30,7 +30,7 @@ public actor DBHealthService {
     public init(database: GRDBManager) { self.db = database }
     public func logSummary() async {
         do {
-            let workers = try await db.query("SELECT COUNT(*) AS c FROM workers WHERE isActive = 1")
+            let workers = try await db.query("SELECT COUNT(*) AS c FROM workers WHERE isActive = 1 AND role = 'worker'")
             let buildings = try await db.query("SELECT COUNT(*) AS c FROM buildings")
             let tasks = try await db.query("SELECT COUNT(*) AS c FROM routine_tasks")
             let w = Int((workers.first?["c"] as? Int64) ?? 0)

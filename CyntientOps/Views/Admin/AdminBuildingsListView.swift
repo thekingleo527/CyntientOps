@@ -118,6 +118,7 @@ struct AdminBuildingListItem: View {
     let building: CoreTypes.NamedCoordinate
     let metrics: CoreTypes.BuildingMetrics?
     let onTap: () -> Void
+    @State private var isDragging = false
     
     var buildingImageAssetName: String? {
         if let mapped = BuildingAssets.assetName(for: building.id) {
@@ -133,7 +134,10 @@ struct AdminBuildingListItem: View {
     }
     
     var body: some View {
-        Button(action: onTap) {
+        // Custom tap handling to avoid accidental selection during fast scrolls
+        Button(action: {
+            if !isDragging { onTap() }
+        }) {
             HStack(spacing: 16) {
                 // Building Image
                 ZStack {
@@ -236,6 +240,14 @@ struct AdminBuildingListItem: View {
             )
         }
         .buttonStyle(PlainButtonStyle())
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 8)
+                .onChanged { _ in isDragging = true }
+                .onEnded { _ in
+                    // Defer reset to next runloop so a tap after a drag won't trigger
+                    DispatchQueue.main.async { isDragging = false }
+                }
+        )
     }
     
     private var statusColor: Color {

@@ -78,11 +78,9 @@ struct WorkerDashboardMainView: View {
                 VStack(spacing: 16) {
                     // Hero: Now / Next cards
                     WorkerHeroNowNext(viewModel: viewModel) { tapped in
-                        // Find underlying task by id and open details if available
-                        if let task = viewModel.todaysTasks.first(where: { $0.id == tapped.id }) {
-                            selectedTask = task
-                            showingTaskDetail = true
-                        }
+                        // Open details for the underlying contextual task
+                        selectedTask = tapped.task
+                        showingTaskDetail = true
                     }
                         .padding(.horizontal)
                     HStack {
@@ -142,14 +140,11 @@ struct WorkerDashboardMainView: View {
                 }
 
                 if !viewModel.upcoming.isEmpty {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Upcoming Tasks")
-                            .font(.headline)
-                            .foregroundColor(.white)
-                            .padding(.horizontal)
-                        UpcomingTaskListView(rows: viewModel.upcoming)
-                            .padding(.horizontal)
+                    UpcomingTaskListView(rows: viewModel.upcoming) { tapped in
+                        selectedTask = tapped.task
+                        showingTaskDetail = true
                     }
+                    .padding(.horizontal)
                 }
 
                 // Broadcast strip (thin, urgent-first)

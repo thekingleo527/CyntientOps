@@ -309,6 +309,8 @@ struct LoginView: View {
                                 }
                             }
                             .padding(.top, 8)
+
+                            
                             
                             // Forgot password link
                             Button(action: {
@@ -342,6 +344,25 @@ struct LoginView: View {
                 }
             }
         }
+#if DEBUG
+        .overlay(alignment: .topTrailing) {
+            Menu {
+                Button {
+                    showingDeveloperSheet = true
+                } label: {
+                    Label("Developer Login", systemImage: "person.fill.badge.plus")
+                }
+            } label: {
+                Image(systemName: "chevron.down.circle.fill")
+                    .font(.title3)
+                    .foregroundColor(.white.opacity(0.85))
+                    .padding()
+            }
+        }
+        .sheet(isPresented: $showingDeveloperSheet) {
+            NavigationView { DeveloperLoginBoard() }
+        }
+#endif
     }
     
     // MARK: - Helper Methods
@@ -459,6 +480,8 @@ struct LoginView: View {
         }
     }
 }
+
+ 
 
 // MARK: - Simple Logo Component
 
