@@ -362,12 +362,14 @@ public class BuildingDetailViewModel: ObservableObject {
     // Raw NYC API compliance data for building detail cards
     @Published var rawHPDViolations: [HPDViolation] = []
     @Published var rawDOBPermits: [DOBPermit] = []
-    @Published var rawDSNYSchedule: [DSNYRoute] = []
+    @Published var rawDSNYSchedule: [DSNY.DSNYRoute] = []
     @Published var rawDSNYViolations: [DSNYViolation] = []
     @Published var recentDSNYTickets: [ComplianceHistoryService.DSNYTicket] = []
     @Published var rawLL97Data: [LL97Emission] = []
     @Published var facadeFilings: [FacadeFiling] = []
     @Published var facadeNextDueDate: Date? = nil
+    @Published var nextDSNYSetOutText: String?
+    @Published var nextDSNYPickupText: String?
     
     // Activity
     @Published var recentActivities: [BDBuildingDetailActivity] = []
@@ -1041,7 +1043,7 @@ public class BuildingDetailViewModel: ObservableObject {
             let dobPermits = complianceService.getDOBPermits(for: buildingId)
             let dsnyViolations = complianceService.getDSNYViolations(for: buildingId)
             // Prefer location-based DSNY schedule via DSNYAPIService for accuracy
-            var dsnySchedule: [DSNYRoute] = []
+            var dsnySchedule: [DSNY.DSNYRoute] = []
             do {
                 let building = CoreTypes.NamedCoordinate(
                     id: buildingId,
@@ -1051,10 +1053,35 @@ public class BuildingDetailViewModel: ObservableObject {
                     longitude: coordinate.longitude
                 )
                 let schedule = try await DSNYAPIService.shared.getSchedule(for: building)
-                dsnySchedule = DSNYRoute.fromBuildingSchedule(schedule)
+                dsnySchedule = DSNY.DSNYRoute.fromBuildingSchedule(schedule)
+                // Compute next set-out and pickup times for refuse collection
+                if let nextRefuse = schedule.nextCollectionDate(for: .refuse) {
+                    let setOutTime = schedule.complianceWindows[.refuse]?.setOutTime ?? "8 PM"
+                    let pickupTime = schedule.complianceWindows[.refuse]?.pickupTime ?? "6 AM"
+                    let df = DateFormatter(); df.dateFormat = "EEE M/d"
+                    let dayStr = Calendar.current.isDateInToday(nextRefuse) ? "Today" : df.string(from: nextRefuse)
+                    self.nextDSNYPickupText = "\(dayStr) \(pickupTime)"
+                    // Set-out is evening before
+                    if let setOutDate = Calendar.current.date(byAdding: .day, value: -1, to: nextRefuse) {
+                        let setOutDay = Calendar.current.isDateInToday(setOutDate) ? "Today" : df.string(from: setOutDate)
+                        self.nextDSNYSetOutText = "\(setOutDay) \(setOutTime)"
+                    } else {
+                        self.nextDSNYSetOutText = "\(dayStr) \(setOutTime)"
+                    }
+                }
             } catch {
                 // Fall back to compliance service schedule if available
-                dsnySchedule = complianceService.getDSNYSchedule(for: buildingId)
+                let fallback = complianceService.getDSNYSchedule(for: buildingId)
+                // Map NYCDataModels.DSNYRoute -> DSNY.DSNYRoute best-effort
+                dsnySchedule = fallback.map { route in
+                    DSNY.DSNYRoute(
+                        id: UUID().uuidString,
+                        dayOfWeek: route.dayOfWeek,
+                        time: route.time,
+                        serviceType: route.serviceType,
+                        isToday: route.isToday
+                    )
+                }
             }
             let ll97Data = complianceService.getLL97Emissions(for: buildingId)
             let facadeHistory = await complianceService.getFacadeHistory(buildingId: buildingId)

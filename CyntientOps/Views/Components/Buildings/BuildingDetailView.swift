@@ -4401,11 +4401,21 @@ class BuildingDetailVM: ObservableObject {
                         }
                     }
                     
-                    ComplianceRow(
-                        title: "Set-Out Schedule",
-                        status: .compliant,
-                        nextAction: "Next set-out: Today 8:00 PM"
-                    )
+                    // Next set-out and pickup based on DSNY schedule
+                    if let setOut = viewModel.nextDSNYSetOutText {
+                        ComplianceRow(
+                            title: "Next Set-Out",
+                            status: .compliant,
+                            nextAction: setOut
+                        )
+                    }
+                    if let pickup = viewModel.nextDSNYPickupText {
+                        ComplianceRow(
+                            title: "Next Pickup",
+                            status: .compliant,
+                            nextAction: pickup
+                        )
+                    }
                 }
             }
             .padding()
