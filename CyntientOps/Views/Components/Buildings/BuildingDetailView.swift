@@ -4135,6 +4135,9 @@ class BuildingDetailVM: ObservableObject {
         
         var body: some View {
             VStack(spacing: 20) {
+                // Collection mode context
+                sanitationModeCard
+                    .animatedGlassAppear(delay: 0.05)
                 // DSNY Schedule overview
                 dsnyScheduleCard
                     .animatedGlassAppear(delay: 0.1)
@@ -4155,8 +4158,36 @@ class BuildingDetailVM: ObservableObject {
                 // Compliance status
                 sanitationComplianceCard
                     .animatedGlassAppear(delay: 0.3)
+                
+                // Monthly trend if available
+                if let agg = NYCHistoricalDataService.shared.getMonthlyAggregates(for: buildingId) {
+                    monthlyTrendCard(agg: agg)
+                        .animatedGlassAppear(delay: 0.35)
+                }
             }
             .padding()
+        }
+
+        private var sanitationModeCard: some View {
+            let requiresBins = BuildingUnitValidator.requiresIndividualBins(buildingId: buildingId)
+            let requiresEmpire = BuildingUnitValidator.requiresEmpireContainers(buildingId: buildingId)
+            let canChoose = BuildingUnitValidator.canChooseContainerType(buildingId: buildingId)
+            let mode: String = {
+                if requiresEmpire { return "Empire container required (31+ units)" }
+                if requiresBins { return "Individual bins (≤9 units)" }
+                if canChoose { return "Bins or Empire container (10–30 units)" }
+                return "Black-bag collection"
+            }()
+            return VStack(alignment: .leading, spacing: 12) {
+                Label("Collection Mode", systemImage: "info.circle.fill")
+                    .font(.headline)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                Text(mode)
+                    .font(.subheadline)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+            }
+            .padding()
+            .cyntientOpsDarkCardBackground()
         }
         
         private var dsnyScheduleCard: some View {
@@ -4210,6 +4241,36 @@ class BuildingDetailVM: ObservableObject {
                                     isToday: !routine.isCompleted
                                 )
                             }
+                        }
+                    }
+                }
+            }
+            .padding()
+            .cyntientOpsDarkCardBackground()
+        }
+
+        private func monthlyTrendCard(agg: MonthlyAggregates) -> some View {
+            VStack(alignment: .leading, spacing: 12) {
+                Label("Monthly Trend (last 6)", systemImage: "chart.bar.fill")
+                    .font(.headline)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                let months = Array(agg.months.suffix(6))
+                ForEach(months, id: \.self) { m in
+                    HStack {
+                        Text(m)
+                            .font(.caption)
+                            .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                        Spacer()
+                        HStack(spacing: 16) {
+                            Text("HPD: \(agg.hpdViolations[m] ?? 0)")
+                                .font(.caption2)
+                                .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+                            Text("DSNY: \(agg.dsnyViolations[m] ?? 0)")
+                                .font(.caption2)
+                                .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+                            Text("311: \(agg.complaints311[m] ?? 0)")
+                                .font(.caption2)
+                                .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
                         }
                     }
                 }

@@ -21,11 +21,10 @@ public class DSNYAPIService: ObservableObject {
     
     // API Token (optional but recommended for higher rate limits)
     private var apiToken: String? {
-        // Prefer Keychain/ProductionCredentialsManager
-        if let kc = ProductionCredentialsManager.shared.retrieveCredential(key: "DSNY_API_TOKEN"), !kc.isEmpty { return kc }
-        // Accept general NYC app token env var as well
+        if let keys = try? KeychainManager.shared.getNYCAPIKeys(), !keys.dsnyAPIKey.isEmpty { return keys.dsnyAPIKey }
+        if let kc = try? KeychainManager.shared.getString(for: "DSNY_API_TOKEN"), !kc.isEmpty { return kc }
+        if let soda = try? KeychainManager.shared.getString(for: "NYC_APP_TOKEN"), !soda.isEmpty { return soda }
         if let env = ProcessInfo.processInfo.environment["NYC_APP_TOKEN"], !env.isEmpty { return env }
-        // Fallback to DSNY-specific env var
         return ProcessInfo.processInfo.environment["DSNY_API_TOKEN"]
     }
     

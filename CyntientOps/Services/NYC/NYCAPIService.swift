@@ -427,13 +427,17 @@ public final class NYCAPIService: ObservableObject {
 
     // Fetch app token from credentials or env
     private func appToken() -> String? {
-        // Prefer Keychain via ProductionCredentialsManager
-        if let kc = ProductionCredentialsManager.shared.retrieveCredential(key: "DSNY_API_TOKEN"), !kc.isEmpty {
-            return kc
+        // 1) Try structured NYCAPIKeys from Keychain
+        if let keys = try? keychainManager.getNYCAPIKeys(), !keys.dsnyAPIKey.isEmpty {
+            return keys.dsnyAPIKey
         }
-        // Fallback to process env
+        // 2) Try direct Keychain string entries
+        if let dsny = try? keychainManager.getString(for: "DSNY_API_TOKEN"), !dsny.isEmpty { return dsny }
+        if let soda = try? keychainManager.getString(for: "NYC_APP_TOKEN"), !soda.isEmpty { return soda }
+        // 3) Try environment variables
         if let env = ProcessInfo.processInfo.environment["NYC_APP_TOKEN"], !env.isEmpty { return env }
-        // Final fallback to compiled token if present
+        if let env2 = ProcessInfo.processInfo.environment["DSNY_API_TOKEN"], !env2.isEmpty { return env2 }
+        // 4) Final fallback (dev)
         return "dbO8NmN2pMcmSQO7w56rTaFax"
     }
     
