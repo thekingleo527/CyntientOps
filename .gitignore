@@ -117,3 +117,13 @@ integration_test_report_*.txt
 service_reference_fix.sh
 cleanup_redundant_files.sh
 integration_test.sh
+build/
+DerivedData/
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+*.db
+*.db-wal
+*.db-shm
+cyntientops.bundle.lock
+.DS_Store
