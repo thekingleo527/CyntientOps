@@ -676,19 +676,14 @@ public class BuildingDetailViewModel: ObservableObject {
     
     private func loadRoutines() async {
         do {
-            // First load today's specific tasks
+            // First load today's specific tasks (use correct camelCase columns)
             let taskData = try await container.database.query("""
-                SELECT t.*, w.name as worker_name,
-                       tt.name as template_name,
-                       tt.estimated_duration,
-                       tt.required_tools,
-                       tt.safety_notes
+                SELECT t.*, w.name as worker_name
                 FROM tasks t
-                LEFT JOIN workers w ON t.assignee_id = w.id
-                LEFT JOIN task_templates tt ON t.template_id = tt.id
-                WHERE t.building_id = ? 
-                  AND DATE(t.scheduled_date) = DATE('now')
-                ORDER BY t.scheduled_date ASC
+                LEFT JOIN workers w ON t.workerId = w.id
+                WHERE t.buildingId = ? 
+                  AND DATE(t.scheduledDate) = DATE('now')
+                ORDER BY t.scheduledDate ASC
             """, [buildingId])
             
             // Then load recurring routine schedules for this building
@@ -700,32 +695,30 @@ public class BuildingDetailViewModel: ObservableObject {
                 ORDER BY rs.name ASC
             """, [buildingId])
             
-            // Load DSNY schedules for this building
-            let dsnyData = try await container.database.query("""
-                SELECT ds.* FROM dsny_schedules ds
-                WHERE ds.building_ids LIKE '%' || ? || '%'
-            """, [buildingId])
+            // DSNY schedules handled by DSNYAPIService in loadComplianceStatus
+            let dsnyData: [[String: Any]] = []
             
             await MainActor.run {
                 var allRoutines: [BDDailyRoutine] = []
                 
                 // Add today's specific tasks
                 let todayTasks = taskData.map { task in
-                    let requiredTools = (task["required_tools"] as? String)?.components(separatedBy: ",") ?? []
-                    
+                    let scheduledTimeStr: String? = {
+                        if let scheduledDate = task["scheduledDate"] as? String {
+                            let formatter = ISO8601DateFormatter()
+                            if let date = formatter.date(from: scheduledDate) {
+                                return date.formatted(date: .omitted, time: .shortened)
+                            }
+                        }
+                        return nil
+                    }()
                     return BDDailyRoutine(
                         id: task["id"] as? String ?? UUID().uuidString,
-                        title: task["title"] as? String ?? task["template_name"] as? String ?? "Routine Task",
-                        scheduledTime: {
-                            if let scheduledDate = task["scheduled_date"] as? String {
-                                let formatter = ISO8601DateFormatter()
-                                return formatter.date(from: scheduledDate)?.formatted(date: .omitted, time: .shortened)
-                            }
-                            return nil
-                        }(),
-                        isCompleted: (task["status"] as? String) == "completed",
+                        title: task["title"] as? String ?? "Routine Task",
+                        scheduledTime: scheduledTimeStr,
+                        isCompleted: (task["isCompleted"] as? Int64 ?? 0) == 1,
                         assignedWorker: task["worker_name"] as? String ?? "Unassigned",
-                        requiredInventory: requiredTools
+                        requiredInventory: []
                     )
                 }
                 allRoutines.append(contentsOf: todayTasks)
