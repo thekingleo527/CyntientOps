@@ -216,7 +216,7 @@ public struct AdminDashboardView: View {
             isPortfolioMapRevealed.toggle()
         }
     }
-    
+
     // MARK: - Helper Methods
     private func getAdminName() -> String {
         return "System Administrator"
@@ -244,7 +244,16 @@ public struct AdminDashboardView: View {
             return !worker.isClockedIn && worker.isActive // Workers who should be working
         }.count
     }
-    
+
+    // MARK: - Symbol Fallback Utility (static so nested views can call)
+    static func safeSystemSymbol(_ name: String, fallback: String) -> String {
+#if canImport(UIKit)
+        return UIImage(systemName: name) != nil ? name : fallback
+#else
+        return name
+#endif
+    }
+
 // MARK: - Admin Metric Components (mirroring client)
 
 struct AdminMetricTile: View {
@@ -340,7 +349,7 @@ struct AdminUrgentItemsSection: View {
                 
                 if workersNeedingAttention > 0 {
                     AdminUrgentItem(
-                        icon: coSafeSystemSymbol("person.badge.exclamationmark", fallback: "person.fill.questionmark"),
+                        icon: AdminDashboardView.safeSystemSymbol("person.badge.exclamationmark", fallback: "person.fill.questionmark"),
                         title: "Workers Need Attention",
                         count: workersNeedingAttention,
                         color: CyntientOpsDesign.DashboardColors.warning,
@@ -354,14 +363,7 @@ struct AdminUrgentItemsSection: View {
     }
 }
 
-// MARK: - Symbol Fallback Utility
-private func coSafeSystemSymbol(_ name: String, fallback: String) -> String {
-#if canImport(UIKit)
-    return UIImage(systemName: name) != nil ? name : fallback
-#else
-    return name
-#endif
-}
+// (removed file-scope fallback; using static helper on AdminDashboardView)
 
 struct AdminUrgentItem: View {
     let icon: String
