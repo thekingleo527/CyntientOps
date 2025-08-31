@@ -23,11 +23,11 @@ public actor WorkerService {
     
     // MARK: - Public API Methods
     
-    /// Get all active workers - throws if none found
+    /// Get all active workers (role=worker) - throws if none found
     func getAllActiveWorkers() async throws -> [CoreTypes.WorkerProfile] {
         let rows = try await grdbManager.query("""
             SELECT * FROM workers 
-            WHERE isActive = 1 
+            WHERE isActive = 1 AND role = 'worker'
             ORDER BY name
         """)
         

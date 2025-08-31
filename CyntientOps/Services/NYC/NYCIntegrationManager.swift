@@ -186,50 +186,53 @@ public final class NYCIntegrationManager: ObservableObject {
             )
         """
         
-        // NOTE: compliance_issues table already exists in GRDBManager with different schema
-        // We'll work with the existing schema: buildingId (camelCase), no source column
-        // Add missing columns to existing table if they don't exist
-        let alterTableQueries = [
-            "ALTER TABLE compliance_issues ADD COLUMN source TEXT",
-            "ALTER TABLE compliance_issues ADD COLUMN external_id TEXT",
-            "ALTER TABLE compliance_issues ADD COLUMN notes TEXT",
-            "ALTER TABLE compliance_issues ADD COLUMN reported_date REAL",
-            "ALTER TABLE compliance_issues ADD COLUMN resolved_date REAL"
-        ]
-        
-        // Add compliance score column to buildings if it doesn't exist
-        let addComplianceScore = """
-            ALTER TABLE buildings 
-            ADD COLUMN compliance_score REAL DEFAULT 1.0
-        """
-        
-        let addLastComplianceUpdate = """
-            ALTER TABLE buildings 
-            ADD COLUMN last_compliance_update REAL
-        """
-        
         // Execute schema updates
         try await database.execute(createCacheTable)
-        
-        // Add missing columns (may fail if already exist - that's okay)
-        for alterQuery in alterTableQueries {
-            try? await database.execute(alterQuery)
+
+        // Introspect compliance_issues schema to avoid duplicate/invalid migrations
+        let ciInfo = try await database.query("PRAGMA table_info(compliance_issues)")
+        let ciColumns: Set<String> = Set(ciInfo.compactMap { $0["name"] as? String })
+
+        // Add missing optional columns if not present
+        if !ciColumns.contains("source") {
+            try? await database.execute("ALTER TABLE compliance_issues ADD COLUMN source TEXT")
         }
-        
-        // These may fail if columns already exist - that's okay
-        try? await database.execute(addComplianceScore)
-        try? await database.execute(addLastComplianceUpdate)
-        
-        // Create indexes for performance using existing column names
-        let createIndexes = [
-            "CREATE INDEX IF NOT EXISTS idx_compliance_building ON compliance_issues(buildingId)",
-            "CREATE INDEX IF NOT EXISTS idx_compliance_severity ON compliance_issues(severity)",
-            "CREATE INDEX IF NOT EXISTS idx_compliance_status ON compliance_issues(status)",
-            "CREATE INDEX IF NOT EXISTS idx_compliance_source ON compliance_issues(source)"
-        ]
-        
-        for indexQuery in createIndexes {
-            try? await database.execute(indexQuery)
+        if !ciColumns.contains("external_id") {
+            try? await database.execute("ALTER TABLE compliance_issues ADD COLUMN external_id TEXT")
+        }
+        if !ciColumns.contains("notes") {
+            try? await database.execute("ALTER TABLE compliance_issues ADD COLUMN notes TEXT")
+        }
+        if !ciColumns.contains("reported_date") && !ciColumns.contains("reportedDate") {
+            try? await database.execute("ALTER TABLE compliance_issues ADD COLUMN reported_date REAL")
+        }
+        if !ciColumns.contains("resolved_date") && !ciColumns.contains("resolvedDate") {
+            try? await database.execute("ALTER TABLE compliance_issues ADD COLUMN resolved_date REAL")
+        }
+
+        // Buildings table columns
+        let bInfo = try await database.query("PRAGMA table_info(buildings)")
+        let bColumns: Set<String> = Set(bInfo.compactMap { $0["name"] as? String })
+        if !bColumns.contains("compliance_score") {
+            try? await database.execute("ALTER TABLE buildings ADD COLUMN compliance_score REAL DEFAULT 1.0")
+        }
+        if !bColumns.contains("last_compliance_update") {
+            try? await database.execute("ALTER TABLE buildings ADD COLUMN last_compliance_update REAL")
+        }
+
+        // Create indexes for performance using whichever column naming exists
+        let buildingColumn = ciColumns.contains("buildingId") ? "buildingId" : (ciColumns.contains("building_id") ? "building_id" : nil)
+        if let bcol = buildingColumn {
+            try? await database.execute("CREATE INDEX IF NOT EXISTS idx_compliance_building ON compliance_issues(\(bcol))")
+        }
+        if ciColumns.contains("severity") {
+            try? await database.execute("CREATE INDEX IF NOT EXISTS idx_compliance_severity ON compliance_issues(severity)")
+        }
+        if ciColumns.contains("status") {
+            try? await database.execute("CREATE INDEX IF NOT EXISTS idx_compliance_status ON compliance_issues(status)")
+        }
+        if ciColumns.contains("source") {
+            try? await database.execute("CREATE INDEX IF NOT EXISTS idx_compliance_source ON compliance_issues(source)")
         }
     }
     
