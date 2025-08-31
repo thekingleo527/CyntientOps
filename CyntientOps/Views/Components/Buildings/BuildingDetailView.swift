@@ -4453,7 +4453,7 @@ class BuildingDetailVM: ObservableObject {
     
     // MARK: - Building Media Tab
     
-    struct BuildingMediaTab: View {
+    struct _DeprecatedBuildingMediaTab_DO_NOT_USE: View {
         let buildingId: String
         let buildingName: String
         let container: ServiceContainer
