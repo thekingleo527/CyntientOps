@@ -726,6 +726,8 @@ class AdminDashboardViewModel: ObservableObject {
     
     /// Refresh dashboard data (for pull-to-refresh)
     func refreshDashboardData() async {
+        // Kick off a fresh NYC sync to ensure latest compliance data
+        await container.nycIntegration.performFullSync()
         await loadDashboardData()
         await loadHistoricalPortfolioData(months: historicalLoadMonths)
         await computeComplianceTrend(daysWindow: 30)
