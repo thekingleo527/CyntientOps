@@ -567,6 +567,10 @@ public class BuildingDetailViewModel: ObservableObject {
             await MainActor.run {
                 // Use real database data
                 self.buildingType = "Residential" // Default
+                // Set coordinates if available for accurate DSNY schedule & maps
+                if let lat = building["latitude"] as? Double, let lon = building["longitude"] as? Double {
+                    self.coordinate = CLLocationCoordinate2D(latitude: lat, longitude: lon)
+                }
                 
                 // Load actual building image from asset name
                 if let imageAsset = building["imageAssetName"] as? String, !imageAsset.isEmpty {

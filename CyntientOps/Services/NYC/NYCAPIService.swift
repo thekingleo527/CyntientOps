@@ -332,13 +332,20 @@ public final class NYCAPIService: ObservableObject {
             throw NYCAPIError.invalidURL(endpoint.url)
         }
         
-        do {
-            // Create request with authentication headers
-            var request = URLRequest(url: url)
-            request.setValue("dbO8NmN2pMcmSQO7w56rTaFax", forHTTPHeaderField: "X-App-Token")
-            request.setValue("application/json", forHTTPHeaderField: "Accept")
-            
-            let (data, response) = try await session.data(for: request)
+        // Build request with app token from credentials when available
+        var request = URLRequest(url: url)
+        if let token = appToken() {
+            request.setValue(token, forHTTPHeaderField: "X-App-Token")
+        }
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+
+        // Lightweight retry loop for transient cancellations
+        var attempt = 0
+        let maxAttempts = 3
+        var lastError: Error?
+        while attempt < maxAttempts {
+            do {
+                let (data, response) = try await session.data(for: request)
             
             guard let httpResponse = response as? HTTPURLResponse else {
                 throw NYCAPIError.invalidResponse
@@ -397,14 +404,32 @@ public final class NYCAPIService: ObservableObject {
                 }
                 throw NYCAPIError.httpError(httpResponse.statusCode, errorMessage)
             }
-            
-        } catch {
-            let errorMessage = error.localizedDescription
-            await MainActor.run {
-                apiStatus[endpoint] = .error(errorMessage)
+            } catch {
+                lastError = error
+                // Retry on transient cancellations and connection loss
+                if let urlError = error as? URLError, urlError.code == .cancelled || urlError.code == .networkConnectionLost {
+                    attempt += 1
+                    try? await Task.sleep(nanoseconds: UInt64(0.5 * 1_000_000_000))
+                    continue
+                }
+                await MainActor.run { self.apiStatus[endpoint] = .error(error.localizedDescription) }
+                throw error
             }
-            throw error
         }
+        await MainActor.run { self.apiStatus[endpoint] = .error(lastError?.localizedDescription ?? "cancelled") }
+        throw lastError ?? NYCAPIError.networkError("cancelled")
+    }
+
+    // Fetch app token from credentials or env
+    private func appToken() -> String? {
+        // Prefer Keychain via ProductionCredentialsManager
+        if let kc = ProductionCredentialsManager.shared.retrieveCredential(key: "DSNY_API_TOKEN"), !kc.isEmpty {
+            return kc
+        }
+        // Fallback to process env
+        if let env = ProcessInfo.processInfo.environment["NYC_APP_TOKEN"], !env.isEmpty { return env }
+        // Final fallback to compiled token if present
+        return "dbO8NmN2pMcmSQO7w56rTaFax"
     }
     
     // MARK: - Batch Operations
