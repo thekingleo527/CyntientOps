@@ -261,7 +261,7 @@ public class DSNYAPIService: ObservableObject {
             URLQueryItem(name: "$query", value: query)
         ]
         
-        if let token = apiToken {
+        if let token = DSNYAPIService.readAPIToken() {
             components.queryItems?.append(URLQueryItem(name: "$$app_token", value: token))
         }
         
