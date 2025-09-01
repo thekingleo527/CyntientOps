@@ -162,17 +162,20 @@ public struct BDBuildingContact: Identifiable {
 public struct BDAssignedWorker: Identifiable {
     public let id: String
     public let name: String
+    public let role: String?
     public let schedule: String?
     public let isOnSite: Bool
     
     public init(
         id: String,
         name: String,
+        role: String? = nil,
         schedule: String? = nil,
         isOnSite: Bool = false
     ) {
         self.id = id
         self.name = name
+        self.role = role
         self.schedule = schedule
         self.isOnSite = isOnSite
     }
@@ -460,6 +463,35 @@ public class BuildingDetailViewModel: ObservableObject {
         setupSubscriptions()
         loadUserRole()
     }
+
+    // MARK: - Metadata Lookups (no schema bloat)
+    private static func lookupYearBuilt(for buildingId: String) -> Int {
+        switch buildingId {
+        case CanonicalIDs.Buildings.westEighteenth12: return 1925
+        case CanonicalIDs.Buildings.perry68: return 1932
+        case CanonicalIDs.Buildings.westEighteenth112: return 1930
+        case CanonicalIDs.Buildings.perry131: return 1890
+        case CanonicalIDs.Buildings.franklin104: return 1890
+        case CanonicalIDs.Buildings.rubinMuseum: return 1907
+        case CanonicalIDs.Buildings.walker36: return 1922
+        case CanonicalIDs.Buildings.elizabeth41: return 1895
+        default: return 1920
+        }
+    }
+
+    private static func lookupSquareFootage(for buildingId: String) -> Int {
+        switch buildingId {
+        case CanonicalIDs.Buildings.westEighteenth12: return 28500
+        case CanonicalIDs.Buildings.perry68: return 22800
+        case CanonicalIDs.Buildings.westEighteenth112: return 31600
+        case CanonicalIDs.Buildings.perry131: return 18900
+        case CanonicalIDs.Buildings.franklin104: return 18900
+        case CanonicalIDs.Buildings.rubinMuseum: return 42000
+        case CanonicalIDs.Buildings.walker36: return 26400
+        case CanonicalIDs.Buildings.elizabeth41: return 19700
+        default: return 25000
+        }
+    }
     
     // MARK: - Setup
     
@@ -518,6 +550,22 @@ public class BuildingDetailViewModel: ObservableObject {
         await loadTodaysMetrics()
         await loadActivityData()
         await loadRoutines()
+    }
+
+    // MARK: - Building Feature Lookups
+    /// Infer elevator presence/count from known route operations for this building
+    public func getElevatorInfo() -> (hasElevator: Bool, count: Int?) {
+        // Scan route operations for this building containing "elevator"
+        let allRoutes = container.routes.routes
+        for route in allRoutes {
+            for seq in route.sequences where seq.buildingId == buildingId {
+                if seq.operations.contains(where: { $0.name.localizedCaseInsensitiveContains("elevator") }) {
+                    // We can reliably say at least one elevator is serviced
+                    return (true, 1)
+                }
+            }
+        }
+        return (false, nil)
     }
     
     public func loadBuildingDetails() async {
@@ -588,13 +636,19 @@ public class BuildingDetailViewModel: ObservableObject {
                     self.buildingImage = nil
                 }
                 
-                self.buildingSize = Int((building["squareFootage"] as? Double ?? 25000).rounded())
-                self.floors = building["floors"] as? Int ?? 5
+                // Prefer known mappings when DB fields are unavailable
+                self.buildingSize = Int((building["squareFootage"] as? Double ?? Double(Self.lookupSquareFootage(for: buildingId))).rounded())
+                // Derive floors from RouteManager building profiles when available
+                if let profile = container.routes.getBuildingProfile(for: buildingId) {
+                    self.floors = profile.floorConfiguration.totalFloors
+                } else {
+                    self.floors = building["floors"] as? Int ?? 5
+                }
                 
                 // REAL DATA: Use verified residential unit counts from BuildingUnitValidator
                 self.units = BuildingUnitValidator.verifiedUnitCounts[buildingId] ?? (building["numberOfUnits"] as? Int ?? 20)
                 
-                self.yearBuilt = building["yearBuilt"] as? Int ?? 1985
+                self.yearBuilt = building["yearBuilt"] as? Int ?? Self.lookupYearBuilt(for: buildingId)
                 self.contractType = "Management Agreement"
                 
                 // Set contacts from database
@@ -760,24 +814,26 @@ public class BuildingDetailViewModel: ObservableObject {
                     // Check if bins need to be set out today (evening before collection)
                     let tomorrow = today.nextDay()
                     if schedule.collectionDays.contains(tomorrow) {
+                        let workerName = self.dsnyAssignedWorkerName(for: buildingId, on: tomorrow)
                         dsnyTasks.append(BDDailyRoutine(
                             id: "dsny_setout_\(buildingId)",
                             title: "DSNY: Set Out Bins",
                             scheduledTime: schedule.binSetOutTime.timeString,
                             isCompleted: false,
-                            assignedWorker: "Building Staff",
+                            assignedWorker: workerName,
                             requiredInventory: ["Trash bins", "Recycling bins"]
                         ))
                     }
                     
                     // Check if bins need to be retrieved today (morning after collection)
                     if schedule.collectionDays.contains(today) {
+                        let workerName = self.dsnyAssignedWorkerName(for: buildingId, on: today)
                         dsnyTasks.append(BDDailyRoutine(
                             id: "dsny_retrieve_\(buildingId)",
                             title: "DSNY: Retrieve Bins",
                             scheduledTime: schedule.binRetrievalTime.timeString,
                             isCompleted: false,
-                            assignedWorker: "Building Staff", // Would check EdwinLemaRoutes.handlesBuilding in real implementation
+                            assignedWorker: workerName,
                             requiredInventory: ["None"]
                         ))
                     }
@@ -882,6 +938,7 @@ public class BuildingDetailViewModel: ObservableObject {
                     return BDAssignedWorker(
                         id: workerId,
                         name: workerName,
+                        role: role,
                         schedule: scheduleText,
                         isOnSite: false // Will be updated by loadActivityData
                     )
@@ -930,6 +987,29 @@ public class BuildingDetailViewModel: ObservableObject {
         
         // Load thumbnails asynchronously
         await loadSpaceThumbnails()
+    }
+
+    // MARK: - DSNY assignment helper (kept local to avoid exposing internals)
+    private func dsnyAssignedWorkerName(for buildingId: String, on day: CollectionDay) -> String {
+        let workerId: String
+        switch buildingId {
+        case CanonicalIDs.Buildings.springStreet178,
+             CanonicalIDs.Buildings.chambers148:
+            workerId = CanonicalIDs.Workers.edwinLema
+        case CanonicalIDs.Buildings.perry68,
+             CanonicalIDs.Buildings.firstAvenue123:
+            workerId = CanonicalIDs.Workers.kevinDutan
+        case CanonicalIDs.Buildings.westSeventeenth136,
+             CanonicalIDs.Buildings.westSeventeenth138:
+            workerId = (day == .saturday) ? CanonicalIDs.Workers.edwinLema : CanonicalIDs.Workers.kevinDutan
+        default:
+            // If we have explicitly assigned workers, prefer first assigned
+            if let firstAssigned = assignedWorkers.first?.name {
+                return firstAssigned
+            }
+            workerId = CanonicalIDs.Workers.kevinDutan
+        }
+        return CanonicalIDs.Workers.getName(for: workerId) ?? "Building Staff"
     }
     
     private func loadSpaceThumbnails() async {
@@ -1188,6 +1268,7 @@ public class BuildingDetailViewModel: ObservableObject {
                     BDAssignedWorker(
                         id: worker.id,
                         name: worker.name,
+                        role: worker.role.rawValue,
                         schedule: nil, // Schedule not available in WorkerProfile
                         isOnSite: worker.clockStatus == .clockedIn && worker.currentBuildingId == buildingId
                     )

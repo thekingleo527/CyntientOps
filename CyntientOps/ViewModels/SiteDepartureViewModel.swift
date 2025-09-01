@@ -16,6 +16,7 @@ public class SiteDepartureViewModel: ObservableObject {
     @Published var isLoading = true
     @Published var isSaving = false
     @Published var showPhotoRequirement = false
+    @Published var capturedPhotos: [UIImage] = []
     @Published var capturedPhoto: UIImage?
     @Published var selectedNextDestination: CoreTypes.NamedCoordinate?
     @Published var error: Error?
@@ -71,7 +72,7 @@ public class SiteDepartureViewModel: ObservableObject {
             checkmarkStates[task.id] ?? false
         }
         
-        let photoRequirementMet = !requiresPhoto || capturedPhoto != nil
+        let photoRequirementMet = !requiresPhoto || !capturedPhotos.isEmpty || capturedPhoto != nil
         
         return allIncompleteChecked && photoRequirementMet && !isSaving
     }
@@ -79,7 +80,7 @@ public class SiteDepartureViewModel: ObservableObject {
     var isFullyCompliant: Bool {
         guard let checklist = checklist else { return false }
         return checklist.incompleteTasks.isEmpty &&
-               (!requiresPhoto || capturedPhoto != nil)
+               (!requiresPhoto || !capturedPhotos.isEmpty || capturedPhoto != nil)
     }
     
     
@@ -115,29 +116,27 @@ public class SiteDepartureViewModel: ObservableObject {
         error = nil
         
         do {
-            // Save photo if captured
-            if let photo = capturedPhoto, requiresPhoto {
-                // Create a synthetic task for the departure photo
-                let departureTask = CoreTypes.ContextualTask(
-                    id: "departure-\(currentBuilding.id)-\(Date().timeIntervalSince1970)",
-                    title: "Site Departure - \(currentBuilding.name)",
-                    description: "Departure verification photo",
-                    status: .completed,
-                    dueDate: Date(),
-                    category: .administrative,
-                    urgency: .medium,
-                    buildingId: currentBuilding.id
-                )
-                
-                let worker = CoreTypes.WorkerProfile(
-                    id: workerId,
-                    name: "Worker \(workerId)", // Would be fetched from context
-                    email: "",
-                    phone: nil,
-                    role: .worker,
-                    isActive: true
-                )
-                
+            // Save photos if captured (up to 3). Fall back to single legacy capturedPhoto.
+            let worker = CoreTypes.WorkerProfile(
+                id: workerId,
+                name: "Worker \(workerId)", // Ideally from context
+                email: "",
+                phone: nil,
+                role: .worker,
+                isActive: true
+            )
+            if !capturedPhotos.isEmpty {
+                for (idx, photo) in capturedPhotos.prefix(10).enumerated() {
+                    let evidence = try await container.photos.captureQuick(
+                        image: photo,
+                        category: .afterWork,
+                        buildingId: currentBuilding.id,
+                        workerId: worker.id,
+                        notes: idx == 0 ? "Departure photo for \(currentBuilding.name)" : "Departure photo #\(idx+1) for \(currentBuilding.name)"
+                    )
+                    print("✅ Departure photo saved: \(evidence.id)")
+                }
+            } else if let photo = capturedPhoto {
                 let evidence = try await container.photos.captureQuick(
                     image: photo,
                     category: .afterWork,
@@ -145,7 +144,6 @@ public class SiteDepartureViewModel: ObservableObject {
                     workerId: worker.id,
                     notes: "Departure photo for \(currentBuilding.name)"
                 )
-                
                 print("✅ Departure photo saved: \(evidence.id)")
             }
             

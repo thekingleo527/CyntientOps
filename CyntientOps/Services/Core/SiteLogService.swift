@@ -65,12 +65,34 @@ public actor SiteLogService {
             departureMethod: departureMethod,
             dashboardSync: dashboardSync
         )
-        
+
         // Update clock session if this is end of day
         if departureMethod == .endOfDay {
             await updateClockOutTime(workerId: workerId, buildingId: buildingId)
         }
-        
+
+        // Also persist a summary record into site_departures for daily blocking checks (idempotent safety via unique id)
+        do {
+            let sdId = logId // reuse
+            let dateOnly = ISO8601DateFormatter().string(from: Calendar.current.startOfDay(for: Date()))
+            try await grdbManager.execute("""
+                INSERT OR IGNORE INTO site_departures (
+                    id, worker_id, building_id, date, completed_at, notes, has_photos
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, [
+                sdId,
+                workerId,
+                buildingId,
+                dateOnly,
+                Date().ISO8601Format(),
+                notes as Any,
+                checklist.photoCount > 0 ? 1 : 0
+            ])
+        } catch {
+            // Non-fatal; continue
+            print("⚠️ site_departures insert failed: \(error)")
+        }
+
         return logId
     }
     

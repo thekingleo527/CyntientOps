@@ -598,13 +598,18 @@ class AdminDashboardViewModel: ObservableObject {
         let nycAPI = NYCAPIService.shared
         
         // Generate BBLs and fetch comprehensive property data using direct NYC API calls
+        var didLogGeneratedBBL = false
+        var didLogNoDofData = false
         for building in buildings {
             do {
                 print("🔢 Generating BBL for: \(building.name)")
                 
                 // Resolve BBL from building coordinates via NYC Footprints
                 let bbl = await generateBBLFromCoordinates(building.coordinate)
-                print("✅ Generated BBL \(bbl) for \(building.name)")
+                if !didLogGeneratedBBL {
+                    print("✅ Generated BBL \(bbl) for \(building.name)")
+                    didLogGeneratedBBL = true
+                }
                 
                 // Fetch real DOF assessed value data
                 do {
@@ -643,8 +648,9 @@ class AdminDashboardViewModel: ObservableObject {
                         await MainActor.run {
                             self.propertyData[building.id] = propertyData
                         }
-                    } else {
+                    } else if !didLogNoDofData {
                         print("⚠️ No DOF tax data found for BBL \(bbl)")
+                        didLogNoDofData = true
                     }
                 } catch {
                     print("⚠️ Error fetching DOF data for \(building.name): \(error)")

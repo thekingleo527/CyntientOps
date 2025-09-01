@@ -118,46 +118,13 @@ actor WorkerAssignmentEngine {
                 workerId: workerIdInt,
                 role: role,
                 assignedDate: date,
-                isActive: true
+                isActive: (row["is_active"] as? Int64 ?? 0) == 1
             )
         }
     }
-    
-    /// Gets all workers assigned to a specific building using GRDB.
-    func getWorkersForBuilding(_ buildingId: CoreTypes.BuildingID) async throws -> [WorkerAssignmentInfo] {
-        // FIXED: Use GRDBManager query method
-        let rows = try await grdbManager.query("""
-            SELECT 
-                wba.worker_id,
-                wba.role as assignment_role,
-                wba.assigned_date,
-                w.name as worker_name,
-                w.email as worker_email,
-                w.role as worker_role
-            FROM worker_building_assignments wba
-            LEFT JOIN workers w ON CAST(wba.worker_id AS TEXT) = CAST(w.id AS TEXT)
-            WHERE wba.building_id = ? AND wba.is_active = 1
-            ORDER BY wba.assigned_date ASC
-        """, [buildingId])
-        
-        return rows.compactMap { row -> WorkerAssignmentInfo? in
-            guard let workerIdString = row["worker_id"] as? String,
-                  let assignmentType = row["assignment_role"] as? String,
-                  let workerName = row["worker_name"] as? String
-            else { return nil }
-            
-            return WorkerAssignmentInfo(
-                workerId: workerIdString,
-                workerName: workerName,
-                workerEmail: row["worker_email"] as? String ?? "",
-                assignmentType: assignmentType,
-                startDate: ISO8601DateFormatter().date(from: row["start_date"] as? String ?? "") ?? Date()
-            )
-        }
-    }
-    
-    /// Remove a worker from a building assignment
-    func unassignWorkerFromBuilding(
+
+    /// Removes a worker assignment (soft-deactivates)
+    func unassignWorker(
         workerId: CoreTypes.WorkerID,
         buildingId: CoreTypes.BuildingID
     ) async throws {

@@ -125,7 +125,9 @@ struct DeveloperLoginBoard: View {
             }
 
             let a = mapped.filter { $0.role.lowercased() == "admin" }
-            let c = mapped.filter { $0.role.lowercased() == "client" }
+            // Limit clients to known real client accounts (dev only)
+            let cAll = mapped.filter { $0.role.lowercased() == "client" }
+            let c = cAll.filter { allowedClientEmails.contains($0.email) }
             let w = mapped.filter { $0.role.lowercased() == "worker" || $0.role.lowercased() == "manager" }
 
             await MainActor.run {
@@ -179,6 +181,17 @@ struct DeveloperLoginBoard: View {
         "sshapiro@citadelre.com": "Stephen Shapiro",
         "paul@corbelpm.com": "Paul Lamban",
         "maria@solarone.org": "Maria Rodriguez"
+    ]
+
+    // Whitelist of real client emails (DEV only)
+    private let allowedClientEmails: Set<String> = [
+        "David@jmrealty.org",
+        "jm@jmrealty.com",
+        "mfarhat@farhatrealtymanagement.com",
+        "candace@solar1.org",
+        "sshapiro@citadelre.com",
+        "paul@corbelpm.com",
+        "maria@solarone.org"
     ]
 
     // Persist corrections back to DB so other screens use the fixed names

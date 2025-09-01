@@ -90,6 +90,8 @@ public final class GRDBManager {
                 try self.createTables(db)
                 try self.applySchemaRepairMigration(db)
             }
+            // Schema is managed idempotently here; no external migrator needed
+            // createTables() and applySchemaRepairMigration() above ensure forward-compat
             // Bump user_version for tracking
             try dbPool.write { db in
                 try db.execute(sql: "PRAGMA user_version = 120")
@@ -394,6 +396,59 @@ public final class GRDBManager {
                 FOREIGN KEY (worker_id) REFERENCES workers(id)
             )
         """)
+
+        // User preferences (app settings per user)
+        try db.execute(sql: """
+            CREATE TABLE IF NOT EXISTS user_preferences (
+                user_id TEXT PRIMARY KEY,
+                theme TEXT DEFAULT 'dark',
+                notifications INTEGER DEFAULT 1,
+                auto_clock_out INTEGER DEFAULT 0,
+                map_zoom_level REAL DEFAULT 15.0,
+                default_view TEXT DEFAULT 'dashboard',
+                updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES workers(id)
+            )
+        """)
+
+        // Time clock entries (authoritative time tracking for payroll)
+        try db.execute(sql: """
+            CREATE TABLE IF NOT EXISTS time_clock_entries (
+                id TEXT PRIMARY KEY,
+                workerId TEXT NOT NULL,
+                clockInTime TEXT NOT NULL,
+                clockOutTime TEXT,
+                buildingId TEXT NOT NULL,
+                buildingName TEXT NOT NULL,
+                locationLat REAL,
+                locationLon REAL,
+                notes TEXT,
+                exported INTEGER DEFAULT 0,
+                exportDate TEXT,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (workerId) REFERENCES workers(id)
+            )
+        """)
+
+        // Compatibility view for legacy queries expecting `clock_entries`
+        try db.execute(sql: """
+            CREATE VIEW IF NOT EXISTS clock_entries AS
+            SELECT 
+                t.workerId AS worker_id,
+                t.buildingId AS building_id,
+                'clock_in' AS action,
+                t.clockInTime AS created_at
+            FROM time_clock_entries t
+            UNION ALL
+            SELECT 
+                t.workerId AS worker_id,
+                t.buildingId AS building_id,
+                'clock_out' AS action,
+                t.clockOutTime AS created_at
+            FROM time_clock_entries t
+            WHERE t.clockOutTime IS NOT NULL
+        """)
         
         // Login history
         try db.execute(sql: """
@@ -529,6 +584,21 @@ public final class GRDBManager {
                 FOREIGN KEY (worker_id) REFERENCES workers(id),
                 FOREIGN KEY (building_id) REFERENCES buildings(id),
                 FOREIGN KEY (next_destination_building_id) REFERENCES buildings(id)
+            )
+        """)
+
+        // Daily site departures summary (used by SiteLogService and UI filters)
+        try db.execute(sql: """
+            CREATE TABLE IF NOT EXISTS site_departures (
+                id TEXT PRIMARY KEY,
+                worker_id TEXT NOT NULL,
+                building_id TEXT NOT NULL,
+                date TEXT NOT NULL,
+                completed_at TEXT,
+                notes TEXT,
+                has_photos INTEGER DEFAULT 0,
+                FOREIGN KEY (worker_id) REFERENCES workers(id),
+                FOREIGN KEY (building_id) REFERENCES buildings(id)
             )
         """)
         
@@ -940,6 +1010,258 @@ public final class GRDBManager {
                 FOREIGN KEY (building_id) REFERENCES buildings(id)
             )
         """)
+
+        // Building spaces (rooms, areas) for finer-grained assets/photos
+        try db.execute(sql: """
+            CREATE TABLE IF NOT EXISTS building_spaces (
+                id TEXT PRIMARY KEY,
+                building_id TEXT NOT NULL,
+                name TEXT NOT NULL,
+                description TEXT,
+                category TEXT DEFAULT 'room',
+                access_level TEXT DEFAULT 'standard',
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (building_id) REFERENCES buildings(id)
+            )
+        """)
+
+        // Cost intelligence: per-building cost records
+        try db.execute(sql: """
+            CREATE TABLE IF NOT EXISTS building_costs (
+                id TEXT PRIMARY KEY,
+                building_id TEXT NOT NULL,
+                cost_type TEXT NOT NULL,
+                amount REAL NOT NULL,
+                date_incurred TEXT NOT NULL,
+                description TEXT,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (building_id) REFERENCES buildings(id)
+            )
+        """)
+
+        // Automated workflows backing store
+        try db.execute(sql: """
+            CREATE TABLE IF NOT EXISTS automated_workflows (
+                id TEXT PRIMARY KEY,
+                type TEXT NOT NULL,
+                name TEXT NOT NULL,
+                building_id TEXT NOT NULL,
+                priority TEXT DEFAULT 'normal',
+                status TEXT NOT NULL,
+                deadline REAL,
+                created_at REAL,
+                updated_at REAL,
+                workflow_data BLOB,
+                FOREIGN KEY (building_id) REFERENCES buildings(id)
+            )
+        """)
+
+        // Conflict resolution logging
+        try db.execute(sql: """
+            CREATE TABLE IF NOT EXISTS conflict_log (
+                id TEXT PRIMARY KEY,
+                entity_id TEXT NOT NULL,
+                entity_type TEXT NOT NULL,
+                local_version TEXT,
+                remote_version TEXT,
+                clock_comparison TEXT,
+                detected_at TEXT NOT NULL,
+                resolved_at TEXT,
+                resolution_choice TEXT
+            )
+        """)
+        try db.execute(sql: """
+            CREATE TABLE IF NOT EXISTS conflict_resolutions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                conflict_id TEXT NOT NULL,
+                choice TEXT NOT NULL,
+                resolved_by TEXT,
+                resolved_at TEXT NOT NULL,
+                merged_update TEXT,
+                reason TEXT
+            )
+        """)
+        try db.execute(sql: """
+            CREATE TABLE IF NOT EXISTS entity_vector_clocks (
+                entity_id TEXT PRIMARY KEY,
+                vector_clock TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+        """)
+
+        // Worker task completion metrics and reports
+        try db.execute(sql: """
+            CREATE TABLE IF NOT EXISTS worker_task_completions (
+                id TEXT PRIMARY KEY,
+                worker_id TEXT NOT NULL,
+                task_id TEXT NOT NULL,
+                completed_at TEXT NOT NULL,
+                efficiency_score REAL,
+                task_category TEXT,
+                building_id TEXT,
+                photo_count INTEGER DEFAULT 0,
+                FOREIGN KEY (worker_id) REFERENCES workers(id),
+                FOREIGN KEY (task_id) REFERENCES routine_tasks(id),
+                FOREIGN KEY (building_id) REFERENCES buildings(id)
+            )
+        """)
+        try db.execute(sql: """
+            CREATE TABLE IF NOT EXISTS task_completion_reports (
+                id TEXT PRIMARY KEY,
+                task_id TEXT NOT NULL,
+                worker_id TEXT NOT NULL,
+                building_id TEXT,
+                report_data TEXT,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        try db.execute(sql: """
+            CREATE TABLE IF NOT EXISTS compliance_tracking (
+                id TEXT PRIMARY KEY,
+                violation_id TEXT,
+                task_id TEXT,
+                status TEXT,
+                completed_at TEXT,
+                resolution_task_id TEXT
+            )
+        """)
+
+        // Daily notes per building
+        try db.execute(sql: """
+            CREATE TABLE IF NOT EXISTS daily_notes (
+                id TEXT PRIMARY KEY,
+                building_id TEXT NOT NULL,
+                worker_id TEXT,
+                note_text TEXT,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (building_id) REFERENCES buildings(id),
+                FOREIGN KEY (worker_id) REFERENCES workers(id)
+            )
+        """)
+
+        // Vendor logs
+        try db.execute(sql: """
+            CREATE TABLE IF NOT EXISTS vendor_access_logs (
+                id TEXT PRIMARY KEY,
+                building_id TEXT NOT NULL,
+                vendor_name TEXT,
+                purpose TEXT,
+                contact TEXT,
+                timestamp TEXT NOT NULL,
+                notes TEXT,
+                FOREIGN KEY (building_id) REFERENCES buildings(id)
+            )
+        """)
+        try db.execute(sql: """
+            CREATE TABLE IF NOT EXISTS vendor_visits (
+                id TEXT PRIMARY KEY,
+                building_id TEXT NOT NULL,
+                vendor_name TEXT,
+                visit_date TEXT NOT NULL,
+                purpose TEXT,
+                contact TEXT,
+                notes TEXT,
+                FOREIGN KEY (building_id) REFERENCES buildings(id)
+            )
+        """)
+
+        // Compliance certifications and filings for workflows
+        try db.execute(sql: """
+            CREATE TABLE IF NOT EXISTS compliance_certifications (
+                id TEXT PRIMARY KEY,
+                workflow_id TEXT NOT NULL,
+                task_id TEXT NOT NULL,
+                building_id TEXT NOT NULL,
+                certification_data BLOB,
+                created_at REAL
+            )
+        """)
+        try db.execute(sql: """
+            CREATE TABLE IF NOT EXISTS evidence_filings (
+                id TEXT PRIMARY KEY,
+                workflow_id TEXT NOT NULL,
+                evidence_id TEXT NOT NULL,
+                building_id TEXT NOT NULL,
+                filed_at REAL,
+                status TEXT
+            )
+        """)
+
+        // QuickBooks integration
+        try db.execute(sql: """
+            CREATE TABLE IF NOT EXISTS quickbooks_connections (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                connection_date REAL,
+                success INTEGER,
+                error_message TEXT,
+                company_id TEXT
+            )
+        """)
+        try db.execute(sql: """
+            CREATE TABLE IF NOT EXISTS payroll_export_history (
+                export_id TEXT PRIMARY KEY,
+                pay_period_start TEXT,
+                pay_period_end TEXT,
+                export_date TEXT,
+                total_entries INTEGER,
+                total_workers INTEGER,
+                export_status TEXT,
+                error_message TEXT
+            )
+        """)
+        try db.execute(sql: """
+            CREATE TABLE IF NOT EXISTS payroll_export_entries (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                time_entry_id TEXT NOT NULL,
+                worker_id TEXT NOT NULL,
+                qb_employee_id TEXT,
+                export_date TEXT,
+                regular_hours REAL,
+                overtime_hours REAL,
+                export_status TEXT
+            )
+        """)
+
+        // Client + building mapping for client dashboards
+        try db.execute(sql: """
+            CREATE TABLE IF NOT EXISTS clients (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                contact_email TEXT,
+                contact_phone TEXT,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        try db.execute(sql: """
+            CREATE TABLE IF NOT EXISTS client_users (
+                client_id TEXT NOT NULL,
+                user_id TEXT NOT NULL,
+                role TEXT DEFAULT 'viewer',
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (client_id, user_id)
+            )
+        """)
+        try db.execute(sql: """
+            CREATE TABLE IF NOT EXISTS client_buildings (
+                client_id TEXT NOT NULL,
+                building_id TEXT NOT NULL,
+                assigned_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (client_id, building_id)
+            )
+        """)
+
+        // Compatibility views for legacy joins
+        try db.execute(sql: """
+            CREATE VIEW IF NOT EXISTS worker_buildings AS
+            SELECT worker_id, building_id
+            FROM worker_building_assignments
+            WHERE is_active = 1
+        """)
+        try db.execute(sql: """
+            CREATE VIEW IF NOT EXISTS worker_profiles AS
+            SELECT id, name, email, phone
+            FROM workers
+        """)
         
         // Create indexes
         try createIndexes(db)
@@ -986,7 +1308,11 @@ public final class GRDBManager {
         // Site departure log indexes
         try db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_departure_logs_worker_building ON site_departure_logs(worker_id, building_id, departed_at)")
         try db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_departure_logs_date ON site_departure_logs(departed_at)")
-        
+
+        // Site departures summary indexes
+        try db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_site_departures_worker_date ON site_departures(worker_id, date)")
+        try db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_site_departures_building_date ON site_departures(building_id, date)")
+
         // ✅ STREAM B UPDATE: Enhanced sync queue indexes
         try db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_sync_queue_entity ON sync_queue(entity_type, entity_id)")
         try db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_sync_queue_retry ON sync_queue(retry_count)")
@@ -1047,6 +1373,17 @@ public final class GRDBManager {
         try db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_dsny_violations_status ON dsny_violations(status)")
         try db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_dsny_compliance_building_date ON dsny_compliance_logs(building_id, check_date)")
         try db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_dsny_compliance_compliant ON dsny_compliance_logs(is_compliant)")
+
+        // Additional indexes (new tables)
+        try db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_time_entries_worker_date ON time_clock_entries(workerId, clockInTime)")
+        try db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_building_costs_date ON building_costs(building_id, date_incurred)")
+        try db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_workflows_status ON automated_workflows(status)")
+        try db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_conflict_log_entity ON conflict_log(entity_type, entity_id)")
+        try db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_daily_notes_building ON daily_notes(building_id, created_at)")
+        try db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_vendor_access_building ON vendor_access_logs(building_id, timestamp)")
+        try db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_vendor_visits_building ON vendor_visits(building_id, visit_date)")
+        try db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_client_buildings_client ON client_buildings(client_id)")
+        try db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_client_users_client ON client_users(client_id)")
     }
     
     // MARK: - Public API (Compatible with existing GRDBManager calls)
@@ -1600,6 +1937,18 @@ extension GRDBManager {
             }
         }
 
+        // 3b) tasks.building_id (alias for legacy buildingId) to satisfy queries expecting snake_case
+        if try tableExists("tasks") {
+            if try !columnExists("tasks", "building_id") {
+                try db.execute(sql: "ALTER TABLE tasks ADD COLUMN building_id TEXT")
+                // Best-effort backfill from camelCase column when present
+                if try columnExists("tasks", "buildingId") {
+                    try db.execute(sql: "UPDATE tasks SET building_id = buildingId WHERE building_id IS NULL")
+                }
+                try db.execute(sql: "CREATE INDEX IF NOT EXISTS idx_tasks_building_id ON tasks(building_id)")
+            }
+        }
+
         // 4) inventory table expected by some queries
         if try !tableExists("inventory") {
             try db.execute(sql: """
@@ -1635,6 +1984,25 @@ extension GRDBManager {
                     PRIMARY KEY (client_id, building_id)
                 )
             """)
+        }
+
+        // 6) worker_building_assignments: add schedule-related columns if missing for UI compatibility
+        if try tableExists("worker_building_assignments") {
+            if try !columnExists("worker_building_assignments", "start_date") {
+                try db.execute(sql: "ALTER TABLE worker_building_assignments ADD COLUMN start_date TEXT")
+            }
+            if try !columnExists("worker_building_assignments", "end_date") {
+                try db.execute(sql: "ALTER TABLE worker_building_assignments ADD COLUMN end_date TEXT")
+            }
+            if try !columnExists("worker_building_assignments", "time_slot") {
+                try db.execute(sql: "ALTER TABLE worker_building_assignments ADD COLUMN time_slot TEXT")
+            }
+            if try !columnExists("worker_building_assignments", "status") {
+                try db.execute(sql: "ALTER TABLE worker_building_assignments ADD COLUMN status TEXT DEFAULT 'scheduled'")
+            }
+            if try !columnExists("worker_building_assignments", "is_confirmed") {
+                try db.execute(sql: "ALTER TABLE worker_building_assignments ADD COLUMN is_confirmed INTEGER DEFAULT 0")
+            }
         }
     }
 }

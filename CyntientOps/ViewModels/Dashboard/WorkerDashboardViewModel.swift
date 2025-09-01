@@ -596,6 +596,11 @@ public class WorkerDashboardViewModel: ObservableObject {
     @Published public var sheet: SheetRoute?
     @Published public private(set) var recentUpdates: [CoreTypes.DashboardUpdate] = []
     @Published public private(set) var buildingMetrics: [String: CoreTypes.BuildingMetrics] = [:]
+
+    // Site Departure gating
+    @Published public private(set) var siteDepartureRequired: Bool = false
+    @Published public private(set) var pendingDepartures: [BuildingSummary] = []
+    @Published public private(set) var visitedToday: [BuildingSummary] = []
     
     // MARK: - New HeroTile Properties (Per Design Brief)
     @Published public private(set) var heroNextTask: CoreTypes.ContextualTask?
@@ -1103,6 +1108,9 @@ public class WorkerDashboardViewModel: ObservableObject {
             
             // Update HeroTile properties
             await self.updateHeroTileProperties()
+
+            // Update site departure gating state
+            await self.loadPendingDepartures()
             
             print("✅ Dashboard data refreshed")
         }
@@ -1136,6 +1144,75 @@ public class WorkerDashboardViewModel: ObservableObject {
             self.broadcastClockIn(workerId: workerId, building: building, hasLocation: self.locationManager.location != nil)
             
             print("✅ Clocked in at \(building.name)")
+        }
+    }
+
+    // MARK: - Site Departure Pending Logic
+
+    private func loadPendingDepartures() async {
+        guard let workerId = currentWorkerId else { return }
+        do {
+            let calendar = Calendar.current
+            let dayStart = calendar.startOfDay(for: Date())
+            let dayStartStr = dayStart.ISO8601Format()
+            let dayEndStr = calendar.date(byAdding: .day, value: 1, to: dayStart)!.ISO8601Format()
+
+            // 1) Get today's visited buildings from clock_sessions
+            let sessions = try await container.database.query("""
+                SELECT DISTINCT building_id FROM clock_sessions
+                WHERE worker_id = ?
+                  AND clock_in_time >= ?
+                  AND clock_in_time < ?
+            """, [workerId, dayStartStr, dayEndStr])
+            let visitedIds: [String] = sessions.compactMap { $0["building_id"] as? String }
+
+            if visitedIds.isEmpty {
+                await MainActor.run {
+                    self.pendingDepartures = []
+                    self.siteDepartureRequired = false
+                    self.visitedToday = []
+                }
+                return
+            }
+
+            // 2) Filter out buildings that already have a site_departures record today
+            let placeholders = visitedIds.map { _ in "?" }.joined(separator: ",")
+            let rows = try await container.database.query("""
+                SELECT building_id FROM site_departures
+                WHERE worker_id = ? AND date = DATE('now')
+                  AND building_id IN (\(placeholders))
+            """, [workerId] + visitedIds)
+            let completedIds = Set(rows.compactMap { $0["building_id"] as? String })
+            let pendingIds = visitedIds.filter { !completedIds.contains($0) }
+
+            // 3) Map to BuildingSummary using current assigned/all buildings
+            let summaries: [BuildingSummary] = pendingIds.compactMap { bid in
+                if let b = self.assignedBuildings.first(where: { $0.id == bid }) {
+                    return b
+                }
+                if let b = self.allBuildings.first(where: { $0.id == bid }) {
+                    return b
+                }
+                return nil
+            }
+
+            // Build visited list (all visited IDs)
+            let visitedSummaries: [BuildingSummary] = visitedIds.compactMap { bid in
+                if let b = self.assignedBuildings.first(where: { $0.id == bid }) { return b }
+                if let b = self.allBuildings.first(where: { $0.id == bid }) { return b }
+                return nil
+            }
+            await MainActor.run {
+                self.pendingDepartures = summaries
+                self.siteDepartureRequired = !summaries.isEmpty
+                self.visitedToday = visitedSummaries
+            }
+        } catch {
+            print("⚠️ Failed to load pending departures: \(error)")
+            await MainActor.run {
+                self.pendingDepartures = []
+                self.siteDepartureRequired = false
+            }
         }
     }
     
@@ -1679,63 +1756,80 @@ public class WorkerDashboardViewModel: ObservableObject {
     }
     
     private func loadScheduleWeek() async {
-        // Generate weekly schedule from real operational data
+        // Generate weekly schedule by merging routine instances + scheduled tasks per day
         guard let workerId = worker?.workerId else { return }
-        
+
         do {
-            // Get worker's real weekly schedule from OperationalDataManager
-            let weeklyScheduleItems = try await container.operationalData.getWorkerWeeklySchedule(for: workerId)
-            
-            // Group by date
             let calendar = Calendar.current
-            let groupedByDate = Dictionary(grouping: weeklyScheduleItems) { item in
+            var weekSchedule: [DaySchedule] = []
+
+            // Preload routine schedule items for 7 days
+            let routineWeekly = try await container.operationalData.getWorkerWeeklySchedule(for: workerId)
+
+            // Group routine by day start
+            let routineByDay = Dictionary(grouping: routineWeekly) { item in
                 calendar.startOfDay(for: item.startTime)
             }
-            
-            var weekSchedule: [DaySchedule] = []
-            
-            // Create schedule for next 7 days
+
             for dayOffset in 0..<7 {
                 guard let date = calendar.date(byAdding: .day, value: dayOffset, to: Date()) else { continue }
                 let dayStart = calendar.startOfDay(for: date)
-                
-                let dayScheduleItems = groupedByDate[dayStart] ?? []
-                
-                // Convert WorkerScheduleItem to DaySchedule.ScheduleItem
-                let dayItems: [DaySchedule.ScheduleItem] = dayScheduleItems.map { scheduleItem in
+
+                // Routine instances → DaySchedule items
+                var items: [DaySchedule.ScheduleItem] = (routineByDay[dayStart] ?? []).map { r in
                     DaySchedule.ScheduleItem(
-                        id: scheduleItem.id,
-                        startTime: scheduleItem.startTime,
-                        endTime: scheduleItem.endTime,
-                        buildingId: scheduleItem.buildingId,
-                        title: scheduleItem.title,
-                        taskCount: 1 // Default to 1 task per schedule item
+                        id: r.id,
+                        startTime: r.startTime,
+                        endTime: r.endTime,
+                        buildingId: r.buildingId,
+                        title: r.title,
+                        taskCount: 1
                     )
                 }
-                
-                let totalHours = Double(dayItems.reduce(0) { sum, item in
-                    sum + Int(item.endTime.timeIntervalSince(item.startTime) / 3600)
-                })
-                
-                weekSchedule.append(DaySchedule(
-                    date: date,
-                    items: dayItems,
-                    totalHours: totalHours
-                ))
+
+                // Add scheduled tasks (from TaskService) for that date
+                do {
+                    let tasks = try await container.tasks.getTasks(for: workerId, date: date)
+                    let taskItems: [DaySchedule.ScheduleItem] = tasks.compactMap { t in
+                        let start = t.dueDate ?? calendar.date(bySettingHour: 9, minute: 0, second: 0, of: date) ?? date
+                        let end = start.addingTimeInterval(60 * 60) // default 1h if unknown
+                        return DaySchedule.ScheduleItem(
+                            id: t.id,
+                            startTime: start,
+                            endTime: end,
+                            buildingId: t.buildingId ?? (self.currentBuilding?.id ?? ""),
+                            title: t.title,
+                            taskCount: 1
+                        )
+                    }
+                    items.append(contentsOf: taskItems)
+                } catch {
+                    // Ignore task fetch errors; routine instances still show
+                }
+
+                // Sort by start time, then title (acts as category surrogate)
+                items.sort { lhs, rhs in
+                    if lhs.startTime != rhs.startTime { return lhs.startTime < rhs.startTime }
+                    return lhs.title.localizedCaseInsensitiveCompare(rhs.title) == .orderedAscending
+                }
+
+                // Compute total hours
+                let totalHours = items.reduce(0.0) { sum, i in
+                    sum + i.endTime.timeIntervalSince(i.startTime) / 3600.0
+                }
+
+                weekSchedule.append(DaySchedule(date: date, items: items, totalHours: totalHours))
             }
-            
-            scheduleWeek = weekSchedule
-            print("✅ Loaded weekly schedule with \(weeklyScheduleItems.count) items from real operational data")
-            
-            // Ensure this data is delivered on main thread and updated immediately
-            DispatchQueue.main.async { [weak self] in
-                self?.objectWillChange.send()
+
+            await MainActor.run {
+                self.scheduleWeek = weekSchedule
             }
-            
+
+            print("✅ Loaded weekly schedule with merge: routines + scheduled tasks")
+
         } catch {
-            print("❌ Failed to load weekly schedule from operational data: \(error)")
-            // Fallback to empty schedule
-            scheduleWeek = []
+            print("❌ Failed to load weekly schedule: \(error)")
+            await MainActor.run { self.scheduleWeek = [] }
         }
     }
     

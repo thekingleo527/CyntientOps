@@ -1007,6 +1007,12 @@ struct AssignedWorkerRow: View {
                     .fontWeight(.medium)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                 
+                if let role = worker.role, !role.isEmpty {
+                    Text(role)
+                        .font(.caption)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+                }
+
                 if let schedule = worker.schedule {
                     Text(schedule)
                         .font(.caption)
@@ -1339,6 +1345,12 @@ struct OnSiteWorkerRow: View {
                     .fontWeight(.medium)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                 
+                if let role = worker.role, !role.isEmpty {
+                    Text(role)
+                        .font(.caption)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+                }
+                
                 Text("On-site")
                     .font(.caption)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.success)
@@ -1537,6 +1549,7 @@ struct BuildingOverviewTab: View {
                 .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
             
             let buildingInfo = getCorrectedBuildingInfo(viewModel.buildingName)
+            let elevator = viewModel.getElevatorInfo()
             
             VStack(spacing: 12) {
                 HStack {
@@ -1575,6 +1588,42 @@ struct BuildingOverviewTab: View {
                 }
                 .font(.subheadline)
                 
+                HStack {
+                    Image(systemName: "arrow.up.and.down.circle.fill")
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.info)
+                    Text("Elevators")
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                    Spacer()
+                    Text(elevator.hasElevator ? (elevator.count != nil ? "Yes (\(elevator.count!))" : "Yes") : "No")
+                        .fontWeight(.medium)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                }
+                .font(.subheadline)
+
+                HStack {
+                    Image(systemName: "square.3.layers.3d.top.filled")
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryAction)
+                    Text("Floors")
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                    Spacer()
+                    Text("\(viewModel.floors)")
+                        .fontWeight(.medium)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                }
+                .font(.subheadline)
+
+                HStack {
+                    Image(systemName: "calendar")
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryAction)
+                    Text("Year Built")
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                    Spacer()
+                    Text("\(viewModel.yearBuilt)")
+                        .fontWeight(.medium)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                }
+                .font(.subheadline)
+
                 HStack {
                     Image(systemName: "info.circle.fill")
                         .foregroundColor(CyntientOpsDesign.DashboardColors.primaryAction)
@@ -3539,66 +3588,9 @@ class BuildingDetailVM: ObservableObject {
         }
     }
     
-    struct OnSiteWorkerRow: View {
-        let worker: BDAssignedWorker
-        
-        var body: some View {
-            HStack {
-                Circle()
-                    .fill(CyntientOpsDesign.DashboardColors.success)
-                    .frame(width: 8, height: 8)
-                
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(worker.name)
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-                    
-                    Text("Arrived \(Date().addingTimeInterval(-3600), style: .relative)")
-                        .font(.caption)
-                        .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
-                }
-                
-                Spacer()
-                
-                Text("On-site")
-                    .font(.caption)
-                    .fontWeight(.medium)
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.success)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 2)
-                    .background(
-                        Capsule()
-                            .fill(CyntientOpsDesign.DashboardColors.success.opacity(0.15))
-                    )
-            }
-        }
-    }
+    // Duplicate OnSiteWorkerRow removed (use the earlier definition)
     
-    struct AssignedWorkerRow: View {
-        let worker: BDAssignedWorker
-        
-        var body: some View {
-            HStack {
-                Circle()
-                    .fill(worker.isOnSite ? CyntientOpsDesign.DashboardColors.success : CyntientOpsDesign.DashboardColors.inactive)
-                    .frame(width: 8, height: 8)
-                
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(worker.name)
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-                    
-                    Text(worker.schedule)
-                        .font(.caption)
-                        .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
-                }
-                
-                Spacer()
-            }
-        }
-    }
+    // Duplicate AssignedWorkerRow removed (use the earlier definition)
     
     struct StatCard: View {
         let title: String
@@ -4986,13 +4978,15 @@ class BuildingDetailVM: ObservableObject {
     
     // MARK: - Building Routes Tab
     
-    struct BuildingRoutesTab: View {
+    // Using shared BuildingRoutesTab component (see Views/Components/Buildings/BuildingRoutesTab.swift)
+    /* struct BuildingRoutesTab: View {
         let buildingId: String
         let buildingName: String
         let container: ServiceContainer
         let viewModel: BuildingDetailViewModel
         @State private var selectedDate = Date()
         @State private var routeData: [RouteSequence] = []
+        @State private var workerMap: [String: String] = [:]
         @State private var isLoading = true
         
         var body: some View {
@@ -5051,7 +5045,11 @@ class BuildingDetailVM: ObservableObject {
                     // Routes list
                     LazyVStack(spacing: 12) {
                         ForEach(routeData, id: \.id) { sequence in
-                            RouteSequenceCard(sequence: sequence, container: container)
+                            RouteSequenceCard(
+                                sequence: sequence,
+                                container: container,
+                                overrideWorkerName: workerMap[sequence.id]
+                            )
                         }
                     }
                 }
@@ -5065,170 +5063,60 @@ class BuildingDetailVM: ObservableObject {
             isLoading = true
             
             Task {
-                _ = Calendar.current.component(.weekday, from: selectedDate)
+                let selectedWeekday = Calendar.current.component(.weekday, from: selectedDate)
                 let routes = container.routes
                 let allRoutes = routes.routes
-                
-                // Filter sequences for this building
-                let buildingSequences = allRoutes.flatMap { route in
-                    route.sequences.filter { sequence in
-                        sequence.buildingId == buildingId ||
-                        (buildingId.contains("17th") && sequence.buildingId.contains("17th")) ||
-                        (buildingId.contains("18th") && sequence.buildingId.contains("18th"))
+
+                // Restrict to workers assigned to this building (if any assigned)
+                let allowedWorkerIds: Set<String> = {
+                    let ids = viewModel.assignedWorkers.map { $0.id }
+                    return ids.isEmpty ? Set(allRoutes.map { $0.workerId }) : Set(ids)
+                }()
+
+                func sequenceCoversBuilding(_ sequence: RouteSequence, buildingId: String) -> Bool {
+                    if sequence.buildingId == buildingId { return true }
+                    switch sequence.buildingId {
+                    case "17th_street_complex":
+                        let group: Set<String> = [
+                            CanonicalIDs.Buildings.westSeventeenth117,
+                            CanonicalIDs.Buildings.westSeventeenth135_139,
+                            CanonicalIDs.Buildings.westSeventeenth138,
+                            CanonicalIDs.Buildings.westSeventeenth136,
+                            CanonicalIDs.Buildings.rubinMuseum,
+                            CanonicalIDs.Buildings.westEighteenth112
+                        ]
+                        return group.contains(buildingId)
+                    case "multi_location":
+                        let group: Set<String> = [
+                            CanonicalIDs.Buildings.firstAvenue123,
+                            CanonicalIDs.Buildings.springStreet178
+                        ]
+                        return group.contains(buildingId)
+                    default:
+                        return false
                     }
                 }
-                
+
+                var sequences: [RouteSequence] = []
+                var map: [String: String] = [:]
+
+                for route in allRoutes where allowedWorkerIds.contains(route.workerId) && route.dayOfWeek == selectedWeekday {
+                    let workerName = CanonicalIDs.Workers.getName(for: route.workerId) ?? "Unknown Worker"
+                    for seq in route.sequences where sequenceCoversBuilding(seq, buildingId: buildingId) {
+                        sequences.append(seq)
+                        map[seq.id] = workerName
+                    }
+                }
+
                 await MainActor.run {
-                    self.routeData = buildingSequences
+                    self.workerMap = map
+                    self.routeData = sequences
                     self.isLoading = false
                 }
             }
         }
-    }
+    } */
     
-    // MARK: - Route Sequence Card
-    
-    struct RouteSequenceCard: View {
-        let sequence: RouteSequence
-        let container: ServiceContainer
-        @State private var isExpanded = false
-        @State private var workerName = "Unknown Worker"
-        
-        var body: some View {
-            VStack(alignment: .leading, spacing: 12) {
-                // Header
-                HStack {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(sequence.buildingName)
-                            .font(.headline)
-                            .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-                        
-                        HStack(spacing: 16) {
-                            Label(workerName, systemImage: "person.fill")
-                            Label(CoreTypes.DateUtils.timeFormatter.string(from: sequence.arrivalTime), systemImage: "clock.fill")
-                            Label(formatDuration(sequence.estimatedDuration), systemImage: "timer")
-                        }
-                        .font(.caption)
-                        .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
-                    }
-                    
-                    Spacer()
-                    
-                    VStack(alignment: .trailing, spacing: 4) {
-                        sequenceTypeIcon
-                        
-                        Button(action: { withAnimation { isExpanded.toggle() } }) {
-                            Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                                .font(.caption)
-                                .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
-                        }
-                    }
-                }
-                
-                // Operations list (expandable)
-                if isExpanded {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Operations")
-                            .font(.subheadline)
-                            .fontWeight(.semibold)
-                            .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-                        
-                        ForEach(sequence.operations, id: \.id) { operation in
-                            HStack(spacing: 12) {
-                                Image(systemName: operationIcon(for: operation.category))
-                                    .font(.system(size: 14))
-                                    .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryAction)
-                                    .frame(width: 20)
-                                
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(operation.name)
-                                        .font(.subheadline)
-                                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-                                    
-                                    if let instructions = operation.instructions {
-                                        Text(instructions)
-                                            .font(.caption)
-                                            .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
-                                            .lineLimit(2)
-                                    }
-                                }
-                                
-                                Spacer()
-                                
-                                Text(formatDuration(operation.estimatedDuration))
-                                    .font(.caption)
-                                    .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
-                            }
-                            .padding(.vertical, 4)
-                        }
-                    }
-                    .padding(.top, 8)
-                }
-            }
-            .padding()
-            .glassCard()
-            .task {
-                // Load worker name (placeholder logic)
-                workerName = "Kevin Dutan" // This would come from the route data
-            }
-        }
-        
-        private var sequenceTypeIcon: some View {
-            let (icon, color) = sequenceTypeIconAndColor(sequence.sequenceType)
-            return Image(systemName: icon)
-                .font(.system(size: 16))
-                .foregroundColor(color)
-        }
-        
-        private func sequenceTypeIconAndColor(_ type: RouteSequence.SequenceType) -> (String, Color) {
-            switch type {
-            case .buildingCheck:
-                return ("building.2.fill", .blue)
-            case .indoorCleaning:
-                return ("house.fill", .green)
-            case .outdoorCleaning:
-                return ("sun.max.fill", .orange)
-            case .maintenance:
-                return ("wrench.and.screwdriver.fill", .purple)
-            case .inspection:
-                return ("magnifyingglass", .cyan)
-            case .sanitation:
-                return ("trash.circle.fill", .orange)
-            case .operations:
-                return ("gearshape.fill", .gray)
-            @unknown default:
-                return ("square.dashed", .gray)
-            }
-        }
-        
-        private func operationIcon(for category: OperationTask.TaskCategory) -> String {
-            switch category {
-            case .sweeping: return "wind"
-            case .hosing: return "drop.fill"
-            case .vacuuming: return "tornado"
-            case .mopping: return "mop"
-            case .trashCollection: return "trash.fill"
-            case .dsnySetout: return "trash"
-            case .maintenance: return "wrench.fill"
-            case .buildingInspection: return "magnifyingglass"
-            case .posterRemoval: return "doc.text.fill"
-            case .treepitCleaning: return "leaf.fill"
-            case .stairwellCleaning: return "stairs"
-            case .binManagement: return "trash.circle.fill"
-            case .laundryRoom: return "washer"
-            }
-        }
-        
-        private func formatDuration(_ seconds: TimeInterval) -> String {
-            let hours = Int(seconds) / 3600
-            let minutes = (Int(seconds) % 3600) / 60
-            
-            if hours > 0 {
-                return minutes > 0 ? "\(hours)h \(minutes)m" : "\(hours)h"
-            } else {
-                return "\(minutes)m"
-            }
-        }
-    }
+    // RouteSequenceCard moved to shared component (RouteSequenceCard.swift)
 }
 #endif

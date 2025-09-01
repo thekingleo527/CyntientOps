@@ -16,6 +16,7 @@ struct BuildingRoutesTab: View {
 
     @State private var selectedDate = Date()
     @State private var routeData: [RouteSequence] = []
+    @State private var workerMap: [String: String] = [:] // sequence.id -> worker name
     @State private var isLoading = true
 
     var body: some View {
@@ -74,7 +75,11 @@ struct BuildingRoutesTab: View {
                 // Routes list
                 LazyVStack(spacing: 12) {
                     ForEach(routeData, id: \.id) { sequence in
-                        RouteSequenceCard(sequence: sequence, container: container)
+                        RouteSequenceCard(
+                            sequence: sequence,
+                            container: container,
+                            overrideWorkerName: workerMap[sequence.id]
+                        )
                     }
                 }
             }
@@ -91,21 +96,56 @@ struct BuildingRoutesTab: View {
             _ = Calendar.current.component(.weekday, from: selectedDate)
             let routes = container.routes
             let allRoutes = routes.routes
+            let selectedWeekday = Calendar.current.component(.weekday, from: selectedDate)
 
-            // Filter sequences for this building
-            let buildingSequences = allRoutes.flatMap { route in
-                route.sequences.filter { sequence in
-                    sequence.buildingId == buildingId ||
-                    (buildingId.contains("17th") && sequence.buildingId.contains("17th")) ||
-                    (buildingId.contains("18th") && sequence.buildingId.contains("18th"))
+            // Only show routes for workers assigned to this building (if available)
+            let allowedWorkerIds: Set<String> = {
+                let ids = viewModel.assignedWorkers.map { $0.id }
+                return ids.isEmpty ? Set(allRoutes.map { $0.workerId }) : Set(ids)
+            }()
+
+            // Helper: map multi-location sequence buildingIds to member buildingIds
+            func sequenceCoversBuilding(_ sequence: RouteSequence, buildingId: String) -> Bool {
+                if sequence.buildingId == buildingId { return true }
+                switch sequence.buildingId {
+                case "17th_street_complex":
+                    let group: Set<String> = [
+                        CanonicalIDs.Buildings.westSeventeenth117,
+                        CanonicalIDs.Buildings.westSeventeenth135_139,
+                        CanonicalIDs.Buildings.westSeventeenth138,
+                        CanonicalIDs.Buildings.westSeventeenth136,
+                        CanonicalIDs.Buildings.rubinMuseum,
+                        CanonicalIDs.Buildings.westEighteenth112 // include 112 mapping
+                    ]
+                    return group.contains(buildingId)
+                case "multi_location":
+                    let group: Set<String> = [
+                        CanonicalIDs.Buildings.firstAvenue123,
+                        CanonicalIDs.Buildings.springStreet178
+                    ]
+                    return group.contains(buildingId)
+                default:
+                    return false
+                }
+            }
+
+            var sequences: [RouteSequence] = []
+            var map: [String: String] = [:]
+
+            for route in allRoutes where allowedWorkerIds.contains(route.workerId) && route.dayOfWeek == selectedWeekday {
+                let workerName = CanonicalIDs.Workers.getName(for: route.workerId) ?? "Unknown Worker"
+                for seq in route.sequences where sequenceCoversBuilding(seq, buildingId: buildingId) {
+                    sequences.append(seq)
+                    map[seq.id] = workerName
                 }
             }
 
             await MainActor.run {
-                self.routeData = buildingSequences
+                self.workerMap = map
+                self.routeData = sequences
                 self.isLoading = false
             }
+            print("🗺️ BuildingRoutesTab: \(buildingName) — sequences: \(sequences.count), workers: \(Set(map.values).count)")
         }
     }
 }
-

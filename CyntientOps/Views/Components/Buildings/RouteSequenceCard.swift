@@ -4,8 +4,9 @@ import SwiftUI
 struct RouteSequenceCard: View {
     let sequence: RouteSequence
     let container: ServiceContainer
+    // Optional override to display the correct worker
+    let overrideWorkerName: String?
     @State private var isExpanded = false
-    @State private var workerName = "Unknown Worker"
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -17,7 +18,7 @@ struct RouteSequenceCard: View {
                         .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
 
                     HStack(spacing: 16) {
-                        Label(workerName, systemImage: "person.fill")
+                        Label(displayWorkerName, systemImage: "person.fill")
                         Label(CoreTypes.DateUtils.timeFormatter.string(from: sequence.arrivalTime), systemImage: "clock.fill")
                         Label(formatDuration(sequence.estimatedDuration), systemImage: "timer")
                     }
@@ -80,10 +81,11 @@ struct RouteSequenceCard: View {
         }
         .padding()
         .glassCard()
-        .task {
-            // Load worker name (placeholder logic)
-            workerName = "Kevin Dutan" // This would come from the route data
-        }
+        // No task-side lookup; parent provides worker name for accuracy
+    }
+
+    private var displayWorkerName: String {
+        overrideWorkerName ?? "Unknown Worker"
     }
 
     private var sequenceTypeIcon: some View {

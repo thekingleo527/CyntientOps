@@ -265,6 +265,13 @@ public final class ServiceContainer: ObservableObject {
         // PRODUCTION: Initialize only essential services synchronously
         self.auth = NewAuthManager.shared // Required for immediate auth state
         print("✅ Auth ready")
+        // Token detection (no secrets)
+        let tokenDetected: Bool = {
+            if let keys = try? KeychainManager.shared.getNYCAPIKeys() { return !keys.dsnyAPIKey.isEmpty || !keys.hpdAPIKey.isEmpty }
+            let env = ProcessInfo.processInfo.environment
+            return env["NYC_APP_TOKEN"]?.isEmpty == false || env["DSNY_API_TOKEN"]?.isEmpty == false
+        }()
+        print("🔐 NYC token detected: \(tokenDetected ? "yes" : "no")")
         
         // PRODUCTION: All other services lazy-loaded when first accessed
         print("⚡ ServiceContainer ready - services will load on-demand")

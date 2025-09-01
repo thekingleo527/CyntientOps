@@ -15,6 +15,7 @@ struct WorkerSimpleHeader: View {
     let workerId: String
     let isNovaProcessing: Bool
     let clockInStatus: ClockInStatus
+    let showClockButton: Bool
     
     // Action callbacks
     let onLogoTap: () -> Void
@@ -25,6 +26,28 @@ struct WorkerSimpleHeader: View {
     enum ClockInStatus {
         case notClockedIn
         case clockedIn(building: String, time: Date)
+    }
+
+    init(
+        workerName: String,
+        workerId: String,
+        isNovaProcessing: Bool,
+        clockInStatus: ClockInStatus,
+        showClockButton: Bool = true,
+        onLogoTap: @escaping () -> Void,
+        onNovaPress: @escaping () -> Void,
+        onProfileTap: @escaping () -> Void,
+        onClockAction: @escaping () -> Void
+    ) {
+        self.workerName = workerName
+        self.workerId = workerId
+        self.isNovaProcessing = isNovaProcessing
+        self.clockInStatus = clockInStatus
+        self.showClockButton = showClockButton
+        self.onLogoTap = onLogoTap
+        self.onNovaPress = onNovaPress
+        self.onProfileTap = onProfileTap
+        self.onClockAction = onClockAction
     }
     
     var body: some View {
@@ -91,29 +114,31 @@ struct WorkerSimpleHeader: View {
                 }
                 .buttonStyle(PlainButtonStyle())
                 
-                // Clock In/Out Action
-                Button(action: onClockAction) {
-                    HStack(spacing: 6) {
-                        Image(systemName: clockIcon)
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(clockColor)
-                        
-                        Text(clockText)
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundColor(clockColor)
+                // Clock In/Out Action (can be hidden when moved to quick actions)
+                if showClockButton {
+                    Button(action: onClockAction) {
+                        HStack(spacing: 6) {
+                            Image(systemName: clockIcon)
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundColor(clockColor)
+                            
+                            Text(clockText)
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundColor(clockColor)
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(
+                            Capsule()
+                                .fill(clockColor.opacity(0.15))
+                                .overlay(
+                                    Capsule()
+                                        .stroke(clockColor.opacity(0.3), lineWidth: 1)
+                                )
+                        )
                     }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background(
-                        Capsule()
-                            .fill(clockColor.opacity(0.15))
-                            .overlay(
-                                Capsule()
-                                    .stroke(clockColor.opacity(0.3), lineWidth: 1)
-                            )
-                    )
+                    .buttonStyle(PlainButtonStyle())
                 }
-                .buttonStyle(PlainButtonStyle())
             }
         }
         .padding(.horizontal, 20)

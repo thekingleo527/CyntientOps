@@ -10,6 +10,9 @@
 
 import SwiftUI
 import MapKit
+#if os(iOS)
+import UIKit
+#endif
 
 struct WorkerDashboardView: View {
     @StateObject private var viewModel: WorkerDashboardViewModel
@@ -21,6 +24,60 @@ struct WorkerDashboardView: View {
     init(container: ServiceContainer) {
         self.container = container
         self._viewModel = StateObject(wrappedValue: WorkerDashboardViewModel(container: container))
+    }
+    
+    @ViewBuilder
+    private var mapOverlayContent: some View {
+        ZStack {
+            // Dark Background
+            CyntientOpsDesign.DashboardColors.baseBackground
+                .ignoresSafeArea()
+
+            VStack(spacing: 0) {
+                // Role-specific header (simple, focused)
+                WorkerSimpleHeader(
+                    workerName: getWorkerName(),
+                    workerId: viewModel.workerProfile?.id ?? "",
+                    isNovaProcessing: false,
+                    clockInStatus: viewModel.isClockedIn ? .clockedIn(building: viewModel.currentBuilding?.name ?? "", time: viewModel.clockInTime ?? Date()) : .notClockedIn,
+                    showClockButton: false,
+                    onLogoTap: { /* Optional: show menu or map */ },
+                    onNovaPress: { sheet = .novaChat },
+                    onProfileTap: { sheet = .profile },
+                    onClockAction: { handleClockAction() }
+                )
+                .zIndex(100)
+
+                // Main Content with Dynamic Bottom Padding
+                ScrollView {
+                    VStack(spacing: CyntientOpsDesign.Spacing.md) {
+                        // Hero Section: Two Glass Cards
+                        heroSection
+
+                        // Weather Hybrid Card
+                        WeatherHybridCard(snapshot: viewModel.weather) {
+                            showingHourlyWeather = true
+                        }
+                        .padding(.horizontal, CyntientOpsDesign.Spacing.md)
+                        .animatedGlassAppear(delay: 0.3)
+
+                        // Upcoming Tasks (weather-aware, intelligent ordering)
+                        if !viewModel.upcoming.isEmpty {
+                            UpcomingTaskListView(rows: viewModel.upcoming) { tapped in
+                                sheet = .taskDetail(tapped.taskId)
+                            }
+                            .padding(.horizontal, CyntientOpsDesign.Spacing.md)
+                            .animatedGlassAppear(delay: 0.4)
+                        }
+                    }
+                    .padding(.top, CyntientOpsDesign.Spacing.md)
+                    .padding(.bottom, getIntelligencePanelTotalHeight() + 20)
+                }
+                .refreshable {
+                    await viewModel.refreshData()
+                }
+            }
+        }
     }
     
     // MARK: - Sheet Navigation
@@ -50,6 +107,8 @@ struct WorkerDashboardView: View {
     @State private var showingVendorAccess = false
     @State private var showingQuickNote = false
     @State private var showingCamera = false
+    @State private var isClockBusy = false
+    @State private var showingHourlyWeather = false
     
     // MARK: - Intelligence Tabs
     enum IntelligenceTab: String, CaseIterable {
@@ -71,187 +130,202 @@ struct WorkerDashboardView: View {
     }
     
     var body: some View {
-        MapRevealContainer(
+        // Break the view chain into simpler steps for faster type-checking
+        let step1 = mapContainerView.safeAreaInset(edge: .bottom) { intelligenceBar }
+        let step2 = step1.navigationBarHidden(true).preferredColorScheme(.dark)
+
+        // Sheets split into smaller closures
+        let step3 = step2.sheet(item: $sheet) { route in
+            NavigationView { workerSheetContent(for: route) }
+        }
+
+        let step4 = step3.sheet(isPresented: $showingSiteDeparture) {
+            if let vm = siteDepartureVM {
+                NavigationView {
+                    SiteDepartureSingleView(viewModel: vm, buttonTitle: "Submit Log & Clock Out") {
+                        Task { await viewModel.clockOut() }
+                    }
+                    .navigationTitle("Site Departure")
+                    .navigationBarTitleDisplayMode(.inline)
+                }
+            } else if let wid = viewModel.worker?.id ?? authManager.workerId {
+                let summaries: [WorkerDashboardViewModel.BuildingSummary] = {
+                    if !viewModel.pendingDepartures.isEmpty {
+                        return viewModel.pendingDepartures
+                    } else if !viewModel.visitedToday.isEmpty {
+                        return viewModel.visitedToday
+                    } else if let current = viewModel.currentBuilding {
+                        return [current]
+                    } else {
+                        return viewModel.assignedBuildings
+                    }
+                }()
+                let buildingCoords: [NamedCoordinate] = summaries.map { b in
+                    NamedCoordinate(
+                        id: b.id,
+                        name: b.name,
+                        address: b.address,
+                        latitude: b.coordinate.latitude,
+                        longitude: b.coordinate.longitude
+                    )
+                }
+                MultiSiteDepartureSheet(
+                    workerId: wid,
+                    buildings: buildingCoords,
+                    container: container
+                ) {
+                    Task { await viewModel.clockOut() }
+                }
+            } else {
+                EmptyView()
+            }
+        }
+
+        let step5 = step4
+            .sheet(isPresented: $showingVendorAccess) {
+                VendorAccessLogSheetLight(viewModel: viewModel) {
+                    showingVendorAccess = false
+                }
+            }
+            .sheet(isPresented: $showingHourlyWeather) {
+                if let snap = viewModel.weather {
+                    NavigationView {
+                        WeatherRibbonView(snapshot: snap)
+                            .navigationTitle("Hourly Weather")
+                            .navigationBarTitleDisplayMode(.inline)
+                    }
+                } else {
+                    EmptyView()
+                }
+            }
+            .sheet(isPresented: $showingQuickNote) {
+                QuickNoteSheet(viewModel: viewModel)
+            }
+            .fullScreenCover(isPresented: $showingCamera) {
+                CyntientOpsImagePicker(
+                    image: .constant(nil),
+                    onImagePicked: { image in
+                        if let wid = viewModel.worker?.id, let building = viewModel.currentBuilding {
+                            Task {
+                                _ = try? await container.photos.captureQuick(
+                                    image: image,
+                                    category: .afterWork,
+                                    buildingId: building.id,
+                                    workerId: wid,
+                                    notes: "Quick photo captured from dashboard"
+                                )
+                            }
+                        }
+                        showingCamera = false
+                    },
+                    sourceType: .camera
+                )
+            }
+
+        let step6 = step5
+            .task { await viewModel.refreshData() }
+            .overlay(
+                Group {
+                    if let fullScreenTab = showingFullScreenTab {
+                        fullScreenTabContent(for: fullScreenTab)
+                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                            .zIndex(10)
+                    }
+                }
+            )
+            .overlay(alignment: Alignment.trailing) {
+                VStack(spacing: 12) {
+                    Button(action: { handleClockAction() }) {
+                        Image(systemName: viewModel.isClockedIn ? "clock.fill" : "clock")
+                            .foregroundColor(.white)
+                            .padding(10)
+                            .background(.ultraThinMaterial, in: Circle())
+                    }
+                    .accessibilityLabel(viewModel.isClockedIn ? "Clock out" : "Clock in")
+                    .disabled(isClockBusy)
+                    .overlay(
+                        Group {
+                            if viewModel.siteDepartureRequired {
+                                Circle()
+                                    .fill(Color.orange)
+                                    .frame(width: 6, height: 6)
+                                    .offset(x: 14, y: -14)
+                            }
+                        }
+                    )
+                    Button(action: { showingVendorAccess = true }) {
+                        Image(systemName: "person.badge.key.fill")
+                            .foregroundColor(.white)
+                            .padding(10)
+                            .background(.ultraThinMaterial, in: Circle())
+                    }
+                    Button(action: { showingCamera = true }) {
+                        Image(systemName: "camera.fill")
+                            .foregroundColor(.white)
+                            .padding(10)
+                            .background(.ultraThinMaterial, in: Circle())
+                    }
+                    Button(action: { showingQuickNote = true }) {
+                        Image(systemName: "note.text")
+                            .foregroundColor(.white)
+                            .padding(10)
+                            .background(.ultraThinMaterial, in: Circle())
+                    }
+                }
+                .padding(.trailing, 12)
+                .padding(.bottom, 100)
+            }
+
+        return AnyView(step6)
+    }
+
+    private var mapContainerView: some View {
+        let currentId: String? = viewModel.currentBuilding?.id
+        return MapRevealContainer(
             buildings: mapBuildings,
-            currentBuildingId: viewModel.currentBuilding?.id,
+            currentBuildingId: currentId,
             isRevealed: $isPortfolioMapRevealed,
             container: container,
             onBuildingTap: { building in
                 sheet = .buildingDetail(building.id)
             }
-        ) {
-            ZStack {
-                // Dark Background
-                CyntientOpsDesign.DashboardColors.baseBackground
-                    .ignoresSafeArea()
-                
-                VStack(spacing: 0) {
-                    // Role-specific header (simple, focused)
-                    WorkerSimpleHeader(
-                        workerName: getWorkerName(),
-                        workerId: viewModel.workerProfile?.id ?? "",
-                        isNovaProcessing: false,
-                        clockInStatus: viewModel.isClockedIn ? .clockedIn(building: viewModel.currentBuilding?.name ?? "", time: viewModel.clockInTime ?? Date()) : .notClockedIn,
-                        onLogoTap: { /* Optional: show menu or map */ },
-                        onNovaPress: { sheet = .novaChat },
-                        onProfileTap: { sheet = .profile },
-                        onClockAction: { handleClockAction() }
+        ) { AnyView(mapOverlayContent) }
+    }
+
+    @ViewBuilder
+    private var intelligenceBar: some View {
+        // Intelligence Panel with Working Tabs - Simplified for now
+        VStack {
+            // Basic tab bar for worker functions
+            HStack {
+                ForEach(IntelligenceTab.allCases, id: \.rawValue) { tab in
+                    Button(action: {
+                        selectedNovaTab = tab
+                        handleIntelligenceTabNavigation(tab)
+                    }) {
+                        VStack(spacing: 4) {
+                            Image(systemName: tab.icon)
+                                .font(.system(size: 16))
+                                .foregroundColor(selectedNovaTab == tab ? CyntientOpsDesign.DashboardColors.workerPrimary : CyntientOpsDesign.DashboardColors.tertiaryText)
+                            
+                            Text(tab.rawValue)
+                                .font(.caption2)
+                                .foregroundColor(selectedNovaTab == tab ? CyntientOpsDesign.DashboardColors.workerPrimary : CyntientOpsDesign.DashboardColors.tertiaryText)
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+            }
+            .padding(.horizontal, CyntientOpsDesign.Spacing.md)
+            .padding(.vertical, 12)
+            .background(
+                Rectangle()
+                    .fill(.regularMaterial)
+                    .overlay(
+                        Rectangle()
+                            .stroke(Color.white.opacity(0.1), lineWidth: 1)
                     )
-                    .zIndex(100)
-                    
-                    // Main Content with Dynamic Bottom Padding
-                    ScrollView {
-                        VStack(spacing: CyntientOpsDesign.Spacing.md) {
-                            // Hero Section: Two Glass Cards
-                            heroSection
-                            
-                            // Weather Ribbon (compact, expandable)
-                            if let weatherSnapshot = viewModel.weather {
-                                WeatherRibbonView(snapshot: weatherSnapshot)
-                                    .padding(.horizontal, CyntientOpsDesign.Spacing.md)
-                                    .animatedGlassAppear(delay: 0.3)
-                            }
-                            
-                            // Upcoming Tasks (weather-aware, intelligent ordering)
-                            if !viewModel.upcoming.isEmpty {
-                                UpcomingTaskListView(rows: viewModel.upcoming) { tapped in
-                                    sheet = .taskDetail(tapped.taskId)
-                                }
-                                .padding(.horizontal, CyntientOpsDesign.Spacing.md)
-                                .animatedGlassAppear(delay: 0.4)
-                            }
-                        }
-                        .padding(.top, CyntientOpsDesign.Spacing.md)
-                        .padding(.bottom, getIntelligencePanelTotalHeight() + 20)
-                    }
-                    .refreshable {
-                        await viewModel.refreshData()
-                    }
-                }
-            }
-        }
-        .safeAreaInset(edge: .bottom) {
-            // Intelligence Panel with Working Tabs - Simplified for now
-            VStack {
-                // Basic tab bar for worker functions
-                HStack {
-                    ForEach(IntelligenceTab.allCases, id: \.rawValue) { tab in
-                        Button(action: {
-                            selectedNovaTab = tab
-                            handleIntelligenceTabNavigation(tab)
-                        }) {
-                            VStack(spacing: 4) {
-                                Image(systemName: tab.icon)
-                                    .font(.system(size: 16))
-                                    .foregroundColor(selectedNovaTab == tab ? CyntientOpsDesign.DashboardColors.workerPrimary : CyntientOpsDesign.DashboardColors.tertiaryText)
-                                
-                                Text(tab.rawValue)
-                                    .font(.caption2)
-                                    .foregroundColor(selectedNovaTab == tab ? CyntientOpsDesign.DashboardColors.workerPrimary : CyntientOpsDesign.DashboardColors.tertiaryText)
-                            }
-                        }
-                        .frame(maxWidth: .infinity)
-                    }
-                }
-                .padding(.horizontal, CyntientOpsDesign.Spacing.md)
-                .padding(.vertical, 12)
-                .background(
-                    Rectangle()
-                        .fill(.regularMaterial)
-                        .overlay(
-                            Rectangle()
-                                .stroke(Color.white.opacity(0.1), lineWidth: 1)
-                        )
-                )
-            }
-        }
-        .navigationBarHidden(true)
-        .preferredColorScheme(.dark)
-        .sheet(item: $sheet) { route in
-            NavigationView {
-                workerSheetContent(for: route)
-            }
-        }
-        .sheet(isPresented: $showingSiteDeparture) {
-            if let vm = siteDepartureVM {
-                SiteDepartureSheet(viewModel: vm) {
-                    Task { await viewModel.clockOut() }
-                }
-            }
-        }
-        .sheet(isPresented: $showingVendorAccess) {
-            VendorAccessLogSheetLight(viewModel: viewModel) {
-                showingVendorAccess = false
-            }
-        }
-        .sheet(isPresented: $showingQuickNote) {
-            QuickNoteSheet(viewModel: viewModel)
-        }
-        .fullScreenCover(isPresented: $showingCamera) {
-            CyntientOpsImagePicker(
-                image: .constant(nil),
-                onImagePicked: { image in
-                    // Store quick photo as after-work note for current building
-                    if let wid = viewModel.worker?.id,
-                       let building = viewModel.currentBuilding {
-                        Task {
-                            _ = try? await container.photos.captureQuick(
-                                image: image,
-                                category: .afterWork,
-                                buildingId: building.id,
-                                workerId: wid,
-                                notes: "Quick photo captured from dashboard"
-                            )
-                        }
-                    }
-                    showingCamera = false
-                },
-                sourceType: .camera
             )
-        }
-        .task {
-            await viewModel.refreshData()
-        }
-        .overlay(
-            // Full-screen tab content overlay
-            Group {
-                if let fullScreenTab = showingFullScreenTab {
-                    fullScreenTabContent(for: fullScreenTab)
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                        .zIndex(10)
-                }
-            }
-        )
-        .overlay(alignment: .trailing) {
-            // Persistent quick actions rail
-            VStack(spacing: 12) {
-                Button(action: { handleClockAction() }) {
-                    Image(systemName: viewModel.isClockedIn ? "clock.fill" : "clock")
-                        .foregroundColor(.white)
-                        .padding(10)
-                        .background(.ultraThinMaterial, in: Circle())
-                }
-                Button(action: { showingVendorAccess = true }) {
-                    Image(systemName: "person.badge.key.fill")
-                        .foregroundColor(.white)
-                        .padding(10)
-                        .background(.ultraThinMaterial, in: Circle())
-                }
-                Button(action: { showingCamera = true }) {
-                    Image(systemName: "camera.fill")
-                        .foregroundColor(.white)
-                        .padding(10)
-                        .background(.ultraThinMaterial, in: Circle())
-                }
-                Button(action: { showingQuickNote = true }) {
-                    Image(systemName: "note.text")
-                        .foregroundColor(.white)
-                        .padding(10)
-                        .background(.ultraThinMaterial, in: Circle())
-                }
-            }
-            .padding(.trailing, 12)
-            .padding(.bottom, 100)
         }
     }
 
@@ -609,24 +683,50 @@ struct WorkerDashboardView: View {
     }
 private func handleClockAction() {
         Task {
+            #if os(iOS)
+            let haptic = UINotificationFeedbackGenerator()
+            haptic.prepare()
+            #endif
+            isClockBusy = true
             if viewModel.isClockedIn {
-                if let wid = viewModel.worker?.id ?? authManager.workerId,
-                   let cb = viewModel.currentBuilding {
-                    let named = NamedCoordinate(
-                        id: cb.id,
-                        name: cb.name,
-                        address: cb.address,
-                        latitude: cb.coordinate.latitude,
-                        longitude: cb.coordinate.longitude
-                    )
-                    siteDepartureVM = SiteDepartureViewModel(
-                        workerId: wid,
-                        currentBuilding: named,
-                        container: container
-                    )
-                    showingSiteDeparture = true
+                // Always show a day log sheet when worker is clocking out and has any visits today.
+                // Use multi-site when >1 visited; else single-site for that building.
+                if let wid = viewModel.worker?.id ?? authManager.workerId {
+                    // Choose building list: visited → current → assigned
+                    let visited = viewModel.visitedToday
+                    if visited.count > 1 {
+                        siteDepartureVM = nil
+                        showingSiteDeparture = true
+                    } else {
+                        let b: WorkerDashboardViewModel.BuildingSummary? = visited.first ?? viewModel.currentBuilding ?? viewModel.assignedBuildings.first
+                        if let b {
+                        let named = NamedCoordinate(
+                            id: b.id,
+                            name: b.name,
+                            address: b.address,
+                            latitude: b.coordinate.latitude,
+                            longitude: b.coordinate.longitude
+                        )
+                        siteDepartureVM = SiteDepartureViewModel(
+                            workerId: wid,
+                            currentBuilding: named,
+                            container: container
+                        )
+                        showingSiteDeparture = true
+                        } else {
+                            // No building context at all; fall back to immediate clock out
+                            await viewModel.clockOut()
+                            #if os(iOS)
+                            haptic.notificationOccurred(.success)
+                            #endif
+                        }
+                    }
                 } else {
+                    // No visits recorded today; proceed to immediate clock out.
                     await viewModel.clockOut()
+                    #if os(iOS)
+                    haptic.notificationOccurred(.success)
+                    #endif
                 }
             } else {
                 if let building = viewModel.assignedBuildings.first {
@@ -638,8 +738,12 @@ private func handleClockAction() {
                         longitude: building.coordinate.longitude
                     )
                     await viewModel.clockIn(at: coordinate)
+                    #if os(iOS)
+                    haptic.notificationOccurred(.success)
+                    #endif
                 }
             }
+            isClockBusy = false
         }
     }
     
@@ -687,7 +791,10 @@ private func handleClockAction() {
                     .navigationTitle(building.name)
                     .navigationBarTitleDisplayMode(.inline)
             }
-            
+                        else {
+                EmptyView()
+            }
+
         case .taskDetail(let taskId):
             if let task = viewModel.todaysTasks.first(where: { $0.id == taskId }) {
                 UnifiedTaskDetailView(
@@ -697,7 +804,10 @@ private func handleClockAction() {
                 .navigationTitle(task.title)
                 .navigationBarTitleDisplayMode(.inline)
             }
-            
+                        else {
+                EmptyView()
+            }
+
         case .novaChat:
             NovaInteractionView(container: container)
                 .environmentObject(novaManager)
@@ -760,7 +870,9 @@ private func handleClockAction() {
             // Semi-transparent background
             Color.black.opacity(0.3)
                 .ignoresSafeArea()
+                .allowsHitTesting(tab != .portfolio) // don't block map interactions in portfolio
                 .onTapGesture {
+                    guard tab != .portfolio else { return }
                     withAnimation(.easeInOut(duration: 0.3)) {
                         showingFullScreenTab = nil
                         if tab == .portfolio {
