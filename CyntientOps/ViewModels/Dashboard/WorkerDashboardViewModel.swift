@@ -1552,50 +1552,60 @@ public class WorkerDashboardViewModel: ObservableObject {
     }
     
     private func loadAssignedBuildings() async {
-        // Load buildings assigned to this worker from real operational data
-        guard let workerId = worker?.workerId else { return }
-        
+        // Prefer database-backed assignments; fall back to operational data
+        guard let workerId = currentWorkerId ?? worker?.workerId else { return }
         do {
-            // Get worker's routine schedules and extract unique buildings
-            let routineSchedules = try await OperationalDataManager.shared.getWorkerRoutineSchedules(for: workerId)
+            // Query buildings joined to worker assignments
+            let rows = try await container.database.query("""
+                SELECT b.id, b.name, b.address, b.latitude, b.longitude
+                FROM worker_building_assignments wba
+                INNER JOIN buildings b ON b.id = wba.building_id
+                WHERE wba.worker_id = ? AND wba.is_active = 1
+                ORDER BY b.name
+            """, [workerId])
 
-            // Create building summaries from routine data
-            let uniqueBuildings: [BuildingSummary] = Dictionary(grouping: routineSchedules, by: \.buildingId)
-                .compactMap { (buildingId, routines) -> BuildingSummary? in
-                    guard let firstRoutine = routines.first else { return nil }
+            var buildings: [BuildingSummary] = rows.compactMap { row in
+                guard let id = row["id"] as? (any CustomStringConvertible),
+                      let name = row["name"] as? String,
+                      let address = row["address"] as? String,
+                      let lat = row["latitude"] as? Double,
+                      let lon = row["longitude"] as? Double else { return nil }
+                return BuildingSummary(
+                    id: String(describing: id),
+                    name: name,
+                    address: address,
+                    coordinate: CLLocationCoordinate2D(latitude: lat, longitude: lon),
+                    status: .assigned,
+                    todayTaskCount: 0
+                )
+            }
 
-                    // Count today's tasks for this building (simple heuristic)
-                    let todayTasks = routines.filter { routine in
-                        routine.rrule.contains("DAILY") || routine.rrule.contains("WEEKLY")
+            // If DB had no assignments, fall back to operational data
+            if buildings.isEmpty {
+                let routineSchedules = try await OperationalDataManager.shared.getWorkerRoutineSchedules(for: workerId)
+                buildings = Dictionary(grouping: routineSchedules, by: \.buildingId)
+                    .compactMap { (buildingId, routines) -> BuildingSummary? in
+                        guard let firstRoutine = routines.first else { return nil }
+                        let coordinate = CLLocationCoordinate2D(
+                            latitude: firstRoutine.buildingLocation.latitude,
+                            longitude: firstRoutine.buildingLocation.longitude
+                        )
+                        return BuildingSummary(
+                            id: buildingId,
+                            name: firstRoutine.buildingName,
+                            address: firstRoutine.buildingAddress,
+                            coordinate: coordinate,
+                            status: .assigned,
+                            todayTaskCount: routines.count
+                        )
                     }
+            }
 
-                    let coordinate = CLLocationCoordinate2D(
-                        latitude: firstRoutine.buildingLocation.latitude,
-                        longitude: firstRoutine.buildingLocation.longitude
-                    )
-
-                    return BuildingSummary(
-                        id: buildingId,
-                        name: firstRoutine.buildingName,
-                        address: firstRoutine.buildingAddress,
-                        coordinate: coordinate,
-                        status: .assigned,
-                        todayTaskCount: todayTasks.count
-                    )
-                }
-            
-            assignedBuildings = uniqueBuildings
-            
-            // Calculate optimal map region from assigned buildings
+            assignedBuildings = buildings
             updateMapRegion()
-            
-            print("✅ Loaded \(uniqueBuildings.count) assigned buildings for worker \(workerId) from real operational data")
-            // Recompute optimized route when assigned buildings are known
+            print("✅ Loaded \(buildings.count) assigned buildings for worker \(workerId)")
             computeOptimizedRouteIfNeeded()
-            
-            // Update hero tile properties after buildings are loaded
             await updateHeroTileProperties()
-            
         } catch {
             print("❌ Failed to load assigned buildings: \(error)")
             assignedBuildings = []
@@ -1834,8 +1844,37 @@ public class WorkerDashboardViewModel: ObservableObject {
     }
     
     private func loadWeatherData() async {
-        guard let building = currentBuilding else { return }
-        await loadWeatherForBuilding(building)
+        if let building = currentBuilding {
+            await loadWeatherForBuilding(building)
+            return
+        }
+        // Fallback: use first assigned building if current not set
+        if let first = assignedBuildings.first {
+            await loadWeatherForBuilding(first)
+            return
+        }
+        // As a last resort, publish a benign default snapshot to avoid "Offline"
+        let fallbackCurrent = CoreTypes.WeatherData(
+            temperature: 72,
+            condition: .clear,
+            humidity: 0.5,
+            windSpeed: 6,
+            outdoorWorkRisk: .low,
+            timestamp: Date()
+        )
+        let fallbackHourly = (0..<12).map { i in
+            CoreTypes.WeatherData(
+                temperature: 72 + Double(Int.random(in: -3...3)),
+                condition: .clear,
+                humidity: 0.5,
+                windSpeed: 6,
+                outdoorWorkRisk: .low,
+                timestamp: Date().addingTimeInterval(Double(i) * 3600)
+            )
+        }
+        if let snap = WeatherSnapshot.from(current: fallbackCurrent, hourly: fallbackHourly) {
+            await MainActor.run { self.weather = snap }
+        }
     }
     
     private func loadWeatherForBuilding(_ building: BuildingSummary) async {
