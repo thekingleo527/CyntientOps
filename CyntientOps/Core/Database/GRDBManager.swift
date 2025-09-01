@@ -320,6 +320,17 @@ public final class GRDBManager {
         } catch {
             print("⚠️ Could not augment buildings schema: \(error)")
         }
+
+        // Deactivate legacy/non-portfolio building: 29–31 East 20th Street
+        do {
+            try db.execute(sql: """
+                UPDATE buildings
+                SET isActive = 0
+                WHERE address IN ('29-31 East 20th Street', '29–31 East 20th Street', '29-31 E 20th St', '29–31 E 20th St')
+            """)
+        } catch {
+            print("⚠️ Could not deactivate legacy 29–31 E 20th St: \(error)")
+        }
         
         // Ensure BBL and BIN columns exist
         do {

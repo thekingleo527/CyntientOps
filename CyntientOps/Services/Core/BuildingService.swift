@@ -158,9 +158,16 @@ public actor BuildingService {
     
     // MARK: - Public API Methods
     
-    /// Get all buildings - throws if none found
+    /// Get all active buildings (excludes inactive and legacy 29–31 E 20th) - throws if none found
     public func getAllBuildings() async throws -> [NamedCoordinate] {
-        let rows = try await grdbManager.query("SELECT * FROM buildings ORDER BY name")
+        let rows = try await grdbManager.query(
+            """
+            SELECT * FROM buildings
+            WHERE isActive = 1
+              AND (address NOT IN ('29-31 East 20th Street', '29–31 East 20th Street', '29-31 E 20th St', '29–31 E 20th St'))
+            ORDER BY name
+            """
+        )
         
         // NO FALLBACK - throw if no buildings
         guard !rows.isEmpty else {

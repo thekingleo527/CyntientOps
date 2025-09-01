@@ -36,6 +36,7 @@ public struct AdminDashboardView: View {
         case workerDetail(String), chat, map
         case exampleReport(String)
         case verificationSummary
+        case maintenanceHistory(String?)
         
         var id: String {
             switch self {
@@ -53,6 +54,7 @@ public struct AdminDashboardView: View {
             case .map: return "map"
             case .exampleReport(let id): return "example-report-\(id)"
             case .verificationSummary: return "verification-summary"
+            case .maintenanceHistory(let id): return "maintenance-history-\(id ?? "portfolio")"
         }
     }
     }
@@ -167,7 +169,8 @@ public struct AdminDashboardView: View {
                         onVerificationSummary: {
                             activeSheet = .verificationSummary
                         },
-                        onHPD: { activeSheet = .compliance },
+                        // Tap "Issues" should open Maintenance History (portfolio by default)
+                        onHPD: { activeSheet = .maintenanceHistory(nil) },
                         onDOB: { activeSheet = .compliance },
                         onDSNY: { activeSheet = .compliance },
                         viewModel: viewModel
@@ -482,6 +485,11 @@ struct AdminUrgentItem: View {
             }
             .navigationTitle("Portfolio Map")
         
+        case .maintenanceHistory(let buildingId):
+            let targetId = buildingId ?? viewModel.buildings.first?.id ?? ""
+            MaintenanceHistoryView(buildingID: targetId)
+                .navigationTitle("Maintenance History")
+
         case .exampleReport(let buildingId):
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
@@ -1326,14 +1334,33 @@ struct AdminWorkersContent: View {
                     .font(.caption2)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.adminAccent)
             }
-            
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 10) {
-                    ForEach(workers, id: \.id) { worker in
-                        AdminWorkerPill(worker: worker)
+
+            // Vertical list for readability and accessibility
+            VStack(spacing: 8) {
+                ForEach(workers, id: \.id) { worker in
+                    HStack {
+                        Circle()
+                            .fill(worker.isClockedIn ? CyntientOpsDesign.DashboardColors.success : CyntientOpsDesign.DashboardColors.warning)
+                            .frame(width: 8, height: 8)
+                        
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(worker.name)
+                                .font(.subheadline)
+                                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                            Text(worker.isClockedIn ? "On-site" : "Off shift")
+                                .font(.caption2)
+                                .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+                        }
+                        Spacer()
+                        Text("\(worker.assignedBuildingIds.count) bldgs")
+                            .font(.caption2)
+                            .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
                     }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 6)
+                    .background(CyntientOpsDesign.DashboardColors.cardBackground)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
                 }
-                .padding(.vertical, 4)
             }
         }
     }

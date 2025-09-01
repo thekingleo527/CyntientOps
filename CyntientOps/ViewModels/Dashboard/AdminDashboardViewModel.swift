@@ -911,7 +911,9 @@ class AdminDashboardViewModel: ObservableObject {
     private func loadBuildings() async {
         do {
             let rows = try await container.database.query("""
-                SELECT * FROM buildings WHERE isActive = 1
+                SELECT * FROM buildings 
+                WHERE isActive = 1
+                  AND (address NOT IN ('29-31 East 20th Street', '29–31 East 20th Street', '29-31 E 20th St', '29–31 E 20th St'))
             """)
             
             buildings = rows.compactMap { row -> CoreTypes.NamedCoordinate? in
