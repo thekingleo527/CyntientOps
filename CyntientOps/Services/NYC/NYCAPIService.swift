@@ -58,6 +58,7 @@ public final class NYCAPIService: ObservableObject {
         case dobPermits(bin: String)
         case dsnySchedule(district: String)
         case dsnyViolations(bin: String)
+        case dsnyViolationsAddress(address: String)
         case ll97Compliance(bbl: String)
         case depWaterUsage(account: String)
         case fdnyInspections(bin: String)
@@ -86,6 +87,9 @@ public final class NYCAPIService: ObservableObject {
                 return "\(APIConfig.dsnyURL)?community_district=\(district)"
             case .dsnyViolations(let bin):
                 return "\(APIConfig.dsnyViolationsURL)?bin=\(bin)"
+            case .dsnyViolationsAddress(let address):
+                let q = address.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? address
+                return "\(APIConfig.dsnyViolationsURL)?address=\(q)"
             case .ll97Compliance(let bbl):
                 return "\(APIConfig.ll97URL)?bbl=\(bbl)"
             case .depWaterUsage(let account):
@@ -132,6 +136,7 @@ public final class NYCAPIService: ObservableObject {
             case .dobPermits(let bin): return "dob_permits_\(bin)"
             case .dsnySchedule(let district): return "dsny_schedule_\(district)"
             case .dsnyViolations(let bin): return "dsny_violations_\(bin)"
+            case .dsnyViolationsAddress(let address): return "dsny_violations_addr_\(address.hashValue)"
             case .ll97Compliance(let bbl): return "ll97_compliance_\(bbl)"
             case .depWaterUsage(let account): return "dep_water_\(account)"
             case .fdnyInspections(let bin): return "fdny_inspections_\(bin)"
@@ -232,6 +237,12 @@ public final class NYCAPIService: ObservableObject {
     /// Fetch DSNY violations
     public func fetchDSNYViolations(bin: String) async throws -> [DSNYViolation] {
         let endpoint = APIEndpoint.dsnyViolations(bin: bin)
+        return try await fetch(endpoint)
+    }
+
+    /// Fetch DSNY violations by address (fallback when BIN is unreliable)
+    public func fetchDSNYViolations(address: String) async throws -> [DSNYViolation] {
+        let endpoint = APIEndpoint.dsnyViolationsAddress(address: address)
         return try await fetch(endpoint)
     }
     

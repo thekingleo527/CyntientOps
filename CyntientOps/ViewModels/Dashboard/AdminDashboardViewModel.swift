@@ -68,6 +68,42 @@ class AdminDashboardViewModel: ObservableObject {
     @Published var ll97EmissionsData: [String: [LL97Emission]] = [:]
     @Published var buildingsList: [CoreTypes.NamedCoordinate] = []
     @Published var crossDashboardUpdates: [CoreTypes.DashboardUpdate] = []
+
+    // MARK: - Aggregations
+    /// Returns buildings with DSNY violations within the last `months` months (default 6)
+    func buildingsWithRecentDSNYViolations(months: Int = 6) -> [(building: CoreTypes.NamedCoordinate, count: Int)] {
+        let cutoff = Calendar.current.date(byAdding: .month, value: -months, to: Date()) ?? Date.distantPast
+        let byId: [String: CoreTypes.NamedCoordinate] = Dictionary(uniqueKeysWithValues: buildings.map { ($0.id, $0) })
+
+        func parseDate(_ s: String) -> Date? {
+            // Try common formats used by NYC OpenData
+            let fmts = [
+                "yyyy-MM-dd'T'HH:mm:ss.SSS",
+                "yyyy-MM-dd'T'HH:mm:ss",
+                "yyyy-MM-dd",
+                "MM/dd/yyyy"
+            ]
+            for f in fmts {
+                let df = DateFormatter()
+                df.locale = Locale(identifier: "en_US_POSIX")
+                df.dateFormat = f
+                if let d = df.date(from: s) { return d }
+            }
+            return nil
+        }
+
+        var result: [(CoreTypes.NamedCoordinate, Int)] = []
+        for (bid, violations) in dsnyViolationsByBuilding {
+            let recent = violations.filter { v in
+                guard let d = parseDate(v.issueDate) else { return false }
+                return d >= cutoff
+            }
+            if !recent.isEmpty, let b = byId[bid] {
+                result.append((b, recent.count))
+            }
+        }
+        return result.sorted { $0.1 > $1.1 }
+    }
     
     // Conversion computed property for UI components  
     var syncStatus: SyncStatus {
@@ -718,12 +754,21 @@ class AdminDashboardViewModel: ObservableObject {
                 let dsnyRoutes = district.isEmpty ? [] : ((try? await nycAPI.fetchDSNYSchedule(district: district)) ?? [])
                 dsnyData[building.id] = dsnyRoutes ?? []
 
-                // Fetch DSNY violations (last 12 months via service filtering)
-                if let v = try? await nycAPI.fetchDSNYViolations(bin: bin) {
-                    dsnyViolations[building.id] = v
-                } else {
-                    dsnyViolations[building.id] = []
+                // Fetch DSNY violations (prefer BIN; fallback to address)
+                var dsnyList: [DSNYViolation] = []
+                if let byBin = try? await nycAPI.fetchDSNYViolations(bin: bin) {
+                    dsnyList = byBin
                 }
+                if dsnyList.isEmpty {
+                    // Use postal address fallback proactively
+                    let addr = "\(building.name), \(building.address)"
+                    if let byAddr = try? await nycAPI.fetchDSNYViolations(address: addr), !byAddr.isEmpty {
+                        dsnyList = byAddr
+                    } else if let byAddr2 = try? await nycAPI.fetchDSNYViolations(address: building.address), !byAddr2.isEmpty {
+                        dsnyList = byAddr2
+                    }
+                }
+                dsnyViolations[building.id] = dsnyList
                 
                 // Fetch real LL97 emissions
                 let ll97Emissions = try await nycAPI.fetchLL97Compliance(bbl: bbl)
