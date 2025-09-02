@@ -517,8 +517,29 @@ class AdminDashboardViewModel: ObservableObject {
             print("   - Enhanced Tasks Total: \(enhancedTasks.count)")
             
             self.buildings = buildings
-            self.workers = workers
-            self.activeWorkers = workers.filter { $0.isActive }
+
+            // Augment DB workers with any workers present in OperationalDataManager assignments
+            let opWorkerNames = Set(realTaskAssignments.map { $0.assignedWorker })
+            var mergedWorkers = workers
+            let existingNames = Set(workers.map { $0.name })
+            for name in opWorkerNames where !existingNames.contains(name) {
+                // Create a lightweight profile for display/metrics purposes
+                let placeholder = CoreTypes.WorkerProfile(
+                    id: UUID().uuidString,
+                    name: name,
+                    email: "",
+                    role: .worker,
+                    isActive: true,
+                    assignedBuildingIds: [],
+                    status: .offline,
+                    isClockedIn: false,
+                    currentBuildingId: nil,
+                    clockStatus: nil
+                )
+                mergedWorkers.append(placeholder)
+            }
+            self.workers = mergedWorkers
+            self.activeWorkers = mergedWorkers.filter { $0.isActive }
             self.tasks = enhancedTasks
             self.ongoingTasks = enhancedTasks.filter { !$0.isCompleted }
             
@@ -679,27 +700,33 @@ class AdminDashboardViewModel: ObservableObject {
         
         for building in buildings {
             do {
+                // Resolve BIN/BBL from coordinate or fallback mapping
+                let resolved = await nycAPI.resolveBinBbl(lat: building.latitude, lon: building.longitude)
+                let bin = resolved.bin ?? NYCAPIService.shared.extractBIN(from: building)
+                let bbl = resolved.bbl ?? NYCAPIService.shared.extractBBL(from: building)
+
                 // Fetch real HPD violations
-                let hpdViolations = try await nycAPI.fetchHPDViolations(bin: building.id)
+                let hpdViolations = try await nycAPI.fetchHPDViolations(bin: bin)
                 hpdData[building.id] = hpdViolations
                 
                 // Fetch real DOB permits
-                let dobPermits = try await nycAPI.fetchDOBPermits(bin: building.id)
+                let dobPermits = try await nycAPI.fetchDOBPermits(bin: bin)
                 dobData[building.id] = dobPermits
                 
                 // Fetch real DSNY routes (if available)
-                let dsnyRoutes = try? await nycAPI.fetchDSNYSchedule(district: building.address)
+                let district = NYCAPIService.shared.extractDistrict(from: bin)
+                let dsnyRoutes = district.isEmpty ? [] : ((try? await nycAPI.fetchDSNYSchedule(district: district)) ?? [])
                 dsnyData[building.id] = dsnyRoutes ?? []
 
                 // Fetch DSNY violations (last 12 months via service filtering)
-                if let v = try? await nycAPI.fetchDSNYViolations(bin: building.id) {
+                if let v = try? await nycAPI.fetchDSNYViolations(bin: bin) {
                     dsnyViolations[building.id] = v
                 } else {
                     dsnyViolations[building.id] = []
                 }
                 
                 // Fetch real LL97 emissions
-                let ll97Emissions = try await nycAPI.fetchLL97Compliance(bbl: building.id)
+                let ll97Emissions = try await nycAPI.fetchLL97Compliance(bbl: bbl)
                 ll97Data[building.id] = ll97Emissions
                 
                 print("✅ Loaded compliance data for \(building.name): HPD(\(hpdViolations.count)), DOB(\(dobPermits.count)), LL97(\(ll97Emissions.count))")
