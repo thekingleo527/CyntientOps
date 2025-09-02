@@ -37,6 +37,9 @@ public struct AdminDashboardView: View {
         case exampleReport(String)
         case verificationSummary
         case maintenanceHistory(String?)
+        case dsnySheet(String?)
+        case dobSheet(String?)
+        case hpdSheet(String?)
         
         var id: String {
             switch self {
@@ -55,6 +58,9 @@ public struct AdminDashboardView: View {
             case .exampleReport(let id): return "example-report-\(id)"
             case .verificationSummary: return "verification-summary"
             case .maintenanceHistory(let id): return "maintenance-history-\(id ?? "portfolio")"
+            case .dsnySheet(let id): return "dsny-sheet-\(id ?? "portfolio")"
+            case .dobSheet(let id): return "dob-sheet-\(id ?? "portfolio")"
+            case .hpdSheet(let id): return "hpd-sheet-\(id ?? "portfolio")"
         }
     }
     }
@@ -169,10 +175,11 @@ public struct AdminDashboardView: View {
                         onVerificationSummary: {
                             activeSheet = .verificationSummary
                         },
-                        // Tap "Issues" should open Maintenance History (portfolio by default)
-                        onHPD: { activeSheet = .maintenanceHistory(nil) },
-                        onDOB: { activeSheet = .compliance },
-                        onDSNY: { activeSheet = .compliance },
+                        // Wiring for tiles
+                        onIssuesTap: { activeSheet = .maintenanceHistory(nil) },
+                        onHPD: { activeSheet = .hpdSheet(nil) },
+                        onDOB: { activeSheet = .dobSheet(nil) },
+                        onDSNY: { activeSheet = .dsnySheet(nil) },
                         viewModel: viewModel
                     )
                     .padding(.horizontal, 16)
@@ -489,6 +496,33 @@ struct AdminUrgentItem: View {
             let targetId = buildingId ?? viewModel.buildings.first?.id ?? ""
             MaintenanceHistoryView(buildingID: targetId)
                 .navigationTitle("Maintenance History")
+
+        case .dsnySheet(let buildingId):
+            let bId = buildingId
+            DSNYSheetView(
+                buildings: viewModel.buildings,
+                dsnyViolations: viewModel.dsnyViolationsByBuilding,
+                selectedBuildingId: bId
+            )
+            .navigationTitle("DSNY Summary")
+
+        case .dobSheet(let buildingId):
+            let bId = buildingId
+            DOBSheetView(
+                buildings: viewModel.buildings,
+                permitsByBuilding: viewModel.dobPermitsData,
+                selectedBuildingId: bId
+            )
+            .navigationTitle("DOB Permits")
+
+        case .hpdSheet(let buildingId):
+            let bId = buildingId
+            HPDSheetView(
+                buildings: viewModel.buildings,
+                violationsByBuilding: viewModel.hpdViolationsData,
+                selectedBuildingId: bId
+            )
+            .navigationTitle("HPD Violations")
 
         case .exampleReport(let buildingId):
             ScrollView {
@@ -847,6 +881,7 @@ struct AdminNovaIntelligenceBar: View {
     let onEmergencyBroadcast: () -> Void
     let onExampleReport: () -> Void
     let onVerificationSummary: () -> Void
+    let onIssuesTap: () -> Void
     let onHPD: () -> Void
     let onDOB: () -> Void
     let onDSNY: () -> Void
@@ -953,6 +988,7 @@ struct AdminNovaIntelligenceBar: View {
                             dobActivePermits: viewModel.dobPermitsData.values.flatMap { $0 }.filter { !$0.isExpired }.count,
                             dsnyViolationsCount: viewModel.dsnyViolationsByBuilding.values.flatMap { $0 }.filter { $0.isActive }.count,
                             onMapToggle: onMapToggle,
+                            onIssuesTap: onIssuesTap,
                             onHPD: onHPD,
                             onDOB: onDOB,
                             onDSNY: onDSNY
@@ -1437,6 +1473,7 @@ struct AdminBuildingsContent: View {
     let dobActivePermits: Int
     let dsnyViolationsCount: Int
     let onMapToggle: () -> Void
+    let onIssuesTap: () -> Void
     let onHPD: () -> Void
     let onDOB: () -> Void
     let onDSNY: () -> Void
@@ -1469,7 +1506,7 @@ struct AdminBuildingsContent: View {
                     color: CyntientOpsDesign.DashboardColors.adminAccent
                 ) }.buttonStyle(.plain)
                 
-                Button(action: { onHPD() }) { AdminBuildingStatusTile(
+                Button(action: { onIssuesTap() }) { AdminBuildingStatusTile(
                     title: "Issues",
                     count: portfolioMetrics.criticalIssues,
                     color: portfolioMetrics.criticalIssues > 0 ? CyntientOpsDesign.DashboardColors.critical : CyntientOpsDesign.DashboardColors.success
