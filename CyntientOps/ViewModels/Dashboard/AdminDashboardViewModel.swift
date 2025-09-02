@@ -910,7 +910,21 @@ class AdminDashboardViewModel: ObservableObject {
             var section: [String] = []
             section.append("🏢 \(building.name) — \(building.address)")
             section.append("   Assessed: $\(Int(assessed).formatted()) | Market: $\(Int(market).formatted())")
-            section.append("   DSNY Violations: \(dsny.count) total (\(dsnyActive) active)")
+            // Compute DSNY last 6 months
+            let cutoff = Calendar.current.date(byAdding: .month, value: -6, to: Date()) ?? Date.distantPast
+            func parseDSNYDate(_ s: String) -> Date? {
+                let fmts = ["yyyy-MM-dd'T'HH:mm:ss.SSS", "yyyy-MM-dd'T'HH:mm:ss", "yyyy-MM-dd", "MM/dd/yyyy"]
+                for f in fmts {
+                    let df = DateFormatter(); df.locale = Locale(identifier: "en_US_POSIX"); df.dateFormat = f
+                    if let d = df.date(from: s) { return d }
+                }
+                return nil
+            }
+            let dsnyLast6 = dsny.filter { v in
+                if let d = parseDSNYDate(v.issueDate) { return d >= cutoff }
+                return false
+            }.count
+            section.append("   DSNY Violations: \(dsny.count) total (\(dsnyActive) active) | Last 6 mo: \(dsnyLast6)")
             section.append("   HPD Violations: \(hpd.count) \(nextCure != nil ? "| Next cure: \(nextCure!.formatted(date: .abbreviated, time: .omitted))" : "")")
             section.append("   LL97 Non-Comp: \(ll97NonCompliant) | LL97 Next: \(ll97Next?.formatted(date: .abbreviated, time: .omitted) ?? "n/a") | LL11 Next: \(ll11?.formatted(date: .abbreviated, time: .omitted) ?? "n/a")")
             lines.append(section.joined(separator: "\n"))
