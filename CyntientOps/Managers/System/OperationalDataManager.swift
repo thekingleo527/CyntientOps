@@ -3250,6 +3250,18 @@ public class OperationalDataManager: ObservableObject {
         guard !tasks.isEmpty else { return }
         
         for t in tasks {
+            // Skip known conflicts with specialized upserts or policy exceptions
+            // 1) 104 Franklin office: we manage via specialized upsert (Tue/Thu 15:00, 60m)
+            if t.buildingId == CanonicalIDs.Buildings.franklin104,
+               t.assignedWorker.contains("Mercedes"),
+               t.taskName.lowercased().contains("office") {
+                continue
+            }
+            // 2) 36 Walker: never create DSNY/set-out via templates
+            if t.buildingId == CanonicalIDs.Buildings.walker36,
+               t.taskName.lowercased().contains("set-out") || t.taskName.lowercased().contains("set out") || t.taskName.lowercased().contains("dsny") {
+                continue
+            }
             // Build RRULE from recurrence + daysOfWeek + startHour
             let freq: String = {
                 switch t.recurrence.lowercased() {
