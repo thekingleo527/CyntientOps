@@ -3031,6 +3031,12 @@ public class OperationalDataManager: ObservableObject {
 
             // Angel: 104 Franklin commercial garbage removal (Floors 2 & 4) on M/W/F
             try await upsertAngelFranklinCommercialRemoval()
+
+            // Core worker-specific baseline routines (to ensure all locations are covered)
+            try await upsertEdwinStuyvesantParkRoutines()
+            try await upsertMercedesWest17thGlassRoutines()
+            try await upsertLuisCoreRoutines()
+            try await upsertShawnAdvancedMaintenanceRoutines()
         
         try await self.grdbManager.execute("""
             CREATE TABLE IF NOT EXISTS dsny_schedules (
@@ -3353,6 +3359,171 @@ public class OperationalDataManager: ObservableObject {
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, [id, name, franklinId, rrule, angelId, "Sanitation", String(30 * 60), String(0), "high"])
         print("✅ Upserted Angel M/W/F commercial garbage removal at 104 Franklin (Floors 2 & 4)")
+    }
+
+    /// Edwin: Stuyvesant Cove Park (ID 16) baseline park routines (daily)
+    private func upsertEdwinStuyvesantParkRoutines() async throws {
+        let edwinId = CanonicalIDs.Workers.edwinLema // "2"
+        let parkId = CanonicalIDs.Buildings.stuyvesantCove // "16"
+        let daily: [(String, String, Int, String)] = [
+            ("Park Perimeter Litter Pickup", "Sanitation", 45, "FREQ=DAILY;BYHOUR=8;BYMINUTE=0"),
+            ("Trash Receptacle Consolidation", "Sanitation", 20, "FREQ=DAILY;BYHOUR=8;BYMINUTE=50"),
+            ("Entrance/Pathway Sweep + Hose (as needed)", "Cleaning", 30, "FREQ=DAILY;BYHOUR=9;BYMINUTE=15")
+        ]
+        for (name, cat, mins, rrule) in daily {
+            let id = "routine_\(parkId)_\(edwinId)_\(name.hashValue.magnitude)"
+            try await self.grdbManager.execute("""
+                INSERT OR REPLACE INTO routine_schedules
+                (id, name, building_id, rrule, worker_id, category, estimated_duration, weather_dependent, priority_level)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, [id, name, parkId, rrule, edwinId, cat, String(mins * 60), String(1), "normal"])
+        }
+        print("✅ Upserted Edwin daily park routines at Stuyvesant Cove")
+    }
+
+    /// Mercedes: 136/138 W 17th glass & lobby routines (daily + weekly)
+    private func upsertMercedesWest17thGlassRoutines() async throws {
+        let mercedesId = CanonicalIDs.Workers.mercedesInamagua // "5"
+        let buildings = [
+            CanonicalIDs.Buildings.westSeventeenth138, // "5"
+            CanonicalIDs.Buildings.westSeventeenth136  // "13"
+        ]
+        for bId in buildings {
+            // Daily morning glass/lobby (06:30, 40m)
+            var id = "routine_\(bId)_\(mercedesId)_glass_lobby_morning"
+            var name = "Glass + Lobby Clean (Morning)"
+            var rrule = "FREQ=DAILY;BYHOUR=6;BYMINUTE=30"
+            try await self.grdbManager.execute("""
+                INSERT OR REPLACE INTO routine_schedules
+                (id, name, building_id, rrule, worker_id, category, estimated_duration, weather_dependent, priority_level)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, [id, name, bId, rrule, mercedesId, "Cleaning", String(40 * 60), String(0), "high"])
+
+            // Midday check pass (11:00, 20m)
+            id = "routine_\(bId)_\(mercedesId)_glass_midday_check"
+            name = "Glass/Lobby Midday Check"
+            rrule = "FREQ=DAILY;BYHOUR=11;BYMINUTE=0"
+            try await self.grdbManager.execute("""
+                INSERT OR REPLACE INTO routine_schedules
+                (id, name, building_id, rrule, worker_id, category, estimated_duration, weather_dependent, priority_level)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, [id, name, bId, rrule, mercedesId, "Cleaning", String(20 * 60), String(0), "normal"])
+
+            // Weekly deep glass (Thu 12:30, 45m)
+            id = "routine_\(bId)_\(mercedesId)_glass_weekly_deep"
+            name = "Weekly Deep Glass"
+            rrule = "FREQ=WEEKLY;BYDAY=TH;BYHOUR=12;BYMINUTE=30"
+            try await self.grdbManager.execute("""
+                INSERT OR REPLACE INTO routine_schedules
+                (id, name, building_id, rrule, worker_id, category, estimated_duration, weather_dependent, priority_level)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, [id, name, bId, rrule, mercedesId, "Cleaning", String(45 * 60), String(0), "normal"])
+        }
+        print("✅ Upserted Mercedes glass/lobby routines for 136/138 W 17th")
+    }
+
+    /// Luis: core routines for 41 Elizabeth, 36 Walker, 104 Franklin (non-set-out tasks)
+    private func upsertLuisCoreRoutines() async throws {
+        let luisId = CanonicalIDs.Workers.luisLopez // "6"
+        // 41 Elizabeth (ID 8): bathrooms/lobby/elevator/mail
+        do {
+            let bId = CanonicalIDs.Buildings.elizabeth41
+            var id = "routine_\(bId)_\(luisId)_bathrooms_morning"
+            var name = "Bathrooms Clean + Restock"
+            var rrule = "FREQ=DAILY;BYHOUR=7;BYMINUTE=30"
+            try await self.grdbManager.execute("""
+                INSERT OR REPLACE INTO routine_schedules
+                (id, name, building_id, rrule, worker_id, category, estimated_duration, weather_dependent, priority_level)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, [id, name, bId, rrule, luisId, "Cleaning", String(30 * 60), String(0), "high"])
+
+            id = "routine_\(bId)_\(luisId)_lobby_elevator"
+            name = "Lobby + Elevator Wipe"
+            rrule = "FREQ=DAILY;BYHOUR=8;BYMINUTE=15"
+            try await self.grdbManager.execute("""
+                INSERT OR REPLACE INTO routine_schedules
+                (id, name, building_id, rrule, worker_id, category, estimated_duration, weather_dependent, priority_level)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, [id, name, bId, rrule, luisId, "Cleaning", String(20 * 60), String(0), "normal"])
+
+            id = "routine_\(bId)_\(luisId)_mail_room"
+            name = "Mail Room Organize"
+            rrule = "FREQ=DAILY;BYHOUR=8;BYMINUTE=45"
+            try await self.grdbManager.execute("""
+                INSERT OR REPLACE INTO routine_schedules
+                (id, name, building_id, rrule, worker_id, category, estimated_duration, weather_dependent, priority_level)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, [id, name, bId, rrule, luisId, "Administrative", String(15 * 60), String(0), "normal"])
+        }
+
+        // 36 Walker (ID 18): morning sidewalk sweep (no set‑out here)
+        do {
+            let bId = CanonicalIDs.Buildings.walker36
+            let id = "routine_\(bId)_\(luisId)_sidewalk_morning"
+            let name = "Sidewalk Sweep (Morning)"
+            let rrule = "FREQ=DAILY;BYHOUR=7;BYMINUTE=0"
+            try await self.grdbManager.execute("""
+                INSERT OR REPLACE INTO routine_schedules
+                (id, name, building_id, rrule, worker_id, category, estimated_duration, weather_dependent, priority_level)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, [id, name, bId, rrule, luisId, "Sanitation", String(20 * 60), String(1), "normal"])
+        }
+
+        // 104 Franklin (ID 4): sidewalk hose (daytime)
+        do {
+            let bId = CanonicalIDs.Buildings.franklin104
+            let id = "routine_\(bId)_\(luisId)_sidewalk_hose"
+            let name = "Sidewalk Hose"
+            let rrule = "FREQ=WEEKLY;BYDAY=MO,WE,FR;BYHOUR=11;BYMINUTE=0"
+            try await self.grdbManager.execute("""
+                INSERT OR REPLACE INTO routine_schedules
+                (id, name, building_id, rrule, worker_id, category, estimated_duration, weather_dependent, priority_level)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, [id, name, bId, rrule, luisId, "Cleaning", String(20 * 60), String(1), "normal"])
+        }
+        print("✅ Upserted Luis core routines for 41 Elizabeth, 36 Walker, 104 Franklin (no set‑out)")
+    }
+
+    /// Shawn: Advanced maintenance routines for 135–139 W 17th, 133 E 15th, 148 Chambers
+    private func upsertShawnAdvancedMaintenanceRoutines() async throws {
+        let shawnId = CanonicalIDs.Workers.shawnMagloire // "8"
+        let buildings = [
+            CanonicalIDs.Buildings.westSeventeenth135_139, // 3
+            CanonicalIDs.Buildings.eastFifteenth133,       // 15
+            CanonicalIDs.Buildings.chambers148             // 21
+        ]
+        for bId in buildings {
+            // Mon/Wed/Fri 13:00 HVAC check (30m)
+            var id = "routine_\(bId)_\(shawnId)_hvac_check"
+            var name = "HVAC System Check"
+            var rrule = "FREQ=WEEKLY;BYDAY=MO,WE,FR;BYHOUR=13;BYMINUTE=0"
+            try await self.grdbManager.execute("""
+                INSERT OR REPLACE INTO routine_schedules
+                (id, name, building_id, rrule, worker_id, category, estimated_duration, weather_dependent, priority_level)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, [id, name, bId, rrule, shawnId, "Maintenance", String(30 * 60), String(0), "normal"])
+
+            // Tue/Thu 14:00 Boiler/Mechanical inspection (30m)
+            id = "routine_\(bId)_\(shawnId)_boiler_mech"
+            name = "Boiler/Mechanical Inspection"
+            rrule = "FREQ=WEEKLY;BYDAY=TU,TH;BYHOUR=14;BYMINUTE=0"
+            try await self.grdbManager.execute("""
+                INSERT OR REPLACE INTO routine_schedules
+                (id, name, building_id, rrule, worker_id, category, estimated_duration, weather_dependent, priority_level)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, [id, name, bId, rrule, shawnId, "Maintenance", String(30 * 60), String(0), "normal"])
+
+            // Monthly 1st Monday 15:00 Roof Drain/Scupper Check (45m)
+            id = "routine_\(bId)_\(shawnId)_roof_drain_monthly"
+            name = "Roof Drain/Scupper Check"
+            rrule = "FREQ=MONTHLY;BYDAY=MO;BYSETPOS=1;BYHOUR=15;BYMINUTE=0"
+            try await self.grdbManager.execute("""
+                INSERT OR REPLACE INTO routine_schedules
+                (id, name, building_id, rrule, worker_id, category, estimated_duration, weather_dependent, priority_level)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, [id, name, bId, rrule, shawnId, "Maintenance", String(45 * 60), String(1), "normal"])
+        }
+        print("✅ Upserted Shawn advanced maintenance routines for 135–139 W 17th, 133 E 15th, 148 Chambers")
     }
     
     // MARK: - Validation and Summary Methods
