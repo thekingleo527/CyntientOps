@@ -54,6 +54,13 @@ struct WorkerDashboardView: View {
                         // Hero Section: Two Glass Cards
                         heroSection
 
+                        // Now + Next Card (building-scoped)
+                        NowNextCard(now: getNowTask(), next: getNextTask(), onStart: {
+                            if let now = getNowTask() { sheet = .taskDetail(now.id) }
+                        })
+                        .padding(.horizontal, CyntientOpsDesign.Spacing.md)
+                        .animatedGlassAppear(delay: 0.25)
+
                         // Weather Hybrid Card
                         WeatherHybridCard(
                             snapshot: viewModel.weather,
@@ -441,16 +448,42 @@ struct WorkerDashboardView: View {
             
             Spacer()
             
-            // Today's routine count from OperationalDataManager
-            VStack(alignment: .leading, spacing: 4) {
-                Text("\(viewModel.immediateCount)")
-                    .font(.title)
-                    .fontWeight(.bold)
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-                
-                Text("Immediate Tasks")
-                    .font(.caption)
-                    .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+            // Now task + immediate count summary
+            VStack(alignment: .leading, spacing: 8) {
+                if let now = getNowTask() {
+                    Text("Now")
+                        .font(.caption)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(now.title)
+                                .font(.subheadline)
+                                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                                .lineLimit(1)
+                            if let due = now.dueDate {
+                                Text("Start: \u005c(CoreTypes.DateUtils.timeFormatter.string(from: due))")
+                                    .font(.caption2)
+                                    .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+                            }
+                        }
+                        Spacer()
+                        Button("Start") { sheet = .taskDetail(now.id) }
+                            .buttonStyle(.borderedProminent)
+                    }
+                } else {
+                    Text("No current task")
+                        .font(.subheadline)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                }
+                HStack(spacing: 6) {
+                    Text("\(viewModel.immediateCount)")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                    Text("Immediate Tasks")
+                        .font(.caption)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                }
             }
             
             // Progress indicator
@@ -491,26 +524,26 @@ struct WorkerDashboardView: View {
             
             Spacer()
             
-            // Next task details
-            if let nextTime = viewModel.nextPriorityTime {
+            // Next task details (building-scoped)
+            if let next = getNextTask() {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(CoreTypes.DateUtils.timeFormatter.string(from: nextTime))
-                        .font(.title2)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.orange)
-                    
-                    Text("Due Time")
-                        .font(.caption)
-                        .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                    Text(next.title)
+                        .font(.subheadline)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                        .lineLimit(1)
+                    if let due = next.dueDate {
+                        Text("At: \u005c(CoreTypes.DateUtils.timeFormatter.string(from: due))")
+                            .font(.caption)
+                            .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                    }
                 }
             } else {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("All Clear")
-                        .font(.title2)
+                        .font(.title3)
                         .fontWeight(.semibold)
                         .foregroundColor(.green)
-                    
-                    Text("No urgent tasks")
+                    Text("No upcoming tasks")
                         .font(.caption)
                         .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
                 }
@@ -635,7 +668,10 @@ struct WorkerDashboardView: View {
     }
     
     private func getNextTask() -> WorkerDashboardViewModel.TaskItem? {
-        return viewModel.todaysTasks
+        let filtered = viewModel.currentBuilding != nil
+            ? viewModel.todaysTasks.filter { $0.buildingId == viewModel.currentBuilding?.id }
+            : viewModel.todaysTasks
+        return filtered
             .filter { !$0.isCompleted }
             .sorted(by: { first, second in
                 // Sort by urgency first, then by due date
@@ -648,6 +684,25 @@ struct WorkerDashboardView: View {
                 return firstDate < secondDate
             })
             .first
+    }
+
+    private func getNowTask() -> WorkerDashboardViewModel.TaskItem? {
+        // Prefer an item within a short window around now for the current building
+        let now = Date()
+        let filtered = viewModel.currentBuilding != nil
+            ? viewModel.todaysTasks.filter { $0.buildingId == viewModel.currentBuilding?.id }
+            : viewModel.todaysTasks
+        let windowBefore: TimeInterval = 30 * 60
+        let windowAhead: TimeInterval = 30 * 60
+        let candidates = filtered.filter { item in
+            guard let due = item.dueDate else { return false }
+            return due.addingTimeInterval(-windowBefore) <= now && due.addingTimeInterval(windowAhead) >= now && !item.isCompleted
+        }
+        if let exact = candidates.sorted(by: { ($0.dueDate ?? now) < ($1.dueDate ?? now) }).first {
+            return exact
+        }
+        // Fallback to next upcoming task
+        return getNextTask()
     }
 
     private func sequenceTimeRange(_ seq: RouteSequence) -> String {
@@ -1224,6 +1279,57 @@ private func handleClockAction() {
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .padding(.horizontal)
         .padding(.top, 60)
+    }
+}
+
+// MARK: - Now + Next Card
+
+private struct NowNextCard: View {
+    let now: WorkerDashboardViewModel.TaskItem?
+    let next: WorkerDashboardViewModel.TaskItem?
+    var onStart: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Label("Now", systemImage: "bolt.fill")
+                .font(.headline)
+                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+            if let now = now {
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(now.title).font(.subheadline).foregroundColor(.white)
+                        if let due = now.dueDate {
+                            Text("Start: \(CoreTypes.DateUtils.timeFormatter.string(from: due))")
+                                .font(.caption).foregroundColor(.secondary)
+                        }
+                    }
+                    Spacer()
+                    Button("Start Now") { onStart() }
+                        .buttonStyle(.borderedProminent)
+                }
+            } else {
+                Text("No current task — you're clear").font(.subheadline).foregroundColor(.secondary)
+            }
+
+            Divider().background(Color.white.opacity(0.1))
+
+            Label("Next", systemImage: "arrow.turn.down.right")
+                .font(.headline)
+                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+            if let next = next {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(next.title).font(.subheadline).foregroundColor(.white)
+                    if let due = next.dueDate {
+                        Text("At: \(CoreTypes.DateUtils.timeFormatter.string(from: due))")
+                            .font(.caption).foregroundColor(.secondary)
+                    }
+                }
+            } else {
+                Text("You're all caught up").font(.subheadline).foregroundColor(.secondary)
+            }
+        }
+        .padding()
+        .cyntientOpsDarkCardBackground()
     }
 }
 

@@ -221,10 +221,32 @@ struct ClientWorkerDetailSheet: View {
                 return CoreTypes.WorkerScheduleItem(id: UUID().uuidString, startTime: start, endTime: end, taskName: name, location: location)
             }
             
+            var derivedSchedule = scheduleItems
+            if derivedSchedule.isEmpty {
+                // Fallback: derive today's schedule from routine schedules
+                do {
+                    let all = try await container.operationalData.getWorkerWeeklySchedule(for: workerId)
+                    let todayStart = Calendar.current.startOfDay(for: Date())
+                    let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: todayStart) ?? Date()
+                    derivedSchedule = all.filter { $0.startTime >= todayStart && $0.startTime < tomorrow }
+                        .sorted(by: { $0.startTime < $1.startTime })
+                        .map { r in
+                            CoreTypes.WorkerScheduleItem(
+                                id: r.id,
+                                startTime: r.startTime,
+                                endTime: r.endTime,
+                                taskName: r.title,
+                                location: r.buildingName
+                            )
+                        }
+                } catch {
+                    // ignore fallback errors
+                }
+            }
             await MainActor.run {
                 self.worker = detail
                 self.currentTasks = tasks
-                self.schedule = scheduleItems
+                self.schedule = derivedSchedule
                 self.isLoading = false
             }
         } catch {

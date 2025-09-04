@@ -2015,12 +2015,16 @@ public class WorkerDashboardViewModel: ObservableObject {
     private func generateBuildingSpecificWeatherGuidance(building: BuildingSummary, condition: WeatherCondition) -> [BuildingWeatherGuidance] {
         var guidance: [BuildingWeatherGuidance] = []
         
-        // Building-specific mat placement (only 12 W18, 117 W17, 112 W18)
-        let matBuildings = ["12 W18", "117 W17", "112 W18"]
-        let needsMats = matBuildings.contains { building.name.contains($0) }
+        // Building-specific mat placement by building ID (12 W 18th, 117 W 17th, 112 W 18th)
+        let matBuildingIds: Set<String> = [
+            CanonicalIDs.Buildings.westEighteenth12,
+            CanonicalIDs.Buildings.westSeventeenth117,
+            CanonicalIDs.Buildings.westEighteenth112
+        ]
+        let needsMats = matBuildingIds.contains(building.id)
         
-        // 135 W17 has special backyard drain
-        let hasBackyardDrain = building.name.contains("135") && building.name.contains("W17")
+        // 135–139 W 17th has backyard drain
+        let hasBackyardDrain = building.id == CanonicalIDs.Buildings.westSeventeenth135_139
         
         switch condition {
         case .rain, .storm:
