@@ -58,9 +58,9 @@ public actor QueryOptimizer {
                 b.id, b.name, b.address, b.status, b.latitude, b.longitude,
                 COUNT(DISTINCT t.id) as active_tasks,
                 COUNT(DISTINCT w.id) as assigned_workers,
-                AVG(CASE WHEN t.status = 'completed' THEN 1.0 ELSE 0.0 END) as completion_rate
+                AVG(CASE WHEN t.completedAt IS NOT NULL THEN 1.0 ELSE 0.0 END) as completion_rate
             FROM buildings b
-            LEFT JOIN tasks t ON b.id = t.buildingId AND t.status != 'completed'
+            LEFT JOIN tasks t ON b.id = t.buildingId AND t.completedAt IS NULL
             LEFT JOIN worker_building_assignments wba ON b.id = wba.building_id
             LEFT JOIN workers w ON wba.worker_id = w.id AND w.isActive = 1
             WHERE b.id = ?
@@ -89,7 +89,7 @@ public actor QueryOptimizer {
                 MAX(t.completedAt) as last_completion
             FROM workers w
             INNER JOIN worker_building_assignments wba ON w.id = wba.worker_id
-            LEFT JOIN tasks t ON w.id = t.workerId AND t.buildingId = ? AND t.status != 'completed'
+            LEFT JOIN tasks t ON w.id = t.workerId AND t.buildingId = ? AND t.completedAt IS NULL
             WHERE wba.building_id = ? AND w.isActive = 1
             GROUP BY w.id, wba.schedule_type, wba.start_time, wba.end_time
             ORDER BY w.name

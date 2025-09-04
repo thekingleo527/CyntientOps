@@ -41,6 +41,12 @@ struct WorkerDashboardMainView: View {
     @State private var showingClockInSheet = false
     @State private var weatherSnapshot: WeatherSnapshot?
     @State private var dsnyTasks: [DSNYTask] = []
+    @State private var showingHourlyWeather = false
+    @State private var showingSiteDeparture = false
+    @State private var siteDepartureVM: SiteDepartureViewModel? = nil
+    @State private var siteDepartureBuildings: [NamedCoordinate] = []
+    @State private var showingBuildingDetailSheet = false
+    @State private var buildingDetailIdTemp: String? = nil
 
     // MARK: - App Storage
     @AppStorage("workerPreferredLanguage") private var preferredLanguage = "en"
@@ -83,6 +89,66 @@ struct WorkerDashboardMainView: View {
                         showingTaskDetail = true
                     }
                         .padding(.horizontal)
+
+                    // Weather Hybrid Card (tethered to worker/location)
+                    WeatherHybridCard(
+                        snapshot: viewModel.weather,
+                        suggestion: viewModel.weatherSuggestion,
+                        onApplySuggestion: {
+                            viewModel.applyWeatherOptimization()
+                        },
+                        onViewHourly: { showingHourlyWeather = true }
+                    )
+                    .padding(.horizontal)
+
+                    // Compact policy chips for current building
+                    if let bid = viewModel.currentBuilding?.id {
+                        PolicyChipsRow(buildingId: bid)
+                            .padding(.horizontal)
+                    }
+
+                    // Weekly Schedule Panel
+                    if !viewModel.scheduleWeek.isEmpty {
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                Text("Weekly Schedule")
+                                    .font(.headline)
+                                    .foregroundColor(.white)
+                                Spacer()
+                            }
+                            VStack(spacing: 8) {
+                                ForEach(viewModel.scheduleWeek, id: \.date) { day in
+                                    VStack(alignment: .leading, spacing: 6) {
+                                        Text(day.date.formatted(date: .abbreviated, time: .omitted))
+                                            .font(.subheadline)
+                                            .foregroundColor(.white)
+                                        ForEach(day.items, id: \.id) { si in
+                                            HStack {
+                                                VStack(alignment: .leading) {
+                                                    Text(si.title)
+                                                        .foregroundColor(.white)
+                                                    Text("\(CoreTypes.DateUtils.timeFormatter.string(from: si.startTime)) – \(CoreTypes.DateUtils.timeFormatter.string(from: si.endTime))")
+                                                        .font(.caption)
+                                                        .foregroundColor(.gray)
+                                                }
+                                                Spacer()
+                                                Text("\(si.taskCount)")
+                                                    .font(.caption)
+                                                    .foregroundColor(.gray)
+                                            }
+                                            .padding(10)
+                                            .background(.ultraThinMaterial)
+                                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                                        }
+                                    }
+                                    .padding(10)
+                                    .background(.regularMaterial)
+                                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                                }
+                            }
+                        }
+                        .padding(.horizontal)
+                    }
                     HStack {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Good Morning, \(viewModel.workerProfile?.name ?? "Worker")")
@@ -93,6 +159,19 @@ struct WorkerDashboardMainView: View {
                             Text("Current: \(viewModel.currentBuilding?.name ?? "Not Clocked In")")
                                 .font(.subheadline)
                                 .foregroundColor(.gray)
+                        }
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            if let current = viewModel.currentBuilding {
+                                // Show building detail for current building
+                                showingBuildingSelector = false
+                                selectedTask = nil
+                                // Reuse task detail presentation to show a building detail sheet
+                                // Instead, open a dedicated sheet below
+                                // Set a flag via clock-in sheet variable to route properly
+                                buildingDetailIdTemp = current.id
+                                showingBuildingDetailSheet = true
+                            }
                         }
                         
                         Spacer()
@@ -263,6 +342,51 @@ struct WorkerDashboardMainView: View {
         .sheet(isPresented: $showingVendorAccessSheet) {
             VendorAccessLogSheet(viewModel: viewModel)
                 .presentationDetents([.large])
+        }
+        // Building Detail Sheet
+        .sheet(isPresented: $showingBuildingDetailSheet) {
+            if let bid = buildingDetailIdTemp, let b = viewModel.assignedBuildings.first(where: { $0.id == bid }) {
+                NavigationView {
+                    BuildingDetailView(container: container, buildingId: b.id, buildingName: b.name, buildingAddress: b.address)
+                        .navigationBarTitleDisplayMode(.inline)
+                }
+            } else {
+                EmptyView()
+            }
+        }
+        .sheet(isPresented: $showingSiteDeparture) {
+            if let vm = siteDepartureVM {
+                NavigationView {
+                    SiteDepartureSingleView(viewModel: vm, buttonTitle: "Submit Log & Clock Out") {
+                        Task { await viewModel.clockOut() }
+                        showingSiteDeparture = false
+                    }
+                    .navigationTitle("Site Departure")
+                    .navigationBarTitleDisplayMode(.inline)
+                }
+            } else if !siteDepartureBuildings.isEmpty, let wid = authManager.workerId {
+                NavigationView {
+                    MultiSiteDepartureSheet(workerId: wid, buildings: siteDepartureBuildings, container: container) {
+                        Task { await viewModel.clockOut() }
+                        showingSiteDeparture = false
+                    }
+                    .navigationTitle("Site Departure")
+                    .navigationBarTitleDisplayMode(.inline)
+                }
+            } else {
+                EmptyView()
+            }
+        }
+        .sheet(isPresented: $showingHourlyWeather) {
+            if let snap = viewModel.weather {
+                NavigationView {
+                    WeatherRibbonView(snapshot: snap)
+                        .navigationTitle("Hourly Weather")
+                        .navigationBarTitleDisplayMode(.inline)
+                }
+            } else {
+                EmptyView()
+            }
         }
         .sheet(isPresented: $showingQuickNoteSheet) {
             QuickNoteSheet(viewModel: viewModel)
@@ -518,8 +642,30 @@ struct WorkerDashboardMainView: View {
     }
     
     private func handleClockOut() {
-        Task {
-            await viewModel.clockOut()
+        // Present Site Departure before final clock out
+        guard let workerId = authManager.workerId else {
+            Task { await viewModel.clockOut() }
+            return
+        }
+        let summaries: [WorkerDashboardViewModel.BuildingSummary] = {
+            if !viewModel.pendingDepartures.isEmpty { return viewModel.pendingDepartures }
+            if !viewModel.visitedToday.isEmpty { return viewModel.visitedToday }
+            if let current = viewModel.currentBuilding { return [current] }
+            return viewModel.assignedBuildings
+        }()
+        let coords: [NamedCoordinate] = summaries.map { b in
+            NamedCoordinate(id: b.id, name: b.name, address: b.address, latitude: b.coordinate.latitude, longitude: b.coordinate.longitude)
+        }
+        if coords.count > 1 {
+            siteDepartureVM = nil
+            siteDepartureBuildings = coords
+            showingSiteDeparture = true
+        } else if let current = coords.first {
+            siteDepartureVM = SiteDepartureViewModel(workerId: workerId, currentBuilding: current, container: container)
+            siteDepartureBuildings = []
+            showingSiteDeparture = true
+        } else {
+            Task { await viewModel.clockOut() }
         }
     }
     
@@ -592,5 +738,63 @@ struct WorkerDashboardMainView: View {
         case .critical: return .critical
         case .emergency: return .emergency
         }
+    }
+}
+
+// MARK: - Policy Chips (Compact badges)
+private struct PolicyChipsRow: View {
+    let buildingId: String
+
+    var body: some View {
+        let chips = policyChips(for: buildingId)
+        if chips.isEmpty { EmptyView() } else {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(chips, id: \.label) { chip in
+                        HStack(spacing: 4) {
+                            Image(systemName: chip.symbol)
+                            Text(chip.label)
+                        }
+                        .font(.caption2)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(chip.color.opacity(0.15))
+                        .foregroundColor(chip.color)
+                        .clipShape(Capsule())
+                    }
+                }
+            }
+        }
+    }
+
+    private struct Chip { let label: String; let symbol: String; let color: Color }
+
+    private func policyChips(for id: String) -> [Chip] {
+        var list: [Chip] = []
+        
+        // Rain mats buildings: 12 W 18th (1), 112 W 18th (7), 117 W 17th (9)
+        if ["1","7","9"].contains(id) {
+            list.append(Chip(label: "Mats", symbol: "water.waves", color: .blue))
+        }
+        
+        // Roof drain buildings: 135/138/117/112 W 17th + 12 W 18th
+        if ["1","3","5","7","9"].contains(id) {
+            list.append(Chip(label: "Drains", symbol: "cloud.drizzle", color: .cyan))
+        }
+        
+        // Backyard monthly: 135 (3) and 138 (5)
+        if ["3","5"].contains(id) {
+            list.append(Chip(label: "Backyard", symbol: "leaf.circle", color: .brown))
+        }
+        
+        // Special building notes
+        if id == "6" { // 68 Perry - key box
+            list.append(Chip(label: "Key Box", symbol: "key.fill", color: .yellow))
+        }
+        
+        // DSNY bring-in by 10:00 applies portfolio-wide
+        list.append(Chip(label: "DSNY 10:00", symbol: "trash.circle", color: .green))
+        
+        return list
     }
 }

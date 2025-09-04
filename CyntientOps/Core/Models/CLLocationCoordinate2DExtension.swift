@@ -8,7 +8,7 @@
 import Foundation
 import CoreLocation
 
-extension CLLocationCoordinate2D: Codable {
+extension CLLocationCoordinate2D: @retroactive Codable {
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let latitude = try container.decode(Double.self, forKey: .latitude)

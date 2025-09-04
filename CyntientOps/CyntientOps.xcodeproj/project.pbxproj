@@ -58,8 +58,6 @@
 		2319325E2E42E92900640977 /* BuildingIntelligenceViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2319324D2E42E92900640977 /* BuildingIntelligenceViewModel.swift */; };
 		2319325F2E42E92900640977 /* AdminDashboardViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2319324F2E42E92900640977 /* AdminDashboardViewModel.swift */; };
 		231932602E42E92900640977 /* WorkerRoutineViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231932542E42E92900640977 /* WorkerRoutineViewModel.swift */; };
-		23A1B2D02E70C00000640977 /* SiteDepartureSingleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23A1B2C32E70C00000640977 /* SiteDepartureSingleView.swift */; };
-		23A1B2D12E70C00000640977 /* MultiSiteDepartureSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23A1B2C42E70C00000640977 /* MultiSiteDepartureSheet.swift */; };
 		231932612E42E92900640977 /* TaskDetailViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231932532E42E92900640977 /* TaskDetailViewModel.swift */; };
 		231932672E42E94900640977 /* StringExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231932652E42E94900640977 /* StringExtensions.swift */; };
 		231932692E42E94900640977 /* DatabaseSchemaVerifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231932622E42E94900640977 /* DatabaseSchemaVerifier.swift */; };
@@ -307,8 +305,13 @@
 		238FAF5C2E5E766100187318 /* NYCHistoricalDataService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 238FAF5B2E5E766100187318 /* NYCHistoricalDataService.swift */; };
 		238FAF5D2E5E766100187318 /* NYCDataCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 238FAF5A2E5E766100187318 /* NYCDataCoordinator.swift */; };
 		2399AAA22E43000000640977 /* default.csv in Resources */ = {isa = PBXBuildFile; fileRef = 2399AAA12E43000000640977 /* default.csv */; };
+		23A1B2D02E70C00000640977 /* SiteDepartureSingleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23A1B2C32E70C00000640977 /* SiteDepartureSingleView.swift */; };
+		23A1B2D12E70C00000640977 /* MultiSiteDepartureSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23A1B2C42E70C00000640977 /* MultiSiteDepartureSheet.swift */; };
+		23AA11112E71AAAA00640977 /* DSNYSheetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23AA11012E71AAAA00640977 /* DSNYSheetView.swift */; };
+		23AA11122E71AAAA00640977 /* HPDSheetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23AA11022E71AAAA00640977 /* HPDSheetView.swift */; };
+		23AA11132E71AAAA00640977 /* DOBSheetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23AA11032E71AAAA00640977 /* DOBSheetView.swift */; };
+		23AA11142E71AAAB00640977 /* ProductionCredentialsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23AA11042E71AAAB00640977 /* ProductionCredentialsManager.swift */; };
 		23AAA0012E70A00100123456 /* VendorAccessLogSheetLight.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23AAA0002E70A00100123456 /* VendorAccessLogSheetLight.swift */; };
-			/* 23AAA1112E70B00000640977 removed duplicate WeatherHybridCard.swift in Sources */
 		23AAB0012E70B00100123456 /* DeveloperLoginBoard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23AAB0002E70B00100123456 /* DeveloperLoginBoard.swift */; };
 		23AAB0032E70B00100123457 /* SeededCredentials.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23AAB0022E70B00100123457 /* SeededCredentials.swift */; };
 		23B0CDH12E70810000640977 /* ClientDashboardHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23B0CDH02E70810000640977 /* ClientDashboardHeader.swift */; };
@@ -319,6 +322,7 @@
 		23B2116A2E52D8A500481C3C /* ClientBuildingGridSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23B211682E52D8A500481C3C /* ClientBuildingGridSection.swift */; };
 		23B2116C2E52FCEB00481C3C /* ClientDashboardPortfolioHeroCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23B2116B2E52FCEB00481C3C /* ClientDashboardPortfolioHeroCard.swift */; };
 		23C67B992E66312E005AAD4F /* WeatherHybridCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23C67B982E66312E005AAD4F /* WeatherHybridCard.swift */; };
+		23C67B9B2E66B621005AAD4F /* BuildingInfrastructureCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23C67B9A2E66B621005AAD4F /* BuildingInfrastructureCatalog.swift */; };
 		23E8FB0F2E43436300F8771C /* AdminContextEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23E8FB0E2E43436300F8771C /* AdminContextEngine.swift */; };
 		23F82D522E5E4CB30097E7B1 /* MemoryPressureMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23F82D4F2E5E4CB30097E7B1 /* MemoryPressureMonitor.swift */; };
 		23F82D532E5E4CB30097E7B1 /* BatchedUIUpdater.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23F82D4E2E5E4CB30097E7B1 /* BatchedUIUpdater.swift */; };
@@ -613,8 +617,6 @@
 		23486D9C2E601B7B0040DA52 /* RouteSequenceCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteSequenceCard.swift; sourceTree = "<group>"; };
 		23486D9E2E6090100040DA52 /* ClientProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClientProfileView.swift; sourceTree = "<group>"; };
 		23486DA02E60901D0040DA52 /* ClientComplianceViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClientComplianceViews.swift; sourceTree = "<group>"; };
-		23A1B2C32E70C00000640977 /* SiteDepartureSingleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SiteDepartureSingleView.swift; sourceTree = "<group>"; };
-		23A1B2C42E70C00000640977 /* MultiSiteDepartureSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultiSiteDepartureSheet.swift; sourceTree = "<group>"; };
 		23486DA32E6092EF0040DA52 /* UpcomingTaskListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpcomingTaskListView.swift; sourceTree = "<group>"; };
 		23486DA42E6092EF0040DA52 /* WeatherRibbonView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherRibbonView.swift; sourceTree = "<group>"; };
 		23486DA82E6093070040DA52 /* AdminAnalyticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdminAnalyticsView.swift; sourceTree = "<group>"; };
@@ -653,8 +655,13 @@
 		238FAF5A2E5E766100187318 /* NYCDataCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NYCDataCoordinator.swift; sourceTree = "<group>"; };
 		238FAF5B2E5E766100187318 /* NYCHistoricalDataService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NYCHistoricalDataService.swift; sourceTree = "<group>"; };
 		2399AAA12E43000000640977 /* default.csv */ = {isa = PBXFileReference; lastKnownFileType = text; path = default.csv; sourceTree = "<group>"; };
+		23A1B2C32E70C00000640977 /* SiteDepartureSingleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SiteDepartureSingleView.swift; sourceTree = "<group>"; };
+		23A1B2C42E70C00000640977 /* MultiSiteDepartureSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultiSiteDepartureSheet.swift; sourceTree = "<group>"; };
+		23AA11012E71AAAA00640977 /* DSNYSheetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DSNYSheetView.swift; sourceTree = "<group>"; };
+		23AA11022E71AAAA00640977 /* HPDSheetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HPDSheetView.swift; sourceTree = "<group>"; };
+		23AA11032E71AAAA00640977 /* DOBSheetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DOBSheetView.swift; sourceTree = "<group>"; };
+		23AA11042E71AAAB00640977 /* ProductionCredentialsManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProductionCredentialsManager.swift; sourceTree = "<group>"; };
 		23AAA0002E70A00100123456 /* VendorAccessLogSheetLight.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VendorAccessLogSheetLight.swift; sourceTree = "<group>"; };
-			/* 23AAA1012E70B00000640977 removed duplicate WeatherHybridCard.swift file reference */
 		23AAB0002E70B00100123456 /* DeveloperLoginBoard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeveloperLoginBoard.swift; sourceTree = "<group>"; };
 		23AAB0022E70B00100123457 /* SeededCredentials.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeededCredentials.swift; sourceTree = "<group>"; };
 		23B0CDH02E70810000640977 /* ClientDashboardHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClientDashboardHeader.swift; sourceTree = "<group>"; };
@@ -665,6 +672,7 @@
 		23B211682E52D8A500481C3C /* ClientBuildingGridSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClientBuildingGridSection.swift; sourceTree = "<group>"; };
 		23B2116B2E52FCEB00481C3C /* ClientDashboardPortfolioHeroCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClientDashboardPortfolioHeroCard.swift; sourceTree = "<group>"; };
 		23C67B982E66312E005AAD4F /* WeatherHybridCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherHybridCard.swift; sourceTree = "<group>"; };
+		23C67B9A2E66B621005AAD4F /* BuildingInfrastructureCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuildingInfrastructureCatalog.swift; sourceTree = "<group>"; };
 		23E8FB0B2E42F96400F8771C /* CyntientOps.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CyntientOps.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		23E8FB0C2E42F96400F8771C /* CyntientOpsTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CyntientOpsTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		23E8FB0D2E42F96400F8771C /* CyntientOpsUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CyntientOpsUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -813,6 +821,9 @@
 				231932182E42E91200640977 /* WorkerDashboardView.swift */,
 				231932192E42E91200640977 /* WorkerPreferencesView.swift */,
 				2319321A2E42E91200640977 /* WorkerProfileView.swift */,
+				23AA11012E71AAAA00640977 /* DSNYSheetView.swift */,
+				23AA11022E71AAAA00640977 /* HPDSheetView.swift */,
+				23AA11032E71AAAA00640977 /* DOBSheetView.swift */,
 			);
 			path = Main;
 			sourceTree = "<group>";
@@ -883,6 +894,7 @@
 		231932662E42E94900640977 /* Utilities */ = {
 			isa = PBXGroup;
 			children = (
+				23C67B9A2E66B621005AAD4F /* BuildingInfrastructureCatalog.swift */,
 				2362A1B22E6406BF0098CC03 /* BuildingAssets.swift */,
 				231932642E42E94900640977 /* Database */,
 				231932652E42E94900640977 /* StringExtensions.swift */,
@@ -970,6 +982,7 @@
 				231932842E42E9CD00640977 /* InventoryService.swift */,
 				231932852E42E9CD00640977 /* PhotoEvidenceService.swift */,
 				231932862E42E9CD00640977 /* ProductionReadinessChecker.swift */,
+				23AA11042E71AAAB00640977 /* ProductionCredentialsManager.swift */,
 				231932872E42E9CD00640977 /* ReportService.swift */,
 				231932882E42E9CD00640977 /* ServiceContainer.swift */,
 				231932892E42E9CD00640977 /* SiteLogService.swift */,
@@ -1527,7 +1540,6 @@
 				23E8FB0B2E42F96400F8771C /* CyntientOps.app */,
 				23E8FB0C2E42F96400F8771C /* CyntientOpsTests.xctest */,
 				23E8FB0D2E42F96400F8771C /* CyntientOpsUITests.xctest */,
-					/* Recovered References group removed */
 			);
 			sourceTree = "<group>";
 		};
@@ -1667,7 +1679,6 @@
 			path = Worker;
 			sourceTree = "<group>";
 		};
-/* Removed Recovered References group to avoid duplicate references */
 		23F82D592E5E52930097E7B1 /* Admin */ = {
 			isa = PBXGroup;
 			children = (
@@ -1863,6 +1874,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				23AA11112E71AAAA00640977 /* DSNYSheetView.swift in Sources */,
+				23AA11122E71AAAA00640977 /* HPDSheetView.swift in Sources */,
+				23AA11132E71AAAA00640977 /* DOBSheetView.swift in Sources */,
+				23AA11142E71AAAB00640977 /* ProductionCredentialsManager.swift in Sources */,
 				23FFF0022E5F999900640977 /* AdminReportsTypes.swift in Sources */,
 				2319321D2E42E91200640977 /* InventoryView.swift in Sources */,
 				2319321E2E42E91200640977 /* WorkerDashboardView.swift in Sources */,
@@ -2089,6 +2104,7 @@
 				23486D822E5FDA7A0040DA52 /* KevinDutanRoutes.swift in Sources */,
 				23486D832E5FDA7A0040DA52 /* WorkerRoute.swift in Sources */,
 				23486D842E5FDA7A0040DA52 /* DSNYCollectionSchedule.swift in Sources */,
+				23C67B9B2E66B621005AAD4F /* BuildingInfrastructureCatalog.swift in Sources */,
 				23486D852E5FDA7A0040DA52 /* KevinDutanCompleteSchedule.swift in Sources */,
 				231932D62E42E9CD00640977 /* ConflictResolutionService.swift in Sources */,
 				231932D72E42E9CD00640977 /* EmergencyContactService.swift in Sources */,

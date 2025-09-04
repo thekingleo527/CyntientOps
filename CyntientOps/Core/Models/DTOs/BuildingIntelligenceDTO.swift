@@ -350,7 +350,7 @@ extension BuildingIntelligenceDTO {
         // Real building data - no more random numbers
         switch buildingId {
         case "1": return 1925  // 12 West 18th Street
-        case "2": return 1928  // 29-31 East 20th Street
+        // case "2" removed — building discontinued
         case "6": return 1932  // 68 Perry Street
         case "7": return 1930  // 136 W 17th Street
         case "10": return 1890 // 104 Franklin Street
@@ -365,7 +365,7 @@ extension BuildingIntelligenceDTO {
         // Real building data - no more random numbers
         switch buildingId {
         case "1": return 28500  // 12 West 18th Street
-        case "2": return 35200  // 29-31 East 20th Street
+        // case "2" removed — building discontinued
         case "6": return 22800  // 68 Perry Street
         case "7": return 31600  // 136 W 17th Street
         case "10": return 18900 // 104 Franklin Street

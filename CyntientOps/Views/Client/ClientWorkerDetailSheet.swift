@@ -183,80 +183,46 @@ struct ClientWorkerDetailSheet: View {
     
     private func loadWorkerDetail() async {
         do {
-            // Load worker from OperationalDataManager
-            // Get real worker data based on operational assignments
-            let workerData: CoreTypes.WorkerDetail
-            let tasks: [CoreTypes.ContextualTask] 
-            let scheduleItems: [CoreTypes.WorkerScheduleItem]
+            // Load worker profile from WorkerService
+            let profile = try await container.workers.getWorkerProfile(for: workerId)
+            // Load tasks from TaskService
+            let tasks = try await container.tasks.getTasksForWorker(workerId)
             
-            switch workerId {
-            case "4": // Kevin Dutan
-                workerData = CoreTypes.WorkerDetail(
-                    id: "4",
-                    name: "Kevin Dutan",
-                    role: "Primary Cleaner",
-                    capabilities: ["Museum Cleaning", "Trash Management", "Sidewalk Cleaning", "DSNY Operations"],
-                    isActive: true,
-                    currentLocation: "Rubin Museum (142–148 W 17th)",
-                    completionRate: 0.95,
-                    efficiency: 0.88,
-                    qualityScore: 0.92
-                )
-                var task1 = CoreTypes.ContextualTask(id: "kevin-rubin-daily", title: "Rubin Museum Daily Service", description: "Daily trash area and sidewalk maintenance", status: .pending, createdAt: Date(), updatedAt: Date())
-                task1.buildingId = "14"
-                task1.category = .sanitation
-                
-                var task2 = CoreTypes.ContextualTask(id: "kevin-perry-sweep", title: "131 Perry Street Sweep", description: "Morning sidewalk maintenance", status: .completed, createdAt: Date(), updatedAt: Date())
-                task2.buildingId = "10"
-                task2.category = .cleaning
-                
-                tasks = [task1, task2]
-                scheduleItems = [
-                    CoreTypes.WorkerScheduleItem(id: "kevin-morning", startTime: Calendar.current.date(bySettingHour: 6, minute: 0, second: 0, of: Date()) ?? Date(), endTime: Calendar.current.date(bySettingHour: 7, minute: 0, second: 0, of: Date()) ?? Date(), taskName: "Perry Street Circuit", location: "131 Perry Street"),
-                    CoreTypes.WorkerScheduleItem(id: "kevin-rubin", startTime: Calendar.current.date(bySettingHour: 10, minute: 0, second: 0, of: Date()) ?? Date(), endTime: Calendar.current.date(bySettingHour: 11, minute: 0, second: 0, of: Date()) ?? Date(), taskName: "Rubin Museum Service", location: "Rubin Museum (142–148 W 17th)")
-                ]
-            case "5": // Mercedes Inamagua
-                workerData = CoreTypes.WorkerDetail(
-                    id: "5",
-                    name: "Mercedes Inamagua",
-                    role: "Glass & Lobby Specialist",
-                    capabilities: ["Glass Cleaning", "Lobby Maintenance", "Entrance Care", "Deep Cleaning"],
-                    isActive: true,
-                    currentLocation: "112 West 18th Street",
-                    completionRate: 0.98,
-                    efficiency: 0.94,
-                    qualityScore: 0.96
-                )
-                var task1 = CoreTypes.ContextualTask(id: "mercedes-glass-1", title: "112 West 18th Glass", description: "Glass and lobby cleaning", status: .completed, createdAt: Date(), updatedAt: Date())
-                task1.buildingId = "7"
-                task1.category = .cleaning
-                
-                var task2 = CoreTypes.ContextualTask(id: "mercedes-glass-2", title: "117 West 17th Glass", description: "Glass and vestibule cleaning", status: .pending, createdAt: Date(), updatedAt: Date())
-                task2.buildingId = "9"
-                task2.category = .cleaning
-                
-                tasks = [task1, task2]
-                scheduleItems = [
-                    CoreTypes.WorkerScheduleItem(id: "mercedes-morning", startTime: Calendar.current.date(bySettingHour: 6, minute: 0, second: 0, of: Date()) ?? Date(), endTime: Calendar.current.date(bySettingHour: 7, minute: 0, second: 0, of: Date()) ?? Date(), taskName: "Glass Circuit", location: "112 West 18th Street")
-                ]
-            default:
-                workerData = CoreTypes.WorkerDetail(
-                    id: workerId,
-                    name: "Worker",
-                    role: "General Worker",
-                    capabilities: ["General Maintenance"],
-                    isActive: true,
-                    currentLocation: nil,
-                    completionRate: 0.85,
-                    efficiency: 0.90,
-                    qualityScore: 0.88
-                )
-                tasks = []
-                scheduleItems = []
+            // Build WorkerDetail using real data and simple derived metrics
+            let completed = tasks.filter { $0.isCompleted }
+            let completionRate = tasks.isEmpty ? 0.0 : Double(completed.count) / Double(tasks.count)
+            let currentLocation = tasks.first?.buildingName ?? tasks.first?.building?.name
+            let capabilitiesRecord = try? await container.workers.getWorkerCapabilityRecord(workerId)
+            let capabilities = capabilitiesRecord != nil ? [
+                capabilitiesRecord!.canUploadPhotos ? "Can Upload Photos" : nil,
+                capabilitiesRecord!.canAddNotes ? "Can Add Notes" : nil,
+                capabilitiesRecord!.canAddEmergencyTasks ? "Can Add Emergency Tasks" : nil
+            ].compactMap { $0 } : []
+            
+            let detail = CoreTypes.WorkerDetail(
+                id: profile.id,
+                name: profile.name,
+                role: profile.role.rawValue.capitalized,
+                capabilities: capabilities.isEmpty ? ["General Operations"] : capabilities,
+                isActive: profile.isActive,
+                currentLocation: currentLocation,
+                completionRate: completionRate,
+                efficiency: 0.9,
+                qualityScore: 0.9
+            )
+            
+            // Build a simple schedule from tasks with scheduledDate
+            let scheduleItems: [CoreTypes.WorkerScheduleItem] = tasks.compactMap { task in
+                guard let start = task.scheduledDate ?? task.dueDate else { return nil }
+                let duration: TimeInterval = task.estimatedDuration ?? 3600
+                let end = start.addingTimeInterval(duration)
+                let name = task.title
+                let location = task.buildingName ?? (task.buildingId.flatMap { CanonicalIDs.Buildings.getName(for: $0) } ?? "")
+                return CoreTypes.WorkerScheduleItem(id: UUID().uuidString, startTime: start, endTime: end, taskName: name, location: location)
             }
             
             await MainActor.run {
-                self.worker = workerData
+                self.worker = detail
                 self.currentTasks = tasks
                 self.schedule = scheduleItems
                 self.isLoading = false

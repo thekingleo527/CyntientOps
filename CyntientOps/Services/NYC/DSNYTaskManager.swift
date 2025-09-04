@@ -102,12 +102,15 @@ public final class DSNYTaskManager: ObservableObject {
             // Determine assigned worker
             let workerId = determineAssignedWorker(for: schedule.buildingId, on: day)
             
+            // Enforce bring-in-by-10am SLA
+            let clampedTime = schedule.binRetrievalTime.clamped(latestHour: 10)
+
             let task = DSNYTask(
                 id: "dsny_retrieval_\(schedule.buildingId)_\(day.rawValue.lowercased())",
                 buildingId: schedule.buildingId,
                 buildingName: schedule.buildingName,
                 taskType: .binRetrieval,
-                scheduledTime: schedule.binRetrievalTime,
+                scheduledTime: clampedTime,
                 assignedWorkerId: workerId,
                 collectionDay: day,
                 instructions: "Bring trash bins back inside after DSNY collection. \(schedule.specialInstructions)",

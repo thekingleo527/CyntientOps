@@ -339,8 +339,7 @@ public final class WorkerProfileViewModel: ObservableObject {
         switch buildingName {
         case let name where name.contains("West 18th"):
             return CLLocationCoordinate2D(latitude: 40.7421, longitude: -73.9966)
-        case let name where name.contains("East 20th"):
-            return CLLocationCoordinate2D(latitude: 40.7378, longitude: -73.9874)
+        // East 20th discontinued — no mapping
         case let name where name.contains("Franklin"):
             return CLLocationCoordinate2D(latitude: 40.7189, longitude: -74.0072)
         case let name where name.contains("Perry"):

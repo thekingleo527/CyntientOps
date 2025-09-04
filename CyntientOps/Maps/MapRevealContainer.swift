@@ -18,7 +18,8 @@ struct MapRevealContainer<Content: View>: View {
     // Map state (can be controlled externally)
     @Binding var isRevealed: Bool
     @State private var dragOffset: CGFloat = 0
-    @State private var showHint = true
+    @State private var showHint = false
+    @AppStorage("mapCoachmarkSeen") private var mapCoachmarkSeen: Bool = false
     @State private var selectedBuildingForPreview: NamedCoordinate?
     @State private var hoveredBuildingId: String?
     
@@ -130,15 +131,20 @@ struct MapRevealContainer<Content: View>: View {
                     .zIndex(3)
             }
             
-            // Swipe hint
-            if showHint && !isRevealed {
-                MapInteractionHint.automatic(showHint: $showHint)
-                    .zIndex(4)
-            }
+            // Swipe hint suppressed: intentionally disabled to avoid overlay
         }
         .ignoresSafeArea(.all, edges: .bottom)
         .task {
             await preloadBuildingMetrics()
+        }
+        .onAppear {
+            // Only show the hint once per app install unless reset.
+            // Gate by both our app storage and the internal MapInteractionHint persistence.
+            if !mapCoachmarkSeen && !MapInteractionHint.hasUserSeenHint() {
+                showHint = true
+            } else {
+                showHint = false
+            }
         }
     }
     
@@ -307,6 +313,7 @@ struct MapRevealContainer<Content: View>: View {
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
         .padding(.horizontal, 20)
         .padding(.bottom, 40)
+        .allowsHitTesting(false)
     }
     
     // MARK: - Intelligence Popover
@@ -456,26 +463,6 @@ struct MapBuildingBubble: View {
     
     @State private var isPressed = false
     
-    // Building asset mappings (same as BuildingPreviewPopover)
-    private let buildingAssetMap: [String: String] = [
-        "1": "12_West_18th_Street",
-        "2": "29_31_East_20th_Street",
-        "3": "36_Walker_Street",
-        "4": "41_Elizabeth_Street",
-        "5": "68_Perry_Street",
-        "6": "104_Franklin_Street",
-        "7": "112_West_18th_Street",
-        "8": "117_West_17th_Street",
-        "9": "123_1st_Avenue",
-        "10": "131_Perry_Street",
-        "11": "133_East_15th_Street",
-        "12": "135West17thStreet",
-        "13": "136_West_17th_Street",
-        "14": "Rubin_Museum_142_148_West_17th_Street",
-        "15": "138West17thStreet",
-        "16": "41_Elizabeth_Street",
-        "park": "Stuyvesant_Cove_Park"
-    ]
     
     var body: some View {
         Button(action: { onTap?() }) {
@@ -489,7 +476,7 @@ struct MapBuildingBubble: View {
                 }
                 
                 // Always show building image if available, otherwise show icon
-                if buildingAssetMap[building.id] != nil {
+                if BuildingAssets.assetName(for: building.id) != nil {
                     // Show building image bubble (default)
                     buildingImageBubble
                 } else {
@@ -527,8 +514,8 @@ struct MapBuildingBubble: View {
                 .fill(.ultraThinMaterial)
                 .frame(width: 55, height: 55)
             
-            // Building image or fallback
-            if let assetName = buildingAssetMap[building.id] {
+            // Building image or fallback via shared mapping
+            if let assetName = BuildingAssets.assetName(for: building.id) {
                 Image(assetName)
                     .resizable()
                     .scaledToFill()

@@ -19,6 +19,7 @@ struct SimplifiedDashboard: View {
     @State private var selectedTask: CoreTypes.ContextualTask?
     @State private var showClockInSheet = false
     @State private var animateClockButton = false
+    @State private var showingHourlyWeather = false
     
     var body: some View {
         ZStack {
@@ -38,6 +39,23 @@ struct SimplifiedDashboard: View {
                         currentBuildingCard
                             .animatedGlassAppear(delay: 0.2)
                         
+                        // Weather Hybrid Card (tethered to worker/location)
+                        WeatherHybridCard(
+                            snapshot: viewModel.weather,
+                            suggestion: viewModel.weatherSuggestion,
+                            onApplySuggestion: {
+                                viewModel.applyWeatherOptimization()
+                            },
+                            onViewHourly: { showingHourlyWeather = true }
+                        )
+                        .animatedGlassAppear(delay: 0.25)
+
+                        // Compact policy chips under weather card
+                        if let bid = viewModel.currentBuilding?.id {
+                            SimplifiedPolicyChipsRow(buildingId: bid)
+                                .animatedGlassAppear(delay: 0.27)
+                        }
+
                         // Today's Tasks Section with enhanced styling
                         tasksSection
                             .animatedGlassAppear(delay: 0.3)
@@ -74,6 +92,17 @@ struct SimplifiedDashboard: View {
                     }
                 }
             )
+        }
+        .sheet(isPresented: $showingHourlyWeather) {
+            if let snap = viewModel.weather {
+                NavigationView {
+                    WeatherRibbonView(snapshot: snap)
+                        .navigationTitle("Hourly Weather")
+                        .navigationBarTitleDisplayMode(.inline)
+                }
+            } else {
+                EmptyView()
+            }
         }
         .onAppear {
             Task {
@@ -335,6 +364,64 @@ struct SimplifiedDashboard: View {
         default:
             return "Good Evening"
         }
+    }
+}
+
+// MARK: - Simplified Policy Chips
+private struct SimplifiedPolicyChipsRow: View {
+    let buildingId: String
+    
+    var body: some View {
+        let chips = policyChips(for: buildingId)
+        if chips.isEmpty { EmptyView() } else {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(chips, id: \.label) { chip in
+                        HStack(spacing: 4) {
+                            Image(systemName: chip.symbol)
+                            Text(chip.label)
+                        }
+                        .font(.caption2)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(chip.color.opacity(0.15))
+                        .foregroundColor(chip.color)
+                        .clipShape(Capsule())
+                    }
+                }
+            }
+        }
+    }
+    
+    private struct Chip { let label: String; let symbol: String; let color: Color }
+    
+    private func policyChips(for id: String) -> [Chip] {
+        var list: [Chip] = []
+        
+        // Rain mats buildings: 12 W 18th (1), 112 W 18th (7), 117 W 17th (9)
+        if ["1","7","9"].contains(id) {
+            list.append(Chip(label: "Mats", symbol: "water.waves", color: .blue))
+        }
+        
+        // Roof drain buildings: 135/138/117/112 W 17th + 12 W 18th
+        if ["1","3","5","7","9"].contains(id) {
+            list.append(Chip(label: "Drains", symbol: "cloud.drizzle", color: .cyan))
+        }
+        
+        // Backyard monthly: 135 (3) and 138 (5)
+        if ["3","5"].contains(id) {
+            list.append(Chip(label: "Backyard", symbol: "leaf.circle", color: .brown))
+        }
+        
+        // Special building notes
+        if id == "6" { // 68 Perry - key box
+            list.append(Chip(label: "Key Box", symbol: "key.fill", color: .yellow))
+        }
+        
+        // DSNY bring-in by 10:00 applies portfolio-wide
+        list.append(Chip(label: "DSNY 10:00", symbol: "trash.circle", color: .green))
+        
+        return list
     }
 }
 

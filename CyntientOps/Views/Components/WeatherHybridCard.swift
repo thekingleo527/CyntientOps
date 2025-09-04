@@ -9,6 +9,8 @@ import SwiftUI
 
 struct WeatherHybridCard: View {
     let snapshot: WeatherSnapshot?
+    let suggestion: String?
+    let onApplySuggestion: (() -> Void)?
     let onViewHourly: () -> Void
 
     @State private var showHourly = false
@@ -43,6 +45,11 @@ struct WeatherHybridCard: View {
                 Text(snapshot.current.condition)
                     .foregroundStyle(.secondary)
                 Spacer()
+                if let onApply = onApplySuggestion, suggestion != nil {
+                    Button(isSpanish ? "Aplicar" : "Apply") { onApply() }
+                        .font(.callout)
+                        .buttonStyle(.borderedProminent)
+                }
                 Button(isSpanish ? "Ver por hora" : "View hourly") {
                     onViewHourly()
                 }
@@ -55,7 +62,16 @@ struct WeatherHybridCard: View {
                     .foregroundStyle(.cyan)
             }
 
-            if let banner = riskBanner(snapshot) {
+            if let suggestionText = suggestion {
+                HStack(spacing: 6) {
+                    Image(systemName: "lightbulb")
+                    Text(suggestionText)
+                }
+                .font(.caption2)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(.ultraThinMaterial, in: Capsule())
+            } else if let banner = riskBanner(snapshot) {
                 HStack(spacing: 6) {
                     Image(systemName: banner.icon)
                     Text(banner.text)
@@ -120,4 +136,3 @@ struct WeatherHybridCard: View {
         return nil
     }
 }
-

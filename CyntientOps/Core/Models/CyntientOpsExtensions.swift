@@ -37,7 +37,6 @@ extension CoreTypes.RouteStop {
         // Real building coordinates - no more hardcoded fake data
         switch buildingId {
         case "1": return CLLocationCoordinate2D(latitude: 40.738976, longitude: -73.992345) // 12 West 18th Street
-        case "2": return CLLocationCoordinate2D(latitude: 40.739567, longitude: -73.989123) // 29-31 East 20th Street
         case "6": return CLLocationCoordinate2D(latitude: 40.731234, longitude: -74.008456) // 68 Perry Street
         case "7": return CLLocationCoordinate2D(latitude: 40.740123, longitude: -73.993789) // 136 W 17th Street
         case "10": return CLLocationCoordinate2D(latitude: 40.719876, longitude: -74.006543) // 104 Franklin Street
@@ -89,7 +88,6 @@ extension CoreTypes.WorkerDailyRoute {
         // Real building coordinates - no more hardcoded fake data
         switch buildingId {
         case "1": return CLLocationCoordinate2D(latitude: 40.738976, longitude: -73.992345) // 12 West 18th Street
-        case "2": return CLLocationCoordinate2D(latitude: 40.739567, longitude: -73.989123) // 29-31 East 20th Street
         case "6": return CLLocationCoordinate2D(latitude: 40.731234, longitude: -74.008456) // 68 Perry Street
         case "7": return CLLocationCoordinate2D(latitude: 40.740123, longitude: -73.993789) // 136 W 17th Street
         case "10": return CLLocationCoordinate2D(latitude: 40.719876, longitude: -74.006543) // 104 Franklin Street
@@ -143,13 +141,7 @@ extension Array where Element == CoreTypes.NamedCoordinate {
                 latitude: 40.738976,
                 longitude: -73.992345
             ),
-            CoreTypes.NamedCoordinate(
-                id: "2",
-                name: "29-31 East 20th Street",
-                address: "29-31 East 20th Street, New York, NY 10003",
-                latitude: 40.739567,
-                longitude: -73.989123
-            ),
+            // Removed: Building ID 2 (29-31 East 20th Street) — discontinued
             CoreTypes.NamedCoordinate(
                 id: "6",
                 name: "68 Perry Street",

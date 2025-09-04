@@ -130,6 +130,7 @@ public actor BatchedRequestManager {
         self.maxRetries = maxRetries
         self.retryDelay = retryDelay
         self.session = session
+        // TODO: Fix actor isolation warning for Swift 6 compatibility
         self.networkMonitor = NetworkMonitor.shared
         
         // Setup encoder/decoder

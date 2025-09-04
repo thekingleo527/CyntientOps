@@ -35,7 +35,7 @@ public final class TaskPoolManager {
     
     /// Execute task with automatic pooling
     public func execute<T>(
-        priority: Task.Priority = .medium,
+        priority: TaskPriority = .medium,
         operation: @escaping () async throws -> T
     ) async throws -> T {
         
@@ -61,7 +61,7 @@ public final class TaskPoolManager {
     
     /// Execute task without return value
     public func executeVoid(
-        priority: Task.Priority = .medium,
+        priority: TaskPriority = .medium,
         operation: @escaping () async throws -> Void
     ) {
         let taskId = UUID()
@@ -82,7 +82,7 @@ public final class TaskPoolManager {
     
     private func queueTask(
         id: UUID,
-        priority: Task.Priority,
+        priority: TaskPriority,
         operation: @escaping () async -> Void
     ) async {
         
@@ -118,7 +118,7 @@ public final class TaskPoolManager {
         }
     }
 
-    private func isHighPriority(_ p: Task.Priority) -> Bool {
+    private func isHighPriority(_ p: TaskPriority) -> Bool {
         switch p {
         case .high, .userInitiated:
             return true
@@ -164,7 +164,7 @@ public final class TaskPoolManager {
 public enum TaskPool {
     /// Create a pooled task that respects concurrency limits
     public static func pooled(
-        priority: Task.Priority = .medium,
+        priority: TaskPriority = .medium,
         operation: @escaping () async throws -> Void
     ) {
         Task {
@@ -174,7 +174,7 @@ public enum TaskPool {
 
     /// Create a pooled task with return value
     public static func pooled<T>(
-        priority: Task.Priority = .medium,
+        priority: TaskPriority = .medium,
         operation: @escaping () async throws -> T
     ) async throws -> T {
         return try await TaskPoolManager.shared.execute(priority: priority, operation: operation)

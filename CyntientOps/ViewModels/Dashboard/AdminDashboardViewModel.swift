@@ -658,6 +658,8 @@ class AdminDashboardViewModel: ObservableObject {
         var didLogGeneratedBBL = false
         var didLogNoDofData = false
         for building in buildings {
+            // Skip Stuyvesant Cove Park per requirements
+            if building.name.localizedCaseInsensitiveContains("Stuyvesant Cove Park") { continue }
             do {
                 print("🔢 Generating BBL for: \(building.name)")
                 
@@ -741,23 +743,67 @@ class AdminDashboardViewModel: ObservableObject {
                 let bin = resolved.bin ?? NYCAPIService.shared.extractBIN(from: building)
                 let bbl = resolved.bbl ?? NYCAPIService.shared.extractBBL(from: building)
 
-                // Fetch real HPD violations
-                let hpdViolations = try await nycAPI.fetchHPDViolations(bin: bin)
+                // Fetch HPD violations (prefer BIN; fallback to address via $q)
+                var hpdViolations = try await nycAPI.fetchHPDViolations(bin: bin)
+                if hpdViolations.isEmpty {
+                    let addr = "\(building.name), \(building.address)"
+                    if let byAddr = try? await nycAPI.fetchHPDViolations(address: addr), !byAddr.isEmpty {
+                        hpdViolations = byAddr
+                    } else if let byAddr2 = try? await nycAPI.fetchHPDViolations(address: building.address), !byAddr2.isEmpty {
+                        hpdViolations = byAddr2
+                    }
+                }
                 hpdData[building.id] = hpdViolations
                 
-                // Fetch real DOB permits
-                let dobPermits = try await nycAPI.fetchDOBPermits(bin: bin)
+                // Fetch DOB permits (prefer BIN; fallback to address via $q)
+                var dobPermits = try await nycAPI.fetchDOBPermits(bin: bin)
+                if dobPermits.isEmpty {
+                    let addr = "\(building.name), \(building.address)"
+                    if let byAddr = try? await nycAPI.fetchDOBPermits(address: addr), !byAddr.isEmpty {
+                        dobPermits = byAddr
+                    } else if let byAddr2 = try? await nycAPI.fetchDOBPermits(address: building.address), !byAddr2.isEmpty {
+                        dobPermits = byAddr2
+                    }
+                }
                 dobData[building.id] = dobPermits
                 
-                // Fetch real DSNY routes (if available)
-                let district = NYCAPIService.shared.extractDistrict(from: bin)
-                let dsnyRoutes = district.isEmpty ? [] : ((try? await nycAPI.fetchDSNYSchedule(district: district)) ?? [])
-                dsnyData[building.id] = dsnyRoutes ?? []
+                // Fetch DSNY collection schedule via location-based DSNYAPIService
+                var dsnyRoutes: [DSNYRoute] = []
+                if let schedule = try? await DSNYAPIService.shared.getSchedule(for: building) {
+                    for day in schedule.refuseDays {
+                        dsnyRoutes.append(DSNYRoute(
+                            communityDistrict: schedule.districtSection,
+                            section: schedule.districtSection,
+                            route: "TRA-\(schedule.districtSection)",
+                            dayOfWeek: day.rawValue,
+                            time: "6:00 AM",
+                            serviceType: "TRASH",
+                            borough: "Manhattan"
+                        ))
+                    }
+                    for day in schedule.recyclingDays {
+                        dsnyRoutes.append(DSNYRoute(
+                            communityDistrict: schedule.districtSection,
+                            section: schedule.districtSection,
+                            route: "REC-\(schedule.districtSection)",
+                            dayOfWeek: day.rawValue,
+                            time: "6:00 AM",
+                            serviceType: "RECYCLING",
+                            borough: "Manhattan"
+                        ))
+                    }
+                }
+                dsnyData[building.id] = dsnyRoutes
 
-                // Fetch DSNY violations (prefer BIN; fallback to address)
+                // Fetch DSNY violations (prefer BIN; fallback to BBL via OATH, then address, then 311)
                 var dsnyList: [DSNYViolation] = []
                 if let byBin = try? await nycAPI.fetchDSNYViolations(bin: bin) {
                     dsnyList = byBin
+                }
+                if dsnyList.isEmpty {
+                    if !bbl.isEmpty, let byBBL = try? await nycAPI.fetchOATHDSNYViolations(bbl: bbl), !byBBL.isEmpty {
+                        dsnyList = byBBL
+                    }
                 }
                 if dsnyList.isEmpty {
                     // Use postal address fallback proactively
@@ -766,6 +812,30 @@ class AdminDashboardViewModel: ObservableObject {
                         dsnyList = byAddr
                     } else if let byAddr2 = try? await nycAPI.fetchDSNYViolations(address: building.address), !byAddr2.isEmpty {
                         dsnyList = byAddr2
+                    } else {
+                        // Last resort: map relevant 311 complaints to DSNY-style records so DSNY sheet has signal
+                        if let complaints = try? await nycAPI.fetch311Complaints(address: building.address) {
+                            let relevant = complaints.filter { c in
+                                let t = c.complaintType.lowercased()
+                                return t.contains("sanitation") || t.contains("dirty") || t.contains("missed") || t.contains("encampment") || t.contains("illegal dumping")
+                            }
+                            dsnyList = relevant.map { c in
+                                DSNYViolation(
+                                    violationId: c.uniqueKey,
+                                    bin: "",
+                                    issueDate: c.createdDate,
+                                    hearingDate: nil,
+                                    violationType: c.complaintType,
+                                    fineAmount: nil,
+                                    status: c.status,
+                                    borough: c.borough,
+                                    address: c.incidentAddress,
+                                    violationDetails: c.descriptor,
+                                    dispositionCode: nil,
+                                    dispositionDate: c.closedDate
+                                )
+                            }
+                        }
                     }
                 }
                 dsnyViolations[building.id] = dsnyList

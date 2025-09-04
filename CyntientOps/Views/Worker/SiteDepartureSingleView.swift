@@ -36,6 +36,7 @@ struct SiteDepartureSingleView: View {
                     .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
 
                     if !checklist.incompleteTasks.isEmpty {
+                        Text("Completion").font(.headline)
                         Text("Confirm remaining items").font(.subheadline).foregroundColor(.secondary)
                         ForEach(checklist.incompleteTasks, id: \.id) { task in
                             Toggle(isOn: Binding(
@@ -53,6 +54,22 @@ struct SiteDepartureSingleView: View {
                             .toggleStyle(.checkbox)
 #endif
                         }
+                    }
+
+                    // Equipment section
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Equipment").font(.headline)
+                        Text("Secured & logged?").font(.subheadline).foregroundColor(.secondary)
+                        Toggle("All equipment secured", isOn: Binding(
+                            get: { viewModel.checkmarkStates["equip_secured"] ?? false },
+                            set: { viewModel.checkmarkStates["equip_secured"] = $0 }
+                        ))
+                    }
+
+                    // Cleanliness section with photo requirement affordance
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Cleanliness").font(.headline)
+                        Text("Trash area / lobby photos").font(.subheadline).foregroundColor(.secondary)
                     }
 
                     // Photos up to 10
@@ -78,8 +95,13 @@ struct SiteDepartureSingleView: View {
                         }
                     }
 
-                    // Notes
+                    // Docs/Notes
                     VStack(alignment: .leading, spacing: 8) {
+                        Text("Docs").font(.headline)
+                        Toggle("Notes uploaded", isOn: Binding(
+                            get: { !viewModel.departureNotes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty },
+                            set: { _ in }
+                        ))
                         Text("Daily Log Notes").font(.caption).foregroundColor(.secondary)
                         TextEditor(text: $viewModel.departureNotes)
                             .frame(minHeight: 100)

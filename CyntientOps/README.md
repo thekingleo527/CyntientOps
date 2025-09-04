@@ -75,6 +75,17 @@ REMOVED: Building 2 (29-31 East 20th) - Discontinued
 
 ---
 
+## **🧭 Developer Guides**
+
+- Developer Guide: `../Documentation/DEVELOPER_GUIDE.md`
+  - Architecture map, coding principles (MainActor, ServiceContainer, Canonical IDs)
+  - Connection Points and Implementation Protocol
+  - Testing commands and success criteria
+
+For day-to-day alignment, also see `CyntientOps/TODO.md`.
+
+---
+
 ## **🏗️ ARCHITECTURE TRANSFORMATION**
 
 ### **CURRENT BROKEN STATE**

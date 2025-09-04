@@ -553,14 +553,16 @@ public class BuildingDetailViewModel: ObservableObject {
     }
 
     // MARK: - Building Feature Lookups
-    /// Infer elevator presence/count from known route operations for this building
+    /// Elevator presence/count from authoritative catalog; fall back to inference if unknown
     public func getElevatorInfo() -> (hasElevator: Bool, count: Int?) {
-        // Scan route operations for this building containing "elevator"
+        if let count = BuildingInfrastructureCatalog.elevatorCount(for: buildingId) {
+            return (count > 0, count)
+        }
+        // Fallback: scan route operations
         let allRoutes = container.routes.routes
         for route in allRoutes {
             for seq in route.sequences where seq.buildingId == buildingId {
                 if seq.operations.contains(where: { $0.name.localizedCaseInsensitiveContains("elevator") }) {
-                    // We can reliably say at least one elevator is serviced
                     return (true, 1)
                 }
             }
@@ -882,7 +884,7 @@ public class BuildingDetailViewModel: ObservableObject {
                 SELECT wba.*, w.name as worker_name, w.role, w.skills,
                        COUNT(DISTINCT t.id) as task_count,
                        COUNT(DISTINCT rs.id) as routine_count,
-                       AVG(CASE WHEN t.status = 'completed' THEN 1.0 ELSE 0.0 END) as completion_rate
+                       AVG(CASE WHEN t.completedAt IS NOT NULL THEN 1.0 ELSE 0.0 END) as completion_rate
                 FROM worker_building_assignments wba
                 JOIN workers w ON wba.worker_id = w.id
                 LEFT JOIN tasks t ON t.assignee_id = w.id AND t.building_id = ?

@@ -81,6 +81,9 @@ public final class NYCIntegrationManager: ObservableObject {
             // Check database schema
             try await setupDatabaseSchema()
             
+            // Fill missing BIN/BBL/district deterministically via Building Footprints
+            await seedIdentifiersFromFootprints()
+            
             // Verify API connectivity
             await checkAPIHealth()
             
@@ -349,6 +352,61 @@ public final class NYCIntegrationManager: ObservableObject {
     private func getAllComplianceIssues() -> [CoreTypes.ComplianceIssue] {
         return complianceService.complianceData.values.flatMap { compliance in
             complianceService.getComplianceIssues(for: compliance.bin)
+        }
+    }
+
+    // MARK: - Identifier Seeding
+    /// Resolve and persist BIN, BBL, and DSNY community district for portfolio buildings
+    private func seedIdentifiersFromFootprints() async {
+        do {
+            let rows = try await database.query("""
+                SELECT id, name, address, latitude, longitude, COALESCE(bin, bin_number) AS bin, bbl, dsny_district
+                FROM buildings
+                ORDER BY name
+            """)
+
+            for row in rows {
+                guard let id = row["id"] as? String,
+                      let lat = row["latitude"] as? Double,
+                      let lon = row["longitude"] as? Double else { continue }
+                let currentBIN = (row["bin"] as? String) ?? ""
+                let currentBBL = (row["bbl"] as? String) ?? ""
+                let currentDistrict = (row["dsny_district"] as? String) ?? ""
+
+                // Skip if already fully populated
+                if !currentBIN.isEmpty && !currentBBL.isEmpty && !currentDistrict.isEmpty { continue }
+
+                // Resolve from footprints with flexible radii
+                let resolved = await nycAPI.resolveBinBbl(lat: lat, lon: lon)
+                let bin = resolved.bin ?? currentBIN
+                let bbl = resolved.bbl ?? currentBBL
+
+                // Estimate community district when missing (simple Manhattan heuristic)
+                let district: String
+                if !currentDistrict.isEmpty { district = currentDistrict }
+                else {
+                    // Very rough heuristic using latitude bands for MN01–MN07; fallback to MN05
+                    if lat > 40.795 { district = "MN07" }
+                    else if lat > 40.775 { district = "MN06" }
+                    else if lat > 40.76 { district = "MN05" }
+                    else if lat > 40.74 { district = "MN05" }
+                    else if lat > 40.72 { district = "MN02" }
+                    else { district = "MN01" }
+                }
+
+                // Persist updates if anything changed
+                if (!bin.isEmpty && bin != currentBIN) || (!bbl.isEmpty && bbl != currentBBL) || (district != currentDistrict) {
+                    try await database.execute(
+                        "UPDATE buildings SET bin = ?, bbl = ?, dsny_district = ? WHERE id = ?",
+                        [bin, bbl, district, id]
+                    )
+                    print("🔎 Seeded identifiers for \(row["name"] as? String ?? id): BIN=\(bin), BBL=\(bbl), DSNY=\(district)")
+                }
+                // Gentle backoff to avoid bursts
+                try? await Task.sleep(nanoseconds: 150_000_000)
+            }
+        } catch {
+            print("⚠️ Identifier seeding skipped due to error: \(error)")
         }
     }
     

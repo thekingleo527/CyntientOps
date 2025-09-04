@@ -84,6 +84,14 @@ final class TaskRequestViewModel: ObservableObject {
         loadWorkers()
         loadSuggestions()
     }
+
+    func initializeData(container: ServiceContainer) {
+        Task {
+            await loadBuildings(container: container)
+            await loadWorkers(container: container)
+            loadSuggestions()
+        }
+    }
     
     // MARK: - Data Loading Methods
     
@@ -91,9 +99,40 @@ final class TaskRequestViewModel: ObservableObject {
         self.buildingOptions = Self.defaultBuildings
         self.isLoadingBuildings = false
     }
+
+    private func loadBuildings(container: ServiceContainer) async {
+        do {
+            let buildings = try await container.buildings.getAllBuildings()
+            await MainActor.run {
+                self.buildingOptions = buildings
+                self.isLoadingBuildings = false
+            }
+        } catch {
+            await MainActor.run {
+                self.buildingOptions = Self.defaultBuildings
+                self.isLoadingBuildings = false
+            }
+        }
+    }
     
     private func loadWorkers() {
         self.workerOptions = Self.defaultWorkers
+    }
+
+    private func loadWorkers(container: ServiceContainer) async {
+        do {
+            let workers = try await container.workers.getAllActiveWorkers()
+            await MainActor.run {
+                self.workerOptions = workers
+                if self.formData.selectedWorkerId.isEmpty, let first = workers.first {
+                    self.formData.selectedWorkerId = first.id
+                }
+            }
+        } catch {
+            await MainActor.run {
+                self.workerOptions = Self.defaultWorkers
+            }
+        }
     }
     
     private func loadSuggestions() {
@@ -452,6 +491,7 @@ struct TaskSuggestion: Identifiable, Equatable {
 // MARK: - Main View
 
 struct TaskRequestView: View {
+    let container: ServiceContainer
     @StateObject private var viewModel = TaskRequestViewModel()
     @Environment(\.presentationMode) var presentationMode
     @State private var showPhotoSelector = false
@@ -486,7 +526,7 @@ struct TaskRequestView: View {
                 },
                 trailing: submitButton
             )
-            .onAppear(perform: viewModel.initializeData)
+            .onAppear { viewModel.initializeData(container: container) }
             .alert(isPresented: $viewModel.showCompletionAlert) {
                 Alert(
                     title: Text("Task Request Submitted"),

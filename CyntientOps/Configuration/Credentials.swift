@@ -108,15 +108,10 @@ enum Credentials {
 
 /// Demo mode for testing without real credentials
 enum DemoMode {
-    /// Enable demo mode when credentials are missing
-    static let isEnabled: Bool = {
-        // Check if critical credentials are placeholders
-        let hasQuickBooksCredentials = !Credentials.QUICKBOOKS_CLIENT_ID.contains("PLACEHOLDER")
-        let hasBackendCredentials = !Credentials.WEBSOCKET_URL.contains("localhost") && !Credentials.API_KEY.contains("PLACEHOLDER")
-        
-        // Enable demo mode if critical credentials are missing
-        return !hasQuickBooksCredentials || !hasBackendCredentials
-    }()
+    /// Enable demo mode only when critical credentials are missing, regardless of DEBUG.
+    static var isEnabled: Bool {
+        return EnvironmentConfig.shared.isDemoMode
+    }
     
     /// Mock DSNY response for demo mode
     static let mockDSNYResponse = """

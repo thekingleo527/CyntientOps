@@ -33,6 +33,19 @@ public struct BuildingUnitValidator {
         
         // Chambers Street
         CanonicalIDs.Buildings.chambers148: 7, // Confirmed by user
+
+        // Walker / Franklin — confirmed by user
+        CanonicalIDs.Buildings.walker36: 10,   // 10 residential + 3 commercial
+        CanonicalIDs.Buildings.franklin104: 6, // 6 residential + 1 commercial
+
+        // Rubin Museum Apartments (142–148 W 17th) — total across addresses
+        CanonicalIDs.Buildings.rubinMuseum: 45,
+
+        // Additional portfolio
+        CanonicalIDs.Buildings.eastFifteenth133: 16, // 133 East 15th: Lobby ground; 4 units per floors 1–4
+        CanonicalIDs.Buildings.seventhAvenue115: 0,  // 115 7th Avenue (non-res or unknown → treated as non-applicable)
+        CanonicalIDs.Buildings.cyntientOpsHQ: 0,     // HQ (non-residential)
+        CanonicalIDs.Buildings.stuyvesantCove: 0,    // Park (non-residential)
         
         // Additional buildings may need verification
         CanonicalIDs.Buildings.perry131: 3,
@@ -48,7 +61,8 @@ public struct BuildingUnitValidator {
             print("⚠️ BuildingUnitValidator: No unit count data for \(buildingId)")
             return false
         }
-        
+        // Treat 0 as non-residential / not applicable
+        if unitCount == 0 { return false }
         // DSNY: Buildings with ≤9 units must use individual bins
         return unitCount <= DSNYCollectionSchedule.individualBinMaxUnits
     }
@@ -56,7 +70,7 @@ public struct BuildingUnitValidator {
     /// Check if building can choose between bins and Empire containers
     public static func canChooseContainerType(buildingId: String) -> Bool {
         guard let unitCount = verifiedUnitCounts[buildingId] else { return false }
-        
+        if unitCount == 0 { return false }
         // DSNY: Buildings with 10-30 units can choose
         return unitCount >= 10 && unitCount <= 30
     }
@@ -64,7 +78,7 @@ public struct BuildingUnitValidator {
     /// Check if building must use Empire containers
     public static func requiresEmpireContainers(buildingId: String) -> Bool {
         guard let unitCount = verifiedUnitCounts[buildingId] else { return false }
-        
+        if unitCount == 0 { return false }
         // DSNY: Buildings with 31+ units must use Empire containers
         return unitCount >= DSNYCollectionSchedule.empireContainerMinUnits
     }

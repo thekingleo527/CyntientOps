@@ -1052,21 +1052,18 @@ public final class ClientDashboardViewModel: ObservableObject {
     // MARK: - Private Helper Methods
     
     private func getImageAssetName(for buildingId: String) -> String? {
-        // Get building from client buildings to derive correct asset name from address  
-        guard let building = clientBuildings.first(where: { $0.id == buildingId }) else { 
-            return nil 
+        // Prefer centralized mapping by buildingId → asset name
+        if let mapped = BuildingAssets.assetName(for: buildingId) { return mapped }
+        // Fallback: derive from address if mapping missing
+        if let building = clientBuildings.first(where: { $0.id == buildingId }) {
+            return building.address
+                .replacingOccurrences(of: " ", with: "_")
+                .replacingOccurrences(of: "/", with: "_")
+                .replacingOccurrences(of: "-", with: "_")
+                .replacingOccurrences(of: ",", with: "")
+                .replacingOccurrences(of: ".", with: "")
         }
-        
-        // Convert address to asset name format (address → image asset name)
-        let address = building.address
-        let assetName = address
-            .replacingOccurrences(of: " ", with: "_")
-            .replacingOccurrences(of: "/", with: "_")
-            .replacingOccurrences(of: "-", with: "_")
-            .replacingOccurrences(of: ",", with: "")
-            .replacingOccurrences(of: ".", with: "")
-        
-        return assetName
+        return nil
     }
     
     private func setInitialRegion(for buildings: [CoreTypes.NamedCoordinate]) {
@@ -2172,6 +2169,21 @@ public final class ClientDashboardViewModel: ObservableObject {
     
     /// Get corrected building unit information for display
     private func getCorrectedBuildingInfo(for building: CoreTypes.NamedCoordinate) -> (residential: Int, commercial: Int, violations: Int, buildingType: String, verificationNote: String) {
+        // Prefer authoritative counts from BuildingUnitValidator and infra catalog
+        if let res = BuildingUnitValidator.verifiedUnitCounts[building.id] {
+            let com = BuildingInfrastructureCatalog.commercialUnits(for: building.id) ?? 0
+            let vio = getRealViolationCount(for: building)
+            let type: String = {
+                if res > 0 && com > 0 { return "Residential/Commercial" }
+                if res > 0 { return "Residential" }
+                if com > 0 { return "Commercial" }
+                return "Unknown"
+            }()
+            let note = com > 0
+                ? "VERIFIED: \(res) residential + \(com) commercial"
+                : "VERIFIED: \(res) residential units"
+            return (res, com, vio, type, note)
+        }
         switch building.name {
         case let name where name.contains("178 Spring"):
             return (4, 1, 6, "Residential/Commercial", "VERIFIED: 4 residential (2bdrm, 2ba each) + 1 commercial space")

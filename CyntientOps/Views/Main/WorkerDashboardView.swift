@@ -40,7 +40,7 @@ struct WorkerDashboardView: View {
                     workerId: viewModel.workerProfile?.id ?? "",
                     isNovaProcessing: false,
                     clockInStatus: viewModel.isClockedIn ? .clockedIn(building: viewModel.currentBuilding?.name ?? "", time: viewModel.clockInTime ?? Date()) : .notClockedIn,
-                    showClockButton: false,
+                    showClockButton: true,
                     onLogoTap: { /* Optional: show menu or map */ },
                     onNovaPress: { sheet = .novaChat },
                     onProfileTap: { sheet = .profile },
@@ -55,9 +55,19 @@ struct WorkerDashboardView: View {
                         heroSection
 
                         // Weather Hybrid Card
-                        WeatherHybridCard(snapshot: viewModel.weather) {
-                            showingHourlyWeather = true
-                        }
+                        WeatherHybridCard(
+                            snapshot: viewModel.weather,
+                            suggestion: viewModel.weatherSuggestion,
+                            onApplySuggestion: {
+                                viewModel.applyWeatherOptimization()
+                                toastMessage = "Schedule adjusted for weather."
+                                withAnimation { showToast = true }
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                                    withAnimation { showToast = false }
+                                }
+                            },
+                            onViewHourly: { showingHourlyWeather = true }
+                        )
                         .padding(.horizontal, CyntientOpsDesign.Spacing.md)
                         .animatedGlassAppear(delay: 0.3)
 
@@ -100,7 +110,7 @@ struct WorkerDashboardView: View {
     @State private var isPortfolioMapRevealed = false
     @State private var heroExpanded = true
     @State private var intelligencePanelExpanded = false
-    @State private var selectedNovaTab: IntelligenceTab = .routines
+    @State private var selectedNovaTab: IntelligenceTab = .actions
     @State private var showingFullScreenTab: IntelligenceTab? = nil
     @State private var showingSiteDeparture = false
     @State private var siteDepartureVM: SiteDepartureViewModel? = nil
@@ -109,12 +119,15 @@ struct WorkerDashboardView: View {
     @State private var showingCamera = false
     @State private var isClockBusy = false
     @State private var showingHourlyWeather = false
+    @State private var showingClockInSheet = false
+    @State private var toastMessage: String? = nil
+    @State private var showToast: Bool = false
     
     // MARK: - Intelligence Tabs
     enum IntelligenceTab: String, CaseIterable {
         case routines = "Routines"
         case portfolio = "Portfolio" 
-        case analytics = "Analytics"
+        case actions = "Actions"
         case siteDeparture = "Site Departure"
         case schedule = "Schedule"
         
@@ -122,7 +135,7 @@ struct WorkerDashboardView: View {
             switch self {
             case .routines: return "checklist"
             case .portfolio: return "building.2"
-            case .analytics: return "chart.bar"
+            case .actions: return "plus.circle.fill"
             case .siteDeparture: return "door.left.hand.closed"
             case .schedule: return "calendar"
             }
@@ -221,6 +234,13 @@ struct WorkerDashboardView: View {
                     sourceType: .camera
                 )
             }
+            .sheet(isPresented: $showingClockInSheet) {
+                if let wid = viewModel.worker?.id ?? authManager.workerId {
+                    ClockInSheet(container: container, workerId: wid)
+                } else {
+                    EmptyView()
+                }
+            }
 
         let step6 = step5
             .task { await viewModel.refreshData() }
@@ -233,47 +253,17 @@ struct WorkerDashboardView: View {
                     }
                 }
             )
-            .overlay(alignment: Alignment.trailing) {
-                VStack(spacing: 12) {
-                    Button(action: { handleClockAction() }) {
-                        Image(systemName: viewModel.isClockedIn ? "clock.fill" : "clock")
-                            .foregroundColor(.white)
-                            .padding(10)
-                            .background(.ultraThinMaterial, in: Circle())
-                    }
-                    .accessibilityLabel(viewModel.isClockedIn ? "Clock out" : "Clock in")
-                    .disabled(isClockBusy)
-                    .overlay(
-                        Group {
-                            if viewModel.siteDepartureRequired {
-                                Circle()
-                                    .fill(Color.orange)
-                                    .frame(width: 6, height: 6)
-                                    .offset(x: 14, y: -14)
-                            }
-                        }
-                    )
-                    Button(action: { showingVendorAccess = true }) {
-                        Image(systemName: "person.badge.key.fill")
-                            .foregroundColor(.white)
-                            .padding(10)
-                            .background(.ultraThinMaterial, in: Circle())
-                    }
-                    Button(action: { showingCamera = true }) {
-                        Image(systemName: "camera.fill")
-                            .foregroundColor(.white)
-                            .padding(10)
-                            .background(.ultraThinMaterial, in: Circle())
-                    }
-                    Button(action: { showingQuickNote = true }) {
-                        Image(systemName: "note.text")
-                            .foregroundColor(.white)
-                            .padding(10)
-                            .background(.ultraThinMaterial, in: Circle())
-                    }
+            .overlay(alignment: .bottom) {
+                if showToast, let msg = toastMessage {
+                    Text(msg)
+                        .font(.subheadline)
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
+                        .background(.ultraThinMaterial, in: Capsule())
+                        .padding(.bottom, 30)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
-                .padding(.trailing, 12)
-                .padding(.bottom, 100)
             }
 
         return AnyView(step6)
@@ -713,35 +703,34 @@ private func handleClockAction() {
                             container: container
                         )
                         showingSiteDeparture = true
-                        } else {
-                            // No building context at all; fall back to immediate clock out
-                            await viewModel.clockOut()
-                            #if os(iOS)
-                            haptic.notificationOccurred(.success)
-                            #endif
+                    } else {
+                        // No building context at all; fall back to immediate clock out
+                        await viewModel.clockOut()
+                        #if os(iOS)
+                        haptic.notificationOccurred(.success)
+                        #endif
+                        toastMessage = "Clocked out"
+                        withAnimation { showToast = true }
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                            withAnimation { showToast = false }
                         }
                     }
-                } else {
-                    // No visits recorded today; proceed to immediate clock out.
-                    await viewModel.clockOut()
-                    #if os(iOS)
-                    haptic.notificationOccurred(.success)
-                    #endif
                 }
             } else {
-                if let building = viewModel.assignedBuildings.first {
-                    let coordinate = NamedCoordinate(
-                        id: building.id,
-                        name: building.name,
-                        address: building.address,
-                        latitude: building.coordinate.latitude,
-                        longitude: building.coordinate.longitude
-                    )
-                    await viewModel.clockIn(at: coordinate)
-                    #if os(iOS)
-                    haptic.notificationOccurred(.success)
-                    #endif
+                // No visits recorded today; proceed to immediate clock out.
+                await viewModel.clockOut()
+                #if os(iOS)
+                haptic.notificationOccurred(.success)
+                #endif
+                toastMessage = "Clocked out"
+                withAnimation { showToast = true }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                    withAnimation { showToast = false }
                 }
+            }
+            } else {
+                // Present clock-in sheet to choose building
+                showingClockInSheet = true
             }
             isClockBusy = false
         }
@@ -756,8 +745,8 @@ private func handleClockAction() {
         case .routines:
             // Focus on tasks view
             break
-        case .analytics:
-            // Show analytics
+        case .actions:
+            // Actions handled in full-screen view
             break
         case .siteDeparture:
             // Site departure flow
@@ -784,14 +773,14 @@ private func handleClockAction() {
                 
         case .buildingDetail(let buildingId):
             if let building = viewModel.assignedBuildings.first(where: { $0.id == buildingId }) {
-                Text("Building Details for \(building.name)")
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(Color.black)
-                    .navigationTitle(building.name)
-                    .navigationBarTitleDisplayMode(.inline)
-            }
-                        else {
+                BuildingDetailView(
+                    container: container,
+                    buildingId: building.id,
+                    buildingName: building.name,
+                    buildingAddress: building.address
+                )
+                .navigationBarTitleDisplayMode(.inline)
+            } else {
                 EmptyView()
             }
 
@@ -888,8 +877,8 @@ private func handleClockAction() {
                     routinesFullScreenView
                 case .portfolio:
                     portfolioFullScreenView
-                case .analytics:
-                    analyticsFullScreenView
+                case .actions:
+                    actionsFullScreenView
                 case .siteDeparture:
                     siteDepartureFullScreenView
                 case .schedule:
@@ -966,6 +955,15 @@ private func handleClockAction() {
                                     .padding(8)
                                     .background(.regularMaterial)
                                     .clipShape(RoundedRectangle(cornerRadius: 8))
+                                    .contentShape(Rectangle())
+                                    .onTapGesture {
+                                        // Attempt to navigate to matching task detail if present
+                                        if let match = viewModel.todaysTasks.first(where: { t in
+                                            (t.title == op.name) && (t.buildingId == seq.buildingId)
+                                        }) {
+                                            sheet = .taskDetail(match.id)
+                                        }
+                                    }
                                 }
                             }
                             .padding()
@@ -1025,10 +1023,11 @@ private func handleClockAction() {
     }
     
     @ViewBuilder
-    private var analyticsFullScreenView: some View {
-        VStack {
+    private var actionsFullScreenView: some View {
+        VStack(spacing: 0) {
+            // Header with close button
             HStack {
-                Text("Performance Analytics")
+                Text("Quick Actions")
                     .font(.largeTitle)
                     .fontWeight(.bold)
                     .foregroundColor(.white)
@@ -1048,61 +1047,74 @@ private func handleClockAction() {
             .padding()
             .background(.ultraThinMaterial)
             
-            // Analytics content
+            // Actions content - larger format for full screen
             ScrollView {
-                VStack(spacing: 20) {
-                    // Real NYC Compliance Metrics
-                    HStack(spacing: 15) {
-                        WorkerDashboardMetricCard(title: "Active Violations", value: "\(viewModel.getTotalActiveViolations())", icon: "exclamationmark.triangle.fill")
-                        WorkerDashboardMetricCard(title: "Buildings Served", value: "\(viewModel.assignedBuildings.count)", icon: "building.2.fill")
-                        WorkerDashboardMetricCard(title: "Tasks Today", value: "\(viewModel.todaysTasks.count)", icon: "list.bullet")
-                    }
-                    
-                    // Task Completion Status
-                    HStack(spacing: 20) {
-                        WorkerDashboardMetricCard(title: "Completed", value: "\(viewModel.completedTasksCount)", icon: "checkmark.circle.fill")
-                        WorkerDashboardMetricCard(title: "Remaining", value: "\(viewModel.todaysTasks.count - viewModel.completedTasksCount)", icon: "clock.fill")
-                    }
-                    
-                    // Real Building Compliance Status
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Building Compliance Status")
-                            .font(.headline)
-                            .foregroundColor(.white)
+                VStack(spacing: 24) {
+                    // Quick actions in a grid
+                    LazyVGrid(columns: [
+                        GridItem(.flexible()),
+                        GridItem(.flexible())
+                    ], spacing: 20) {
                         
-                        ForEach(viewModel.assignedBuildings.prefix(5), id: \.id) { building in
-                            HStack {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(building.name)
-                                        .font(.subheadline)
-                                        .fontWeight(.medium)
-                                        .foregroundColor(.white)
-                                    
-                                    Text(viewModel.getBuildingComplianceStatus(building))
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                }
-                                
-                                Spacer()
-                                
-                                VStack(alignment: .trailing, spacing: 2) {
-                                    Text("\(viewModel.getBuildingViolationCount(building))")
-                                        .font(.title2)
-                                        .fontWeight(.bold)
-                                        .foregroundColor(viewModel.getBuildingViolationCount(building) > 5 ? .red : .green)
-                                    
-                                    Text("violations")
-                                        .font(.caption2)
-                                        .foregroundColor(.secondary)
-                                }
+                        // Vendor Access Log
+                        ActionTile(
+                            title: "Vendor Access Log",
+                            subtitle: "Log vendor visits and access",
+                            icon: "person.badge.key.fill",
+                            color: .blue
+                        ) {
+                            withAnimation(.easeInOut(duration: 0.3)) {
+                                showingFullScreenTab = nil
                             }
-                            .padding()
-                            .background(.ultraThinMaterial)
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                            showingVendorAccess = true
+                        }
+                        
+                        // Take Photo
+                        ActionTile(
+                            title: "Take Photo",
+                            subtitle: "Capture photo evidence",
+                            icon: "camera.fill",
+                            color: .green
+                        ) {
+                            withAnimation(.easeInOut(duration: 0.3)) {
+                                showingFullScreenTab = nil
+                            }
+                            showingCamera = true
+                        }
+                        
+                        // Quick Note
+                        ActionTile(
+                            title: "Quick Note",
+                            subtitle: "Add notes or observations",
+                            icon: "note.text",
+                            color: .orange
+                        ) {
+                            withAnimation(.easeInOut(duration: 0.3)) {
+                                showingFullScreenTab = nil
+                            }
+                            showingQuickNote = true
+                        }
+                        
+                        // Report Issue
+                        ActionTile(
+                            title: "Report Issue",
+                            subtitle: "Report problems or concerns",
+                            icon: "exclamationmark.triangle.fill",
+                            color: .red
+                        ) {
+                            withAnimation(.easeInOut(duration: 0.3)) {
+                                showingFullScreenTab = nil
+                            }
+                            toastMessage = "Issue reporting feature coming soon"
+                            withAnimation { showToast = true }
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                                withAnimation { showToast = false }
+                            }
                         }
                     }
                 }
-                .padding()
+                .padding(.horizontal, 24)
+                .padding(.top, 24)
             }
             .background(.ultraThinMaterial)
         }
@@ -1182,12 +1194,44 @@ private func handleClockAction() {
             .background(.ultraThinMaterial)
             
             ScrollView {
-                LazyVStack(spacing: 12) {
-                    ForEach(viewModel.scheduleForToday, id: \.id) { item in
-                        WorkerScheduleRowView(item: item)
+                if viewModel.scheduleWeek.isEmpty {
+                    LazyVStack(spacing: 12) {
+                        ForEach(viewModel.scheduleForToday, id: \.id) { item in
+                            WorkerScheduleRowView(item: item)
+                        }
                     }
+                    .padding()
+                } else {
+                    LazyVStack(spacing: 16) {
+                        ForEach(viewModel.scheduleWeek, id: \.date) { day in
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text(day.date.formatted(date: .abbreviated, time: .omitted))
+                                    .font(.headline)
+                                    .foregroundColor(.white)
+                                ForEach(day.items, id: \.id) { si in
+                                    HStack {
+                                        VStack(alignment: .leading) {
+                                            Text(si.title).foregroundColor(.white)
+                                            Text("\(CoreTypes.DateUtils.timeFormatter.string(from: si.startTime)) – \(CoreTypes.DateUtils.timeFormatter.string(from: si.endTime))")
+                                                .font(.caption).foregroundColor(.secondary)
+                                        }
+                                        Spacer()
+                                        Text("\(si.taskCount)")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                    }
+                                    .padding(10)
+                                    .background(.regularMaterial)
+                                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                                }
+                            }
+                            .padding()
+                            .background(.ultraThinMaterial)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                        }
+                    }
+                    .padding()
                 }
-                .padding()
             }
             .background(.ultraThinMaterial)
         }
@@ -1331,5 +1375,57 @@ private func getUrgencyOrder(_ urgency: WorkerDashboardViewModel.TaskItem.TaskUr
     case .high: return 3
     case .normal: return 4
     case .low: return 5
+    }
+}
+
+// MARK: - Action Tile (for full-screen Actions tab)
+
+struct ActionTile: View {
+    let title: String
+    let subtitle: String
+    let icon: String
+    let color: Color
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 16) {
+                // Icon
+                ZStack {
+                    Circle()
+                        .fill(color.opacity(0.2))
+                        .frame(width: 60, height: 60)
+                    
+                    Image(systemName: icon)
+                        .font(.title2)
+                        .foregroundColor(color)
+                }
+                
+                // Text content
+                VStack(spacing: 4) {
+                    Text(title)
+                        .font(.headline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                        .multilineTextAlignment(.center)
+                    
+                    Text(subtitle)
+                        .font(.caption)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(2)
+                }
+            }
+            .padding(.vertical, 20)
+            .padding(.horizontal, 16)
+            .frame(maxWidth: .infinity)
+            .background(.regularMaterial)
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(color.opacity(0.3), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
     }
 }

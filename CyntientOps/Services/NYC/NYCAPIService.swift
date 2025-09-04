@@ -32,7 +32,8 @@ public final class NYCAPIService: ObservableObject {
         static let hpdURL = "https://data.cityofnewyork.us/resource/wvxf-dwi5.json" // HPD Violations
         static let dobURL = "https://data.cityofnewyork.us/resource/ipu4-2q9a.json" // DOB Permits
         static let dsnyURL = "https://data.cityofnewyork.us/resource/ebb7-mvp5.json" // DSNY Routes
-        static let dsnyViolationsURL = "https://data.cityofnewyork.us/resource/weg2-hvnf.json" // DSNY Violations
+        static let dsnyViolationsURL = "https://data.cityofnewyork.us/resource/weg2-hvnf.json" // Legacy DSNY Violations (may be retired)
+        static let oathHearingsURL = "https://data.cityofnewyork.us/resource/jz4z-kudi.json" // OATH Hearings Division Case Status
         static let ll97URL = "https://data.cityofnewyork.us/resource/8vys-2eex.json" // LL97 Emissions
         static let depURL = "https://data.cityofnewyork.us/resource/66be-66yr.json"  // DEP Water
         static let fdnyURL = "https://data.cityofnewyork.us/resource/3h2n-5cm9.json" // FDNY Inspections
@@ -55,7 +56,9 @@ public final class NYCAPIService: ObservableObject {
     // MARK: - API Endpoints
     public enum APIEndpoint: Hashable {
         case hpdViolations(bin: String)
+        case hpdViolationsAddress(address: String)
         case dobPermits(bin: String)
+        case dobPermitsAddress(address: String)
         case dsnySchedule(district: String)
         case dsnyViolations(bin: String)
         case dsnyViolationsAddress(address: String)
@@ -80,9 +83,16 @@ public final class NYCAPIService: ObservableObject {
             switch self {
             case .hpdViolations(let bin):
                 return "\(APIConfig.hpdURL)?bin=\(bin)"
+            case .hpdViolationsAddress(let address):
+                // Socrata supports full-text search via $q for address fallbacks
+                let q = address.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? address
+                return "\(APIConfig.hpdURL)?$q=\(q)"
             case .dobPermits(let bin):
                 // DOB Permit Issuance dataset uses column name `bin__`
                 return "\(APIConfig.dobURL)?bin__=\(bin)"
+            case .dobPermitsAddress(let address):
+                let q = address.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? address
+                return "\(APIConfig.dobURL)?$q=\(q)"
             case .dsnySchedule(let district):
                 return "\(APIConfig.dsnyURL)?community_district=\(district)"
             case .dsnyViolations(let bin):
@@ -133,7 +143,9 @@ public final class NYCAPIService: ObservableObject {
         var cacheKey: String {
             switch self {
             case .hpdViolations(let bin): return "hpd_violations_\(bin)"
+            case .hpdViolationsAddress(let address): return "hpd_violations_addr_\(address.hashValue)"
             case .dobPermits(let bin): return "dob_permits_\(bin)"
+            case .dobPermitsAddress(let address): return "dob_permits_addr_\(address.hashValue)"
             case .dsnySchedule(let district): return "dsny_schedule_\(district)"
             case .dsnyViolations(let bin): return "dsny_violations_\(bin)"
             case .dsnyViolationsAddress(let address): return "dsny_violations_addr_\(address.hashValue)"
@@ -214,6 +226,18 @@ public final class NYCAPIService: ObservableObject {
         let endpoint = APIEndpoint.dobPermits(bin: bin)
         return try await fetch(endpoint)
     }
+
+    /// Fetch HPD violations by address fallback (uses $q full-text search)
+    public func fetchHPDViolations(address: String) async throws -> [HPDViolation] {
+        let endpoint = APIEndpoint.hpdViolationsAddress(address: address)
+        return try await fetch(endpoint)
+    }
+
+    /// Fetch DOB permits by address fallback (uses $q full-text search)
+    public func fetchDOBPermits(address: String) async throws -> [DOBPermit] {
+        let endpoint = APIEndpoint.dobPermitsAddress(address: address)
+        return try await fetch(endpoint)
+    }
     
     /// Fetch DSNY schedule for a district
     public func fetchDSNYSchedule(district: String) async throws -> [DSNYRoute] {
@@ -242,8 +266,123 @@ public final class NYCAPIService: ObservableObject {
 
     /// Fetch DSNY violations by address (fallback when BIN is unreliable)
     public func fetchDSNYViolations(address: String) async throws -> [DSNYViolation] {
+        // Prefer OATH Hearings dataset filtered to DSNY agencies and address match
+        if let oath = try? await fetchOATHDSNYViolations(address: address), !oath.isEmpty {
+            return oath
+        }
+        // Fallback to legacy DSNY dataset address query if still available
         let endpoint = APIEndpoint.dsnyViolationsAddress(address: address)
         return try await fetch(endpoint)
+    }
+
+    /// Fetch DSNY-related violations from OATH Hearings dataset by BBL (preferred for accuracy)
+    public func fetchOATHDSNYViolations(bbl: String) async throws -> [DSNYViolation] {
+        let norm = normalizeBBL(bbl)
+        guard norm.count == 10 else { return [] }
+        let boroCode = Int(String(norm.prefix(1))) ?? 0
+        let block = String(norm.dropFirst().prefix(5))
+        let lot = String(norm.suffix(4))
+        let borough: String
+        switch boroCode {
+        case 1: borough = "MANHATTAN"
+        case 2: borough = "BRONX"
+        case 3: borough = "BROOKLYN"
+        case 4: borough = "QUEENS"
+        case 5: borough = "STATEN IS"
+        default: borough = ""
+        }
+        guard !borough.isEmpty else { return [] }
+        let whereAgency = "(upper(issuing_agency) like 'SANITATION%' OR issuing_agency = 'DOS - ENFORCEMENT AGENTS')"
+        let whereBBL = "violation_location_borough = '\\(borough)' AND violation_location_block_no = '\\(block)' AND violation_location_lot_no = '\\(lot)'"
+        let urlStr = "\(APIConfig.oathHearingsURL)?$where=\(whereAgency) AND \(whereBBL)&$limit=5000"
+        guard let url = URL(string: urlStr) else { throw NYCAPIError.invalidURL(urlStr) }
+        var request = URLRequest(url: url)
+        if let token = appToken() { request.setValue(token, forHTTPHeaderField: "X-App-Token") }
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        let (data, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
+            return []
+        }
+        guard let arr = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] else { return [] }
+        func toString(_ any: Any?) -> String? { any as? String }
+        func toDouble(_ any: Any?) -> Double? {
+            if let d = any as? Double { return d }
+            if let s = any as? String { return Double(s) }
+            return nil
+        }
+        return arr.map { row in
+            DSNYViolation(
+                violationId: toString(row["ticket_number"]) ?? UUID().uuidString,
+                bin: "",
+                issueDate: toString(row["violation_date"]) ?? "",
+                hearingDate: toString(row["hearing_date"]) ?? nil,
+                violationType: toString(row["issuing_agency"]) ?? "SANITATION",
+                fineAmount: toDouble(row["penalty_imposed"]) ?? toDouble(row["total_violation_amount"]) ?? nil,
+                status: toString(row["compliance_status"]) ?? toString(row["hearing_result"]) ?? "",
+                borough: toString(row["violation_location_borough"]) ?? "",
+                address: {
+                    let h = toString(row["violation_location_house"]) ?? ""
+                    let s = toString(row["violation_location_street_name"]) ?? ""
+                    return (h.isEmpty && s.isEmpty) ? nil : "\(h) \(s)"
+                }(),
+                violationDetails: toString(row["violation_details"]) ?? toString(row["charge_1_code_description"]) ?? nil,
+                dispositionCode: toString(row["hearing_result"]) ?? nil,
+                dispositionDate: toString(row["decision_date"]) ?? nil
+            )
+        }
+    }
+
+    /// Fetch DSNY-related violations from OATH Hearings dataset, filtered by address
+    private func fetchOATHDSNYViolations(address: String) async throws -> [DSNYViolation] {
+        // Build a broad address search using $q and constrain issuing_agency to DSNY-related
+        let encodedQ = address.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? address
+        let whereAgency = "(upper(issuing_agency) like 'SANITATION%' OR issuing_agency = 'DOS - ENFORCEMENT AGENTS')"
+        let urlStr = "\(APIConfig.oathHearingsURL)?$where=\(whereAgency)&$q=\(encodedQ)&$limit=5000"
+        guard let url = URL(string: urlStr) else { throw NYCAPIError.invalidURL(urlStr) }
+        var request = URLRequest(url: url)
+        if let token = appToken() { request.setValue(token, forHTTPHeaderField: "X-App-Token") }
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        let (data, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
+            return []
+        }
+        guard let arr = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] else { return [] }
+        // Map OATH schema to DSNYViolation model
+        func toString(_ any: Any?) -> String? { any as? String }
+        func toDouble(_ any: Any?) -> Double? {
+            if let d = any as? Double { return d }
+            if let s = any as? String { return Double(s) }
+            return nil
+        }
+        let mapped: [DSNYViolation] = arr.map { row in
+            let ticket = toString(row["ticket_number"]) ?? UUID().uuidString
+            let vDate = toString(row["violation_date"]) ?? ""
+            let hDate = toString(row["hearing_date"]) ?? nil
+            let agency = toString(row["issuing_agency"]) ?? "SANITATION"
+            let fine = toDouble(row["penalty_imposed"]) ?? toDouble(row["total_violation_amount"]) ?? nil
+            let status = toString(row["compliance_status"]) ?? toString(row["hearing_result"]) ?? ""
+            let borough = toString(row["violation_location_borough"]) ?? ""
+            let house = toString(row["violation_location_house"]) ?? ""
+            let street = toString(row["violation_location_street_name"]) ?? ""
+            let addr = (house.isEmpty && street.isEmpty) ? nil : "\(house) \(street)"
+            let details = toString(row["violation_details"]) ?? toString(row["charge_1_code_description"]) ?? nil
+            let decision = toString(row["decision_date"]) ?? nil
+            return DSNYViolation(
+                violationId: ticket,
+                bin: "", // OATH does not expose BIN
+                issueDate: vDate,
+                hearingDate: hDate,
+                violationType: agency,
+                fineAmount: fine,
+                status: status,
+                borough: borough,
+                address: addr,
+                violationDetails: details,
+                dispositionCode: toString(row["hearing_result"]),
+                dispositionDate: decision
+            )
+        }
+        return mapped
     }
     
     /// Fetch FDNY inspections
@@ -387,7 +526,11 @@ public final class NYCAPIService: ObservableObject {
                 await MainActor.run {
                     apiStatus[endpoint] = .rateLimited
                 }
-                throw NYCAPIError.rateLimited
+                // Backoff and retry
+                attempt += 1
+                let delay = max(1.0, APIConfig.rateLimitDelay) * pow(2.0, Double(attempt - 1))
+                try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+                continue
                 
             case 404:
                 // No data found is not an error for NYC APIs
@@ -484,6 +627,16 @@ public final class NYCAPIService: ObservableObject {
         }
         complianceData.dsnyViolations = await dsnyViolations ?? []
 
+        // Add address fallbacks for HPD/DOB when BIN is unreliable or returned empty
+        if complianceData.hpdViolations.isEmpty, let address = address,
+           let byAddr: [HPDViolation] = try? await fetchHPDViolations(address: address), !byAddr.isEmpty {
+            complianceData.hpdViolations = byAddr
+        }
+        if complianceData.dobPermits.isEmpty, let address = address,
+           let byAddr: [DOBPermit] = try? await fetchDOBPermits(address: address), !byAddr.isEmpty {
+            complianceData.dobPermits = byAddr
+        }
+
         // DSNY schedule handled by DSNYAPIService (location-based) elsewhere; leave empty here
         complianceData.dsnyRoutes = []
 
@@ -579,7 +732,7 @@ public final class NYCAPIService: ObservableObject {
         }
     }
     
-    private func extractBIN(from building: CoreTypes.NamedCoordinate) -> String {
+    public func extractBIN(from building: CoreTypes.NamedCoordinate) -> String {
         // NYC BIN mapping for portfolio buildings
         switch building.id {
         case "14", "14a": return "1034304" // Rubin Museum - 142 W 17th St
@@ -594,7 +747,7 @@ public final class NYCAPIService: ObservableObject {
         }
     }
     
-    private func extractBBL(from building: CoreTypes.NamedCoordinate) -> String {
+    public func extractBBL(from building: CoreTypes.NamedCoordinate) -> String {
         // NYC BBL (Borough-Block-Lot) mapping for portfolio buildings
         switch building.id {
         case "14", "14a": return "1008490017" // Manhattan Block 849, Lot 17
@@ -609,11 +762,61 @@ public final class NYCAPIService: ObservableObject {
         }
     }
     
-    private func extractDistrict(from bin: String) -> String {
+    public func extractDistrict(from bin: String) -> String {
         // Extract community district from BIN or use default
         // NYC community districts are typically MN01-MN12, BX01-BX18, etc.
         // For now, use a default district - this should be enhanced with proper mapping
         return "MN05" // Default to Manhattan Community District 5
+    }
+
+    // MARK: - Batched Fetch Helpers
+
+    /// Fetch HPD violations for multiple BINs with optional month window, grouped by BIN
+    public func fetchHPDViolations(bins: [String], months: Int? = nil) async throws -> [String: [HPDViolation]] {
+        guard !bins.isEmpty else { return [:] }
+        let binList = bins.map { "'\($0)'" }.joined(separator: ",")
+        var whereClauses: [String] = ["bin in (\(binList))"]
+        if let months = months, months > 0 {
+            let start = Calendar.current.date(byAdding: .month, value: -months, to: Date()) ?? Date()
+            let iso = ISO8601DateFormatter().string(from: start)
+            whereClauses.append("inspectiondate >= '\(iso)'")
+        }
+        let whereParam = whereClauses.joined(separator: " AND ")
+        let url = "\(APIConfig.hpdURL)?$where=\(whereParam)&$limit=50000"
+        let results: [HPDViolation] = try await fetchFromURL(url)
+        return Dictionary(grouping: results, by: { $0.bin })
+    }
+
+    /// Fetch DOB permits for multiple BINs with optional month window, grouped by BIN
+    public func fetchDOBPermits(bins: [String], months: Int? = nil) async throws -> [String: [DOBPermit]] {
+        guard !bins.isEmpty else { return [:] }
+        let binList = bins.map { "'\($0)'" }.joined(separator: ",")
+        var whereClauses: [String] = ["bin__ in (\(binList))"]
+        if let months = months, months > 0 {
+            let start = Calendar.current.date(byAdding: .month, value: -months, to: Date()) ?? Date()
+            let iso = ISO8601DateFormatter().string(from: start)
+            whereClauses.append("issuance_date >= '\(iso)'")
+        }
+        let whereParam = whereClauses.joined(separator: " AND ")
+        let url = "\(APIConfig.dobURL)?$where=\(whereParam)&$limit=50000"
+        let results: [DOBPermit] = try await fetchFromURL(url)
+        return Dictionary(grouping: results, by: { $0.bin })
+    }
+
+    /// Fetch DSNY violations for multiple BINs with optional month window, grouped by BIN
+    public func fetchDSNYViolations(bins: [String], months: Int? = nil) async throws -> [String: [DSNYViolation]] {
+        guard !bins.isEmpty else { return [:] }
+        let binList = bins.map { "'\($0)'" }.joined(separator: ",")
+        var whereClauses: [String] = ["bin in (\(binList))"]
+        if let months = months, months > 0 {
+            let start = Calendar.current.date(byAdding: .month, value: -months, to: Date()) ?? Date()
+            let iso = ISO8601DateFormatter().string(from: start)
+            whereClauses.append("issue_date >= '\(iso)'")
+        }
+        let whereParam = whereClauses.joined(separator: " AND ")
+        let url = "\(APIConfig.dsnyViolationsURL)?$where=\(whereParam)&$limit=50000"
+        let results: [DSNYViolation] = try await fetchFromURL(url)
+        return Dictionary(grouping: results, by: { $0.bin })
     }
 }
 

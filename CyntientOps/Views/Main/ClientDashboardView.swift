@@ -335,7 +335,7 @@ struct ClientDashboardView: View {
                 .navigationTitle("Settings")
                 
         case .maintenanceRequest:
-            TaskRequestView()
+            TaskRequestView(container: container)
                 .navigationTitle("New Maintenance Request")
                 
         case .workerManagement:

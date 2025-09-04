@@ -538,24 +538,27 @@ public class DatabaseInitializer: ObservableObject {
     }
     
     private func seedBuildings() async throws {
+        // Aligned with CanonicalIDs.Buildings and ClientBuildingSeeder
         let buildings = [
-            ("14", "Rubin Museum", "150 W 17th St, New York, NY 10011", 40.7402, -73.9979, "rubin_museum"),
-            ("1", "12 West 18th Street", "12 W 18th St, New York, NY 10011", 40.7391, -73.9929, "building_12w18"),
-            ("2", "29-31 East 20th Street", "29-31 E 20th St, New York, NY 10003", 40.7380, -73.9890, "building_29e20"),
-            ("3", "133 East 15th Street", "133 E 15th St, New York, NY 10003", 40.7343, -73.9859, "building_133e15"),
-            ("21", "148 Chambers Street", "148 Chambers St, New York, NY 10007", 40.7152, -74.0075, "building_148chambers"),
-            ("4", "104 Franklin Street", "104 Franklin St, New York, NY 10013", 40.7190, -74.0089, "building_104franklin"),
-            ("5", "36 Walker Street", "36 Walker St, New York, NY 10013", 40.7173, -74.0027, "building_36walker"),
-            ("6", "68 Perry Street", "68 Perry St, New York, NY 10014", 40.7355, -74.0067, "building_68perry"),
-            ("7", "136 W 17th Street", "136 W 17th St, New York, NY 10011", 40.7402, -73.9975, "building_136w17"),
-            ("8", "41 Elizabeth Street", "41 Elizabeth St, New York, NY 10013", 40.7178, -73.9962, "building_41elizabeth"),
-            ("9", "117 West 17th Street", "117 W 17th St, New York, NY 10011", 40.7401, -73.9967, "building_117w17"),
-            ("10", "123 1st Avenue", "123 1st Ave, New York, NY 10003", 40.7264, -73.9838, "building_123first"),
-            ("11", "131 Perry Street", "131 Perry St, New York, NY 10014", 40.7352, -74.0033, "building_131perry"),
-            ("12", "135 West 17th Street", "135 W 17th St, New York, NY 10011", 40.7402, -73.9975, "building_135w17"),
-            ("13", "138 West 17th Street", "138 W 17th St, New York, NY 10011", 40.7403, -73.9978, "building_138w17"),
-            ("15", "112 West 18th Street", "112 W 18th St, New York, NY 10011", 40.7395, -73.9950, "building_112w18"),
-            ("16", "Stuyvesant Cove Park", "E 20th St & FDR Dr, New York, NY 10009", 40.7325, -73.9732, "stuyvesant_park")
+            ("14", "Rubin Museum (142–148 W 17th)", "142–148 West 17th Street, New York, NY 10011", 40.7408, -73.9978, "rubin_museum"),
+            ("1",  "12 West 18th Street",        "12 West 18th Street, New York, NY 10011", 40.7387, -73.9941, "building_12w18"),
+            ("3",  "135-139 West 17th Street",    "135-139 West 17th Street, New York, NY 10011", 40.7406, -73.9974, "building_135w17"),
+            ("4",  "104 Franklin Street",         "104 Franklin Street, New York, NY 10013", 40.7197, -74.0079, "building_104franklin"),
+            ("5",  "138 West 17th Street",        "138 West 17th Street, New York, NY 10011", 40.7407, -73.9976, "building_138w17"),
+            ("6",  "68 Perry Street",             "68 Perry Street, New York, NY 10014", 40.7351, -74.0063, "building_68perry"),
+            ("7",  "112 West 18th Street",        "112 West 18th Street, New York, NY 10011", 40.7388, -73.9957, "building_112w18"),
+            ("8",  "41 Elizabeth Street",         "41 Elizabeth Street, New York, NY 10013", 40.7204, -73.9956, "building_41elizabeth"),
+            ("9",  "117 West 17th Street",        "117 West 17th Street, New York, NY 10011", 40.7407, -73.9967, "building_117w17"),
+            ("10", "131 Perry Street",            "131 Perry Street, New York, NY 10014", 40.7350, -74.0081, "building_131perry"),
+            ("11", "123 1st Avenue",              "123 1st Avenue, New York, NY 10003", 40.7304, -73.9867, "building_123first"),
+            ("13", "136 West 17th Street",        "136 West 17th Street, New York, NY 10011", 40.7407, -73.9975, "building_136w17"),
+            ("15", "133 East 15th Street",        "133 East 15th Street, New York, NY 10003", 40.7340, -73.9862, "building_133e15"),
+            ("16", "Stuyvesant Cove Park",        "Stuyvesant Cove Park, New York, NY 10009", 40.7281, -73.9738, "stuyvesant_park"),
+            ("17", "178 Spring Street",           "178 Spring Street, New York, NY 10012", 40.7248, -73.9971, ""),
+            ("18", "36 Walker Street",            "36 Walker Street, New York, NY 10013", 40.7186, -74.0048, "building_36walker"),
+            ("19", "115 7th Avenue",              "115 7th Avenue, New York, NY 10011", 40.7405, -73.9987, ""),
+            ("20", "CyntientOps HQ",              "Manhattan, NY", 40.7831, -73.9712, ""),
+            ("21", "148 Chambers Street",         "148 Chambers Street, New York, NY 10007", 40.7155, -74.0086, "building_148chambers")
         ]
         
         for (id, name, address, lat, lng, imageAsset) in buildings {
@@ -570,16 +573,17 @@ public class DatabaseInitializer: ObservableObject {
     }
     
     private func seedWorkerAssignments() async throws {
+        // Remove references to building ID 2 (no longer active)
         let assignments = [
             ("4", "14", "maintenance"),    // Kevin at Rubin Museum
             ("4", "11", "maintenance"),
-            ("4", "6", "maintenance"),
-            ("1", "1", "cleaning"),
-            ("2", "2", "maintenance"),
-            ("2", "5", "maintenance"),
-            ("5", "9", "cleaning"),
-            ("6", "4", "maintenance"),
-            ("7", "1", "sanitation"),
+            ("4", "6",  "maintenance"),
+            ("1", "1",  "cleaning"),
+            ("2", "7",  "maintenance"),    // Edwin covers 112 W 18th
+            ("2", "5",  "maintenance"),    // Edwin covers 138 W 17th
+            ("5", "9",  "cleaning"),
+            ("6", "4",  "maintenance"),
+            ("7", "1",  "sanitation"),
         ]
         
         for (workerId, buildingId, role) in assignments {
@@ -596,11 +600,11 @@ public class DatabaseInitializer: ObservableObject {
     private func seedSampleTasks() async throws {
         let tasks = [
             ("Trash Area + Sidewalk & Curb Clean", "Daily trash area and sidewalk maintenance", "14", "4", "sanitation", "medium"),
-            ("Museum Entrance Sweep", "Daily entrance cleaning", "14", "4", "cleaning", "medium"),
-            ("Morning Hallway Clean", "Daily hallway maintenance", "1", "1", "cleaning", "medium"),
-            ("Laundry & Supplies Management", "Manage building laundry and supplies", "1", "1", "maintenance", "low"),
-            ("Boiler Blow-Down", "Weekly boiler maintenance", "2", "2", "maintenance", "critical"),
-            ("HVAC Inspection", "Check heating and cooling systems", "2", "2", "maintenance", "high")
+            ("Museum Entrance Sweep",                "Daily entrance cleaning",                         "14", "4", "cleaning",   "medium"),
+            ("Morning Hallway Clean",                "Daily hallway maintenance",                       "1",  "1", "cleaning",   "medium"),
+            ("Laundry & Supplies Management",        "Manage building laundry and supplies",            "1",  "1", "maintenance","low"),
+            ("Boiler Blow-Down",                     "Weekly boiler maintenance",                       "7",  "2", "maintenance","critical"),
+            ("HVAC Inspection",                      "Check heating and cooling systems",               "7",  "2", "maintenance","high")
         ]
         
         for (title, desc, buildingId, workerId, category, urgency) in tasks {

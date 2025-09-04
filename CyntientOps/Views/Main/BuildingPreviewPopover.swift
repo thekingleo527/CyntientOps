@@ -37,49 +37,7 @@ struct BuildingPreviewPopover: View {
     @State private var lastSupplyRequest: String = ""
     @State private var hasUrgentAlerts: Bool = false
     
-    // MARK: - Asset Name Mappings (Based on actual Assets.xcassets)
-    
-    private let buildingAssetMap: [String: String] = [
-        // Building ID to Asset Name mapping
-        "1": "12_West_18th_Street",
-        "2": "29_31_East_20th_Street",
-        "3": "36_Walker_Street",
-        "4": "41_Elizabeth_Street",
-        "5": "68_Perry_Street",
-        "6": "104_Franklin_Street",
-        "7": "112_West_18th_Street",
-        "8": "117_West_17th_Street",
-        "9": "123_1st_Avenue",
-        "10": "131_Perry_Street",
-        "11": "133_East_15th_Street",
-        "12": "135West17thStreet",        // Note: No underscores
-        "13": "136_West_17th_Street",
-        "14": "Rubin_Museum_142_148_West_17th_Street",
-        "15": "138West17thStreet",        // Note: No underscores
-        "16": "41_Elizabeth_Street",      // Reusing if same building
-        "park": "Stuyvesant_Cove_Park"
-    ]
-    
-    // Alternative mapping by building name
-    private let buildingNameMap: [String: String] = [
-        "12 West 18th Street": "12_West_18th_Street",
-        "29-31 East 20th Street": "29_31_East_20th_Street",
-        "36 Walker Street": "36_Walker_Street",
-        "41 Elizabeth Street": "41_Elizabeth_Street",
-        "68 Perry Street": "68_Perry_Street",
-        "104 Franklin Street": "104_Franklin_Street",
-        "112 West 18th Street": "112_West_18th_Street",
-        "117 West 17th Street": "117_West_17th_Street",
-        "123 1st Avenue": "123_1st_Avenue",
-        "131 Perry Street": "131_Perry_Street",
-        "133 East 15th Street": "133_East_15th_Street",
-        "135 West 17th Street": "135West17thStreet",
-        "136 W 17th Street": "136_West_17th_Street",
-        "136 West 17th Street": "136_West_17th_Street",
-        "138 West 17th Street": "138West17thStreet",
-        "Rubin Museum": "Rubin_Museum_142_148_West_17th_Street",
-        "Stuyvesant Cove Park": "Stuyvesant_Cove_Park"
-    ]
+    // Images: Use centralized mapping to avoid mismatches
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -109,6 +67,12 @@ struct BuildingPreviewPopover: View {
         .onAppear {
             loadBuildingData()
             startDismissTimer()
+        }
+        .onTapGesture {
+            // Tap anywhere on the popover to dismiss it
+            withAnimation(.easeOut(duration: 0.3)) {
+                onDismiss()
+            }
         }
         .onDisappear {
             dismissTimer?.invalidate()
@@ -181,14 +145,7 @@ struct BuildingPreviewPopover: View {
     
     private func getBuildingAssetName() -> String? {
         // Try ID mapping first
-        if let assetName = buildingAssetMap[building.id] {
-            return assetName
-        }
-        
-        // Try name mapping
-        if let assetName = buildingNameMap[building.name] {
-            return assetName
-        }
+        if let assetName = BuildingAssets.assetName(for: building.id) { return assetName }
         
         // Special case for parks
         if building.name.lowercased().contains("stuyvesant") ||
@@ -340,7 +297,7 @@ struct BuildingPreviewPopover: View {
                 // Supply requests indicator
                 if pendingSupplyRequests > 0 {
                     HStack(spacing: 4) {
-                        Image(systemName: "box")
+                        Image(systemName: "shippingbox")
                             .font(.caption2)
                             .foregroundColor(.orange)
                         
@@ -652,7 +609,7 @@ struct BuildingPreviewPopover: View {
     }
     
     private func startDismissTimer() {
-        dismissTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: false) { _ in
+        dismissTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: false) { _ in
             withAnimation(.easeOut(duration: 0.3)) {
                 onDismiss()
             }

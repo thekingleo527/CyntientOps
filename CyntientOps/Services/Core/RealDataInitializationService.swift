@@ -180,6 +180,10 @@ public final class RealDataInitializationService: ObservableObject {
     private func initializeNYCAPIData() async {
         print("   🗽 Initializing NYC API compliance data...")
         
+        // Purge known invalid tokens then bootstrap scheme env into Keychain
+        ProductionCredentialsManager.shared.purgeInvalidTokens(knownBad: ["wrtN2bupkYBEhrOMvaPksgx_jY70pSPmVauc"])
+        ProductionCredentialsManager.shared.bootstrapNYCOpenDataTokensFromEnvToKeychain()
+
         // Get all buildings from database
         let buildings = try? await serviceContainer.buildings.getAllBuildings()
         let buildingCount = buildings?.count ?? 0

@@ -29,6 +29,8 @@ public final class WeatherTriggeredTaskManager: ObservableObject {
     
     private var cancellables = Set<AnyCancellable>()
     private var weatherMonitoringTimer: Timer?
+    private var wasSnowingRecently: Bool = false
+    private var lastLeafTasksDate: Date? = nil
     
     // MARK: - Weather Trigger Definitions
     
@@ -48,6 +50,7 @@ public final class WeatherTriggeredTaskManager: ObservableObject {
             case freezeWarning = "Freeze Warning"
             case heatWave = "Heat Wave"
             case stormWarning = "Storm Warning"
+            case immediate = "Immediate" // Non-weather seasonal/manual trigger
         }
         
         public enum TimeFrame: String, Codable, CaseIterable {
@@ -174,6 +177,7 @@ public final class WeatherTriggeredTaskManager: ObservableObject {
         .sink { [weak self] value in
             let (current, forecast) = value
             self?.evaluateWeatherTriggers(current: current, forecast: forecast)
+            self?.createSeasonalLeafTasksIfNeeded(at: Date())
         }
         .store(in: &cancellables)
         
@@ -191,47 +195,99 @@ public final class WeatherTriggeredTaskManager: ObservableObject {
     // MARK: - Trigger Definitions
     
     private func setupTriggerDefinitions() {
+        // Dynamic templates derived locally (no external catalog dependency)
+        let roofDrainByWorker = self.roofDrainBuildingsPerWorker()
+        let roofDrainBeforeRain: [TaskTemplate] = roofDrainByWorker.flatMap { (workerId, buildingIds) in
+            buildingIds.map { bid in
+                TaskTemplate(
+                    name: "Emergency Roof Drain Inspection - Before Rain",
+                    assignedWorkerId: workerId,
+                    buildingIds: [bid],
+                    category: .maintenance,
+                    location: .exterior,
+                    estimatedDuration: 60 * 60,
+                    instructions: "URGENT: Inspect and clear roof drains before expected heavy rain.",
+                    requiredEquipment: ["Ladder", "Safety equipment", "Drain snake", "Flashlight"],
+                    mustCompleteWithin: 4 * 3600
+                )
+            }
+        }
+
+        let roofDrainAfterRain: [TaskTemplate] = roofDrainByWorker.flatMap { (workerId, buildingIds) in
+            buildingIds.map { bid in
+                TaskTemplate(
+                    name: "Post-Rain Roof Drain Assessment",
+                    assignedWorkerId: workerId,
+                    buildingIds: [bid],
+                    category: .buildingInspection,
+                    location: .exterior,
+                    estimatedDuration: 45 * 60,
+                    instructions: "Inspect roof drains for proper drainage and any backup issues.",
+                    requiredEquipment: ["Ladder", "Camera", "Safety equipment"],
+                    mustCompleteWithin: 6 * 3600
+                )
+            }
+        }
+
+        let rainMatBuildings = self.rainMatBuildingIds()
+        let rainMatPutOut: [TaskTemplate] = rainMatBuildings.map { bid in
+            TaskTemplate(
+                name: "Put Out Rain Mats (Pre-Rain)",
+                assignedWorkerId: assignMatWorker(for: bid),
+                buildingIds: [bid],
+                category: .maintenance,
+                location: .entrance,
+                estimatedDuration: 20 * 60,
+                instructions: "Place rain mats at entrances prior to rain.",
+                requiredEquipment: ["Rain mats"],
+                mustCompleteWithin: 6 * 3600
+            )
+        }
+
+        let rainMatRemove: [TaskTemplate] = rainMatBuildings.map { bid in
+            TaskTemplate(
+                name: "Remove Rain Mats (Post-Rain)",
+                assignedWorkerId: assignMatWorker(for: bid),
+                buildingIds: [bid],
+                category: .maintenance,
+                location: .entrance,
+                estimatedDuration: 20 * 60,
+                instructions: "Remove and store rain mats once surfaces are dry.",
+                requiredEquipment: ["Rain mats"],
+                mustCompleteWithin: 6 * 3600
+            )
+        }
+
+        // Salt sidewalks pre-snow (approximate: freeze warning is our proxy)
+        let saltSidewalks = TaskTemplate(
+            name: "Pre-Salt Sidewalks",
+            assignedWorkerId: CanonicalIDs.Workers.kevinDutan,
+            buildingIds: getAllBuildingIds(),
+            category: .maintenance,
+            location: .sidewalk,
+            estimatedDuration: 45 * 60,
+            instructions: "Apply salt to sidewalks prior to snowfall to prevent icing.",
+            requiredEquipment: ["Salt", "Spreader"],
+            mustCompleteWithin: 6 * 3600
+        )
+
         activeTriggers = [
-            // Roof drain checks before heavy rain
+            // Roof drains + rain mats before rain
             WeatherTrigger(
                 condition: .rainExpected,
                 threshold: 0.6, // 60% chance or higher
                 timeFrame: .next12Hours,
                 priority: .high,
-                triggeredTasks: [
-                    TaskTemplate(
-                        name: "Emergency Roof Drain Inspection - Before Rain",
-                        assignedWorkerId: CanonicalIDs.Workers.edwinLema,
-                        buildingIds: getAllBuildingIds(),
-                        category: .maintenance,
-                        location: .exterior,
-                        estimatedDuration: 120 * 60, // 2 hours
-                        instructions: "URGENT: Inspect and clear all roof drains before expected heavy rain. Priority on buildings with known drainage issues.",
-                        requiredEquipment: ["Ladder", "Safety equipment", "Drain snake", "Flashlight"],
-                        mustCompleteWithin: 4 * 3600 // 4 hours to complete
-                    )
-                ]
+                triggeredTasks: roofDrainBeforeRain + rainMatPutOut
             ),
             
-            // Roof drain checks after heavy rain
+            // Roof drain checks + remove mats after rain
             WeatherTrigger(
                 condition: .rainEnded,
                 threshold: 0.5, // After significant rain (>0.5 inches)
                 timeFrame: .afterCondition,
                 priority: .high,
-                triggeredTasks: [
-                    TaskTemplate(
-                        name: "Post-Rain Roof Drain Assessment",
-                        assignedWorkerId: CanonicalIDs.Workers.edwinLema,
-                        buildingIds: getAllBuildingIds(),
-                        category: .buildingInspection,
-                        location: .exterior,
-                        estimatedDuration: 90 * 60, // 1.5 hours
-                        instructions: "Inspect roof drains for proper drainage and any backup issues. Check for standing water or overflow damage.",
-                        requiredEquipment: ["Ladder", "Camera for documentation", "Safety equipment"],
-                        mustCompleteWithin: 6 * 3600 // 6 hours after rain ends
-                    )
-                ]
+                triggeredTasks: roofDrainAfterRain + rainMatRemove
             ),
             
             // High wind preparations
@@ -276,13 +332,13 @@ public final class WeatherTriggeredTaskManager: ObservableObject {
                 ]
             ),
             
-            // Freeze warning preparations
+            // Freeze warning preparations (pre-salt sidewalks + freeze protection)
             WeatherTrigger(
                 condition: .freezeWarning,
                 threshold: 32.0, // Below 32°F
                 timeFrame: .next12Hours,
                 priority: .high,
-                triggeredTasks: [
+                triggeredTasks: [saltSidewalks,
                     TaskTemplate(
                         name: "Freeze Protection - Pipe & System Check",
                         assignedWorkerId: CanonicalIDs.Workers.edwinLema,
@@ -305,7 +361,23 @@ public final class WeatherTriggeredTaskManager: ObservableObject {
     
     private func evaluateWeatherTriggers(current: CoreTypes.WeatherData, forecast: [CoreTypes.WeatherData]) {
         let now = Date()
-        
+
+        // Snow-ended detection (simple state transition)
+        let isSnowingNow = (current.condition == .snow || current.condition == .snowy)
+        if wasSnowingRecently && !isSnowingNow {
+            // Create shovel tasks per building (due within 4 hours)
+            let shovel = shovelTasksPerBuilding()
+            let trigger = WeatherTrigger(
+                condition: .freezeWarning, // reuse type bucket
+                threshold: 0.0,
+                timeFrame: .afterCondition,
+                priority: .high,
+                triggeredTasks: shovel
+            )
+            createTriggeredTasks(from: trigger, at: now)
+        }
+        wasSnowingRecently = isSnowingNow
+
         for trigger in activeTriggers {
             let shouldTrigger = evaluateTriggerCondition(trigger, current: current, forecast: forecast, at: now)
             
@@ -315,12 +387,74 @@ public final class WeatherTriggeredTaskManager: ObservableObject {
             }
         }
     }
+
+    private func shovelTasksPerBuilding() -> [TaskTemplate] {
+        let all = getAllBuildingIds()
+        return all.map { bid in
+            TaskTemplate(
+                name: "Shovel Sidewalks",
+                assignedWorkerId: assignSidewalkWorker(for: bid),
+                buildingIds: [bid],
+                category: .maintenance,
+                location: .sidewalk,
+                estimatedDuration: 60 * 60,
+                instructions: "Shovel sidewalks and clear path; comply within 4 hours after snow.",
+                requiredEquipment: ["Shovel", "Ice Melt"],
+                mustCompleteWithin: 4 * 3600
+            )
+        }
+    }
+
+    private func assignSidewalkWorker(for buildingId: String) -> String {
+        let candidates = [
+            CanonicalIDs.Workers.kevinDutan,
+            CanonicalIDs.Workers.edwinLema,
+            CanonicalIDs.Workers.mercedesInamagua
+        ]
+        for wid in candidates {
+            if let route = routeManager.getCurrentRoute(for: wid) {
+                if route.sequences.contains(where: { $0.buildingId == buildingId }) { return wid }
+            }
+        }
+        return CanonicalIDs.Workers.kevinDutan
+    }
+
+    private func createSeasonalLeafTasksIfNeeded(at now: Date) {
+        let m = Calendar.current.component(.month, from: now)
+        guard [9,10,11].contains(m) else { return }
+        if let last = lastLeafTasksDate, Calendar.current.isDate(last, inSameDayAs: now) { return }
+
+        let templates: [TaskTemplate] = getAllBuildingIds().map { bid in
+            TaskTemplate(
+                name: "Leaf Blow & Clear Curbs (18in)",
+                assignedWorkerId: assignSidewalkWorker(for: bid),
+                buildingIds: [bid],
+                category: .sweeping,
+                location: .curbside,
+                estimatedDuration: 45 * 60,
+                instructions: "Blow leaves and clear curbs up to 18 inches.",
+                requiredEquipment: ["Leaf Blower", "Broom", "Bags"],
+                mustCompleteWithin: 6 * 3600
+            )
+        }
+        let trigger = WeatherTrigger(
+            condition: .immediate,
+            threshold: 0,
+            timeFrame: .immediate,
+            priority: .medium,
+            triggeredTasks: templates
+        )
+        createTriggeredTasks(from: trigger, at: now)
+        lastLeafTasksDate = now
+    }
     
     private func evaluateTriggerCondition(_ trigger: WeatherTrigger, 
                                           current: CoreTypes.WeatherData, 
                                           forecast: [CoreTypes.WeatherData], 
                                           at time: Date) -> Bool {
         switch trigger.condition {
+        case .immediate:
+            return true
         case .rainExpected:
             // Check if significant rain is expected in the specified timeframe
             let timeWindow = getTimeWindow(for: trigger.timeFrame, from: time)
@@ -478,6 +612,59 @@ public final class WeatherTriggeredTaskManager: ObservableObject {
             CanonicalIDs.Buildings.cyntientOpsHQ,
             CanonicalIDs.Buildings.chambers148
         ]
+    }
+
+    // MARK: - Local building policy helpers (inline to avoid external deps)
+
+    /// Buildings that require roof drain checks, grouped by the responsible worker
+    private func roofDrainBuildingsPerWorker() -> [String: [String]] {
+        let edwin = CanonicalIDs.Workers.edwinLema
+        let greg  = CanonicalIDs.Workers.gregHutson
+        return [
+            edwin: [
+                CanonicalIDs.Buildings.westSeventeenth135_139,
+                CanonicalIDs.Buildings.westSeventeenth138,
+                CanonicalIDs.Buildings.westEighteenth112,
+                CanonicalIDs.Buildings.westSeventeenth117
+            ],
+            greg: [
+                CanonicalIDs.Buildings.westEighteenth12
+            ]
+        ]
+    }
+
+    /// Buildings with rain mats (12 W 18th, 112 W 18th, 117 W 17th)
+    private func rainMatBuildingIds() -> [String] {
+        return [
+            CanonicalIDs.Buildings.westEighteenth12,
+            CanonicalIDs.Buildings.westEighteenth112,
+            CanonicalIDs.Buildings.westSeventeenth117
+        ]
+    }
+
+    /// Intelligent assignment for rain mats on 17th St cluster: prefer Edwin; else Kevin, then Mercedes.
+    /// Greg is solely responsible for 12 W 18th.
+    private func assignMatWorker(for buildingId: String) -> String {
+        let greg = CanonicalIDs.Workers.gregHutson
+        if buildingId == CanonicalIDs.Buildings.westEighteenth12 { return greg }
+
+        let candidates = [
+            CanonicalIDs.Workers.edwinLema,
+            CanonicalIDs.Workers.kevinDutan,
+            CanonicalIDs.Workers.mercedesInamagua
+        ]
+
+        // Try to pick the worker who is currently routed to this building today
+        for wid in candidates {
+            if let route = routeManager.getCurrentRoute(for: wid) {
+                if route.sequences.contains(where: { $0.buildingId == buildingId }) {
+                    return wid
+                }
+            }
+        }
+
+        // Fallback to Edwin by default
+        return CanonicalIDs.Workers.edwinLema
     }
     
     private func getBuildingsWithExposedPlumbing() -> [String] {

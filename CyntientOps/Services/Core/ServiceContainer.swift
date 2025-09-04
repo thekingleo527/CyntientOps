@@ -225,6 +225,7 @@ public final class ServiceContainer: ObservableObject {
     }()
     
     public private(set) lazy var taskPoolManager: TaskPoolManager = {
+        // TODO: Fix actor isolation warning for Swift 6 compatibility
         TaskPoolManager.shared
     }()
 

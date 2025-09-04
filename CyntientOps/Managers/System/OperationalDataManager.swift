@@ -3006,6 +3006,9 @@ public class OperationalDataManager: ObservableObject {
         if skippedRoutines > 0 {
             print("⚠️ Skipped \(skippedRoutines) routines due to missing building/worker references")
         }
+
+        // Targeted upsert for Kevin @ 131 Perry per updated ops rules
+        try await upsertKevin131PerryRoutines()
         
         try await self.grdbManager.execute("""
             CREATE TABLE IF NOT EXISTS dsny_schedules (
@@ -3050,6 +3053,45 @@ public class OperationalDataManager: ObservableObject {
         print("   ✅ PRESERVED: Kevin's Rubin Museum fully integrated with building ID 14 (GRDB)")
         
         return (routineCount, dsnyCount)
+    }
+
+    /// Upsert Kevin's (workerId 4) 131 Perry St (buildingId 10) routine set and archive legacy duplicates
+    private func upsertKevin131PerryRoutines() async throws {
+        let bId = "10"   // 131 Perry in CanonicalIDs
+        let wId = "4"    // Kevin
+        // New canonical routine names
+        let routineSpecs: [(name: String, category: String, minutes: Int, weather: Int, rrule: String, priority: String)] = [
+            ("Sidewalk & Curb Sweep / Trash Return", "sanitation", 20, 0, "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR;BYHOUR=7;BYMINUTE=0", "high"),
+            ("Lobby + Elevator + Packages Check", "cleaning", 20, 0, "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR;BYHOUR=7;BYMINUTE=20", "high"),
+            ("Basement Bathroom – Clean & Restock", "cleaning", 10, 0, "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR;BYHOUR=7;BYMINUTE=40", "normal"),
+            ("Trash Room Check (wipe points)", "operations", 10, 0, "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR;BYHOUR=7;BYMINUTE=50", "normal"),
+            ("Vacuum Hallways Floors 2–6 (full)", "cleaning", 30, 0, "FREQ=WEEKLY;BYDAY=MO,WE,FR;BYHOUR=8;BYMINUTE=0", "normal"),
+            ("Hallway & Stairwell Vacuum (light)", "cleaning", 30, 0, "FREQ=WEEKLY;BYDAY=TU,TH;BYHOUR=8;BYMINUTE=0", "normal"),
+            ("Clear Walls & Surfaces (spot wipe)", "cleaning", 15, 0, "FREQ=WEEKLY;BYDAY=TU,TH;BYHOUR=8;BYMINUTE=30", "low"),
+            ("Mop Stairs A & B", "cleaning", 15, 0, "FREQ=WEEKLY;BYDAY=WE;BYHOUR=8;BYMINUTE=30", "normal"),
+            ("Hose Down Sidewalks", "sanitation", 20, 1, "FREQ=WEEKLY;BYDAY=TU,TH;BYHOUR=8;BYMINUTE=30", "low"),
+            ("Sump Pump Flush & Laundry Area Sanitize", "maintenance", 20, 0, "FREQ=MONTHLY;BYSETPOS=1;BYDAY=MO,TU,WE,TH,FR;BYHOUR=9;BYMINUTE=0", "low")
+        ]
+
+        // Archive legacy routines not in the new set (names differ)
+        let namesToKeep = routineSpecs.map { $0.name }
+        let placeholders = Array(repeating: "?", count: namesToKeep.count).joined(separator: ",")
+        try await self.grdbManager.execute("""
+            DELETE FROM routine_schedules
+            WHERE worker_id = ? AND building_id = ? AND name NOT IN (\(placeholders))
+        """, [wId, bId] + namesToKeep)
+
+        // Upsert new spec entries
+        for spec in routineSpecs {
+            let id = "routine_\(bId)_\(wId)_\(spec.name.hashValue.magnitude)"
+            let durationSeconds = spec.minutes * 60
+            try await self.grdbManager.execute("""
+                INSERT OR REPLACE INTO routine_schedules
+                (id, name, building_id, rrule, worker_id, category, estimated_duration, weather_dependent, priority_level)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, [id, spec.name, bId, spec.rrule, wId, spec.category.capitalized, String(durationSeconds), String(spec.weather), spec.priority])
+        }
+        print("✅ Upserted Kevin's 131 Perry routines and archived legacy rows")
     }
     
     // MARK: - Validation and Summary Methods
@@ -3887,6 +3929,108 @@ public class OperationalDataManager: ObservableObject {
         var routines: [WorkerRoutine] = []
         
         switch buildingId {
+        case "10": // 131 Perry Street – floors 2–6 vacuum, two stairwells, 1 elevator (~90 min)
+            routines = [
+                WorkerRoutine(
+                    id: "\(workerId)_\(buildingId)_daily_vacuum_floors",
+                    workerId: workerId,
+                    buildingId: buildingId,
+                    buildingName: buildingName,
+                    name: "Vacuum Floors 2–6",
+                    description: "Vacuum floors 2 through 6; check elevator car",
+                    rrule: "FREQ=DAILY;BYHOUR=9;BYMINUTE=0",
+                    category: "cleaning",
+                    estimatedDuration: 60,
+                    isWeatherDependent: false,
+                    priority: 2
+                ),
+                WorkerRoutine(
+                    id: "\(workerId)_\(buildingId)_daily_stairwells",
+                    workerId: workerId,
+                    buildingId: buildingId,
+                    buildingName: buildingName,
+                    name: "Stairwells x2 – Sweep/Mop",
+                    description: "Sweep and mop two stairwells; spot-clean elevator",
+                    rrule: "FREQ=DAILY;BYHOUR=10;BYMINUTE=0",
+                    category: "cleaning",
+                    estimatedDuration: 30,
+                    isWeatherDependent: false,
+                    priority: 2
+                )
+            ]
+            
+        case "6": // 68 Perry Street – compact building (~30 min)
+            routines = [
+                WorkerRoutine(
+                    id: "\(workerId)_\(buildingId)_daily_hall_stairs",
+                    workerId: workerId,
+                    buildingId: buildingId,
+                    buildingName: buildingName,
+                    name: "Hallways/Stairwell – Vacuum & Mop",
+                    description: "Vacuum 4 hallways & 1 stairwell; mop as needed",
+                    rrule: "FREQ=DAILY;BYHOUR=9;BYMINUTE=30",
+                    category: "cleaning",
+                    estimatedDuration: 30,
+                    isWeatherDependent: false,
+                    priority: 2
+                ),
+                WorkerRoutine(
+                    id: "\(workerId)_\(buildingId)_hose_sidewalk",
+                    workerId: workerId,
+                    buildingId: buildingId,
+                    buildingName: buildingName,
+                    name: "Hose Stairs/Sidewalk",
+                    description: "Hose stairs and sidewalk for cleanliness",
+                    rrule: "FREQ=WEEKLY;BYDAY=MO,WE,FR;BYHOUR=8;BYMINUTE=0",
+                    category: "maintenance",
+                    estimatedDuration: 20,
+                    isWeatherDependent: true,
+                    priority: 2
+                )
+            ]
+            
+        case "17": // 178 Spring Street – 1 stairwell, glass door 3x weekly, trash/sidewalk hose
+            routines = [
+                WorkerRoutine(
+                    id: "\(workerId)_\(buildingId)_stairwell",
+                    workerId: workerId,
+                    buildingId: buildingId,
+                    buildingName: buildingName,
+                    name: "Stairwell – Sweep/Mop",
+                    description: "Sweep and mop stairwell; tidy landings",
+                    rrule: "FREQ=DAILY;BYHOUR=9;BYMINUTE=0",
+                    category: "cleaning",
+                    estimatedDuration: 20,
+                    isWeatherDependent: false,
+                    priority: 2
+                ),
+                WorkerRoutine(
+                    id: "\(workerId)_\(buildingId)_glass_door",
+                    workerId: workerId,
+                    buildingId: buildingId,
+                    buildingName: buildingName,
+                    name: "Glass Door – Clean",
+                    description: "Clean front glass door and hardware",
+                    rrule: "FREQ=WEEKLY;BYDAY=MO,WE,FR;BYHOUR=9;BYMINUTE=0",
+                    category: "maintenance",
+                    estimatedDuration: 10,
+                    isWeatherDependent: false,
+                    priority: 2
+                ),
+                WorkerRoutine(
+                    id: "\(workerId)_\(buildingId)_trash_sidewalk",
+                    workerId: workerId,
+                    buildingId: buildingId,
+                    buildingName: buildingName,
+                    name: "Trash Area & Hose Sidewalk",
+                    description: "Tidy trash area; hose sidewalk after collection",
+                    rrule: "FREQ=DAILY;BYHOUR=11;BYMINUTE=0",
+                    category: "sanitation",
+                    estimatedDuration: 20,
+                    isWeatherDependent: true,
+                    priority: 2
+                )
+            ]
         case "14": // Rubin Museum - Kevin Dutan's specialized routines
             routines = [
                 WorkerRoutine(
@@ -3990,6 +4134,40 @@ public class OperationalDataManager: ObservableObject {
                 )
             ]
             
+        case "3": // 135–139 West 17th: add monthly backyard drain sweep
+            routines = [
+                WorkerRoutine(
+                    id: "\(workerId)_\(buildingId)_monthly_backyard_drain",
+                    workerId: workerId,
+                    buildingId: buildingId,
+                    buildingName: buildingName,
+                    name: "Backyard Drain Sweep (Monthly)",
+                    description: "Sweep backyard and clear drain of debris",
+                    rrule: "FREQ=MONTHLY;BYHOUR=10;BYMINUTE=0",
+                    category: "maintenance",
+                    estimatedDuration: 40,
+                    isWeatherDependent: false,
+                    priority: 2
+                )
+            ]
+            
+        case "5": // 138 West 17th: add monthly backyard sweep
+            routines = [
+                WorkerRoutine(
+                    id: "\(workerId)_\(buildingId)_monthly_backyard_sweep",
+                    workerId: workerId,
+                    buildingId: buildingId,
+                    buildingName: buildingName,
+                    name: "Backyard Sweep (Monthly)",
+                    description: "Sweep backyard area and clear leaves/debris",
+                    rrule: "FREQ=MONTHLY;BYHOUR=10;BYMINUTE=0",
+                    category: "maintenance",
+                    estimatedDuration: 40,
+                    isWeatherDependent: false,
+                    priority: 2
+                )
+            ]
+
         default:
             // Generic building routines
             routines = [
@@ -4009,6 +4187,23 @@ public class OperationalDataManager: ObservableObject {
             ]
         }
         
+        // Monthly bins rinse – apply to all buildings as a shared standard
+        routines.append(
+            WorkerRoutine(
+                id: "\(workerId)_\(buildingId)_monthly_bins_rinse",
+                workerId: workerId,
+                buildingId: buildingId,
+                buildingName: buildingName,
+                name: "Rinse Trash Bins (Monthly)",
+                description: "Rinse and sanitize bins; alternate buildings as needed",
+                rrule: "FREQ=MONTHLY;BYHOUR=12;BYMINUTE=0",
+                category: "sanitation",
+                estimatedDuration: 25,
+                isWeatherDependent: false,
+                priority: 1
+            )
+        )
+
         return routines
     }
 }

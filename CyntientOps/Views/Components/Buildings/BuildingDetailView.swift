@@ -445,36 +445,42 @@ struct BuildingDetailView: View {
                     )
                     
                 case .routes:
-                    BuildingRoutesTab(
-                        buildingId: buildingId,
-                        buildingName: buildingName,
-                        container: container,
-                        viewModel: viewModel
-                    )
-                    
-                case .tasks:
-                    BuildingTasksTab(
-                        buildingId: buildingId,
-                        buildingName: buildingName,
-                        container: container,
-                        viewModel: viewModel
-                    )
+                    VStack(spacing: 20) {
+                        // Collection routes + schedule
+                        BuildingRoutesTab(
+                            buildingId: buildingId,
+                            buildingName: buildingName,
+                            container: container,
+                            viewModel: viewModel
+                        )
+                        // Incorporate sanitation (violations, schedule details)
+                        BuildingSanitationTab(
+                            buildingId: buildingId,
+                            buildingName: buildingName,
+                            viewModel: viewModel
+                        )
+                    }
                     
                 case .workers:
                     BuildingWorkersTab(viewModel: viewModel)
                     
                 case .maintenance:
-                    BuildingMaintenanceTab(
-                        buildingId: buildingId,
-                        viewModel: viewModel
-                    )
+                    VStack(spacing: 20) {
+                        // Integrate the previous Tasks content here to reduce tabs
+                        BuildingTasksTab(
+                            buildingId: buildingId,
+                            buildingName: buildingName,
+                            container: container,
+                            viewModel: viewModel
+                        )
+                        
+                        BuildingMaintenanceTab(
+                            buildingId: buildingId,
+                            viewModel: viewModel
+                        )
+                    }
                     
-                case .sanitation:
-                    BuildingSanitationTab(
-                        buildingId: buildingId,
-                        buildingName: buildingName,
-                        viewModel: viewModel
-                    )
+                // .sanitation merged into .routes
                 
                 case .media:
                     BuildingMediaTab(
@@ -675,10 +681,8 @@ struct BuildingDetailView: View {
 enum BuildingDetailTab: String, CaseIterable {
     case overview = "Overview"
     case routes = "Routes"
-    case tasks = "Tasks"
     case workers = "Workers"
     case maintenance = "Maintenance"
-    case sanitation = "Sanitation"
     case media = "Media"
     case inventory = "Inventory"
     case spaces = "Spaces"
@@ -688,10 +692,8 @@ enum BuildingDetailTab: String, CaseIterable {
         switch self {
         case .overview: return "chart.bar.fill"
         case .routes: return "map.circle.fill"
-        case .tasks: return "checkmark.circle.fill"
         case .workers: return "person.3.fill"
         case .maintenance: return "wrench.and.screwdriver.fill"
-        case .sanitation: return "trash.circle.fill"
         case .media: return "photo.on.rectangle.angled"
         case .inventory: return "shippingbox.fill"
         case .spaces: return "key.fill"
@@ -1600,6 +1602,20 @@ struct BuildingOverviewTab: View {
                 }
                 .font(.subheadline)
 
+                if let stairs = BuildingInfrastructureCatalog.staircaseCount(for: viewModel.buildingId) {
+                    HStack {
+                        Image(systemName: "stairs")
+                            .foregroundColor(CyntientOpsDesign.DashboardColors.info)
+                        Text("Staircases")
+                            .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                        Spacer()
+                        Text("\(stairs)")
+                            .fontWeight(.medium)
+                            .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                    }
+                    .font(.subheadline)
+                }
+
                 HStack {
                     Image(systemName: "square.3.layers.3d.top.filled")
                         .foregroundColor(CyntientOpsDesign.DashboardColors.primaryAction)
@@ -1638,6 +1654,27 @@ struct BuildingOverviewTab: View {
                 .font(.subheadline)
             }
             
+            // Special notes (e.g., key box, access)
+            if let note = BuildingInfrastructureCatalog.notes(for: viewModel.buildingId) {
+                HStack(alignment: .top, spacing: 8) {
+                    Image(systemName: "info.circle")
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.info)
+                        .font(.caption)
+                    Text(note)
+                        .font(.caption)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                }
+                .padding(10)
+                .background(
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(CyntientOpsDesign.DashboardColors.glassOverlay)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(CyntientOpsDesign.DashboardColors.borderSubtle, lineWidth: 1)
+                        )
+                )
+            }
+
             if buildingInfo.verificationNote != nil {
                 HStack(alignment: .top, spacing: 8) {
                     Image(systemName: "checkmark.seal.fill")
@@ -1667,13 +1704,31 @@ struct BuildingOverviewTab: View {
         
         // Get real residential units from BuildingUnitValidator
         let buildingId = viewModel.buildingId
-        let residentialUnits = BuildingUnitValidator.verifiedUnitCounts[buildingId] ?? 0
+        let unitCountOpt = BuildingUnitValidator.verifiedUnitCounts[buildingId]
+        let residentialUnits = unitCountOpt ?? 0
         
-        // Determine DSNY compliance requirements
-        let requiresBins = BuildingUnitValidator.requiresIndividualBins(buildingId: buildingId)
-        let dsnyNote = requiresBins ? "DSNY: Requires individual bins (≤9 units)" : "DSNY: Can use black bags or Empire containers (>9 units)"
+        // Determine DSNY compliance requirements with explicit handling for non-residential/unknown
+        let dsnyNote: String = {
+            guard let count = unitCountOpt else { return "DSNY: Units not verified" }
+            if count == 0 { return "DSNY: Not applicable (non-residential)" }
+            if BuildingUnitValidator.requiresIndividualBins(buildingId: buildingId) {
+                return "DSNY: Requires individual bins (≤9 units)"
+            }
+            if BuildingUnitValidator.canChooseContainerType(buildingId: buildingId) {
+                return "DSNY: Choice between bins and Empire containers (10–30 units)"
+            }
+            if BuildingUnitValidator.requiresEmpireContainers(buildingId: buildingId) {
+                return "DSNY: Empire containers required (31+ units)"
+            }
+            return "DSNY: Units not verified"
+        }()
         
-        // Building-specific data (until you have a unified source)
+        // Prefer authoritative commercial unit counts when available
+        if let com = BuildingInfrastructureCatalog.commercialUnits(for: buildingId) {
+            return (residentialUnits, com, 0, inferType(residential: residentialUnits, commercial: com), "VERIFIED: \(residentialUnits) residential + \(com) commercial. \(dsnyNote)")
+        }
+
+        // Building-specific heuristic (fallback)
         switch buildingName {
         case let name where name.contains("178 Spring"):
             return (residentialUnits, 1, 0, "Residential/Commercial", "VERIFIED: \(residentialUnits) residential + 1 commercial. \(dsnyNote)")
@@ -1690,6 +1745,13 @@ struct BuildingOverviewTab: View {
         default:
             return (residentialUnits, 0, 0, "Unknown", residentialUnits > 0 ? "VERIFIED: \(residentialUnits) residential units. \(dsnyNote)" : nil)
         }
+    }
+
+    private func inferType(residential: Int, commercial: Int) -> String {
+        if residential > 0 && commercial > 0 { return "Residential/Commercial" }
+        if commercial > 0 { return "Commercial" }
+        if residential > 0 { return "Residential" }
+        return "Unknown"
     }
     
     private var todaysSnapshotCard: some View {
@@ -1936,6 +1998,10 @@ struct BuildingTasksTab: View {
             // Daily routines
             dailyRoutinesCard
                 .animatedGlassAppear(delay: 0.2)
+
+            // Operational policies (building-specific rules)
+            operationalPoliciesCard
+                .animatedGlassAppear(delay: 0.22)
             
             // Maintenance tasks
             maintenanceTasksCard
@@ -1951,6 +2017,162 @@ struct BuildingTasksTab: View {
         }
         .sheet(item: $selectedTask) { task in
             MaintenanceTaskDetailSheet(task: task, buildingName: buildingName, container: container)
+        }
+    }
+
+    // MARK: - Operational Policies Card
+    private var operationalPoliciesCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Label("Operational Policies", systemImage: "checkmark.seal")
+                .font(.headline)
+                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+
+            let id = viewModel.buildingId
+            let policy = policyForBuilding(id)
+
+            if policy == nil {
+                Text("No special policies recorded for this building.")
+                    .font(.caption)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+            } else {
+                VStack(alignment: .leading, spacing: 8) {
+                    if let mats = policy?.rainMats, mats.hasRainMats {
+                        HStack(alignment: .top, spacing: 6) {
+                            Image(systemName: "water.waves")
+                                .foregroundColor(.blue)
+                            Text("Rain Mats: Present • Responsible: \(workerName(mats.responsibleWorkerId))")
+                                .font(.subheadline)
+                                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                        }
+                    }
+                    if let drains = policy?.roofDrains, drains.checkBeforeRain {
+                        HStack(alignment: .top, spacing: 6) {
+                            Image(systemName: "cloud.rain")
+                                .foregroundColor(.cyan)
+                            Text("Roof Drains: Check before rain • Responsible: \(workerName(drains.responsibleWorkerId))")
+                                .font(.subheadline)
+                                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                        }
+                    }
+                    if let dsny = policy?.dsny, let hour = dsny.bringInByHour {
+                        HStack(alignment: .top, spacing: 6) {
+                            Image(systemName: "trash.circle")
+                                .foregroundColor(.green)
+                            Text("DSNY: Bring bins inside by \(hour):00")
+                                .font(.subheadline)
+                                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                        }
+                    }
+                    if let winter = policy?.winter {
+                        HStack(alignment: .top, spacing: 6) {
+                            Image(systemName: "snowflake")
+                                .foregroundColor(.teal)
+                            Text("Winter: Salt sidewalks before snow; shovel within \(winter.shovelAfterSnowWithinHours) hours after snow")
+                                .font(.subheadline)
+                                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                        }
+                    }
+                    if let seasonal = policy?.seasonal {
+                        HStack(alignment: .top, spacing: 6) {
+                            Image(systemName: "leaf.fill")
+                                .foregroundColor(.orange)
+                            Text("Fall: Leaf-blow and clear curbs up to \(seasonal.curbClearInches) inches (Sep–Nov)")
+                                .font(.subheadline)
+                                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                        }
+                    }
+                    if let backyard = policy?.backyard, backyard.drainSweepMonthly {
+                        HStack(alignment: .top, spacing: 6) {
+                            Image(systemName: "drop.fill")
+                                .foregroundColor(.blue)
+                            Text("Backyard: Drain/sweep monthly")
+                                .font(.subheadline)
+                                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                        }
+                    }
+                    // Global monthly standard
+                    HStack(alignment: .top, spacing: 6) {
+                        Image(systemName: "calendar")
+                            .foregroundColor(.purple)
+                        Text("Monthly: Rinse and sanitize bins (alternating schedule)")
+                            .font(.subheadline)
+                            .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                    }
+                }
+            }
+        }
+        .padding()
+        .cyntientOpsDarkCardBackground()
+    }
+
+    private func workerName(_ id: String?) -> String {
+        guard let id else { return "Team" }
+        return CanonicalIDs.Workers.getName(for: id) ?? "Worker \(id)"
+    }
+
+    // MARK: - Local Operational Policy (to avoid project file dependency)
+    private struct RainMatPolicy { let hasRainMats: Bool; let responsibleWorkerId: String? }
+    private struct RoofDrainPolicy { let checkBeforeRain: Bool; let responsibleWorkerId: String? }
+    private struct DSNYPolicy { let bringInByHour: Int? }
+    private struct WinterPolicy { let saltBeforeSnow: Bool; let shovelAfterSnowWithinHours: Int }
+    private struct SeasonalPolicy { let leafBlower: Bool; let fallMonths: [Int]; let curbClearInches: Int }
+    private struct BackyardPolicy { let drainSweepMonthly: Bool }
+    private struct Policy {
+        let rainMats: RainMatPolicy?
+        let roofDrains: RoofDrainPolicy?
+        let dsny: DSNYPolicy?
+        let winter: WinterPolicy?
+        let seasonal: SeasonalPolicy?
+        let backyard: BackyardPolicy?
+    }
+
+    private func policyForBuilding(_ id: String) -> Policy? {
+        let edwin = CanonicalIDs.Workers.edwinLema
+        let greg  = CanonicalIDs.Workers.gregHutson
+        let _ = CanonicalIDs.Workers.kevinDutan
+        let _ = CanonicalIDs.Workers.mercedesInamagua
+        let defaultWinter = WinterPolicy(saltBeforeSnow: true, shovelAfterSnowWithinHours: 4)
+        let defaultDSNY = DSNYPolicy(bringInByHour: 10)
+        let defaultFall = SeasonalPolicy(leafBlower: true, fallMonths: [9,10,11], curbClearInches: 18)
+
+        switch id {
+        case CanonicalIDs.Buildings.westEighteenth12: // 12 W 18th (Greg)
+            return Policy(
+                rainMats: RainMatPolicy(hasRainMats: true, responsibleWorkerId: greg),
+                roofDrains: RoofDrainPolicy(checkBeforeRain: true, responsibleWorkerId: greg),
+                dsny: defaultDSNY, winter: defaultWinter, seasonal: defaultFall, backyard: nil
+            )
+        case CanonicalIDs.Buildings.westEighteenth112: // 112 W 18th (Edwin)
+            return Policy(
+                rainMats: RainMatPolicy(hasRainMats: true, responsibleWorkerId: edwin),
+                roofDrains: RoofDrainPolicy(checkBeforeRain: true, responsibleWorkerId: edwin),
+                dsny: defaultDSNY, winter: defaultWinter, seasonal: defaultFall, backyard: nil
+            )
+        case CanonicalIDs.Buildings.westSeventeenth117: // 117 W 17th (Edwin by default)
+            return Policy(
+                rainMats: RainMatPolicy(hasRainMats: true, responsibleWorkerId: edwin),
+                roofDrains: RoofDrainPolicy(checkBeforeRain: true, responsibleWorkerId: edwin),
+                dsny: defaultDSNY, winter: defaultWinter, seasonal: defaultFall, backyard: nil
+            )
+        case CanonicalIDs.Buildings.westSeventeenth135_139: // 135–139 W 17th (Edwin + backyard monthly)
+            return Policy(
+                rainMats: nil,
+                roofDrains: RoofDrainPolicy(checkBeforeRain: true, responsibleWorkerId: edwin),
+                dsny: defaultDSNY, winter: defaultWinter, seasonal: defaultFall,
+                backyard: BackyardPolicy(drainSweepMonthly: true)
+            )
+        case CanonicalIDs.Buildings.westSeventeenth138: // 138 W 17th (Edwin + backyard monthly)
+            return Policy(
+                rainMats: nil,
+                roofDrains: RoofDrainPolicy(checkBeforeRain: true, responsibleWorkerId: edwin),
+                dsny: defaultDSNY, winter: defaultWinter, seasonal: defaultFall,
+                backyard: BackyardPolicy(drainSweepMonthly: true)
+            )
+        default:
+            // Default policy: DSNY + Winter + Fall standards
+            return Policy(
+                rainMats: nil, roofDrains: nil, dsny: defaultDSNY, winter: defaultWinter, seasonal: defaultFall, backyard: nil
+            )
         }
     }
     
@@ -1974,9 +2196,24 @@ struct BuildingTasksTab: View {
                 Label(selectedTaskFilter == .week ? "Weekly Routines" : "Daily Routines", systemImage: "calendar.circle.fill")
                     .font(.headline)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
-                
                 Spacer()
-                
+                // Show total minutes for today's routines if available
+                // TODO: Add duration tracking to BDDailyRoutine
+                /*
+                if selectedTaskFilter == .today {
+                    let total = filteredRoutines.compactMap(\.durationMinutes).reduce(0, +)
+                    if total > 0 {
+                        Text("\(total) min")
+                            .font(.caption)
+                            .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(
+                                Capsule().fill(CyntientOpsDesign.DashboardColors.glassOverlay)
+                            )
+                    }
+                }
+                */
                 Text("\(filteredCompletedRoutines)/\(filteredRoutines.count)")
                     .font(.caption)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.primaryAction)
@@ -2000,19 +2237,18 @@ struct BuildingTasksTab: View {
     }
     
     private var filteredRoutines: [BDDailyRoutine] {
-        let _ = Calendar.current
-        let _ = Date() // Used for filtering logic
-        
+        // Use routines loaded by the view model from OperationalDataManager/RouteManager
+        let all = viewModel.dailyRoutines
         switch selectedTaskFilter {
         case .today:
-            // Create BDDailyRoutine from available data since dailyRoutines doesn't exist
-            return []
+            return all
         case .week:
-            // Show all routines from OperationalDataManager for this week
-            return []
+            return all // Simplified: show same set; view model already merges week/day
         case .overdue:
+            // Overdue logic would require due dates; not available in LocalDailyRoutine → none for now
             return []
         case .upcoming:
+            // Without scheduled dates, treat upcoming as empty
             return []
         }
     }
@@ -2890,6 +3126,7 @@ struct LocalDailyRoutine: Identifiable {
     var isCompleted: Bool = false
     var assignedWorker: String? = nil
     var requiredInventory: [String] = []
+    var durationMinutes: Int? = nil
 }
 
 struct AssignedWorker: Identifiable {
@@ -3176,7 +3413,8 @@ class BuildingDetailVM: ObservableObject {
                         scheduledTime: t.startHour.map { String(format: "%02d:00", $0) },
                         isCompleted: false,
                         assignedWorker: t.assignedWorker,
-                        requiredInventory: []
+                        requiredInventory: [],
+                        durationMinutes: (t.estimatedDuration ?? 30)
                     )
                 }
                 await MainActor.run {

@@ -46,24 +46,104 @@ public final class NYCComplianceService: ObservableObject {
         do {
             let buildings = try await getBuildingsFromDatabase()
             let totalBuildings = Double(buildings.count)
-            
+
+            // Batch primary SODA datasets to reduce rate limiting
+            let bins = buildings.map { extractBIN(from: $0) }.filter { !$0.isEmpty }
+            let bbls = buildings.map { extractBBL(from: $0) }.filter { !$0.isEmpty }
+
+            // Last 12 months is a reasonable window for dashboard recency while limiting payload
+            let hpdByBin = (try? await nycAPI.fetchHPDViolations(bins: bins, months: 12)) ?? [:]
+            let dobByBin = (try? await nycAPI.fetchDOBPermits(bins: bins, months: 12)) ?? [:]
+            let dsnyByBin = (try? await nycAPI.fetchDSNYViolations(bins: bins, months: 12)) ?? [:]
+
             for (index, building) in buildings.enumerated() {
-                await syncBuildingCompliance(building: building)
-                
-                syncProgress = Double(index + 1) / totalBuildings
-                
-                // Rate limiting - respect NYC API limits
-                if index < buildings.count - 1 {
-                    try await Task.sleep(nanoseconds: 4_000_000_000) // 4 seconds between calls
+                if building.name.localizedCaseInsensitiveContains("Stuyvesant Cove Park") { continue }
+                let bin = extractBIN(from: building)
+                let bbl = extractBBL(from: building)
+
+                var hpd = hpdByBin[bin] ?? []
+                var dob = dobByBin[bin] ?? []
+                var dsny = dsnyByBin[bin] ?? []
+
+                // Address fallbacks like DSNY: apply to HPD/DOB as well
+                if hpd.isEmpty {
+                    let addr = "\(building.name), \(building.address)"
+                    if let byAddr = try? await nycAPI.fetchHPDViolations(address: addr), !byAddr.isEmpty { hpd = byAddr }
+                    else if let byAddr2 = try? await nycAPI.fetchHPDViolations(address: building.address), !byAddr2.isEmpty { hpd = byAddr2 }
                 }
+                if dob.isEmpty {
+                    let addr = "\(building.name), \(building.address)"
+                    if let byAddr = try? await nycAPI.fetchDOBPermits(address: addr), !byAddr.isEmpty { dob = byAddr }
+                    else if let byAddr2 = try? await nycAPI.fetchDOBPermits(address: building.address), !byAddr2.isEmpty { dob = byAddr2 }
+                }
+                if dsny.isEmpty {
+                    if !bbl.isEmpty, let byBBL = try? await nycAPI.fetchOATHDSNYViolations(bbl: bbl), !byBBL.isEmpty {
+                        dsny = byBBL
+                    } else {
+                        let addr = "\(building.name), \(building.address)"
+                        if let byAddr = try? await nycAPI.fetchDSNYViolations(address: addr), !byAddr.isEmpty { dsny = byAddr }
+                        else if let byAddr2 = try? await nycAPI.fetchDSNYViolations(address: building.address), !byAddr2.isEmpty { dsny = byAddr2 }
+                        else {
+                            // Robust fallback: map relevant 311 complaints (sanitation-related) into DSNYViolation-like records
+                            if let complaints = try? await nycAPI.fetch311Complaints(address: building.address) {
+                                let relevant = complaints.filter { c in
+                                    let t = c.complaintType.lowercased()
+                                    return t.contains("sanitation") || t.contains("dirty") || t.contains("missed") || t.contains("encampment") || t.contains("illegal dumping")
+                                }
+                                dsny = relevant.map { c in
+                                    DSNYViolation(
+                                        violationId: c.uniqueKey,
+                                        bin: bin,
+                                        issueDate: c.createdDate,
+                                        hearingDate: nil,
+                                        violationType: c.complaintType,
+                                        fineAmount: nil,
+                                        status: c.status,
+                                        borough: c.borough,
+                                        address: c.incidentAddress,
+                                        violationDetails: c.descriptor,
+                                        dispositionCode: nil,
+                                        dispositionDate: c.closedDate
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // LL97 by BBL (targeted per building to keep payloads reasonable)
+                let ll97 = (try? await nycAPI.fetchLL97Compliance(bbl: bbl)) ?? []
+
+                let nycCompliance = NYCBuildingCompliance(
+                    bin: bin,
+                    bbl: bbl,
+                    lastUpdated: Date(),
+                    hpdViolations: hpd,
+                    dobPermits: dob,
+                    fdnyInspections: [],
+                    ll97Data: ll97,
+                    complaints311: [],
+                    depWaterData: [],
+                    dsnySchedule: [],
+                    dsnyViolations: dsny
+                )
+
+                complianceData[building.id] = nycCompliance
+                await updateMainComplianceSystem(buildingId: building.id, nycData: nycCompliance)
+
+                // Progress update
+                syncProgress = Double(index + 1) / totalBuildings
+
+                // Gentle pacing between per-building LL97 calls
+                try? await Task.sleep(nanoseconds: 300_000_000)
             }
-            
+
             lastUpdateTime = Date()
             syncProgress = 1.0
-            
+
             // Save to database
             await saveComplianceDataToDatabase()
-            
+
         } catch {
             print("Error syncing compliance data: \(error)")
         }

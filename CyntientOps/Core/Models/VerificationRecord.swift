@@ -188,7 +188,7 @@ extension VerificationRecord {
             ),
             VerificationRecord(
                 taskId: "task_005",
-                buildingId: "2", // 29-31 East 20th Street
+                buildingId: "1", // Reassigned from discontinued 29-31 East 20th
                 workerId: "kevin",
                 status: .rejected,
                 notes: "Task could not be completed due to equipment malfunction. Needs rescheduling.",

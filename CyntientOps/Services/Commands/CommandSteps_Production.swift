@@ -102,7 +102,7 @@ public struct CaptureTaskPhotoCommand: CommandStep {
         // Real building mappings from OperationalDataManager
         switch buildingId {
         case "1": return "12 West 18th Street"
-        case "2": return "29-31 East 20th Street" 
+        // case "2" removed — building discontinued
         case "3": return "135-139 West 17th Street"
         case "4": return "104 Franklin Street"
         case "5": return "138 West 17th Street"
@@ -538,7 +538,7 @@ public struct CreateViolationTaskCommand: CommandStep {
     private func getBuildingName(for buildingId: String) -> String {
         switch buildingId {
         case "1": return "12 West 18th Street"
-        case "2": return "29-31 East 20th Street"
+        // case "2" removed — building discontinued
         case "3": return "135-139 West 17th Street"
         case "4": return "104 Franklin Street"
         case "5": return "138 West 17th Street"
@@ -789,7 +789,7 @@ public struct CompleteTaskWithEvidenceCommand: CommandStep {
     private func getBuildingName(for buildingId: String) -> String {
         switch buildingId {
         case "1": return "12 West 18th Street"
-        case "2": return "29-31 East 20th Street"
+        // case "2" removed — building discontinued
         case "3": return "135-139 West 17th Street"
         case "4": return "104 Franklin Street"
         case "5": return "138 West 17th Street"

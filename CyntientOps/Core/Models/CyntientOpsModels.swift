@@ -269,14 +269,7 @@ extension CoreTypes {
             longitude: -73.9927
         ),
         
-        // East side
-        NamedCoordinate(
-            id: "2",
-            name: "29-31 East 20th Street",
-            address: "29-31 E 20th St, New York, NY 10003",
-            latitude: 40.7388,
-            longitude: -73.9873
-        ),
+        // East 20th removed — no longer serviced
         NamedCoordinate(
             id: "15",
             name: "133 East 15th Street",

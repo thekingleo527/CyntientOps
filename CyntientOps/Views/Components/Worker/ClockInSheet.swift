@@ -18,6 +18,8 @@ struct ClockInSheet: View {
     @State private var errorMessage: String?
     @State private var buildings: [NamedCoordinate] = []
     @State private var sorted: [(building: NamedCoordinate, distance: CLLocationDistance?)] = []
+    @State private var selectedBuilding: NamedCoordinate?
+    @State private var showingBuildingDetail = false
 
     private let proximityThreshold: CLLocationDistance = 1000 // 1km soft guard
 
@@ -56,8 +58,9 @@ struct ClockInSheet: View {
                                         }
                                     }
                                     Spacer()
-                                    Button("Clock In") {
-                                        Task { await clockIn(to: b) }
+                                    Button("View Details") {
+                                        // Show building details first, then allow clock-in from there
+                                        showBuildingDetail(for: b)
                                     }
                                     .buttonStyle(.borderedProminent)
                                     .tint(.blue)
@@ -78,6 +81,22 @@ struct ClockInSheet: View {
             }
         }
         .task { await loadBuildings() }
+        .sheet(isPresented: $showingBuildingDetail) {
+            if let building = selectedBuilding {
+                NavigationView {
+                    BuildingDetailViewWithClockIn(
+                        container: container,
+                        building: building,
+                        workerId: workerId,
+                        onClockIn: {
+                            // Dismiss both sheets and clock in
+                            showingBuildingDetail = false
+                            dismiss()
+                        }
+                    )
+                }
+            }
+        }
     }
 
     private func loadBuildings() async {
@@ -133,6 +152,79 @@ struct ClockInSheet: View {
         } catch {
             errorMessage = error.localizedDescription
         }
+    }
+    
+    private func showBuildingDetail(for building: NamedCoordinate) {
+        selectedBuilding = building
+        showingBuildingDetail = true
+    }
+}
+
+// MARK: - Building Detail View With Clock-In
+
+struct BuildingDetailViewWithClockIn: View {
+    let container: ServiceContainer
+    let building: NamedCoordinate
+    let workerId: String
+    let onClockIn: () -> Void
+    
+    @Environment(\.dismiss) private var dismiss
+    @State private var isClockingIn = false
+    
+    var body: some View {
+        BuildingDetailView(
+            container: container,
+            buildingId: building.id,
+            buildingName: building.name,
+            buildingAddress: building.address
+        )
+        .navigationTitle("Review Before Clock-In")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button("Back") { 
+                    dismiss() 
+                }
+            }
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button("Clock In Here") {
+                    Task { await clockInToBuilding() }
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(isClockingIn)
+            }
+        }
+        .overlay(
+            Group {
+                if isClockingIn {
+                    ZStack {
+                        Color.black.opacity(0.3)
+                        VStack {
+                            ProgressView()
+                            Text("Clocking in...")
+                                .foregroundColor(.white)
+                                .padding(.top, 8)
+                        }
+                        .padding()
+                        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
+                    }
+                    .ignoresSafeArea()
+                }
+            }
+        )
+    }
+    
+    private func clockInToBuilding() async {
+        isClockingIn = true
+        do {
+            try await container.clockIn.clockIn(workerId: workerId, buildingId: building.id)
+            await MainActor.run {
+                onClockIn()
+            }
+        } catch {
+            print("❌ Clock-in failed: \(error)")
+        }
+        isClockingIn = false
     }
 }
 

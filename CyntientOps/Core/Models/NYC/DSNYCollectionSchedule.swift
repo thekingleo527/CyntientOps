@@ -365,6 +365,11 @@ public struct DSNYTime {
         let date = Calendar.current.date(bySettingHour: hour, minute: minute, second: 0, of: Date()) ?? Date()
         return formatter.string(from: date)
     }
+
+    public func clamped(latestHour: Int) -> DSNYTime {
+        if hour > latestHour { return DSNYTime(hour: latestHour, minute: minute) }
+        return self
+    }
 }
 
 public enum CollectionDay: String, CaseIterable {

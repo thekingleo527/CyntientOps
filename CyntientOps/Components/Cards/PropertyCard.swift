@@ -283,7 +283,7 @@ struct PropertyCard: View {
     private var buildingImageName: String {
         switch building.id {
         case "1": return "12_West_18th_Street"
-        case "2": return "29_East_20th_Street"
+        // case "2" removed — building discontinued
         case "3": return "135West17thStreet"
         case "4": return "104_Franklin_Street"
         case "5": return "138West17thStreet"
@@ -363,4 +363,3 @@ struct MiniPropertyCard: View {
         .buttonStyle(PlainButtonStyle())
     }
 }
-

@@ -14,7 +14,7 @@ import MapKit
 
 enum WorkerIntelTab: String, CaseIterable {
     case operations = "Operations"
-    case tasks = "Tasks"
+    case tasks = "Maintenance" // Renamed from "Tasks"
     case compliance = "Compliance"
     case performance = "Performance"
     case portfolio = "Portfolio"

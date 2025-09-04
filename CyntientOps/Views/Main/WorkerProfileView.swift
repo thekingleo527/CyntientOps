@@ -623,12 +623,14 @@ class WorkerProfileLocalViewModel: ObservableObject {
     private var workerService: WorkerService?
     private var taskService: TaskService?
     private var routeManager: RouteManager?
+    private var operationalData: OperationalDataManager?
     private let workerMetricsService = WorkerMetricsService.shared
     
     func configure(with container: ServiceContainer) {
         self.workerService = container.workers
         self.taskService = container.tasks
         self.routeManager = container.routes
+        self.operationalData = container.operationalData
     }
     
     func loadWorkerData(workerId: String) async {
@@ -736,33 +738,58 @@ class WorkerProfileLocalViewModel: ObservableObject {
     // MARK: - Private Methods (Per Design Brief)
     
     private func loadWeeklySchedule(for workerId: String) async {
-        // Prefer RouteManager sequences for an accurate weekly plan
-        guard let routeManager = routeManager else { return }
+        // Prefer RouteManager sequences for an accurate weekly plan; fallback to OperationalDataManager.
         let calendar = Calendar.current
         var schedule: [DayScheduleItem] = []
-        
-        for dayOffset in 0..<7 {
-            guard let date = calendar.date(byAdding: .day, value: dayOffset, to: Date()) else { continue }
-            let weekday = calendar.component(.weekday, from: date)
-            if let route = routeManager.getRoute(for: workerId, dayOfWeek: weekday) {
-                let sortedSeq = route.sequences.sorted { $0.arrivalTime < $1.arrivalTime }
-                let start = sortedSeq.first?.arrivalTime ?? calendar.date(bySettingHour: 8, minute: 0, second: 0, of: date) ?? date
-                let end = sortedSeq.last.map { $0.arrivalTime.addingTimeInterval($0.estimatedDuration) } ?? calendar.date(bySettingHour: 16, minute: 0, second: 0, of: date) ?? date
-                let taskCount = sortedSeq.reduce(0) { $0 + $1.operations.count }
-                let totalHours = sortedSeq.reduce(0.0) { $0 + ($1.estimatedDuration / 3600.0) }
-                let buildingCounts = Dictionary(grouping: sortedSeq, by: \.buildingName)
-                let primaryBuilding = buildingCounts.max(by: { $0.value.count < $1.value.count })?.key ?? "Multiple Buildings"
-                schedule.append(
-                    DayScheduleItem(
-                        id: "\(workerId)-\(date.timeIntervalSince1970)",
-                        date: date,
-                        title: taskCount > 0 ? primaryBuilding : "No scheduled tasks",
+        if let routeManager = routeManager {
+            for dayOffset in 0..<7 {
+                guard let date = calendar.date(byAdding: .day, value: dayOffset, to: Date()) else { continue }
+                let weekday = calendar.component(.weekday, from: date)
+                if let route = routeManager.getRoute(for: workerId, dayOfWeek: weekday) {
+                    let sortedSeq = route.sequences.sorted { $0.arrivalTime < $1.arrivalTime }
+                    let start = sortedSeq.first?.arrivalTime ?? calendar.date(bySettingHour: 8, minute: 0, second: 0, of: date) ?? date
+                    let end = sortedSeq.last.map { $0.arrivalTime.addingTimeInterval($0.estimatedDuration) } ?? calendar.date(bySettingHour: 16, minute: 0, second: 0, of: date) ?? date
+                    let taskCount = sortedSeq.reduce(0) { $0 + $1.operations.count }
+                    let totalHours = sortedSeq.reduce(0.0) { $0 + ($1.estimatedDuration / 3600.0) }
+                    let buildingCounts = Dictionary(grouping: sortedSeq, by: \.buildingName)
+                    let primaryBuilding = buildingCounts.max(by: { $0.value.count < $1.value.count })?.key ?? "Multiple Buildings"
+                    schedule.append(
+                        DayScheduleItem(
+                            id: "\(workerId)-\(date.timeIntervalSince1970)",
+                            date: date,
+                            title: taskCount > 0 ? primaryBuilding : "No scheduled tasks",
+                            startTime: start,
+                            endTime: end,
+                            taskCount: taskCount,
+                            totalHours: totalHours
+                        )
+                    )
+                }
+            }
+        }
+        // Fallback if route-based schedule is empty
+        if schedule.isEmpty, let op = operationalData {
+            if let weekly = try? await op.getWorkerWeeklySchedule(for: workerId) {
+                // Group by weekday
+                let grouped = Dictionary(grouping: weekly) { item in
+                    calendar.startOfDay(for: item.startTime)
+                }
+                schedule = grouped.map { (dayStart, items) in
+                    let start = items.map(\.startTime).min() ?? dayStart
+                    let end = items.map(\.endTime).max() ?? dayStart
+                    let totalHours = items.reduce(0.0) { $0 + Double($1.estimatedDuration) / 60.0 }
+                    let topBuilding = Dictionary(grouping: items, by: \.buildingName).max { $0.value.count < $1.value.count }?.key ?? "Multiple Buildings"
+                    return DayScheduleItem(
+                        id: "\(workerId)-\(dayStart.timeIntervalSince1970)",
+                        date: dayStart,
+                        title: topBuilding,
                         startTime: start,
                         endTime: end,
-                        taskCount: taskCount,
+                        taskCount: items.count,
                         totalHours: totalHours
                     )
-                )
+                }
+                .sorted { $0.date < $1.date }
             }
         }
         await MainActor.run { weeklySchedule = schedule }

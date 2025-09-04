@@ -434,7 +434,7 @@ extension NYCAPIService {
     }
     
     /// Generic fetch method for URL endpoints
-    private func fetchFromURL<T: Codable>(_ urlString: String) async throws -> [T] {
+    func fetchFromURL<T: Codable>(_ urlString: String) async throws -> [T] {
         guard let url = URL(string: urlString) else {
             throw NYCAPIError.invalidURL(urlString)
         }
