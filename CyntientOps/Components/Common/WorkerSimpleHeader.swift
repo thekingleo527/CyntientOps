@@ -88,22 +88,20 @@ struct WorkerSimpleHeader: View {
                             )
                             .frame(width: 32, height: 32)
                             .overlay(
-                                Text(workerName.prefix(1).uppercased())
+                                Text(getInitials(from: workerName))
                                     .font(.system(size: 14, weight: .semibold))
                                     .foregroundColor(.white)
                             )
                         
                         VStack(alignment: .leading, spacing: 1) {
-                            Text(workerName.split(separator: " ").first?.description ?? workerName)
+                            Text(getInitials(from: workerName))
                                 .font(.system(size: 13, weight: .medium))
                                 .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                                 .lineLimit(1)
                             
                             switch clockInStatus {
                             case .notClockedIn:
-                                Text("Ready")
-                                    .font(.system(size: 10))
-                                    .foregroundColor(CyntientOpsDesign.DashboardColors.inactive)
+                                EmptyView()
                             case .clockedIn(let building, let time):
                                 Text(timeWorked(from: time))
                                     .font(.system(size: 10))
@@ -195,6 +193,13 @@ struct WorkerSimpleHeader: View {
         } else {
             return "\(minutes)m"
         }
+    }
+    
+    private func getInitials(from name: String) -> String {
+        let components = name.components(separatedBy: " ")
+        let firstInitial = components.first?.prefix(1).uppercased() ?? "W"
+        let lastInitial = components.count > 1 ? components.last?.prefix(1).uppercased() ?? "" : ""
+        return "\(firstInitial)\(lastInitial)"
     }
 }
 

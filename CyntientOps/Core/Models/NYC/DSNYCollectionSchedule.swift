@@ -40,7 +40,7 @@ public struct DSNYCollectionSchedule {
                     buildingName: "178 Spring Street",
                     unitCount: 4, // 4 residential + 1 commercial
                     collectionDays: [CollectionDay.monday, CollectionDay.wednesday, CollectionDay.saturday],
-                    binSetOutTime: DSNYTime(hour: 18, minute: 0),
+                    binSetOutTime: DSNYTime(hour: 20, minute: 0),
                     binRetrievalTime: DSNYTime(hour: 10, minute: 30),
                     binLocation: "curbside",
                     specialInstructions: "Glass door area - coordinate with entrance cleaning",
@@ -57,7 +57,7 @@ public struct DSNYCollectionSchedule {
                     buildingName: "68 Perry Street",
                     unitCount: 6, // 6 residential units
                     collectionDays: [CollectionDay.tuesday, CollectionDay.friday],
-                    binSetOutTime: DSNYTime(hour: 19, minute: 0),
+                    binSetOutTime: DSNYTime(hour: 20, minute: 0),
                     binRetrievalTime: DSNYTime(hour: 8, minute: 30),
                     binLocation: "curbside",
                     specialInstructions: "Coordinate with Kevin's Perry Street morning sequence",
@@ -74,7 +74,7 @@ public struct DSNYCollectionSchedule {
                     buildingName: "131 Perry Street",
                     unitCount: 3, // 3 residential units
                     collectionDays: [CollectionDay.tuesday, CollectionDay.friday], // Align with Perry corridor
-                    binSetOutTime: DSNYTime(hour: 19, minute: 0),
+                    binSetOutTime: DSNYTime(hour: 20, minute: 0),
                     binRetrievalTime: DSNYTime(hour: 8, minute: 30),
                     binLocation: "curbside",
                     specialInstructions: "Align with 68 Perry Street bin cadence",
@@ -91,7 +91,7 @@ public struct DSNYCollectionSchedule {
                     buildingName: "123 1st Avenue",
                     unitCount: 3, // 3 residential + 1 commercial
                     collectionDays: [CollectionDay.monday, CollectionDay.wednesday, CollectionDay.friday],
-                    binSetOutTime: DSNYTime(hour: 18, minute: 30),
+                    binSetOutTime: DSNYTime(hour: 20, minute: 0),
                     binRetrievalTime: DSNYTime(hour: 13, minute: 30),
                     binLocation: "curbside",
                     specialInstructions: "Part of Kevin's M W F afternoon rotation",
@@ -108,7 +108,7 @@ public struct DSNYCollectionSchedule {
                     buildingName: "136 West 17th Street", 
                     unitCount: 7, // Floors 2,3,4,5,6,7/8 penthouse,9/10 penthouse (ground commercial)
                     collectionDays: [CollectionDay.tuesday, CollectionDay.thursday, CollectionDay.saturday],
-                    binSetOutTime: DSNYTime(hour: 19, minute: 0),
+                    binSetOutTime: DSNYTime(hour: 20, minute: 0),
                     binRetrievalTime: DSNYTime(hour: 11, minute: 0),
                     binLocation: "curbside",
                     specialInstructions: "Edwin covers Saturday retrieval for Kevin's buildings",
@@ -125,7 +125,7 @@ public struct DSNYCollectionSchedule {
                     buildingName: "117 West 17th Street",
                     unitCount: 8, // Residential floors
                     collectionDays: [CollectionDay.tuesday, CollectionDay.thursday, CollectionDay.saturday], // Align with W 17th corridor
-                    binSetOutTime: DSNYTime(hour: 19, minute: 0),
+                    binSetOutTime: DSNYTime(hour: 20, minute: 0),
                     binRetrievalTime: DSNYTime(hour: 10, minute: 45),
                     binLocation: "curbside",
                     specialInstructions: "Match neighboring West 17th cadence",
@@ -142,7 +142,7 @@ public struct DSNYCollectionSchedule {
                     buildingName: "138 West 17th Street",
                     unitCount: 8, // Floors 3-10 residential (2nd floor + ground = museum/offices)
                     collectionDays: [CollectionDay.tuesday, CollectionDay.thursday, CollectionDay.saturday],
-                    binSetOutTime: DSNYTime(hour: 19, minute: 0),
+                    binSetOutTime: DSNYTime(hour: 20, minute: 0),
                     binRetrievalTime: DSNYTime(hour: 11, minute: 15),
                     binLocation: "curbside",
                     specialInstructions: "Edwin covers Saturday retrieval for Kevin's buildings",
@@ -159,7 +159,7 @@ public struct DSNYCollectionSchedule {
                     buildingName: "112 West 18th Street",
                     unitCount: 6,
                     collectionDays: [CollectionDay.tuesday, CollectionDay.thursday, CollectionDay.saturday], // Align with nearby blocks
-                    binSetOutTime: DSNYTime(hour: 19, minute: 0),
+                    binSetOutTime: DSNYTime(hour: 20, minute: 0),
                     binRetrievalTime: DSNYTime(hour: 9, minute: 30),
                     binLocation: "curbside",
                     specialInstructions: "Coordinate with hallway/lobby clean",
@@ -176,7 +176,7 @@ public struct DSNYCollectionSchedule {
                     buildingName: "148 Chambers Street",
                     unitCount: 7,
                     collectionDays: [CollectionDay.monday, CollectionDay.wednesday, CollectionDay.saturday],
-                    binSetOutTime: DSNYTime(hour: 18, minute: 0),
+                    binSetOutTime: DSNYTime(hour: 20, minute: 0),
                     binRetrievalTime: DSNYTime(hour: 12, minute: 0),
                     binLocation: "curbside",
                     specialInstructions: "Part of Edwin's structured morning sequence",

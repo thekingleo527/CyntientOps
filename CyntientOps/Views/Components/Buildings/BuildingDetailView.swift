@@ -2006,14 +2006,14 @@ struct BuildingTasksTab: View {
             // Maintenance tasks
             maintenanceTasksCard
                 .animatedGlassAppear(delay: 0.3)
-            
-            // Compliance tasks
-            complianceTasksCard
-                .animatedGlassAppear(delay: 0.4)
 
-            // Facade (LL11/FISP) compliance
-            facadeComplianceCard
-                .animatedGlassAppear(delay: 0.5)
+            // Compliance cards are not shown to workers
+            if viewModel.userRole != .worker {
+                complianceTasksCard
+                    .animatedGlassAppear(delay: 0.4)
+                facadeComplianceCard
+                    .animatedGlassAppear(delay: 0.5)
+            }
         }
         .sheet(item: $selectedTask) { task in
             MaintenanceTaskDetailSheet(task: task, buildingName: buildingName, container: container)

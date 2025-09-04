@@ -312,7 +312,7 @@ extension CoreTypes {
         NamedCoordinate(
             id: "16",
             name: "Stuyvesant Cove Park",
-            address: "E River Greenway, New York, NY 10009",
+            address: "E 18th Street & East River, New York, NY 10009",
             latitude: 40.7323,
             longitude: -73.9741
         )

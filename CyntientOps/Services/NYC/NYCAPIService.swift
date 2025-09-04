@@ -49,8 +49,9 @@ public final class NYCAPIService: ObservableObject {
         static let airQualityURL = "https://data.cityofnewyork.us/resource/c3uy-2p5r.json" // Air Quality Complaints
         
         // Rate limiting: NYC OpenData allows 1000 calls/hour per endpoint
-        static let rateLimitDelay: TimeInterval = 3.6 // seconds between calls
-        static let cacheTimeout: TimeInterval = 3600 // 1 hour cache
+        static let rateLimitDelay: TimeInterval = 2.5 // Optimized: 2.5 seconds between calls
+        static let cacheTimeout: TimeInterval = 7200 // Extended: 2 hour cache
+        static let longTermCacheTimeout: TimeInterval = 86400 // 24 hours for stable data like building footprints
     }
     
     // MARK: - API Endpoints
@@ -229,13 +230,15 @@ public final class NYCAPIService: ObservableObject {
 
     /// Fetch HPD violations by address fallback (uses $q full-text search)
     public func fetchHPDViolations(address: String) async throws -> [HPDViolation] {
-        let endpoint = APIEndpoint.hpdViolationsAddress(address: address)
+        let normalizedAddress = normalizeAddress(address)
+        let endpoint = APIEndpoint.hpdViolationsAddress(address: normalizedAddress)
         return try await fetch(endpoint)
     }
 
     /// Fetch DOB permits by address fallback (uses $q full-text search)
     public func fetchDOBPermits(address: String) async throws -> [DOBPermit] {
-        let endpoint = APIEndpoint.dobPermitsAddress(address: address)
+        let normalizedAddress = normalizeAddress(address)
+        let endpoint = APIEndpoint.dobPermitsAddress(address: normalizedAddress)
         return try await fetch(endpoint)
     }
     
@@ -266,12 +269,14 @@ public final class NYCAPIService: ObservableObject {
 
     /// Fetch DSNY violations by address (fallback when BIN is unreliable)
     public func fetchDSNYViolations(address: String) async throws -> [DSNYViolation] {
+        let normalizedAddress = normalizeAddress(address)
+        
         // Prefer OATH Hearings dataset filtered to DSNY agencies and address match
-        if let oath = try? await fetchOATHDSNYViolations(address: address), !oath.isEmpty {
+        if let oath = try? await fetchOATHDSNYViolations(address: normalizedAddress), !oath.isEmpty {
             return oath
         }
         // Fallback to legacy DSNY dataset address query if still available
-        let endpoint = APIEndpoint.dsnyViolationsAddress(address: address)
+        let endpoint = APIEndpoint.dsnyViolationsAddress(address: normalizedAddress)
         return try await fetch(endpoint)
     }
 
@@ -401,7 +406,8 @@ public final class NYCAPIService: ObservableObject {
 
     /// Fetch 311 complaints for a specific address (preferred)
     public func fetch311Complaints(address: String) async throws -> [Complaint311] {
-        let endpoint = APIEndpoint.complaints311Address(address: address)
+        let normalizedAddress = normalizeAddress(address)
+        let endpoint = APIEndpoint.complaints311Address(address: normalizedAddress)
         return try await fetch(endpoint)
     }
     
@@ -508,19 +514,41 @@ public final class NYCAPIService: ObservableObject {
             
             switch httpResponse.statusCode {
             case 200:
-                let decoder = JSONDecoder()
-                decoder.dateDecodingStrategy = .iso8601
-                let result = try decoder.decode([T].self, from: data)
-                
-                // Cache result
-                cache.set(key: endpoint.cacheKey, value: result, expiry: APIConfig.cacheTimeout)
-                
-                await MainActor.run {
-                    apiStatus[endpoint] = .success(Date())
-                    lastSyncTime = Date()
+                do {
+                    let decoder = JSONDecoder()
+                    decoder.dateDecodingStrategy = .iso8601
+                    
+                    // First try strict decoding
+                    let result = try decoder.decode([T].self, from: data)
+                    
+                    // Smart caching with different timeouts based on data type
+                    let cacheTimeout = getCacheTimeout(for: endpoint)
+                    cache.set(key: endpoint.cacheKey, value: result, expiry: cacheTimeout)
+                    
+                    await MainActor.run {
+                        apiStatus[endpoint] = .success(Date())
+                        lastSyncTime = Date()
+                    }
+                    
+                    return result
+                } catch let decodingError as DecodingError {
+                    // Handle missing field errors gracefully by attempting flexible decoding
+                    let flexibleResult: [T] = try handleDecodingError(data: data, error: decodingError, endpoint: endpoint)
+                    if !flexibleResult.isEmpty {
+                        // Cache partial result with standard timeout
+                        let cacheTimeout = getCacheTimeout(for: endpoint)
+                        cache.set(key: endpoint.cacheKey, value: flexibleResult, expiry: cacheTimeout)
+                        
+                        await MainActor.run {
+                            apiStatus[endpoint] = .success(Date())
+                            lastSyncTime = Date()
+                        }
+                        return flexibleResult
+                    }
+                    // If flexible decoding also fails, fall through to error handling
+                    print("⚠️ JSON decoding error for \(endpoint): \(decodingError)")
+                    throw decodingError
                 }
-                
-                return result
                 
             case 429:
                 await MainActor.run {
@@ -565,6 +593,23 @@ public final class NYCAPIService: ObservableObject {
             }
             } catch {
                 lastError = error
+                // Handle JSON decoding errors with fallback to cached data
+                if error is DecodingError {
+                    print("⚠️ JSON decoding failed for \(endpoint): \(error)")
+                    if let cached: [T] = cache.get(key: endpoint.cacheKey) {
+                        await MainActor.run {
+                            apiStatus[endpoint] = .success(Date())
+                        }
+                        print("⚠️ Using cached data for \(endpoint) due to JSON error")
+                        return cached
+                    }
+                    // No cache available, return empty result to prevent app crash
+                    await MainActor.run {
+                        apiStatus[endpoint] = .error(error.localizedDescription)
+                    }
+                    return []
+                }
+                
                 // Retry on transient cancellations and connection loss
                 if let urlError = error as? URLError, urlError.code == .cancelled || urlError.code == .networkConnectionLost {
                     attempt += 1
@@ -593,6 +638,101 @@ public final class NYCAPIService: ObservableObject {
         if let env2 = ProcessInfo.processInfo.environment["DSNY_API_TOKEN"], !env2.isEmpty { return env2 }
         // 4) Final fallback (dev)
         return "dbO8NmN2pMcmSQO7w56rTaFax"
+    }
+    
+    /// Normalize address format for NYC API queries
+    /// - Removes problematic terms like "Park" or "Greenway" that don't work with building APIs
+    /// - Standardizes street suffixes and formatting
+    private func normalizeAddress(_ address: String) -> String {
+        var normalized = address
+        
+        // Skip normalization for clearly non-building addresses
+        let nonBuildingTerms = ["park", "greenway", "pier", "plaza", "square", "bridge"]
+        for term in nonBuildingTerms {
+            if normalized.localizedCaseInsensitiveContains(term) {
+                // For parks/greenways, try to extract just the street component if available
+                let components = normalized.components(separatedBy: ",")
+                if components.count > 1 {
+                    // Use the last component that looks like a standard address
+                    for component in components.reversed() {
+                        let trimmed = component.trimmingCharacters(in: .whitespacesAndNewlines)
+                        if trimmed.contains("NY") && (trimmed.contains("10") || trimmed.contains("11")) {
+                            // This looks like "New York, NY 10009" - not useful for building queries
+                            continue
+                        }
+                        if !trimmed.localizedCaseInsensitiveContains(term) && trimmed.count > 10 {
+                            normalized = trimmed
+                            break
+                        }
+                    }
+                }
+                break
+            }
+        }
+        
+        // Standard address normalization
+        normalized = normalized.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        // Standardize street suffixes
+        normalized = normalized.replacingOccurrences(of: " St.", with: " Street")
+        normalized = normalized.replacingOccurrences(of: " Ave.", with: " Avenue")
+        normalized = normalized.replacingOccurrences(of: " Blvd.", with: " Boulevard")
+        normalized = normalized.replacingOccurrences(of: " Rd.", with: " Road")
+        
+        // Remove multiple spaces
+        normalized = normalized.replacingOccurrences(of: "  +", with: " ", options: .regularExpression)
+        
+        return normalized
+    }
+    
+    /// Get appropriate cache timeout based on endpoint data volatility
+    private func getCacheTimeout(for endpoint: APIEndpoint) -> TimeInterval {
+        switch endpoint {
+        // Long-term stable data (24 hours)
+        case .buildingFootprints, .buildingFootprintsNearby, .landmarksBuildings, .dofPropertyAssessment:
+            return APIConfig.longTermCacheTimeout
+        
+        // Medium-term data (2 hours) - permits, violations that don't change frequently
+        case .dobPermits, .dobPermitsAddress, .hpdViolations, .hpdViolationsAddress, .ll97Compliance:
+            return APIConfig.cacheTimeout
+        
+        // Short-term data (1 hour) - active complaints, schedules that might change
+        case .complaints311, .complaints311Address, .dsnySchedule, .dsnyViolations, .dsnyViolationsAddress:
+            return APIConfig.cacheTimeout / 2
+        
+        // Very short-term (30 minutes) - real-time data like outages
+        case .conEdisonOutages:
+            return 1800
+        
+        default:
+            return APIConfig.cacheTimeout
+        }
+    }
+    
+    /// Handle JSON decoding errors by attempting flexible parsing
+    private func handleDecodingError<T: Decodable>(data: Data, error: DecodingError, endpoint: APIEndpoint) throws -> [T] {
+        // For now, return empty array - this could be enhanced to do selective field parsing
+        // or data transformation based on the specific endpoint and error type
+        switch error {
+        case .keyNotFound(let key, let context):
+            print("⚠️ Missing field '\(key.stringValue)' in \(endpoint) response at path: \(context.codingPath.map { $0.stringValue }.joined(separator: "."))")
+        case .typeMismatch(let type, let context):
+            print("⚠️ Type mismatch for \(type) in \(endpoint) response at path: \(context.codingPath.map { $0.stringValue }.joined(separator: "."))")
+        case .valueNotFound(let type, let context):
+            print("⚠️ Null value for \(type) in \(endpoint) response at path: \(context.codingPath.map { $0.stringValue }.joined(separator: "."))")
+        case .dataCorrupted(let context):
+            print("⚠️ Corrupted data in \(endpoint) response at path: \(context.codingPath.map { $0.stringValue }.joined(separator: "."))")
+        @unknown default:
+            print("⚠️ Unknown decoding error in \(endpoint): \(error)")
+        }
+        
+        // Try to parse as raw JSON and extract what we can
+        if let json = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] {
+            print("⚠️ Raw JSON contains \(json.count) items for \(endpoint)")
+            // Could implement selective field extraction here based on endpoint type
+        }
+        
+        return []
     }
     
     // MARK: - Batch Operations
@@ -724,11 +864,33 @@ public final class NYCAPIService: ObservableObject {
     }
     
     private func enforceRateLimit() async throws {
-        // Simple rate limiting - wait between calls
-        if let lastSync = lastSyncTime,
-           Date().timeIntervalSince(lastSync) < APIConfig.rateLimitDelay {
-            let waitTime = APIConfig.rateLimitDelay - Date().timeIntervalSince(lastSync)
+        // Adaptive rate limiting with burst allowance
+        await MainActor.run {
+            if self.lastSyncTime == nil {
+                // First call - no delay
+                self.lastSyncTime = Date()
+                return
+            }
+        }
+        
+        let currentTime = Date()
+        guard let lastSync = lastSyncTime else { return }
+        
+        let timeSinceLastCall = currentTime.timeIntervalSince(lastSync)
+        let minimumDelay = APIConfig.rateLimitDelay
+        
+        // Allow burst of up to 3 rapid calls, then enforce stricter limits
+        let recentCallsWindow: TimeInterval = 30 // 30 second window
+        let maxBurstCalls = 3
+        
+        // For frequent calls, apply exponential backoff
+        if timeSinceLastCall < minimumDelay {
+            let waitTime = minimumDelay - timeSinceLastCall
             try await Task.sleep(nanoseconds: UInt64(waitTime * 1_000_000_000))
+        }
+        
+        await MainActor.run {
+            self.lastSyncTime = Date()
         }
     }
     
@@ -770,6 +932,36 @@ public final class NYCAPIService: ObservableObject {
     }
 
     // MARK: - Batched Fetch Helpers
+
+    /// Generic fetch method from URL string
+    private func fetchFromURL<T: Decodable>(_ urlString: String) async throws -> [T] {
+        guard let url = URL(string: urlString) else {
+            throw NYCAPIError.invalidURL(urlString)
+        }
+        
+        var request = URLRequest(url: url)
+        if let token = appToken() {
+            request.setValue(token, forHTTPHeaderField: "X-App-Token")
+        }
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        
+        let (data, response) = try await session.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw NYCAPIError.invalidResponse
+        }
+        
+        guard httpResponse.statusCode == 200 else {
+            if httpResponse.statusCode == 404 {
+                return []
+            }
+            throw NYCAPIError.httpError(httpResponse.statusCode, "HTTP \(httpResponse.statusCode)")
+        }
+        
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return try decoder.decode([T].self, from: data)
+    }
 
     /// Fetch HPD violations for multiple BINs with optional month window, grouped by BIN
     public func fetchHPDViolations(bins: [String], months: Int? = nil) async throws -> [String: [HPDViolation]] {

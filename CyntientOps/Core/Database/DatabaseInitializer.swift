@@ -553,7 +553,7 @@ public class DatabaseInitializer: ObservableObject {
             ("11", "123 1st Avenue",              "123 1st Avenue, New York, NY 10003", 40.7304, -73.9867, "building_123first"),
             ("13", "136 West 17th Street",        "136 West 17th Street, New York, NY 10011", 40.7407, -73.9975, "building_136w17"),
             ("15", "133 East 15th Street",        "133 East 15th Street, New York, NY 10003", 40.7340, -73.9862, "building_133e15"),
-            ("16", "Stuyvesant Cove Park",        "Stuyvesant Cove Park, New York, NY 10009", 40.7281, -73.9738, "stuyvesant_park"),
+            ("16", "Stuyvesant Cove Park",        "E 18th Street & East River, New York, NY 10009", 40.7281, -73.9738, "stuyvesant_park"),
             ("17", "178 Spring Street",           "178 Spring Street, New York, NY 10012", 40.7248, -73.9971, ""),
             ("18", "36 Walker Street",            "36 Walker Street, New York, NY 10013", 40.7186, -74.0048, "building_36walker"),
             ("19", "115 7th Avenue",              "115 7th Avenue, New York, NY 10011", 40.7405, -73.9987, ""),

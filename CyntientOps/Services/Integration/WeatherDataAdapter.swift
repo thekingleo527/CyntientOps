@@ -71,7 +71,7 @@ public final class WeatherDataAdapter: ObservableObject {
         let timestamp: Date
     }
     
-    private let cacheExpirationTime: TimeInterval = 14400 // 4 hours
+    private let cacheExpirationTime: TimeInterval = 3600 // 1 hour
     private let apiCallMinInterval: TimeInterval = 300 // 5 minutes rate limiting
     
     // Track API calls for rate limiting

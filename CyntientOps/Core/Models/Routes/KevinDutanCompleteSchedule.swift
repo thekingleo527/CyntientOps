@@ -44,7 +44,7 @@ public struct KevinDutanCompleteSchedule {
             sequences: [
                 perryStreet131Sequence(day: "Monday", time: 7, 0),
                 perryStreet68Sequence(day: "Monday", time: 8, 0),
-                seventeenthStreetMorningSequence(day: "Monday", time: 9, 15),
+                seventeenthStreetMorningSequence(day: "Monday", time: 9, 0),
                 // Monday afternoon: 123 1st Ave & 178 Spring (M W F pattern)
                 firstAvenueAndSpringSequence(day: "Monday", time: 13, 0),
                 // Weekly stairwell rotation (determined by week of year)
@@ -75,7 +75,7 @@ public struct KevinDutanCompleteSchedule {
             sequences: [
                 perryStreet131Sequence(day: "Wednesday", time: 7, 0),
                 perryStreet68Sequence(day: "Wednesday", time: 8, 0),
-                seventeenthStreetMorningSequence(day: "Wednesday", time: 9, 15),
+                seventeenthStreetMorningSequence(day: "Wednesday", time: 9, 0),
                 // Wednesday afternoon: 123 1st Ave & 178 Spring (M W F pattern) + Angel covers evening garbage
                 firstAvenueAndSpringSequence(day: "Wednesday", time: 13, 0)
                 // No evening garbage - Angel handles Wednesday evenings
@@ -100,8 +100,8 @@ public struct KevinDutanCompleteSchedule {
             sequences: [
                 perryStreet131Sequence(day: "Thursday", time: 7, 0),
                 perryStreet68Sequence(day: "Thursday", time: 8, 0),
-                seventeenthStreetMorningSequence(day: "Thursday", time: 9, 15),
-                seventhAvenueSequence(day: "Thursday", time: 12, 0),
+                seventeenthStreetMorningSequence(day: "Thursday", time: 9, 0),
+                seventhAvenueSequence(day: "Thursday", time: 11, 0),
                 // Thursday afternoon: Alternative buildings or projects
                 alternativeBuildingsSequence(day: "Thursday", time: 14, 0)
             ],
@@ -147,7 +147,7 @@ public struct KevinDutanCompleteSchedule {
             buildingId: CanonicalIDs.Buildings.perry131,
             buildingName: "131 Perry Street",
             arrivalTime: arrivalTime,
-            estimatedDuration: 30 * 60,
+            estimatedDuration: 90 * 60,
             operations: [
                 OperationTask(
                     id: "perry131_building_check_\(day.lowercased())",
@@ -167,6 +167,16 @@ public struct KevinDutanCompleteSchedule {
                     estimatedDuration: 15 * 60,
                     isWeatherSensitive: true,
                     skillLevel: .basic
+                ),
+                OperationTask(
+                    id: "perry131_interior_stairwell_\(day.lowercased())",
+                    name: "Interior/Stairwell Routine",
+                    category: .stairwellCleaning,
+                    location: .stairwell,
+                    estimatedDuration: 60 * 60,
+                    isWeatherSensitive: false,
+                    skillLevel: .basic,
+                    instructions: "Stairwell and interior floors routine"
                 )
             ],
             sequenceType: .buildingCheck,
@@ -183,14 +193,14 @@ public struct KevinDutanCompleteSchedule {
             buildingId: CanonicalIDs.Buildings.perry68,
             buildingName: "68 Perry Street",
             arrivalTime: arrivalTime,
-            estimatedDuration: 45 * 60,
+            estimatedDuration: 30 * 60,
             operations: [
                 OperationTask(
                     id: "perry68_maintenance_check_\(day.lowercased())",
                     name: "\(day) Perry Street Maintenance",
                     category: .maintenance,
                     location: .exterior,
-                    estimatedDuration: 30 * 60,
+                    estimatedDuration: 20 * 60,
                     isWeatherSensitive: true,
                     skillLevel: .intermediate
                 ),
@@ -199,7 +209,7 @@ public struct KevinDutanCompleteSchedule {
                     name: "Trash Area Maintenance",
                     category: .trashCollection,
                     location: .trashArea,
-                    estimatedDuration: 15 * 60,
+                    estimatedDuration: 10 * 60,
                     isWeatherSensitive: false,
                     skillLevel: .basic
                 )
@@ -219,7 +229,7 @@ public struct KevinDutanCompleteSchedule {
             buildingId: "17th_street_complex",
             buildingName: "17th Street Building Complex",
             arrivalTime: arrivalTime,
-            estimatedDuration: 165 * 60, // 2 hours 45 minutes
+            estimatedDuration: 120 * 60, // 2 hours (9–11am)
             operations: [
                 // Same operations as Tuesday but with day-specific IDs
                 OperationTask(
@@ -269,14 +279,14 @@ public struct KevinDutanCompleteSchedule {
             buildingId: CanonicalIDs.Buildings.seventhAvenue115,
             buildingName: "115 7th Avenue",
             arrivalTime: arrivalTime,
-            estimatedDuration: 90 * 60,
+            estimatedDuration: 60 * 60,
             operations: [
                 OperationTask(
                     id: "poster_removal_7th_ave_\(day.lowercased())",
                     name: "Poster Removal - 115 7th Avenue",
                     category: .posterRemoval,
                     location: .exterior,
-                    estimatedDuration: 45 * 60,
+                    estimatedDuration: 30 * 60,
                     isWeatherSensitive: true,
                     skillLevel: .intermediate,
                     instructions: "\(day): Remove illegal postings, clean adhesive residue"
@@ -286,7 +296,7 @@ public struct KevinDutanCompleteSchedule {
                     name: "Treepit Cleaning - 115 7th Avenue Area",
                     category: .treepitCleaning,
                     location: .treepit,
-                    estimatedDuration: 45 * 60,
+                    estimatedDuration: 30 * 60,
                     isWeatherSensitive: true,
                     requiredEquipment: ["Hand tools", "Trash bags"],
                     instructions: "\(day): Clean tree pits, remove debris, maintain landscaping"

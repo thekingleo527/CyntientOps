@@ -46,7 +46,8 @@ public struct WorkerBuildingAssignments {
         case "15": return "Shawn Magloire"    // 133 East 15th (Corbel Property)
         case "21": return "Shawn Magloire"    // 148 Chambers (JM Realty - NEW)
         
-        // Greg Hutson - Manager (no primary assignments)
+        // Greg Hutson - 12 West 18th primary worker
+        case "1": return "Greg Hutson"        // 12 West 18th
         default: return nil
         }
     }
@@ -75,7 +76,7 @@ public struct WorkerBuildingAssignments {
             return ["3", "15", "21"]  // HVAC/Advanced buildings
             
         case "Greg Hutson":
-            return []  // Manager - no specific assignments
+            return ["1"]  // 12 West 18th
             
         default:
             return []
@@ -91,7 +92,7 @@ public struct WorkerBuildingAssignments {
         case elizabethStreetSpecialist  // Luis - CORRECTED
         case eveningDSNYSpecialist      // Angel
         case hvacAdvancedMaintenance    // Shawn
-        case manager                    // Greg
+        case west18thSpecialist         // Greg (12 West 18th)
     }
     
     /// Get the specialization for a worker
@@ -103,7 +104,7 @@ public struct WorkerBuildingAssignments {
         case "Luis Lopez": return .elizabethStreetSpecialist
         case "Angel Guiracocha": return .eveningDSNYSpecialist
         case "Shawn Magloire": return .hvacAdvancedMaintenance
-        case "Greg Hutson": return .manager
+        case "Greg Hutson": return .west18thSpecialist
         default: return nil
         }
     }

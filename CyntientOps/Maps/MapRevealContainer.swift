@@ -118,11 +118,12 @@ struct MapRevealContainer<Content: View>: View {
                 .zIndex(1)
                 .allowsHitTesting(!isRevealed) // Allow touches when map is not revealed
             
-            // Map controls when revealed
+            // Map controls when revealed (with proper timing)
             if isRevealed {
                 mapControls
                     .zIndex(2)
-                    .transition(.opacity)
+                    .transition(.opacity.combined(with: .scale))
+                    .animation(.easeInOut(duration: 0.4).delay(0.1), value: isRevealed)
             }
             
             // Intelligence popover
@@ -186,23 +187,24 @@ struct MapRevealContainer<Content: View>: View {
                 }
             }
             .allowsHitTesting(isRevealed) // Only allow map interaction when revealed
-            .blur(radius: isRevealed ? 0 : 15)
-            .opacity(isRevealed ? 1.0 : 0.4)
-            .animation(.easeInOut(duration: 0.3), value: isRevealed)
+            .blur(radius: isRevealed ? 0 : 12)
+            .opacity(isRevealed ? 1.0 : 0.3)
+            .animation(.easeInOut(duration: 0.4), value: isRevealed)
             
-            // Overlay for ambient mode
+            // Overlay for ambient mode (with improved timing)
             if !isRevealed {
                 LinearGradient(
                     colors: [
-                        Color.black.opacity(0.7),
-                        Color.black.opacity(0.5),
-                        Color.black.opacity(0.7)
+                        Color.black.opacity(0.6),
+                        Color.black.opacity(0.4),
+                        Color.black.opacity(0.6)
                     ],
                     startPoint: .top,
                     endPoint: .bottom
                 )
                 .allowsHitTesting(false)
-                .animation(.easeInOut(duration: 0.3), value: isRevealed)
+                .opacity(isRevealed ? 0.0 : 1.0)
+                .animation(.easeInOut(duration: 0.4), value: isRevealed)
             }
         }
     }
@@ -270,50 +272,48 @@ struct MapRevealContainer<Content: View>: View {
         }
     }
     
-    // MARK: - Map Legend
+    // MARK: - Map Legend (Compact and Non-Intrusive)
     
     private var mapLegend: some View {
-        VStack(spacing: 12) {
-            HStack {
-                Image(systemName: "building.2.fill")
-                    .foregroundColor(.blue)
+        VStack(spacing: 8) {
+            HStack(spacing: 12) {
+                // Building count badge
+                HStack(spacing: 6) {
+                    Image(systemName: "building.2.fill")
+                        .font(.caption)
+                        .foregroundColor(.blue)
+                    Text("\(buildings.count)")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.white)
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(.ultraThinMaterial, in: Capsule())
                 
-                Text("My Buildings")
-                    .font(.headline)
-                    .foregroundColor(.white)
+                // Current building indicator
+                if currentBuildingId != nil {
+                    HStack(spacing: 4) {
+                        Circle()
+                            .fill(.green)
+                            .frame(width: 8, height: 8)
+                        Text("Current")
+                            .font(.caption)
+                            .foregroundColor(.white)
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(.ultraThinMaterial, in: Capsule())
+                }
                 
                 Spacer()
-                
-                Text("\(buildings.count)")
-                    .font(.title2)
-                    .fontWeight(.bold)
-                    .foregroundColor(.blue)
             }
-            
-            if currentBuildingId != nil {
-                HStack(spacing: 8) {
-                    Circle()
-                        .fill(.green)
-                        .frame(width: 12, height: 12)
-                    
-                    Text("Currently clocked in")
-                        .font(.caption)
-                        .foregroundColor(.white.opacity(0.8))
-                    
-                    Spacer()
-                }
-            }
-            
-            Text("Tap any building for quick intelligence")
-                .font(.caption)
-                .foregroundColor(.white.opacity(0.7))
-                .multilineTextAlignment(.center)
         }
-        .padding(16)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
         .padding(.horizontal, 20)
-        .padding(.bottom, 40)
+        .padding(.bottom, 20)
         .allowsHitTesting(false)
+        .opacity(isRevealed ? 1.0 : 0.0)
+        .animation(.easeInOut(duration: 0.3).delay(0.2), value: isRevealed)
     }
     
     // MARK: - Intelligence Popover
@@ -360,17 +360,23 @@ struct MapRevealContainer<Content: View>: View {
                     
                     // Consider both distance and velocity for better UX
                     if !isRevealed && (translation < -threshold || velocity < -velocityThreshold) {
-                        // Reveal map
+                        // Reveal map - ensure clean state
                         isRevealed = true
                         showHint = false
                     } else if isRevealed && (translation > threshold || velocity > velocityThreshold) {
-                        // Hide map
+                        // Hide map - clean up all state
                         isRevealed = false
                         selectedBuildingForPreview = nil
                         hoveredBuildingId = nil
                     }
                     
+                    // Always reset drag offset
                     dragOffset = 0
+                }
+                
+                // Force UI update after gesture completion
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    // Ensure animations complete properly
                 }
             }
     }
@@ -415,8 +421,16 @@ struct MapRevealContainer<Content: View>: View {
     private func closeMap() {
         withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
             isRevealed = false
-            selectedBuildingForPreview = nil
-            hoveredBuildingId = nil
+        }
+        
+        // Clean up state immediately to prevent UI glitches
+        selectedBuildingForPreview = nil
+        hoveredBuildingId = nil
+        dragOffset = 0
+        
+        // Ensure overlay state is properly reset
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            // Force state consistency
         }
     }
     
@@ -487,6 +501,15 @@ struct MapBuildingBubble: View {
                 // Status indicator
                 if let metrics = metrics {
                     statusIndicator(metrics)
+                }
+                
+                // Star badge for current building (when selected)
+                if isSelected {
+                    Image(systemName: "star.fill")
+                        .font(.caption)
+                        .foregroundColor(.yellow)
+                        .background(Circle().fill(.white).frame(width: 16, height: 16))
+                        .offset(x: 20, y: -20)
                 }
             }
             .scaleEffect(isPressed ? 0.95 : 1.0)

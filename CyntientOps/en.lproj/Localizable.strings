@@ -1,91 +1,93 @@
-/* 
-  Localizable.strings
-  CyntientOps
+"weather.apply" = "Apply";
+"weather.view_hourly" = "View hourly";
+"weather.offline" = "Weather offline";
+"weather.affected_tasks" = "Weather-Affected Tasks";
+"weather.rain_likely_at" = "Rain likely ~%d%% at %@";
+"weather.risk.wind" = "Strong wind: secure outdoor work";
+"weather.risk.heat" = "Heat risk: stay hydrated";
 
-  Created by Shawn Magloire on 7/31/25.
-  
-*/
-/*
-  Localizable.strings (Spanish)
-  CyntientOps
+"weather.advice.optimal_drain_inspection" = "Optimal time for drain inspection";
+"weather.advice.postpone_exterior" = "Postpone until weather clears";
+"weather.advice.move_indoors" = "Move indoors if possible";
+"weather.advice.heat_complete_early" = "Complete early morning to avoid heat";
+"weather.advice.cold_dress_warm" = "Dress warmly and take frequent breaks";
+"weather.advice.wind_roof_caution" = "Exercise extreme caution on roof work";
+"weather.advice.wind_secure_materials" = "Secure loose materials and equipment";
+"weather.advice.monitor" = "Monitor conditions throughout task";
 
-  Stream A: UI/UX & Spanish
-  Mission: Provide complete Spanish localization for the application.
-*/
+"building.general.water_entry_title" = "Check building water entry points";
+"building.general.water_entry_reco" = "Inspect doors and windows for water intrusion";
+"building.generic.walkup_heat_breaks" = "Multi-story walk-up - plan frequent breaks";
+"building.generic.commercial_rain_attention" = "Extra attention to commercial entrances - higher foot traffic";
 
-// MARK: - General UI
-"OK" = "OK";
-"Cancel" = "Cancel";
-"Save" = "Save";
-"Submit" = "Submit";
-"Error" = "Error";
-"Success" = "Success";
-"Loading..." = "Loading...";
-"Retry" = "Retry";
-"Back" = "Back";
-"Done" = "Done";
+"building.1.check_mats_title" = "Check lobby mats and drainage";
+"building.1.check_mats_reco" = "Ensure entrance mats are secure and lobby drainage is clear";
+"building.1.verify_elevator_heat_title" = "Verify elevator heating systems";
+"building.1.verify_elevator_heat_reco" = "Check both passenger and freight elevator heating";
+"building.1.freight_in_rain" = "Use freight elevator to minimize lobby water tracking";
+"building.1.mats_foot_traffic" = "Extra attention to mats - 9 floors of foot traffic";
 
-// MARK: - Login & Auth
-"Login" = "Login";
-"Email" = "Email";
-"Password" = "Password";
-"Authentication required" = "Authentication required";
-"Invalid credentials" = "Invalid credentials";
+"building.3.check_backyard_drain_title" = "Check backyard drain before rain";
+"building.3.check_backyard_drain_reco" = "Inspect and clear backyard drain prior to rainfall";
 
-// MARK: - Dashboard
-"Dashboard" = "Dashboard";
-"Good Morning" = "Good Morning";
-"Good Afternoon" = "Good Afternoon";
-"Good Evening" = "Good Evening";
-"Today's Tasks" = "Today's Tasks";
-"All tasks complete!" = "All tasks complete!";
-"Great job. You are all caught up for today." = "Great job. You are all caught up for today.";
-"Current Building" = "Current Building";
-"Not currently clocked in at a building." = "Not currently clocked in at a building.";
-"Clock In" = "Clock In";
-"Clock Out" = "Clock Out";
+"building.5.lobby_flow_title" = "Manage lobby flow during rain";
+"building.5.lobby_flow_reco" = "Place mats and cones; expect higher traffic from museum/offices";
+"building.5.secure_signage_title" = "Secure signage and displays";
+"building.5.secure_signage_reco" = "Secure lobby/corridor signage due to wind gusts";
 
-// MARK: - Tasks
-"Task" = "Tarea";
-"Tasks" = "Tareas";
-"Complete" = "Complete";
-"Completed" = "Completed";
-"Pending" = "Pending";
-"Overdue" = "Overdue";
-"Due Time" = "Due Time";
-"Building" = "Building";
-"Photo Required" = "Photo Required";
-"Take Photo" = "Take Photo";
-"Task marked as complete." = "Task marked as complete.";
-"Complete Task" = "Complete Task";
+"building.6.inspect_roof_drain_title" = "Inspect 2nd floor roof drain";
+"building.6.inspect_roof_drain_reco" = "Check drain via Apt 2R access during rain";
+"building.6.inspect_drain_now" = "Perfect time to inspect drain function via Apt 2R";
+"building.6.observe_gutter" = "Observe gutter performance during active rainfall";
 
-// MARK: - Urgency
-"Urgent" = "Urgent";
-"Normal" = "Normal";
-"Low" = "Low";
-"High" = "High";
-"Critical" = "Critical";
+"building.7.check_mats_title" = "Check rain mats at entrance";
+"building.7.check_mats_reco" = "Place mats and monitor water tracking in lobby";
 
-// MARK: - Admin & Client Dashboards
-"Admin Dashboard" = "Panel de Administrador";
-"Client Dashboard" = "Panel de Cliente";
-"Portfolio Overview" = "Resumen del Portafolio";
-"Buildings" = "Edificios";
-"Workers" = "Trabajadores";
-"Compliance" = "Cumplimiento";
-"Insights" = "Perspectivas";
+"building.8.commercial_logistics_title" = "Coordinate commercial logistics in rain";
+"building.8.commercial_logistics_reco" = "Use freight elevator for deliveries; add lobby mats";
 
-// MARK: - Preferences
-"Preferences" = "Preferencias";
-"Language" = "Idioma";
-"Preferred Language" = "Idioma Preferido";
-"English" = "English";
-"Español" = "Español";
-"Accessibility" = "Accesibilidad";
-"Simplified Interface" = "Interfaz Simplificada";
-"High Contrast Mode" = "Modo de Alto Contraste";
-"Text Size" = "Tamaño del Texto";
-"Sample Text" = "Texto de Ejemplo";
-"Notifications" = "Notificaciones";
-"Enable Push Notifications" = "Activar Notificaciones Push";
-"Urgent Task Alerts" = "Alertas de Tareas Urgentes";
+"building.9.check_mats_title" = "Check rain mats at entrance";
+"building.9.check_mats_reco" = "Place mats; expect increased water tracking";
+
+"building.10.elevator_cold_title" = "Cold check: elevator rooms";
+"building.10.elevator_cold_reco" = "Verify machine room temps and door seals";
+
+"building.11.awnings_title" = "Check awnings and mats";
+"building.11.awnings_reco" = "Ensure awnings drain properly; place mats at threshold";
+
+"building.13.commercial_mats_title" = "Ground-floor commercial mats";
+"building.13.commercial_mats_reco" = "Place mats and cones at entrance during rain";
+
+"building.14.secure_stair_windows_title" = "Secure stairwell windows";
+"building.14.secure_stair_windows_reco" = "Check all stairwell windows in 5-story buildings";
+"building.14.window_check_walkup" = "Check all 5 floors - no elevator available for quick access";
+"building.14.start_early_heat" = "Start early - 5-story walk-up will be exhausting in heat";
+
+"building.15.lobby_mats_title" = "Lobby rain mats";
+"building.15.lobby_mats_reco" = "Place mats at lobby; 4 units per floor";
+
+"building.16.early_maintenance_title" = "Early morning park maintenance";
+"building.16.early_maintenance_reco" = "Complete outdoor work before 10 AM to avoid heat";
+"building.16.suspend_outdoor_rain" = "Suspend all outdoor park maintenance until clear";
+"building.16.complete_before_9" = "Complete before 9 AM - no indoor shelter available";
+"building.16.secure_equipment" = "Secure all equipment - open park setting";
+"building.16.rain_reschedule_title" = "Reschedule park maintenance";
+"building.16.rain_reschedule_reco" = "Rain in early morning—reschedule park tasks to later when clear";
+
+"building.17.walkup_heat_title" = "Walk-up: plan heat breaks";
+"building.17.walkup_heat_reco" = "Schedule stairwork earlier; take frequent breaks";
+
+"building.19.postpone_exterior_title" = "Postpone exterior cleaning";
+"building.19.postpone_exterior_reco" = "Wait for clear weather for sidewalk work";
+"building.19.exterior_wait_clear" = "All work exterior - wait for clear conditions";
+"building.19.hose_freeze_risk" = "Risk of freezing - use warm water for sidewalk hosing";
+
+"building.20.secure_equipment_title" = "Secure outdoor equipment";
+"building.20.secure_equipment_reco" = "Secure patio equipment and signage in high winds";
+
+"building.4.commercial_threshold_mats_title" = "Commercial threshold mats";
+"building.4.commercial_threshold_mats_reco" = "Place mats at commercial entrance; monitor slip risk";
+
+"building.21.private_elevator_cold_title" = "Private elevator cold check";
+"building.21.private_elevator_cold_reco" = "Check temperature/comfort where elevator opens into unit";
+"building.21.private_elevator_cold_detail" = "Check elevator that opens into unit - resident comfort critical";

@@ -40,6 +40,10 @@ public actor BuildingMetricsService {
     
     // MARK: - Cache Management
     private var metricsCache: [String: CachedMetrics] = [:]
+    private var lastBroadcastAt: [String: Date] = [:]
+    private var lastCacheLogAt: [String: Date] = [:]
+    private let minBroadcastInterval: TimeInterval = 300 // 5 minutes
+    private let minCacheLogInterval: TimeInterval = 120 // 2 minutes
     private let cacheExpiration: TimeInterval = 300 // 5 minutes
     
     // MARK: - Real-time Observations
@@ -72,7 +76,16 @@ public actor BuildingMetricsService {
     public func calculateMetrics(for buildingId: String) async throws -> CoreTypes.BuildingMetrics {
         // Check cache first
         if let cached = metricsCache[buildingId], !cached.isExpired {
-            print("📊 Using cached metrics for building: \(buildingId)")
+            let now = Date()
+            if let last = lastCacheLogAt[buildingId] {
+                if now.timeIntervalSince(last) > minCacheLogInterval {
+                    print("📊 Using cached metrics for building: \(buildingId)")
+                    lastCacheLogAt[buildingId] = now
+                }
+            } else {
+                print("📊 Using cached metrics for building: \(buildingId)")
+                lastCacheLogAt[buildingId] = now
+            }
             return cached.metrics
         }
         
@@ -83,17 +96,22 @@ public actor BuildingMetricsService {
         metricsCache[buildingId] = CachedMetrics(metrics: metrics, timestamp: Date())
         
         
-        // Notify other dashboards
-        // Notify other dashboards
-        let update = CoreTypes.DashboardUpdate(
-            source: .admin,
-            type: .buildingMetricsChanged,
-            buildingId: buildingId,
-            workerId: "",
-            data: ["metricsUpdated": "true"]
-        )
+        // Throttled notify to avoid flooding when offline
         if let dashboardSync = dashboardSync {
-            await dashboardSync.broadcastAdminUpdate(update)
+            let now = Date()
+            let last = lastBroadcastAt[buildingId] ?? .distantPast
+            let online = await MainActor.run { dashboardSync.isOnline }
+            if now.timeIntervalSince(last) >= minBroadcastInterval, online {
+                let update = CoreTypes.DashboardUpdate(
+                    source: .admin,
+                    type: .buildingMetricsChanged,
+                    buildingId: buildingId,
+                    workerId: "",
+                    data: ["metricsUpdated": "true"]
+                )
+                await dashboardSync.broadcastAdminUpdate(update)
+                lastBroadcastAt[buildingId] = now
+            }
         }
         return metrics
     }
@@ -291,20 +309,7 @@ public actor BuildingMetricsService {
         )
         
         print("✅ GRDB Metrics calculated - Building: \(buildingId), Score: \(Int(overallScore)), Completion: \(Int(completionRate * 100))%")
-        
-        
-        // Notify other dashboards
-        // Notify other dashboards
-        let update = CoreTypes.DashboardUpdate(
-            source: .admin,
-            type: .buildingMetricsChanged,
-            buildingId: buildingId,
-            workerId: "",
-            data: ["metricsUpdated": "true"]
-        )
-        if let dashboardSync = dashboardSync {
-            await dashboardSync.broadcastAdminUpdate(update)
-        }
+        // Remove duplicate broadcast here; handled in calculateMetrics with throttling
         return metrics
     }
     

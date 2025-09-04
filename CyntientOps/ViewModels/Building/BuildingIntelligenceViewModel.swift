@@ -315,7 +315,7 @@ public class BuildingIntelligenceViewModel: ObservableObject {
             fallbackWorkers.append(createFallbackWorker(id: "6", name: "Luis Lopez", role: CoreTypes.UserRole.worker))
         } else {
             // Default workers for other buildings
-            fallbackWorkers.append(createFallbackWorker(id: "1", name: "Greg Franco", role: CoreTypes.UserRole.manager))
+            fallbackWorkers.append(createFallbackWorker(id: "1", name: "Greg Hutson", role: CoreTypes.UserRole.worker))
             fallbackWorkers.append(createFallbackWorker(id: "2", name: "Edwin Lema", role: CoreTypes.UserRole.worker))
         }
         

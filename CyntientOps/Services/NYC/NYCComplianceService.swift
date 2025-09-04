@@ -66,17 +66,18 @@ public final class NYCComplianceService: ObservableObject {
                 var dsny = dsnyByBin[bin] ?? []
 
                 // Address fallbacks like DSNY: apply to HPD/DOB as well
-                if hpd.isEmpty {
+                // Skip API calls for parks and other non-building locations
+                if hpd.isEmpty && !isNonBuildingLocation(building) {
                     let addr = "\(building.name), \(building.address)"
                     if let byAddr = try? await nycAPI.fetchHPDViolations(address: addr), !byAddr.isEmpty { hpd = byAddr }
                     else if let byAddr2 = try? await nycAPI.fetchHPDViolations(address: building.address), !byAddr2.isEmpty { hpd = byAddr2 }
                 }
-                if dob.isEmpty {
+                if dob.isEmpty && !isNonBuildingLocation(building) {
                     let addr = "\(building.name), \(building.address)"
                     if let byAddr = try? await nycAPI.fetchDOBPermits(address: addr), !byAddr.isEmpty { dob = byAddr }
                     else if let byAddr2 = try? await nycAPI.fetchDOBPermits(address: building.address), !byAddr2.isEmpty { dob = byAddr2 }
                 }
-                if dsny.isEmpty {
+                if dsny.isEmpty && !isNonBuildingLocation(building) {
                     if !bbl.isEmpty, let byBBL = try? await nycAPI.fetchOATHDSNYViolations(bbl: bbl), !byBBL.isEmpty {
                         dsny = byBBL
                     } else {
@@ -496,6 +497,7 @@ public final class NYCComplianceService: ObservableObject {
         case "8": return "1002456" // 123 1st Avenue
         case "7": return "1034289" // 117 W 17th Street
         case "6": return "1034351" // 112 W 18th Street
+        case "16": return "" // Stuyvesant Cove Park - no BIN (public park)
         default: return building.id // Fallback to app ID
         }
     }
@@ -511,6 +513,7 @@ public final class NYCComplianceService: ObservableObject {
         case "8": return "1003900015" // Manhattan Block 390, Lot 15 (1st Ave)
         case "7": return "1008490015" // Manhattan Block 849, Lot 15 (W 17th)
         case "6": return "1008500025" // Manhattan Block 850, Lot 25 (W 18th)
+        case "16": return "" // Stuyvesant Cove Park - no BBL (public park)
         default: return "" // Unknown building
         }
     }
@@ -610,6 +613,16 @@ public final class NYCComplianceService: ObservableObject {
         }
         
         return nil
+    }
+    
+    /// Check if a location is a park or other non-building that shouldn't be queried for building violations
+    private func isNonBuildingLocation(_ building: CoreTypes.NamedCoordinate) -> Bool {
+        // Parks and other public spaces that don't have traditional building compliance data
+        let nonBuildingLocations = ["16"] // Stuyvesant Cove Park
+        return nonBuildingLocations.contains(building.id) ||
+               building.name.localizedCaseInsensitiveContains("park") ||
+               building.address.localizedCaseInsensitiveContains("greenway") ||
+               building.address.localizedCaseInsensitiveContains("pier")
     }
     
     deinit {

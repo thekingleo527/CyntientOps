@@ -63,7 +63,7 @@ public final class ClientBuildingSeeder {
             shortName: "SOL",
             contactEmail: "facilities@solarone.org",
             contactPhone: "+1 (212) 555-0202",
-            address: "Stuyvesant Cove Park, New York, NY 10009",
+            address: "E 18th Street & East River, New York, NY 10009",
             isActive: true,
             buildings: ["16"] // 1 building
         ),
@@ -222,7 +222,7 @@ public final class ClientBuildingSeeder {
             ("13", "136 West 17th Street", "136 West 17th Street, New York, NY 10011", 40.7407, -73.9975),
             ("14", "Rubin Museum (142-148 West 17th Street)", "142-148 West 17th Street, New York, NY 10011", 40.7408, -73.9978),
             ("15", "133 East 15th Street", "133 East 15th Street, New York, NY 10003", 40.7340, -73.9862),
-            ("16", "Stuyvesant Cove Park", "Stuyvesant Cove Park, New York, NY 10009", 40.7281, -73.9738),
+            ("16", "Stuyvesant Cove Park", "E 18th Street & East River, New York, NY 10009", 40.7281, -73.9738),
             ("17", "178 Spring Street", "178 Spring Street, New York, NY 10012", 40.7248, -73.9971),
             ("18", "36 Walker Street", "36 Walker Street, New York, NY 10013", 40.7186, -74.0048),
             ("19", "115 7th Avenue", "115 7th Avenue, New York, NY 10011", 40.7405, -73.9987),

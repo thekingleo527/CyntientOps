@@ -49,7 +49,7 @@ public struct KevinDutanRoutes {
             buildingId: CanonicalIDs.Buildings.perry131,
             buildingName: "131 Perry Street",
             arrivalTime: arrivalTime,
-            estimatedDuration: 30 * 60, // 30 minutes
+            estimatedDuration: 90 * 60, // 90 minutes
             operations: [
                 OperationTask(
                     id: "perry131_building_check",
@@ -69,6 +69,16 @@ public struct KevinDutanRoutes {
                     estimatedDuration: 15 * 60,
                     isWeatherSensitive: true,
                     skillLevel: .basic
+                ),
+                OperationTask(
+                    id: "perry131_interior_stairwell",
+                    name: "Interior/Stairwell Routine",
+                    category: .stairwellCleaning,
+                    location: .stairwell,
+                    estimatedDuration: 60 * 60,
+                    isWeatherSensitive: false,
+                    skillLevel: .basic,
+                    instructions: "Floors and landings walkthrough, stairwell sweep/mop"
                 )
             ],
             sequenceType: .buildingCheck,
@@ -85,14 +95,14 @@ public struct KevinDutanRoutes {
             buildingId: CanonicalIDs.Buildings.perry68,
             buildingName: "68 Perry Street",
             arrivalTime: arrivalTime,
-            estimatedDuration: 45 * 60, // 45 minutes
+            estimatedDuration: 30 * 60, // 30 minutes
             operations: [
                 OperationTask(
                     id: "perry68_maintenance_check",
                     name: "Perry Street Maintenance",
                     category: .maintenance,
                     location: .exterior,
-                    estimatedDuration: 30 * 60,
+                    estimatedDuration: 20 * 60,
                     isWeatherSensitive: true,
                     skillLevel: .intermediate
                 ),
@@ -101,7 +111,7 @@ public struct KevinDutanRoutes {
                     name: "Trash Area Maintenance",
                     category: .trashCollection,
                     location: .trashArea,
-                    estimatedDuration: 15 * 60,
+                    estimatedDuration: 10 * 60,
                     isWeatherSensitive: false,
                     skillLevel: .basic
                 )
@@ -114,14 +124,14 @@ public struct KevinDutanRoutes {
     
     /// 9:15 AM - 12:00 PM - 17th Street Complex (Most Complex Sequence)
     private static func seventeenthStreetComplexSequence() -> RouteSequence {
-        let arrivalTime = Calendar.current.date(bySettingHour: 9, minute: 15, second: 0, of: Date()) ?? Date()
+        let arrivalTime = Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: Date()) ?? Date()
         
         return RouteSequence(
             id: "kevin_17th_complex",
             buildingId: "17th_street_complex", // Multi-building sequence
             buildingName: "17th Street Building Complex",
             arrivalTime: arrivalTime,
-            estimatedDuration: 165 * 60, // 2 hours 45 minutes
+            estimatedDuration: 120 * 60, // 2 hours
             operations: [
                 // Phase 1: Outdoor Operations (Weather-Sensitive)
                 OperationTask(
@@ -240,21 +250,21 @@ public struct KevinDutanRoutes {
     
     /// 12:00 PM - 115 7th Avenue (Weather-Sensitive Detail Work)
     private static func seventhAvenueSequence() -> RouteSequence {
-        let arrivalTime = Calendar.current.date(bySettingHour: 12, minute: 0, second: 0, of: Date()) ?? Date()
+        let arrivalTime = Calendar.current.date(bySettingHour: 11, minute: 0, second: 0, of: Date()) ?? Date()
         
         return RouteSequence(
             id: "kevin_7th_avenue",
             buildingId: CanonicalIDs.Buildings.seventhAvenue115,
             buildingName: "115 7th Avenue",
             arrivalTime: arrivalTime,
-            estimatedDuration: 90 * 60, // 1.5 hours
+            estimatedDuration: 60 * 60, // 1 hour
             operations: [
                 OperationTask(
                     id: "poster_removal_7th_ave",
                     name: "Poster Removal - 115 7th Avenue",
                     category: .posterRemoval,
                     location: .exterior,
-                    estimatedDuration: 45 * 60,
+                    estimatedDuration: 30 * 60,
                     isWeatherSensitive: true, // Cannot do in rain
                     skillLevel: .intermediate,
                     instructions: "Remove illegal postings, clean adhesive residue"
@@ -264,7 +274,7 @@ public struct KevinDutanRoutes {
                     name: "Treepit Cleaning - 115 7th Avenue Area",
                     category: .treepitCleaning,
                     location: .treepit,
-                    estimatedDuration: 45 * 60,
+                    estimatedDuration: 30 * 60,
                     isWeatherSensitive: true, // Difficult in wet conditions
                     requiredEquipment: ["Hand tools", "Trash bags"],
                     instructions: "Clean tree pits, remove debris, maintain landscaping"

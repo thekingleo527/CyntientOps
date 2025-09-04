@@ -925,6 +925,26 @@ public class DashboardSyncService: ObservableObject {
         do {
             // Determine priority
             let priority = UpdatePriority.fromUpdateType(update.type)
+
+            // De-duplicate low-value noisy updates while offline (e.g., buildingMetricsChanged)
+            if !isOnline && update.type == .buildingMetricsChanged {
+                let rows = try await grdbManager.query("""
+                    SELECT COUNT(*) AS c FROM sync_queue
+                    WHERE entity_type = 'dashboard_update'
+                      AND entity_id = ?
+                      AND action = ?
+                      AND expires_at > ?
+                """, [
+                    update.buildingId.isEmpty ? update.workerId : update.buildingId,
+                    update.type.rawValue,
+                    Date().ISO8601Format()
+                ])
+                let existing = Int((rows.first?["c"] as? Int64) ?? 0)
+                if existing > 0 {
+                    // Skip enqueuing duplicate metrics updates while offline
+                    return
+                }
+            }
             
             // Compress update data if large
             let updateData = try JSONEncoder().encode(update)

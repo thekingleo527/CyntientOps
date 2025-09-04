@@ -551,7 +551,7 @@ public class WorkerDashboardViewModel: ObservableObject {
     @BatchedPublished public private(set) var performance: WorkerPerformance = WorkerPerformance()
     @Published public private(set) var weather: WeatherSnapshot?
     @Published public private(set) var weatherBanner: WorkerWeatherSnapshot?
-    @Published public private(set) var weatherSuggestion: String? = nil
+    @Published public private(set) var weatherSuggestions: [WeatherSuggestion] = []
     @Published public private(set) var upcoming: [TaskRowVM] = []
     
     // MARK: - Route-Based Properties
@@ -1118,6 +1118,9 @@ public class WorkerDashboardViewModel: ObservableObject {
                 await self.loadWeatherForBuilding(firstBuilding)
             }
             
+            // Load route-based data early to inform hero/next priority
+            await self.loadRouteBasedData()
+
             // Update HeroTile properties
             await self.updateHeroTileProperties()
 
@@ -1151,12 +1154,39 @@ public class WorkerDashboardViewModel: ObservableObject {
             // Load weather and tasks
             await self.loadWeatherData(for: building)
             await self.loadBuildingTasks(workerId: workerId, buildingId: building.id)
+            await self.loadRouteBasedData()
+            await self.updateHeroTileProperties()
             
             // Broadcast update
             self.broadcastClockIn(workerId: workerId, building: building, hasLocation: self.locationManager.location != nil)
             
             print("✅ Clocked in at \(building.name)")
         }
+    }
+
+    /// Suggest the most likely building to clock into based on current time and today's route
+    public func suggestedClockInBuilding() -> CoreTypes.NamedCoordinate? {
+        guard let workerId = currentWorkerId else { return nil }
+        let now = Date()
+        let today = Calendar.current.component(.weekday, from: now)
+        guard let route = container.routes.getRoute(for: workerId, dayOfWeek: today) else { return nil }
+        // Choose active sequence or nearest upcoming
+        let active = route.sequences.first { seq in
+            let end = seq.arrivalTime.addingTimeInterval(seq.estimatedDuration)
+            return seq.arrivalTime <= now && now <= end
+        }
+        let targetSeq = active ?? route.sequences.filter { $0.arrivalTime >= now }.sorted { $0.arrivalTime < $1.arrivalTime }.first
+        guard let seq = targetSeq else { return nil }
+        if let b = assignedBuildings.first(where: { $0.id == seq.buildingId }) {
+            return CoreTypes.NamedCoordinate(
+                id: b.id,
+                name: b.name,
+                address: b.address,
+                latitude: b.coordinate.latitude,
+                longitude: b.coordinate.longitude
+            )
+        }
+        return nil
     }
 
     // MARK: - Site Departure Pending Logic
@@ -1792,11 +1822,8 @@ public class WorkerDashboardViewModel: ObservableObject {
             // Preload routine schedule items for 7 days
             var routineWeekly = try await container.operationalData.getWorkerWeeklySchedule(for: workerId)
 
-            // Filter to current building (or first assigned) for clarity per worker/location
-            let buildingFilterId: String? = self.currentBuilding?.id ?? self.assignedBuildings.first?.id
-            if let filterId = buildingFilterId {
-                routineWeekly = routineWeekly.filter { $0.buildingId == filterId }
-            }
+            // Do not filter by a single building: show full weekly portfolio for the worker
+            let buildingFilterId: String? = nil
 
             // Group routine by day start
             let routineByDay = Dictionary(grouping: routineWeekly) { item in
@@ -1821,11 +1848,7 @@ public class WorkerDashboardViewModel: ObservableObject {
 
                 // Add scheduled tasks (from TaskService) for that date
                 do {
-                    let tasks = try await container.tasks.getTasks(for: workerId, date: date).filter { t in
-                        // Keep only tasks for the filtered building (if any)
-                        if let filterId = buildingFilterId { return t.buildingId == filterId }
-                        return true
-                    }
+                    let tasks = try await container.tasks.getTasks(for: workerId, date: date)
                     let taskItems: [DaySchedule.ScheduleItem] = tasks.compactMap { t in
                         let start = t.dueDate ?? calendar.date(bySettingHour: 9, minute: 0, second: 0, of: date) ?? date
                         let end = start.addingTimeInterval(60 * 60) // default 1h if unknown
@@ -2803,9 +2826,10 @@ public class WorkerDashboardViewModel: ObservableObject {
                         buildingId: item.buildingId
                     )
                 }
-                let scored = tasks.map { WeatherScoreBuilder.score(task: $0, weather: weather) }
-                    .sorted { $0.score < $1.score }
-                self.weatherSuggestion = scored.first?.advice
+                // Recompute suggestions with available weather
+                if let current = self.currentBuilding {
+                    self.weatherSuggestions = self.recomputeSuggestions(for: current, snapshot: weather)
+                }
             }
         }
         .store(in: &cancellables)
@@ -2823,6 +2847,17 @@ public class WorkerDashboardViewModel: ObservableObject {
         // Load active and upcoming sequences
         activeSequence = container.routes.getActiveSequences(for: workerId).first
         upcomingSequences = container.routes.getUpcomingSequences(for: workerId, limit: 5)
+
+        // If no explicit currentBuilding is set, derive from active or next sequence
+        if currentBuilding == nil {
+            if let seq = activeSequence,
+               let b = assignedBuildings.first(where: { $0.id == seq.buildingId }) {
+                currentBuilding = b
+            } else if let next = upcomingSequences.first,
+                      let b = assignedBuildings.first(where: { $0.id == next.buildingId }) {
+                currentBuilding = b
+            }
+        }
         
         // Update route completion
         if let route = currentRoute {
@@ -2860,11 +2895,13 @@ public class WorkerDashboardViewModel: ObservableObject {
             .sorted { $0.score < $1.score }
         upcoming = scored.prefix(3).map { TaskRowVM(scored: $0) }
 
-        // Surface a compact suggestion from the highest-priority scored task
-        if let top = scored.first {
-            weatherSuggestion = top.advice
+        // Recompute weather-based suggestions for current context
+        if let current = currentBuilding {
+            weatherSuggestions = recomputeSuggestions(for: current, snapshot: weather)
+        } else if let first = assignedBuildings.first {
+            weatherSuggestions = recomputeSuggestions(for: first, snapshot: weather)
         } else {
-            weatherSuggestion = nil
+            weatherSuggestions = []
         }
     }
 
@@ -2897,13 +2934,13 @@ public class WorkerDashboardViewModel: ObservableObject {
                 !task.title.localizedCaseInsensitiveContains("hose") &&
                 !task.title.localizedCaseInsensitiveContains("exterior")
             }
-            weatherSuggestion = generateWeatherSuggestion(for: currentBid, weather: weather)
+            // Recompute suggestions after deferral
+            if let current = currentBuilding {
+                weatherSuggestions = recomputeSuggestions(for: current, snapshot: weather)
+            }
         }
-        
-        // Rain mat reminders (buildings with rain mat policies)
-        if shouldTriggerRainMatReminder(buildingId: currentBid, weather: weather) {
-            weatherSuggestion = "Rain expected - check rain mats placement"
-        }
+
+        // Rain mat reminders are inherently covered by suggestion engine via rain policy
     }
 
     private func shouldDeferOutdoorWork(with snapshot: WeatherSnapshot) -> Bool {
@@ -2925,56 +2962,38 @@ public class WorkerDashboardViewModel: ObservableObject {
         return window.contains { $0.precipProb >= 0.3 }
     }
     
-    private func generateWeatherSuggestion(for buildingId: String, weather: WeatherSnapshot) -> String {
-        // Generate building and worker-specific suggestions
-        let current = weather.current
-        
-        if current.condition.lowercased().contains("rain") {
-            switch buildingId {
-            case "1":  // 12 W 18th
-                return "Rain detected - focus on indoor tasks, check rain mats"
-            case "7", "9":  // 112/117 buildings with mats
-                return "Rain active - prioritize indoor cleaning, rain mats needed"
-            default:
-                return "Rain detected - prioritize indoor tasks, defer exterior work"
-            }
-        } else if current.tempF <= 45 {
-            return "Cold weather - focus on indoor cleaning and heating system checks"
-        } else if current.windMph >= 25 {
-            return "High winds - avoid exterior work, secure loose items"
+    /// Update weather suggestions based on worker + building context and forecast
+    private func updateWeatherSuggestions(with weather: WeatherSnapshot) {
+        if let current = currentBuilding {
+            weatherSuggestions = recomputeSuggestions(for: current, snapshot: weather)
+        } else if let next = nextScheduledBuildingSummary() {
+            weatherSuggestions = recomputeSuggestions(for: next, snapshot: weather)
+        } else if let first = assignedBuildings.first {
+            weatherSuggestions = recomputeSuggestions(for: first, snapshot: weather)
         } else {
-            return "Good weather for all scheduled tasks"
+            weatherSuggestions = []
         }
     }
-    
-    /// Update weather suggestions based on current tasks and weather conditions
-    private func updateWeatherSuggestions(with weather: WeatherSnapshot) {
-        guard let workerId = worker?.id else { return }
-        
-        // Get current tasks for the worker
-        let contextualTasks = todaysTasks.map { item in
-            CoreTypes.ContextualTask(
-                id: item.id,
-                title: item.title,
-                description: item.description,
-                status: item.isCompleted ? .completed : .pending,
-                completedAt: nil,
-                scheduledDate: Calendar.current.startOfDay(for: Date()),
-                dueDate: item.dueDate,
-                category: CoreTypes.TaskCategory(rawValue: item.category) ?? .administrative,
-                urgency: convertTaskUrgencyToCore(item.urgency),
-                buildingId: item.buildingId,
-                buildingName: item.buildingId,
-                assignedWorkerId: workerId,
-                priority: .normal,
-                frequency: nil,
-                requiresPhoto: item.requiresPhoto,
-                estimatedDuration: 60
-            )
+
+    private func recomputeSuggestions(for building: BuildingSummary, snapshot: WeatherSnapshot?) -> [WeatherSuggestion] {
+        guard let snapshot = snapshot else { return [] }
+        let raw = WeatherSuggestionEngine.suggestions(forWorker: worker?.id, at: building, forecast: snapshot, today: Date())
+        // De-duplicate vs hero immediate tasks: remove if suggestion title matches top upcoming titles
+        let heroTitles = Set(upcoming.prefix(2).map { $0.title.lowercased() })
+        let deduped = raw.filter { s in !heroTitles.contains(s.title.lowercased()) }
+        return Array(deduped.prefix(3))
+    }
+
+    private func nextScheduledBuildingSummary() -> BuildingSummary? {
+        guard let wid = worker?.id else { return nil }
+        if let info = container.routeBridge.getCurrentRouteInfo(for: wid) {
+            // Prefer the next upcoming sequence
+            if let next = info.upcomingSequences.first,
+               let summary = assignedBuildings.first(where: { $0.id == next.buildingId }) {
+                return summary
+            }
         }
-        
-        // Update suggestions using existing logic
-        updateUpcomingTasksFromContextualTasks(contextualTasks, weather: weather)
+        return nil
     }
     
     private func convertRouteToContextualTasks(_ route: WorkerRoute) -> [CoreTypes.ContextualTask] {

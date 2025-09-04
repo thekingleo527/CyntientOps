@@ -846,7 +846,39 @@ public class BuildingDetailViewModel: ObservableObject {
                 }
                 allRoutines.append(contentsOf: dsnyTasks)
                 
-                self.dailyRoutines = allRoutines
+                // Fold route-derived routines for this building (today)
+                let todayWeekday = Calendar.current.component(.weekday, from: Date())
+                let todayRoutes = self.container.routes.routes.filter { $0.dayOfWeek == todayWeekday }
+                var routeRoutines: [BDDailyRoutine] = []
+                for route in todayRoutes {
+                    let workerName = CanonicalIDs.Workers.getName(for: route.workerId) ?? "Worker"
+                    for seq in route.sequences where seq.buildingId == self.buildingId {
+                        // Build one routine per operation with proper time offsets
+                        var elapsed: TimeInterval = 0
+                        for op in seq.operations {
+                            let start = seq.arrivalTime.addingTimeInterval(elapsed)
+                            let timeStr = start.formatted(date: .omitted, time: .shortened)
+                            routeRoutines.append(BDDailyRoutine(
+                                id: op.id,
+                                title: op.name,
+                                scheduledTime: timeStr,
+                                isCompleted: false,
+                                assignedWorker: workerName,
+                                requiredInventory: []
+                            ))
+                            elapsed += op.estimatedDuration
+                        }
+                    }
+                }
+
+                allRoutines.append(contentsOf: routeRoutines)
+                self.dailyRoutines = allRoutines.sorted { (a, b) in
+                    // Sort by time where available, then title
+                    if let ta = a.scheduledTime, let tb = b.scheduledTime {
+                        return ta < tb
+                    }
+                    return a.title.localizedCaseInsensitiveCompare(b.title) == .orderedAscending
+                }
                 self.completedRoutines = dailyRoutines.filter { $0.isCompleted }.count
                 self.totalRoutines = dailyRoutines.count
                 

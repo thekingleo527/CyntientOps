@@ -22,11 +22,12 @@ public struct AngelGuiracochaRoutes {
         let startTime = Calendar.current.date(bySettingHour: 18, minute: 0, second: 0, of: Date()) ?? Date()
         let endTime = Calendar.current.date(bySettingHour: 22, minute: 0, second: 0, of: Date()) ?? Date()
 
+        // Align DSNY set-out with 8:00 PM rule (arrive at 7:50 PM)
         let setout = sequence(
             seqId: "angel_setout_\(day)",
             buildingId: CanonicalIDs.Buildings.westEighteenth12,
             buildingName: "12 West 18th Street",
-            hour: 18, minute: 0,
+            hour: 19, minute: 50,
             ops: [
                 OperationTask(id: "w18_stage_bins", name: "Stage Bins for Collection", category: .dsnySetout, location: .curbside, estimatedDuration: 45*60, isWeatherSensitive: true, skillLevel: .basic, instructions: "Follow DSNY schedule for the day"),
                 OperationTask(id: "w18_cardboard", name: "Cardboard Break-down", category: .trashCollection, location: .trashArea, estimatedDuration: 20*60, isWeatherSensitive: true, skillLevel: .basic)
@@ -37,7 +38,7 @@ public struct AngelGuiracochaRoutes {
             seqId: "angel_sweep_\(day)",
             buildingId: CanonicalIDs.Buildings.westEighteenth12,
             buildingName: "12 West 18th Street",
-            hour: 19, minute: 15,
+            hour: 20, minute: 40,
             ops: [
                 OperationTask(id: "w18_sidewalk_sweep", name: "Sidewalk Sweep", category: .sweeping, location: .sidewalk, estimatedDuration: 30*60, isWeatherSensitive: true, skillLevel: .basic)
             ],
@@ -48,7 +49,7 @@ public struct AngelGuiracochaRoutes {
             seqId: "angel_wrap_\(day)",
             buildingId: CanonicalIDs.Buildings.westEighteenth12,
             buildingName: "12 West 18th Street",
-            hour: 21, minute: 0,
+            hour: 21, minute: 30,
             ops: [
                 OperationTask(id: "w18_checklist", name: "End-of-Shift Checklist", category: .maintenance, location: .hallway, estimatedDuration: 30*60, isWeatherSensitive: false, skillLevel: .basic)
             ]

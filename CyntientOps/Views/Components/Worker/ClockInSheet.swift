@@ -19,6 +19,7 @@ struct ClockInSheet: View {
     @State private var buildings: [NamedCoordinate] = []
     @State private var sorted: [(building: NamedCoordinate, distance: CLLocationDistance?)] = []
     @State private var selectedBuilding: NamedCoordinate?
+    @State private var suggestedBuildingId: String?
     @State private var showingBuildingDetail = false
 
     private let proximityThreshold: CLLocationDistance = 1000 // 1km soft guard
@@ -40,10 +41,15 @@ struct ClockInSheet: View {
                     .padding()
                 } else {
                     List {
+                        if let suggId = suggestedBuildingId, let entry = sorted.first(where: { $0.building.id == suggId }) {
+                            Section(header: Text("Suggested")) {
+                                suggestedRow(entry)
+                            }
+                        }
                         Section(footer: Text("For accuracy, clock in when physically near the building.")
                                     .font(.footnote)
                                     .foregroundColor(.secondary)) {
-                            ForEach(sorted, id: \.building.id) { entry in
+                            ForEach(sorted.filter { $0.building.id != suggestedBuildingId }, id: \.building.id) { entry in
                                 let b = entry.building
                                 let dist = entry.distance
                                 HStack {
@@ -138,10 +144,55 @@ struct ClockInSheet: View {
                 }
             }
 
+            // Compute suggested building from today's route
+            suggestedBuildingId = suggestBuildingId()
+
             isLoading = false
         } catch {
             errorMessage = error.localizedDescription
             isLoading = false
+        }
+    }
+
+    private func suggestBuildingId() -> String? {
+        let now = Date()
+        let weekday = Calendar.current.component(.weekday, from: now)
+        guard let route = container.routes.getRoute(for: workerId, dayOfWeek: weekday) else { return nil }
+        let active = route.sequences.first { seq in
+            let end = seq.arrivalTime.addingTimeInterval(seq.estimatedDuration)
+            return seq.arrivalTime <= now && now <= end
+        }
+        let target = active ?? route.sequences.filter { $0.arrivalTime >= now }.sorted { $0.arrivalTime < $1.arrivalTime }.first
+        return target?.buildingId
+    }
+
+    @ViewBuilder
+    private func suggestedRow(_ entry: (building: NamedCoordinate, distance: CLLocationDistance?)) -> some View {
+        let b = entry.building
+        let dist = entry.distance
+        HStack {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 6) {
+                    Text(b.name).font(.body)
+                    Text("Suggested")
+                        .font(.caption2)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(.blue.opacity(0.2), in: Capsule())
+                }
+                if let d = dist {
+                    Text(String(format: "%.0f m away", d))
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                } else {
+                    Text(b.address).font(.caption).foregroundColor(.secondary)
+                }
+            }
+            Spacer()
+            Button("View Details") { showBuildingDetail(for: b) }
+                .buttonStyle(.borderedProminent)
+                .tint(.blue)
+                .disabled((dist ?? .greatestFiniteMagnitude) > proximityThreshold)
         }
     }
 
@@ -227,4 +278,3 @@ struct BuildingDetailViewWithClockIn: View {
         isClockingIn = false
     }
 }
-
