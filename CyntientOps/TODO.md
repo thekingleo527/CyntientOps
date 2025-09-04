@@ -32,6 +32,14 @@ Next actions
 - Reconcile unit counts in `ClientDashboardViewModel` with `BuildingUnitValidator` for 112 W 18th and related to avoid mixed signals in UI.
 - Confirm any remaining legacy references to ID `2` in non‑UI logs/tests can remain as deactivation safeguards or remove entirely if preferred.
 
+Latest adjustments (Greg @ 12 W 18th)
+
+- Morning routine extended to 11:30 (Mon–Fri only)
+- Replace carpet vacuum with hallway sweep + damp mop (Floors 2–9)
+- Move trash area clean (no chute) before upstairs hallways
+- Weekly boiler, roof drain, and stairwell moved to afternoons
+- Saturday morning sidewalk pass‑bys assigned to Edwin for 17th/18th corridor
+
 Design & Consistency
 
 - Keep worker routines specific, but keep dashboard layouts universal (no worker‑specific UI paths).

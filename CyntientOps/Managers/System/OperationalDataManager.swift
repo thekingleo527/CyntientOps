@@ -3113,8 +3113,8 @@ public class OperationalDataManager: ObservableObject {
             // Daily morning tasks (Mon–Fri)
             ("Sidewalk + Curb Sweep / Trash Return", "sanitation", 20, 1, "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR;BYHOUR=8;BYMINUTE=30", "high"),
             ("Lobby Clean + Elevator Wipe", "cleaning", 20, 0, "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR;BYHOUR=8;BYMINUTE=50", "high"), 
-            ("Hallway Sweep + Damp Mop (Floors 2–9)", "cleaning", 60, 0, "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR;BYHOUR=9;BYMINUTE=10", "normal"),
-            ("Trash Rooms + Chute Area Quick Clean (Floors 2–9)", "cleaning", 20, 0, "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR;BYHOUR=10;BYMINUTE=10", "normal"),
+            ("Basement Trash Area Clean + Organize", "sanitation", 20, 0, "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR;BYHOUR=9;BYMINUTE=10", "high"),
+            ("Hallway Sweep + Damp Mop (Floors 2–9)", "cleaning", 60, 0, "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR;BYHOUR=9;BYMINUTE=30", "normal"),
             ("Basement Bathroom Clean + Restock TP", "cleaning", 15, 0, "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR;BYHOUR=10;BYMINUTE=30", "normal"),
             ("Common Area Spot Mop + Elevator Tracks Clean", "cleaning", 45, 0, "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR;BYHOUR=10;BYMINUTE=45", "normal"),
         ]
