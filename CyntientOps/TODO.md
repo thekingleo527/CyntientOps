@@ -40,6 +40,15 @@ Latest adjustments (Greg @ 12 W 18th)
 - Weekly boiler, roof drain, and stairwell moved to afternoons
 - Saturday morning sidewalk pass‑bys assigned to Edwin for 17th/18th corridor
 
+New adjustments
+
+- During hallway sweep, include package deliveries to units (combined efficiency)
+- Add daily on‑demand "Freight Elevator Coverage & Deliveries" window (11:30–12:00, Mon–Fri)
+
+Next comprehensive step
+
+- Build out full routine matrices for Kevin, Edwin, Mercedes, Luis, Angel (and others), using upsert patterns with RRULEs and verified building constraints.
+
 Design & Consistency
 
 - Keep worker routines specific, but keep dashboard layouts universal (no worker‑specific UI paths).

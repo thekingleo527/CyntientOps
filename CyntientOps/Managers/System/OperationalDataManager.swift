@@ -3115,8 +3115,10 @@ public class OperationalDataManager: ObservableObject {
             ("Lobby Clean + Elevator Wipe", "cleaning", 20, 0, "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR;BYHOUR=8;BYMINUTE=50", "high"), 
             ("1F Trash Area Clean + Organize (Take Excess to Basement)", "sanitation", 30, 0, "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR;BYHOUR=9;BYMINUTE=10", "high"),
             ("Basement Bathroom Check + Restock TP", "cleaning", 10, 0, "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR;BYHOUR=9;BYMINUTE=40", "normal"),
-            ("Hallway Sweep + Damp Mop (Floors 2–9)", "cleaning", 75, 0, "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR;BYHOUR=9;BYMINUTE=50", "normal"),
+            ("Hallway Sweep + Damp Mop + Package Deliveries (Floors 2–9)", "cleaning", 75, 0, "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR;BYHOUR=9;BYMINUTE=50", "normal"),
             ("Common Area Spot Mop + Elevator Tracks Clean", "cleaning", 25, 0, "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR;BYHOUR=11;BYMINUTE=5", "normal"),
+            // Make himself available for freight elevator coverage & deliveries (on-demand)
+            ("Freight Elevator Coverage & Deliveries (On‑Demand)", "operations", 30, 0, "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR;BYHOUR=11;BYMINUTE=30", "normal"),
         ]
         
         // Weekly additions (Afternoons, after lunch)
