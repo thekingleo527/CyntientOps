@@ -3018,6 +3018,13 @@ public class OperationalDataManager: ObservableObject {
 
             // Saturday morning sidewalk pass-bys by Edwin on 17th and 18th St corridor
             try await upsertEdwinWeekendSidewalkSweeps()
+
+            // Bulk upsert remaining worker routines from operational templates (safe additive)
+            try await upsertRoutinesFromOperationalTemplates(for: CanonicalIDs.Workers.kevinDutan)
+            try await upsertRoutinesFromOperationalTemplates(for: CanonicalIDs.Workers.edwinLema)
+            try await upsertRoutinesFromOperationalTemplates(for: CanonicalIDs.Workers.mercedesInamagua)
+            try await upsertRoutinesFromOperationalTemplates(for: CanonicalIDs.Workers.luisLopez)
+            try await upsertRoutinesFromOperationalTemplates(for: CanonicalIDs.Workers.angelGuirachocha)
         
         try await self.grdbManager.execute("""
             CREATE TABLE IF NOT EXISTS dsny_schedules (
@@ -3213,6 +3220,78 @@ public class OperationalDataManager: ObservableObject {
             """, [id, name, bId, rrule, edwinId, "Sanitation", String(20 * 60), String(1), "high"])
         }
         print("✅ Upserted Edwin's Saturday sidewalk sweeps for 17th/18th corridor")
+    }
+
+    /// Generic routine upsert from OperationalDataManager templates (additive, does not override specialized upserts)
+    private func upsertRoutinesFromOperationalTemplates(for workerId: String) async throws {
+        // Map workerId to name for filtering
+        let workerName = CanonicalIDs.Workers.getName(for: workerId) ?? ""
+        guard !workerName.isEmpty else { return }
+        
+        // Filter tasks for this worker
+        let tasks = realWorldTasks.filter { $0.workerId == workerId }
+        guard !tasks.isEmpty else { return }
+        
+        for t in tasks {
+            // Build RRULE from recurrence + daysOfWeek + startHour
+            let freq: String = {
+                switch t.recurrence.lowercased() {
+                case "daily": return "DAILY"
+                case "weekly": return "WEEKLY"
+                case "bi-weekly", "biweekly": return "WEEKLY" // fallback
+                case "monthly": return "MONTHLY"
+                default: return "WEEKLY"
+                }
+            }()
+            let byday: String? = {
+                guard let days = t.daysOfWeek else { return nil }
+                let map: [String: String] = [
+                    "Mon": "MO", "Tue": "TU", "Wed": "WE", "Thu": "TH", "Fri": "FR", "Sat": "SA", "Sun": "SU",
+                    "MO": "MO", "TU": "TU", "WE": "WE", "TH": "TH", "FR": "FR", "SA": "SA", "SU": "SU"
+                ]
+                let tokens = days.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
+                let rr = tokens.compactMap { map[String($0)] }
+                return rr.isEmpty ? nil : rr.joined(separator: ",")
+            }()
+            let byhour = t.startHour ?? 9
+            let rrule = [
+                "FREQ=\(freq)",
+                (byday != nil ? "BYDAY=\(byday!)" : nil),
+                "BYHOUR=\(byhour)",
+                "BYMINUTE=0"
+            ].compactMap { $0 }.joined(separator: ";")
+            
+            // Weather-dependent heuristic
+            let weatherDependent: Int = {
+                let name = t.taskName.lowercased()
+                if name.contains("roof") || name.contains("drain") || name.contains("sidewalk") || name.contains("hose") || name.contains("set-out") {
+                    return 1
+                }
+                return 0
+            }()
+            
+            // Build insert ID namespace distinct from specialized routines to avoid collision
+            let safeName = t.taskName.replacingOccurrences(of: " ", with: "_")
+            let id = "templ_\(t.buildingId)_\(t.workerId)_\(safeName.hashValue.magnitude)"
+            
+            // Insert OR IGNORE to avoid overriding specialized upserts that may use same time/name
+            try await self.grdbManager.execute("""
+                INSERT OR IGNORE INTO routine_schedules
+                (id, name, building_id, rrule, worker_id, category, estimated_duration, weather_dependent, priority_level)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, [
+                id,
+                t.taskName,
+                t.buildingId,
+                rrule,
+                t.workerId,
+                t.category.capitalized,
+                String(max(5, min(240, t.estimatedDuration)) * 60), // clamp to 5m..4h in seconds
+                String(weatherDependent),
+                "normal"
+            ])
+        }
+        print("✅ Upserted \(tasks.count) template routines for worker \(workerName)")
     }
     
     // MARK: - Validation and Summary Methods
