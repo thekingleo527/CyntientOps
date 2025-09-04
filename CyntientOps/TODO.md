@@ -46,10 +46,14 @@ New adjustments
 - Add daily on‑demand "Freight Elevator Coverage & Deliveries" window (11:30–12:00, Mon–Fri)
 - Luis: add commercial end‑of‑day set‑out (41 Elizabeth, 104 Franklin). No garbage set‑out at 36 Walker; delete any such routines.
   - Revised: Luis set‑out applies to 41 Elizabeth only. 104 Franklin is commercial; Angel handles Floors 2 & 4 garbage removal on M/W/F at 16:30. No set‑out at 36 Walker.
+  - Added: 41 Elizabeth daily AM/PM bathroom checks, hallway trash room closets check, weekly boiler room water filters (Wed after lunch), monthly roof tank refill (1st Mon), monthly stairwell mop (1st Fri).
 
 Next comprehensive step
 
 - Build out full routine matrices for Kevin, Edwin, Mercedes, Luis, Angel (and others), using upsert patterns with RRULEs and verified building constraints.
+  - Confirm Kevin evening DSNY set‑outs at 117 W 17th and 112 W 18th (Sun/Tue/Thu) [inserted]
+  - Confirm Angel DSNY set‑outs at 68 Perry and 131 Perry (Sun/Tue/Thu) [inserted]
+  - Confirm Mercedes roof drain – 2F Terrace at Rubin (weekly Wed 10:00, 30m, photo required) [template → schedule]
 
 Design & Consistency
 
