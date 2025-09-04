@@ -338,6 +338,7 @@ struct WorkerProductivityGraph: View {
     let buildingId: String
     let activeWorkers: Int
     @State private var productivityData: [WorkerProductivity] = []
+    @EnvironmentObject private var container: ServiceContainer
     
     struct WorkerProductivity: Identifiable {
         let id = UUID()
@@ -376,11 +377,21 @@ struct WorkerProductivityGraph: View {
     }
     
     private func loadProductivityData() async {
-        productivityData = [
-            WorkerProductivity(workerName: "Kevin D.", tasksCompleted: 12, efficiency: 0.92),
-            WorkerProductivity(workerName: "Maria S.", tasksCompleted: 10, efficiency: 0.88),
-            WorkerProductivity(workerName: "Luis L.", tasksCompleted: 8, efficiency: 0.75)
-        ].prefix(activeWorkers).map { $0 }
+        do {
+            // Load real workers assigned to this building
+            let workers = try await container.workers.getActiveWorkersForBuilding(buildingId)
+            var rows: [WorkerProductivity] = []
+            for w in workers.prefix(activeWorkers) {
+                let tasks = try await container.tasks.getTasksForWorker(w.id)
+                let buildingTasks = tasks.filter { $0.buildingId == buildingId || $0.building?.id == buildingId }
+                let completed = buildingTasks.filter { $0.isCompleted }
+                let efficiency = buildingTasks.isEmpty ? 0.0 : Double(completed.count) / Double(buildingTasks.count)
+                rows.append(WorkerProductivity(workerName: w.name, tasksCompleted: completed.count, efficiency: efficiency))
+            }
+            await MainActor.run { self.productivityData = rows }
+        } catch {
+            await MainActor.run { self.productivityData = [] }
+        }
     }
 }
 

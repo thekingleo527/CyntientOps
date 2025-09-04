@@ -1,22 +1,22 @@
 import Foundation
 
 struct BuildingInfrastructureCatalog {
-    struct Info { let elevators: Int?; let staircases: Int?; let commercialUnits: Int? }
+    struct Info { let elevators: Int?; let staircases: Int?; let commercialUnits: Int?; let floors: Int? }
 
     // Authoritative per‑building infrastructure facts (by buildingId)
     // Populate from provided portfolio notes; extend as needed.
     static let map: [String: Info] = [
         // 17th Street complex (align with CanonicalIDs.Buildings)
-        "3":  Info(elevators: 2, staircases: 2, commercialUnits: nil), // 135–139 W 17th — 2 elevators (passenger/freight)
-        "5":  Info(elevators: 2, staircases: 1, commercialUnits: 2),   // 138 W 17th — mixed-use (museum/offices)
-        "13": Info(elevators: 1, staircases: 2, commercialUnits: 1),   // 136 W 17th — ground commercial
-        "9":  Info(elevators: 1, staircases: 1, commercialUnits: nil), // 117 W 17th
+        "3":  Info(elevators: 2, staircases: 2, commercialUnits: nil, floors: nil), // 135–139 W 17th — 2 elevators (passenger/freight)
+        "5":  Info(elevators: 2, staircases: 1, commercialUnits: 2, floors: nil),   // 138 W 17th — mixed-use (museum/offices)
+        "13": Info(elevators: 1, staircases: 2, commercialUnits: 1, floors: nil),   // 136 W 17th — ground commercial
+        "9":  Info(elevators: 1, staircases: 1, commercialUnits: nil, floors: nil), // 117 W 17th
         // Rubin Museum Apartments group (142–148 W 17th) — verified walk-ups, no elevator
-        "14": Info(elevators: 0, staircases: 2, commercialUnits: 0),   // Rubin Museum (142–148 W 17th) apartments
+        "14": Info(elevators: 0, staircases: 2, commercialUnits: 0, floors: 5),   // Rubin Museum (142–148 W 17th) apartments — 5 story walk-ups
 
-        // 18th Street
-        "1":  Info(elevators: 2, staircases: 2, commercialUnits: nil), // 12 W 18th
-        "7":  Info(elevators: 1, staircases: 1, commercialUnits: nil), // 112 W 18th — confirmed 1 elevator, 1 staircase
+        // 18th Street (separate buildings)  
+        "1":  Info(elevators: 2, staircases: 1, commercialUnits: nil, floors: 9), // 12 W 18th — Greg's building: 9 floors, 1 staircase, 2 units per floor (floors 2-9), 1 freight + 1 passenger elevator
+        "7":  Info(elevators: 1, staircases: 1, commercialUnits: nil, floors: nil), // 112 W 18th — Different building, different worker
 
         // Perry / Elizabeth / Walker / Franklin
         "10": Info(elevators: 1, staircases: 2, commercialUnits: nil), // 131 Perry — 1 elevator, 2 staircases
@@ -40,10 +40,13 @@ struct BuildingInfrastructureCatalog {
     static func elevatorCount(for id: String) -> Int? { map[id]?.elevators }
     static func staircaseCount(for id: String) -> Int? { map[id]?.staircases }
     static func commercialUnits(for id: String) -> Int? { map[id]?.commercialUnits }
+    static func floorCount(for id: String) -> Int? { map[id]?.floors }
 
     // Special notes (e.g., key box location)
     static func notes(for id: String) -> String? {
         switch id {
+        case "1":
+            return "Greg's primary building. 9 floors total: Ground floor lobby, floors 2-9 each have 2 units (16 residential units). 1 freight elevator for deliveries, 1 passenger elevator. Single staircase for emergency access."
         case "6":
             return "Key box to the right by garbage cans. Roof gutter + drain on 2nd floor roof (access via Apt 2R)."
         case "14":

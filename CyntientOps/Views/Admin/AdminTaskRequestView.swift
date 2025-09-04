@@ -63,6 +63,7 @@ struct AdminTaskRequestView: View {
             )
             .onAppear {
                 viewModel.initializeWithContext(
+                    container: container,
                     building: preselectedBuilding,
                     worker: preselectedWorker
                 )
@@ -604,34 +605,37 @@ final class AdminTaskRequestViewModel: ObservableObject {
     
     // MARK: - Initialization
     
-    func initializeWithContext(building: CoreTypes.NamedCoordinate?, worker: CoreTypes.WorkerProfile?) {
-        // Load all data
-        loadBuildings()
-        loadWorkers()
-        
-        // Set preselected context
-        if let building = building {
-            formData.selectedBuildingID = building.id
+    func initializeWithContext(container: ServiceContainer, building: CoreTypes.NamedCoordinate?, worker: CoreTypes.WorkerProfile?) {
+        Task {
+            await loadBuildings(container: container)
+            await loadWorkers(container: container)
+            
+            if let building = building { formData.selectedBuildingID = building.id }
+            if let worker = worker { formData.selectedWorkerId = worker.id }
+            
+            generateWorkerSuggestions()
+            await MainActor.run { isLoadingData = false }
         }
-        
-        if let worker = worker {
-            formData.selectedWorkerId = worker.id
-        }
-        
-        // Generate AI suggestions
-        generateWorkerSuggestions()
-        
-        isLoadingData = false
     }
     
     // MARK: - Data Loading
     
-    private func loadBuildings() {
-        self.availableBuildings = TaskRequestViewModel.defaultBuildings
+    private func loadBuildings(container: ServiceContainer) async {
+        do {
+            let buildings = try await container.buildings.getAllBuildings()
+            await MainActor.run { self.availableBuildings = buildings }
+        } catch {
+            await MainActor.run { self.availableBuildings = [] }
+        }
     }
     
-    private func loadWorkers() {
-        self.availableWorkers = TaskRequestViewModel.defaultWorkers
+    private func loadWorkers(container: ServiceContainer) async {
+        do {
+            let workers = try await container.workers.getAllActiveWorkers()
+            await MainActor.run { self.availableWorkers = workers }
+        } catch {
+            await MainActor.run { self.availableWorkers = [] }
+        }
     }
     
     func clearBuildingSelection() {

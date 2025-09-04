@@ -3010,6 +3010,12 @@ public class OperationalDataManager: ObservableObject {
         // Targeted upsert for Kevin @ 131 Perry per updated ops rules
         try await upsertKevin131PerryRoutines()
         
+        // Targeted upsert for Greg @ 12 West 18th per building spec
+        try await upsertGreg12West18thRoutines()
+        
+        // Targeted upsert for Angel's DSNY evening routine @ 12 West 18th
+        try await upsertAngel12West18thDSNYRoutines()
+        
         try await self.grdbManager.execute("""
             CREATE TABLE IF NOT EXISTS dsny_schedules (
                 id TEXT PRIMARY KEY,
@@ -3092,6 +3098,93 @@ public class OperationalDataManager: ObservableObject {
             """, [id, spec.name, bId, spec.rrule, wId, spec.category.capitalized, String(durationSeconds), String(spec.weather), spec.priority])
         }
         print("✅ Upserted Kevin's 131 Perry routines and archived legacy rows")
+    }
+    
+    /// Upsert Greg's (workerId 1) 12 West 18th St (buildingId 1) routine set per building spec
+    private func upsertGreg12West18thRoutines() async throws {
+        let bId = "1"   // 12 West 18th in CanonicalIDs  
+        let wId = "1"   // Greg Hutson
+        
+        // Greg's morning routine (8:30a-10:00a = 90 min total)
+        let morningRoutineSpecs: [(name: String, category: String, minutes: Int, weather: Int, rrule: String, priority: String)] = [
+            // Daily morning tasks (Mon-Sun except holidays)
+            ("Sidewalk + Curb Sweep / Trash Return", "sanitation", 20, 1, "FREQ=DAILY;BYHOUR=8;BYMINUTE=30", "high"),
+            ("Lobby Clean + Elevator Wipe", "cleaning", 20, 0, "FREQ=DAILY;BYHOUR=8;BYMINUTE=50", "high"), 
+            ("Hallway Vacuum (all floors)", "cleaning", 40, 0, "FREQ=DAILY;BYHOUR=9;BYMINUTE=10", "normal"),
+            ("Basement Bathroom Clean + Restock TP", "cleaning", 10, 0, "FREQ=DAILY;BYHOUR=9;BYMINUTE=50", "normal"),
+        ]
+        
+        // Weekly additions
+        let weeklyRoutineSpecs: [(name: String, category: String, minutes: Int, weather: Int, rrule: String, priority: String)] = [
+            // Friday stairwell mop (replaces 15min of hallway vacuum time)
+            ("Stairwell Mop", "cleaning", 15, 0, "FREQ=WEEKLY;BYDAY=FR;BYHOUR=9;BYMINUTE=25", "normal"),
+            // Weekly boiler blowdown
+            ("Boiler Blowdown", "maintenance", 20, 0, "FREQ=WEEKLY;BYDAY=WE;BYHOUR=10;BYMINUTE=30", "normal"),
+            // Roof drain check
+            ("Roof Drain Check", "maintenance", 15, 1, "FREQ=WEEKLY;BYDAY=TU;BYHOUR=10;BYMINUTE=15", "normal"),
+        ]
+        
+        // Monthly additions  
+        let monthlyRoutineSpecs: [(name: String, category: String, minutes: Int, weather: Int, rrule: String, priority: String)] = [
+            // First Wednesday of month - laundry area sanitize
+            ("Bleach Sump + Laundry Area", "maintenance", 25, 0, "FREQ=MONTHLY;BYSETPOS=1;BYDAY=WE;BYHOUR=10;BYMINUTE=30", "low"),
+        ]
+        
+        let allSpecs = morningRoutineSpecs + weeklyRoutineSpecs + monthlyRoutineSpecs
+        
+        // Archive legacy routines for Greg at 12 West 18th
+        let namesToKeep = allSpecs.map { $0.name }
+        let placeholders = Array(repeating: "?", count: namesToKeep.count).joined(separator: ",")
+        try await self.grdbManager.execute("""
+            DELETE FROM routine_schedules
+            WHERE worker_id = ? AND building_id = ? AND name NOT IN (\(placeholders))
+        """, [wId, bId] + namesToKeep)
+
+        // Upsert Greg's routine specifications
+        for spec in allSpecs {
+            let id = "routine_\(bId)_\(wId)_\(spec.name.hashValue.magnitude)"
+            let durationSeconds = spec.minutes * 60
+            try await self.grdbManager.execute("""
+                INSERT OR REPLACE INTO routine_schedules
+                (id, name, building_id, rrule, worker_id, category, estimated_duration, weather_dependent, priority_level)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, [id, spec.name, bId, spec.rrule, wId, spec.category.capitalized, String(durationSeconds), String(spec.weather), spec.priority])
+        }
+        print("✅ Upserted Greg's 12 West 18th routines and archived legacy rows")
+    }
+    
+    /// Upsert Angel's (workerId 7) DSNY evening routine for 12 West 18th St (buildingId 1)
+    private func upsertAngel12West18thDSNYRoutines() async throws {
+        let bId = "1"   // 12 West 18th
+        let wId = "7"   // Angel Guirachocha
+        
+        // Angel's evening DSNY routine (DSNY collection nights only)
+        let dsnyRoutineSpecs: [(name: String, category: String, minutes: Int, weather: Int, rrule: String, priority: String)] = [
+            // Set-out on DSNY nights (Sun, Tue, Thu)
+            ("DSNY Set-Out Trash/Recycling", "sanitation", 30, 0, "FREQ=WEEKLY;BYDAY=SU,TU,TH;BYHOUR=20;BYMINUTE=0", "high"),
+            // Basement trash consolidation before set-out
+            ("Basement Trash Consolidation", "sanitation", 15, 0, "FREQ=WEEKLY;BYDAY=SU,TU,TH;BYHOUR=19;BYMINUTE=30", "high"),
+        ]
+        
+        // Archive any existing Angel routines at this building
+        let namesToKeep = dsnyRoutineSpecs.map { $0.name }
+        let placeholders = Array(repeating: "?", count: namesToKeep.count).joined(separator: ",")
+        try await self.grdbManager.execute("""
+            DELETE FROM routine_schedules
+            WHERE worker_id = ? AND building_id = ? AND name NOT IN (\(placeholders))
+        """, [wId, bId] + namesToKeep)
+
+        // Upsert Angel's DSNY routine specifications
+        for spec in dsnyRoutineSpecs {
+            let id = "routine_\(bId)_\(wId)_\(spec.name.hashValue.magnitude)"
+            let durationSeconds = spec.minutes * 60
+            try await self.grdbManager.execute("""
+                INSERT OR REPLACE INTO routine_schedules
+                (id, name, building_id, rrule, worker_id, category, estimated_duration, weather_dependent, priority_level)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, [id, spec.name, bId, spec.rrule, wId, spec.category.capitalized, String(durationSeconds), String(spec.weather), spec.priority])
+        }
+        print("✅ Upserted Angel's 12 West 18th DSNY routines")
     }
     
     // MARK: - Validation and Summary Methods

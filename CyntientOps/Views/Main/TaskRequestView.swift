@@ -78,12 +78,7 @@ final class TaskRequestViewModel: ObservableObject {
     
     // MARK: - Initialization
     
-    func initializeData() {
-        // Load all data synchronously to avoid async issues
-        loadBuildings()
-        loadWorkers()
-        loadSuggestions()
-    }
+    // Removed non-container initializer to avoid sample data paths
 
     func initializeData(container: ServiceContainer) {
         Task {
@@ -95,10 +90,7 @@ final class TaskRequestViewModel: ObservableObject {
     
     // MARK: - Data Loading Methods
     
-    private func loadBuildings() {
-        self.buildingOptions = Self.defaultBuildings
-        self.isLoadingBuildings = false
-    }
+    // Removed sample building loader; always use container-backed loader
 
     private func loadBuildings(container: ServiceContainer) async {
         do {
@@ -109,15 +101,13 @@ final class TaskRequestViewModel: ObservableObject {
             }
         } catch {
             await MainActor.run {
-                self.buildingOptions = Self.defaultBuildings
+                self.buildingOptions = []
                 self.isLoadingBuildings = false
             }
         }
     }
     
-    private func loadWorkers() {
-        self.workerOptions = Self.defaultWorkers
-    }
+    // Removed sample worker loader; always use container-backed loader
 
     private func loadWorkers(container: ServiceContainer) async {
         do {
@@ -130,7 +120,7 @@ final class TaskRequestViewModel: ObservableObject {
             }
         } catch {
             await MainActor.run {
-                self.workerOptions = Self.defaultWorkers
+                self.workerOptions = []
             }
         }
     }
@@ -260,113 +250,7 @@ final class TaskRequestViewModel: ObservableObject {
     
     // MARK: - Static Data
     
-    static let defaultBuildings: [CoreTypes.NamedCoordinate] = [
-        CoreTypes.NamedCoordinate(
-            id: "14",
-            name: "Rubin Museum",
-            address: "142-148 West 17th Street, New York, NY",
-            latitude: 40.7402,
-            longitude: -73.9980
-        ),
-        CoreTypes.NamedCoordinate(
-            id: "1",
-            name: "117 West 17th Street",
-            address: "117 West 17th Street, New York, NY",
-            latitude: 40.7410,
-            longitude: -73.9958
-        ),
-        CoreTypes.NamedCoordinate(
-            id: "3",
-            name: "131 Perry Street",
-            address: "131 Perry Street, New York, NY",
-            latitude: 40.7350,
-            longitude: -74.0045
-        ),
-        CoreTypes.NamedCoordinate(
-            id: "5",
-            name: "135-139 West 17th Street",
-            address: "135-139 West 17th Street, New York, NY",
-            latitude: 40.7404,
-            longitude: -73.9975
-        ),
-        CoreTypes.NamedCoordinate(
-            id: "6",
-            name: "136 West 17th Street",
-            address: "136 West 17th Street, New York, NY",
-            latitude: 40.7403,
-            longitude: -73.9976
-        ),
-        CoreTypes.NamedCoordinate(
-            id: "13",
-            name: "68 Perry Street",
-            address: "68 Perry Street, New York, NY",
-            latitude: 40.7355,
-            longitude: -74.0032
-        )
-    ]
-    
-    static let defaultWorkers: [CoreTypes.WorkerProfile] = [
-        CoreTypes.WorkerProfile(
-            id: "4",
-            name: "Kevin Dutan",
-            email: "kevin.dutan@cyntientops.com",
-            phoneNumber: "555-0104",
-            role: CoreTypes.UserRole.worker,
-            skills: ["Cleaning", "Sanitation", "Operations"],
-            certifications: ["DSNY Compliance", "Safety Training"],
-            hireDate: Date(timeIntervalSinceNow: -730 * 24 * 60 * 60),
-            isActive: true,
-            profileImageUrl: nil
-        ),
-        CoreTypes.WorkerProfile(
-            id: "2",
-            name: "Edwin Lema",
-            email: "edwin.lema@cyntientops.com",
-            phoneNumber: "555-0102",
-            role: CoreTypes.UserRole.worker,
-            skills: ["Cleaning", "Maintenance"],
-            certifications: ["Safety Training"],
-            hireDate: Date(timeIntervalSinceNow: -365 * 24 * 60 * 60),
-            isActive: true,
-            profileImageUrl: nil
-        ),
-        CoreTypes.WorkerProfile(
-            id: "1",
-            name: "Greg Hutson",
-            email: "greg.hutson@cyntientops.com",
-            phoneNumber: "555-0101",
-            role: CoreTypes.UserRole.worker,
-            skills: ["Building Systems", "Cleaning"],
-            certifications: ["Building Specialist"],
-            hireDate: Date(timeIntervalSinceNow: -1095 * 24 * 60 * 60),
-            isActive: true,
-            profileImageUrl: nil
-        ),
-        CoreTypes.WorkerProfile(
-            id: "5",
-            name: "Mercedes Inamagua",
-            email: "mercedes.inamagua@cyntientops.com",
-            phoneNumber: "555-0105",
-            role: CoreTypes.UserRole.worker,
-            skills: ["Deep Cleaning", "Maintenance"],
-            certifications: ["Safety Training"],
-            hireDate: Date(timeIntervalSinceNow: -547 * 24 * 60 * 60),
-            isActive: true,
-            profileImageUrl: nil
-        ),
-        CoreTypes.WorkerProfile(
-            id: "7",
-            name: "Angel Guirachocha",
-            email: "angel.guirachocha@cyntientops.com",
-            phoneNumber: "555-0107",
-            role: CoreTypes.UserRole.worker,
-            skills: ["Evening Operations", "Security"],
-            certifications: ["Security License"],
-            hireDate: Date(timeIntervalSinceNow: -180 * 24 * 60 * 60),
-            isActive: true,
-            profileImageUrl: nil
-        )
-    ]
+    // Removed defaultWorkers/defaultBuildings — always load from services
     
     static let defaultSuggestions: [TaskSuggestion] = [
         TaskSuggestion(
