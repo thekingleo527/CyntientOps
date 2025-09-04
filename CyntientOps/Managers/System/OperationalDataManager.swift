@@ -3113,10 +3113,10 @@ public class OperationalDataManager: ObservableObject {
             // Daily morning tasks (Mon–Fri)
             ("Sidewalk + Curb Sweep / Trash Return", "sanitation", 20, 1, "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR;BYHOUR=8;BYMINUTE=30", "high"),
             ("Lobby Clean + Elevator Wipe", "cleaning", 20, 0, "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR;BYHOUR=8;BYMINUTE=50", "high"), 
-            ("Basement Trash Area Clean + Organize", "sanitation", 20, 0, "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR;BYHOUR=9;BYMINUTE=10", "high"),
-            ("Hallway Sweep + Damp Mop (Floors 2–9)", "cleaning", 60, 0, "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR;BYHOUR=9;BYMINUTE=30", "normal"),
-            ("Basement Bathroom Clean + Restock TP", "cleaning", 15, 0, "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR;BYHOUR=10;BYMINUTE=30", "normal"),
-            ("Common Area Spot Mop + Elevator Tracks Clean", "cleaning", 45, 0, "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR;BYHOUR=10;BYMINUTE=45", "normal"),
+            ("1F Trash Area Clean + Organize (Take Excess to Basement)", "sanitation", 30, 0, "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR;BYHOUR=9;BYMINUTE=10", "high"),
+            ("Basement Bathroom Check + Restock TP", "cleaning", 10, 0, "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR;BYHOUR=9;BYMINUTE=40", "normal"),
+            ("Hallway Sweep + Damp Mop (Floors 2–9)", "cleaning", 75, 0, "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR;BYHOUR=9;BYMINUTE=50", "normal"),
+            ("Common Area Spot Mop + Elevator Tracks Clean", "cleaning", 25, 0, "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR;BYHOUR=11;BYMINUTE=5", "normal"),
         ]
         
         // Weekly additions (Afternoons, after lunch)
@@ -3126,11 +3126,8 @@ public class OperationalDataManager: ObservableObject {
             ("Roof Drain Check", "maintenance", 15, 1, "FREQ=WEEKLY;BYDAY=TU;BYHOUR=14;BYMINUTE=15", "normal"),
         ]
         
-        // Monthly additions (Afternoons)
-        let monthlyRoutineSpecs: [(name: String, category: String, minutes: Int, weather: Int, rrule: String, priority: String)] = [
-            // First Wednesday of month - laundry area sanitize
-            ("Bleach Sump + Laundry Area", "maintenance", 25, 0, "FREQ=MONTHLY;BYSETPOS=1;BYDAY=WE;BYHOUR=14;BYMINUTE=30", "low"),
-        ]
+        // Monthly additions (none for this building; no laundry sump at 12 W 18th)
+        let monthlyRoutineSpecs: [(name: String, category: String, minutes: Int, weather: Int, rrule: String, priority: String)] = []
         
         let allSpecs = morningRoutineSpecs + weeklyRoutineSpecs + monthlyRoutineSpecs
         
