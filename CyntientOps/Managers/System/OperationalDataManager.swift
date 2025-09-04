@@ -3013,8 +3013,11 @@ public class OperationalDataManager: ObservableObject {
         // Targeted upsert for Greg @ 12 West 18th per building spec
         try await upsertGreg12West18thRoutines()
         
-        // Targeted upsert for Angel's DSNY evening routine @ 12 West 18th
-        try await upsertAngel12West18thDSNYRoutines()
+            // Targeted upsert for Angel's DSNY evening routine @ 12 West 18th
+            try await upsertAngel12West18thDSNYRoutines()
+
+            // Saturday morning sidewalk pass-bys by Edwin on 17th and 18th St corridor
+            try await upsertEdwinWeekendSidewalkSweeps()
         
         try await self.grdbManager.execute("""
             CREATE TABLE IF NOT EXISTS dsny_schedules (
@@ -3105,29 +3108,28 @@ public class OperationalDataManager: ObservableObject {
         let bId = "1"   // 12 West 18th in CanonicalIDs  
         let wId = "1"   // Greg Hutson
         
-        // Greg's morning routine (8:30a-10:00a = 90 min total)
+        // Greg's morning routine (8:30a–11:30a = 180 min total, Mon–Fri only)
         let morningRoutineSpecs: [(name: String, category: String, minutes: Int, weather: Int, rrule: String, priority: String)] = [
-            // Daily morning tasks (Mon-Sun except holidays)
-            ("Sidewalk + Curb Sweep / Trash Return", "sanitation", 20, 1, "FREQ=DAILY;BYHOUR=8;BYMINUTE=30", "high"),
-            ("Lobby Clean + Elevator Wipe", "cleaning", 20, 0, "FREQ=DAILY;BYHOUR=8;BYMINUTE=50", "high"), 
-            ("Hallway Vacuum (all floors)", "cleaning", 40, 0, "FREQ=DAILY;BYHOUR=9;BYMINUTE=10", "normal"),
-            ("Basement Bathroom Clean + Restock TP", "cleaning", 10, 0, "FREQ=DAILY;BYHOUR=9;BYMINUTE=50", "normal"),
+            // Daily morning tasks (Mon–Fri)
+            ("Sidewalk + Curb Sweep / Trash Return", "sanitation", 20, 1, "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR;BYHOUR=8;BYMINUTE=30", "high"),
+            ("Lobby Clean + Elevator Wipe", "cleaning", 20, 0, "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR;BYHOUR=8;BYMINUTE=50", "high"), 
+            ("Hallway Sweep + Damp Mop (Floors 2–9)", "cleaning", 60, 0, "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR;BYHOUR=9;BYMINUTE=10", "normal"),
+            ("Trash Rooms + Chute Area Quick Clean (Floors 2–9)", "cleaning", 20, 0, "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR;BYHOUR=10;BYMINUTE=10", "normal"),
+            ("Basement Bathroom Clean + Restock TP", "cleaning", 15, 0, "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR;BYHOUR=10;BYMINUTE=30", "normal"),
+            ("Common Area Spot Mop + Elevator Tracks Clean", "cleaning", 45, 0, "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR;BYHOUR=10;BYMINUTE=45", "normal"),
         ]
         
-        // Weekly additions
+        // Weekly additions (Afternoons, after lunch)
         let weeklyRoutineSpecs: [(name: String, category: String, minutes: Int, weather: Int, rrule: String, priority: String)] = [
-            // Friday stairwell mop (replaces 15min of hallway vacuum time)
-            ("Stairwell Mop", "cleaning", 15, 0, "FREQ=WEEKLY;BYDAY=FR;BYHOUR=9;BYMINUTE=25", "normal"),
-            // Weekly boiler blowdown
-            ("Boiler Blowdown", "maintenance", 20, 0, "FREQ=WEEKLY;BYDAY=WE;BYHOUR=10;BYMINUTE=30", "normal"),
-            // Roof drain check
-            ("Roof Drain Check", "maintenance", 15, 1, "FREQ=WEEKLY;BYDAY=TU;BYHOUR=10;BYMINUTE=15", "normal"),
+            ("Stairwell Sweep + Mop", "cleaning", 20, 0, "FREQ=WEEKLY;BYDAY=FR;BYHOUR=14;BYMINUTE=0", "normal"),
+            ("Boiler Blowdown", "maintenance", 20, 0, "FREQ=WEEKLY;BYDAY=WE;BYHOUR=14;BYMINUTE=30", "normal"),
+            ("Roof Drain Check", "maintenance", 15, 1, "FREQ=WEEKLY;BYDAY=TU;BYHOUR=14;BYMINUTE=15", "normal"),
         ]
         
-        // Monthly additions  
+        // Monthly additions (Afternoons)
         let monthlyRoutineSpecs: [(name: String, category: String, minutes: Int, weather: Int, rrule: String, priority: String)] = [
             // First Wednesday of month - laundry area sanitize
-            ("Bleach Sump + Laundry Area", "maintenance", 25, 0, "FREQ=MONTHLY;BYSETPOS=1;BYDAY=WE;BYHOUR=10;BYMINUTE=30", "low"),
+            ("Bleach Sump + Laundry Area", "maintenance", 25, 0, "FREQ=MONTHLY;BYSETPOS=1;BYDAY=WE;BYHOUR=14;BYMINUTE=30", "low"),
         ]
         
         let allSpecs = morningRoutineSpecs + weeklyRoutineSpecs + monthlyRoutineSpecs
@@ -3185,6 +3187,33 @@ public class OperationalDataManager: ObservableObject {
             """, [id, spec.name, bId, spec.rrule, wId, spec.category.capitalized, String(durationSeconds), String(spec.weather), spec.priority])
         }
         print("✅ Upserted Angel's 12 West 18th DSNY routines")
+    }
+    
+    /// Upsert Edwin's (workerId 2) Saturday morning sidewalk sweeps for 17th/18th St buildings
+    private func upsertEdwinWeekendSidewalkSweeps() async throws {
+        let edwinId = "2" // Edwin Lema
+        // 17th and 18th St corridor buildings in CanonicalIDs
+        let buildingIds: [String] = [
+            CanonicalIDs.Buildings.westEighteenth12,   // 1  - 12 W 18th
+            CanonicalIDs.Buildings.westEighteenth112,  // 7  - 112 W 18th
+            CanonicalIDs.Buildings.westSeventeenth117, // 9  - 117 W 17th
+            CanonicalIDs.Buildings.westSeventeenth136, // 13 - 136 W 17th
+            CanonicalIDs.Buildings.westSeventeenth135_139, // 3 - 135–139 W 17th
+            CanonicalIDs.Buildings.westSeventeenth138  // 5 - 138 W 17th
+        ]
+        
+        for bId in buildingIds {
+            let name = "Saturday Sidewalk Sweep (Weekend Pass)"
+            let id = "routine_\(bId)_\(edwinId)_\(name.hashValue.magnitude)"
+            // 08:00, Saturdays
+            let rrule = "FREQ=WEEKLY;BYDAY=SA;BYHOUR=8;BYMINUTE=0"
+            try await self.grdbManager.execute("""
+                INSERT OR REPLACE INTO routine_schedules
+                (id, name, building_id, rrule, worker_id, category, estimated_duration, weather_dependent, priority_level)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, [id, name, bId, rrule, edwinId, "Sanitation", String(20 * 60), String(1), "high"])
+        }
+        print("✅ Upserted Edwin's Saturday sidewalk sweeps for 17th/18th corridor")
     }
     
     // MARK: - Validation and Summary Methods

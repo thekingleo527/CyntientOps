@@ -640,11 +640,15 @@ public class BuildingDetailViewModel: ObservableObject {
                 
                 // Prefer known mappings when DB fields are unavailable
                 self.buildingSize = Int((building["squareFootage"] as? Double ?? Double(Self.lookupSquareFootage(for: buildingId))).rounded())
-                // Derive floors from RouteManager building profiles when available
+                // Derive floors from RouteManager profile > DB > Infra catalog
                 if let profile = container.routes.getBuildingProfile(for: buildingId) {
                     self.floors = profile.floorConfiguration.totalFloors
+                } else if let dbFloors = building["floors"] as? Int {
+                    self.floors = dbFloors
+                } else if let infraFloors = BuildingInfrastructureCatalog.floorCount(for: buildingId) {
+                    self.floors = infraFloors
                 } else {
-                    self.floors = building["floors"] as? Int ?? 5
+                    self.floors = 5
                 }
                 
                 // REAL DATA: Use verified residential unit counts from BuildingUnitValidator
