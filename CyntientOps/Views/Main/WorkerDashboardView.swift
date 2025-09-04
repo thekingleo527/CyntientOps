@@ -987,39 +987,25 @@ private func handleClockAction() {
     
     @ViewBuilder
     private var portfolioFullScreenView: some View {
-        VStack {
-            // Header
-            HStack {
-                Text("Building Portfolio")
-                    .font(.largeTitle)
-                    .fontWeight(.bold)
-                    .foregroundColor(.white)
-                
-                Spacer()
-                
-                Button(action: {
-                    withAnimation(.easeInOut(duration: 0.3)) {
-                        showingFullScreenTab = nil
-                        isPortfolioMapRevealed = false
-                    }
-                }) {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.title2)
-                        .foregroundColor(.white)
+        // Minimal UI so the map remains fully visible and interactive
+        ZStack(alignment: .topTrailing) {
+            Color.clear
+            Button(action: {
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    showingFullScreenTab = nil
+                    isPortfolioMapRevealed = false
                 }
+            }) {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.title2)
+                    .foregroundColor(.white)
+                    .padding(12)
+                    .background(.ultraThinMaterial, in: Circle())
             }
-            .padding()
-            .background(.ultraThinMaterial)
-            
-            // Map is handled by MapRevealContainer - this just provides the overlay UI
-            Text("Map is now full-screen")
-                .font(.title3)
-                .foregroundColor(.white)
-                .padding()
-                .background(.ultraThinMaterial)
+            .padding(.top, 60)
+            .padding(.trailing, 16)
         }
-        .padding(.horizontal)
-        .padding(.top, 60)
+        .ignoresSafeArea()
     }
     
     @ViewBuilder

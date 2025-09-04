@@ -1614,6 +1614,10 @@ public class WorkerDashboardViewModel: ObservableObject {
             }
 
             assignedBuildings = buildings
+            // Ensure a deterministic current building (first assigned) if none is set
+            if self.currentBuilding == nil, let first = buildings.first {
+                self.currentBuilding = first
+            }
             updateMapRegion()
             print("✅ Loaded \(buildings.count) assigned buildings for worker \(workerId)")
             computeOptimizedRouteIfNeeded()
@@ -1786,7 +1790,13 @@ public class WorkerDashboardViewModel: ObservableObject {
             var weekSchedule: [DaySchedule] = []
 
             // Preload routine schedule items for 7 days
-            let routineWeekly = try await container.operationalData.getWorkerWeeklySchedule(for: workerId)
+            var routineWeekly = try await container.operationalData.getWorkerWeeklySchedule(for: workerId)
+
+            // Filter to current building (or first assigned) for clarity per worker/location
+            let buildingFilterId: String? = self.currentBuilding?.id ?? self.assignedBuildings.first?.id
+            if let filterId = buildingFilterId {
+                routineWeekly = routineWeekly.filter { $0.buildingId == filterId }
+            }
 
             // Group routine by day start
             let routineByDay = Dictionary(grouping: routineWeekly) { item in
@@ -1811,7 +1821,11 @@ public class WorkerDashboardViewModel: ObservableObject {
 
                 // Add scheduled tasks (from TaskService) for that date
                 do {
-                    let tasks = try await container.tasks.getTasks(for: workerId, date: date)
+                    let tasks = try await container.tasks.getTasks(for: workerId, date: date).filter { t in
+                        // Keep only tasks for the filtered building (if any)
+                        if let filterId = buildingFilterId { return t.buildingId == filterId }
+                        return true
+                    }
                     let taskItems: [DaySchedule.ScheduleItem] = tasks.compactMap { t in
                         let start = t.dueDate ?? calendar.date(bySettingHour: 9, minute: 0, second: 0, of: date) ?? date
                         let end = start.addingTimeInterval(60 * 60) // default 1h if unknown

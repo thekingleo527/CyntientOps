@@ -19,22 +19,22 @@ struct BuildingInfrastructureCatalog {
         "7":  Info(elevators: 1, staircases: 1, commercialUnits: nil, floors: nil), // 112 W 18th — Different building, different worker
 
         // Perry / Elizabeth / Walker / Franklin
-        "10": Info(elevators: 1, staircases: 2, commercialUnits: nil), // 131 Perry — 1 elevator, 2 staircases
-        "6":  Info(elevators: 0, staircases: 1, commercialUnits: nil), // 68 Perry — no elevator, 1 staircase
-        "8":  Info(elevators: 2, staircases: 2, commercialUnits: nil),   // 41 Elizabeth (commercial floors)
-        "18": Info(elevators: 0, staircases: 1, commercialUnits: 3),   // 36 Walker — no elevator, 1 staircase (10 res + 3 com)
-        "4":  Info(elevators: nil, staircases: 1, commercialUnits: 1),   // 104 Franklin (6 res + 1 com)
+        "10": Info(elevators: 1, staircases: 2, commercialUnits: nil, floors: nil), // 131 Perry — 1 elevator, 2 staircases
+        "6":  Info(elevators: 0, staircases: 1, commercialUnits: nil, floors: nil), // 68 Perry — no elevator, 1 staircase
+        "8":  Info(elevators: 2, staircases: 2, commercialUnits: nil, floors: nil),   // 41 Elizabeth (commercial floors)
+        "18": Info(elevators: 0, staircases: 1, commercialUnits: 3, floors: nil),   // 36 Walker — no elevator, 1 staircase (10 res + 3 com)
+        "4":  Info(elevators: nil, staircases: 1, commercialUnits: 1, floors: nil),   // 104 Franklin (6 res + 1 com)
 
         // First Ave / Chambers / Spring
-        "11": Info(elevators: nil, staircases: 1, commercialUnits: 1),   // 123 1st Ave (3 res + 1 com)
-        "21": Info(elevators: 1, staircases: 1, commercialUnits: 1),    // 148 Chambers — 7 units; elevator opens into unit; 1 staircase
-        "17": Info(elevators: 0, staircases: 1, commercialUnits: 1),    // 178 Spring — no elevator; 1 staircase (4 res + 1 com)
+        "11": Info(elevators: nil, staircases: 1, commercialUnits: 1, floors: nil),   // 123 1st Ave (3 res + 1 com)
+        "21": Info(elevators: 1, staircases: 1, commercialUnits: 1, floors: nil),    // 148 Chambers — 7 units; elevator opens into unit; 1 staircase
+        "17": Info(elevators: 0, staircases: 1, commercialUnits: 1, floors: nil),    // 178 Spring — no elevator; 1 staircase (4 res + 1 com)
 
         // Other portfolio locations
-        "15": Info(elevators: nil, staircases: nil, commercialUnits: 0),  // 133 East 15th Street — lobby ground; 4 units/floor (1–4)
-        "16": Info(elevators: 0, staircases: nil, commercialUnits: nil),   // Stuyvesant Cove Park — outdoor, no elevator
-        "19": Info(elevators: 0, staircases: nil, commercialUnits: 0),   // 115 7th Avenue — exterior maintenance only (no residential units)
-        "20": Info(elevators: nil, staircases: nil, commercialUnits: nil)  // CyntientOps HQ — details TBD
+        "15": Info(elevators: nil, staircases: nil, commercialUnits: 0, floors: nil),  // 133 East 15th Street — lobby ground; 4 units/floor (1–4)
+        "16": Info(elevators: 0, staircases: nil, commercialUnits: nil, floors: nil),   // Stuyvesant Cove Park — outdoor, no elevator
+        "19": Info(elevators: 0, staircases: nil, commercialUnits: 0, floors: nil),   // 115 7th Avenue — exterior maintenance only (no residential units)
+        "20": Info(elevators: nil, staircases: nil, commercialUnits: nil, floors: nil)  // CyntientOps HQ — details TBD
     ]
 
     static func elevatorCount(for id: String) -> Int? { map[id]?.elevators }
