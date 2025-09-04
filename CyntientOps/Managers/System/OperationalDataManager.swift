@@ -3025,6 +3025,12 @@ public class OperationalDataManager: ObservableObject {
             try await upsertRoutinesFromOperationalTemplates(for: CanonicalIDs.Workers.mercedesInamagua)
             try await upsertRoutinesFromOperationalTemplates(for: CanonicalIDs.Workers.luisLopez)
             try await upsertRoutinesFromOperationalTemplates(for: CanonicalIDs.Workers.angelGuirachocha)
+
+            // Luis: commercial set-out rules; no set-out at 36 Walker
+            try await upsertLuisCommercialSetOutRules()
+
+            // Angel: 104 Franklin commercial garbage removal (Floors 2 & 4) on M/W/F
+            try await upsertAngelFranklinCommercialRemoval()
         
         try await self.grdbManager.execute("""
             CREATE TABLE IF NOT EXISTS dsny_schedules (
@@ -3292,6 +3298,61 @@ public class OperationalDataManager: ObservableObject {
             ])
         }
         print("✅ Upserted \(tasks.count) template routines for worker \(workerName)")
+    }
+
+    /// Luis: Insert commercial set-out at end-of-day for specific buildings; ensure no set-out exists at 36 Walker
+    private func upsertLuisCommercialSetOutRules() async throws {
+        let luisId = CanonicalIDs.Workers.luisLopez // "6"
+        // Buildings where Luis sets out commercial trash before leaving
+        let commercialBuildings = [
+            CanonicalIDs.Buildings.elizabeth41 // 8 (41 Elizabeth only)
+        ]
+        // Insert / replace end-of-day set-out (Mon–Fri, 16:45, 15m)
+        for bId in commercialBuildings {
+            let name = "Commercial Trash Set-Out (End of Day)"
+            let id = "routine_\(bId)_\(luisId)_setout_eod"
+            let rrule = "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR;BYHOUR=16;BYMINUTE=45"
+            try await self.grdbManager.execute("""
+                INSERT OR REPLACE INTO routine_schedules
+                (id, name, building_id, rrule, worker_id, category, estimated_duration, weather_dependent, priority_level)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, [id, name, bId, rrule, luisId, "Sanitation", String(15 * 60), String(0), "high"])
+        }
+        
+        // Ensure no DSNY/Set-Out tasks exist at 36 Walker (ID 18) for any worker
+        let walkerId = CanonicalIDs.Buildings.walker36
+        try await self.grdbManager.execute("""
+            DELETE FROM routine_schedules
+            WHERE building_id = ? AND (
+                LOWER(name) LIKE '%set-out%' OR LOWER(name) LIKE '%set out%' OR LOWER(name) LIKE '%dsny%'
+            )
+        """, [walkerId])
+
+        // Ensure no set-out is assigned at 104 Franklin (building 4) for Luis or anyone
+        let franklinId = CanonicalIDs.Buildings.franklin104
+        try await self.grdbManager.execute("""
+            DELETE FROM routine_schedules
+            WHERE building_id = ? AND (
+                LOWER(name) LIKE '%set-out%' OR LOWER(name) LIKE '%set out%'
+            )
+        """, [franklinId])
+        print("✅ Applied Luis commercial set-out rules; removed any set-out routines at 36 Walker")
+    }
+
+    /// Angel: 104 Franklin commercial garbage removal service for Floors 2 & 4 (Mon/Wed/Fri)
+    private func upsertAngelFranklinCommercialRemoval() async throws {
+        let angelId = CanonicalIDs.Workers.angelGuirachocha // "7"
+        let franklinId = CanonicalIDs.Buildings.franklin104 // "4"
+        let name = "Commercial Garbage Removal – Floors 2 & 4"
+        let id = "routine_\(franklinId)_\(angelId)_franklin_f2f4_removal"
+        // M/W/F 16:30, 30 minutes
+        let rrule = "FREQ=WEEKLY;BYDAY=MO,WE,FR;BYHOUR=16;BYMINUTE=30"
+        try await self.grdbManager.execute("""
+            INSERT OR REPLACE INTO routine_schedules
+            (id, name, building_id, rrule, worker_id, category, estimated_duration, weather_dependent, priority_level)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, [id, name, franklinId, rrule, angelId, "Sanitation", String(30 * 60), String(0), "high"])
+        print("✅ Upserted Angel M/W/F commercial garbage removal at 104 Franklin (Floors 2 & 4)")
     }
     
     // MARK: - Validation and Summary Methods
