@@ -891,7 +891,7 @@ public class OperationalDataManager: ObservableObject {
             daysOfWeek: "Wed",
             workerId: CanonicalIDs.Workers.mercedesInamagua,
             buildingId: CanonicalIDs.Buildings.rubinMuseum,
-            requiresPhoto: true, // Photo verification required for roof drain maintenance
+            requiresPhoto: false,
             estimatedDuration: 30
         ),
         OperationalDataTaskAssignment(

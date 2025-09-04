@@ -74,3 +74,7 @@ Audit: worker-specific UI logic (to migrate to data/services)
 - `Views/Components/Buildings/BuildingDetailView.swift` (DSNY assignment helper references specific workers; keep logic but ensure layout remains universal)
 
 Plan: Replace hardcoded names with data from `WorkerService`/`OperationalDataManager` while preserving universal layouts.
+
+Photo policy updates
+
+- Mercedes: no photos required for any workload (including Rubin 2F roof drain); ensure dashboard logic bypasses photo requirement for Mercedes tasks.

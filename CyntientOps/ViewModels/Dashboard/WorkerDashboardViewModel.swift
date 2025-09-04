@@ -2137,12 +2137,8 @@ public class WorkerDashboardViewModel: ObservableObject {
     
     /// Determine if a task requires photo verification based on task properties
     private func shouldTaskRequirePhoto(task: CoreTypes.ContextualTask) -> Bool {
-        // Check if this is Mercedes' roof drain task at Rubin Museum
-        if task.title.contains("Roof Drain") && 
-           task.title.contains("2F") &&
-           worker?.name.contains("Mercedes") == true {
-            return true
-        }
+        // Policy: Mercedes does not require photos for any workload (clock in/out only)
+        if worker?.name.contains("Mercedes") == true { return false }
         
         // Check if this is a maintenance task that typically needs photo verification
         if let category = task.category {
@@ -2156,11 +2152,7 @@ public class WorkerDashboardViewModel: ObservableObject {
                     return true
                 }
             case .cleaning:
-                // Glass cleaning specifically does not require photos (per requirements)
-                if task.title.lowercased().contains("glass") {
-                    return false
-                }
-                // But other cleaning tasks might
+                // Cleaning tasks generally do not require photos unless specified elsewhere
                 return false
             case .inspection:
                 // Inspections typically need photo documentation
