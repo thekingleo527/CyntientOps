@@ -103,14 +103,35 @@ struct WorkerProfileView: View {
                 }
             case .taskSchedule(let workerId, let date):
                 NavigationView {
-                    TaskScheduleView(workerId: workerId, date: date, container: container)
-                        .navigationTitle("Schedule for \(date.formatted(date: .abbreviated, time: .omitted))")
+                    // TaskScheduleView only takes buildingID, so we'll use the first assigned building
+                    // or show a placeholder if no buildings are assigned
+                    if let firstBuilding = viewModel.assignedBuildings.first {
+                        TaskScheduleView(buildingID: firstBuilding.id)
+                            .navigationTitle("Schedule for \(date.formatted(date: .abbreviated, time: .omitted))")
+                            .navigationBarTitleDisplayMode(.inline)
+                            .toolbar {
+                                ToolbarItem(placement: .navigationBarLeading) {
+                                    Button("Close") { activeSheet = nil }
+                                }
+                            }
+                    } else {
+                        VStack {
+                            Text("No Buildings Assigned")
+                                .font(.headline)
+                                .foregroundColor(.secondary)
+                            Text("Unable to show schedule without assigned buildings")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                                .multilineTextAlignment(.center)
+                        }
+                        .navigationTitle("Schedule")
                         .navigationBarTitleDisplayMode(.inline)
                         .toolbar {
                             ToolbarItem(placement: .navigationBarLeading) {
                                 Button("Close") { activeSheet = nil }
                             }
                         }
+                    }
                 }
             }
         }
