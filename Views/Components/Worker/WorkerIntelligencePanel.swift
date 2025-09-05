@@ -30,6 +30,7 @@ struct WorkerIntelligencePanel: View {
     @State private var showingPortfolioMap = false
     @State private var portfolioBuildings: [NamedCoordinate] = []
     @State private var currentBuildingId: String? = nil
+    @State private var assignedBuildingIds: Set<String> = []
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -87,7 +88,8 @@ struct WorkerIntelligencePanel: View {
             WorkerPortfolioMapRevealSheet(
                 container: container,
                 buildings: portfolioBuildings,
-                currentBuildingId: currentBuildingId
+                currentBuildingId: currentBuildingId,
+                assignedBuildingIds: assignedBuildingIds
             ) { tapped in
                 // Navigate to Building Detail
                 // For now, dismiss and rely on parent navigation via dashboard VM
@@ -103,11 +105,28 @@ struct WorkerIntelligencePanel: View {
         } else {
             portfolioBuildings = []
         }
-        if let wid = auth.workerId, let status = container.clockIn.getClockInStatus(for: wid) {
-            currentBuildingId = status.buildingId
-        } else {
-            currentBuildingId = nil
+        
+        // Load assigned building IDs for current worker
+        if let workerId = auth.workerId {
+            do {
+                let assignments = try await container.grdb.query("""
+                    SELECT building_id FROM worker_building_assignments 
+                    WHERE worker_id = ? AND is_active = 1
+                """, [workerId])
+                assignedBuildingIds = Set(assignments.compactMap { $0["building_id"] as? String })
+                print("🗺️ Loaded \(assignedBuildingIds.count) assigned buildings for worker \(workerId): \(assignedBuildingIds)")
+            } catch {
+                print("⚠️ Failed to load assigned building IDs: \(error)")
+                assignedBuildingIds = []
+            }
+            
+            if let status = container.clockIn.getClockInStatus(for: workerId) {
+                currentBuildingId = status.buildingId
+            } else {
+                currentBuildingId = nil
+            }
         }
+        
         showingPortfolioMap = true
     }
 }
