@@ -35,6 +35,7 @@ struct MapRevealContainer<Content: View>: View {
     
     // Dependencies
     let container: ServiceContainer
+    let forceShowAll: Bool
     
     // Map camera
     @State private var position: MapCameraPosition
@@ -65,6 +66,7 @@ struct MapRevealContainer<Content: View>: View {
         focusBuildingId: String? = nil,
         assignedBuildingIds: Set<String>? = nil,
         visitedBuildingIds: Set<String>? = nil,
+        forceShowAll: Bool = false,
         isRevealed: Binding<Bool>,
         container: ServiceContainer,
         onBuildingTap: @escaping (NamedCoordinate) -> Void,
@@ -77,6 +79,7 @@ struct MapRevealContainer<Content: View>: View {
         self.visitedBuildingIds = visitedBuildingIds
         self._isRevealed = isRevealed
         self.container = container
+        self.forceShowAll = forceShowAll
         self.onBuildingTap = onBuildingTap
         self.content = content
         
@@ -279,9 +282,16 @@ struct MapRevealContainer<Content: View>: View {
 
     private func loadPersistedMapPrefs() {
         let defaults = UserDefaults.standard
-        if let raw = defaults.string(forKey: prefKey("filter")), let f = MapFilter(rawValue: raw) {
+        
+        // Force "All" filter for workers (forceShowAll = true), allow saved preferences for clients
+        if forceShowAll {
+            selectedFilter = .all
+            print("🗺️ MapRevealContainer: Forcing 'All' filter for worker - full portfolio view")
+        } else if let raw = defaults.string(forKey: prefKey("filter")), let f = MapFilter(rawValue: raw) {
             selectedFilter = f
+            print("🗺️ MapRevealContainer: Loaded saved filter '\(f.rawValue)' for client")
         }
+        
         // Default to true if unset
         if defaults.object(forKey: prefKey("legendVisible")) != nil {
             showLegend = defaults.bool(forKey: prefKey("legendVisible"))
@@ -290,7 +300,12 @@ struct MapRevealContainer<Content: View>: View {
 
     private func persistMapPrefs() {
         let defaults = UserDefaults.standard
-        defaults.set(selectedFilter.rawValue, forKey: prefKey("filter"))
+        
+        // Don't persist filter changes when forceShowAll is true (workers)
+        if !forceShowAll {
+            defaults.set(selectedFilter.rawValue, forKey: prefKey("filter"))
+        }
+        
         defaults.set(showLegend, forKey: prefKey("legendVisible"))
     }
     

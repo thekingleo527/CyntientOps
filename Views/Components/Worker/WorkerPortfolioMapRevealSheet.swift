@@ -5,7 +5,6 @@ struct WorkerPortfolioMapRevealSheet: View {
     let container: ServiceContainer
     let buildings: [NamedCoordinate]
     let currentBuildingId: String?
-    let assignedBuildingIds: Set<String>?
     let onBuildingTap: (NamedCoordinate) -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var revealed = true
@@ -16,7 +15,8 @@ struct WorkerPortfolioMapRevealSheet: View {
                 buildings: buildings,
                 currentBuildingId: currentBuildingId,
                 focusBuildingId: nil,
-                assignedBuildingIds: assignedBuildingIds,
+                assignedBuildingIds: nil, // Workers see full portfolio - no filtering
+                forceShowAll: true, // Workers always see full portfolio
                 isRevealed: $revealed,
                 container: container,
                 onBuildingTap: { b in
