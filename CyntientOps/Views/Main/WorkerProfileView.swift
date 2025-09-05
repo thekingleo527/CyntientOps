@@ -92,14 +92,10 @@ struct WorkerProfileView: View {
                 if let building = viewModel.assignedBuildings.first(where: { $0.id == buildingId }) {
                     NavigationView {
                         BuildingDetailView(
-                            building: NamedCoordinate(
-                                id: building.id,
-                                name: building.name,
-                                address: building.address ?? "",
-                                latitude: 40.7128,  // Default NYC coordinates
-                                longitude: -74.0060
-                            ),
-                            container: container
+                            container: container,
+                            buildingId: building.id,
+                            buildingName: building.name,
+                            buildingAddress: building.address ?? ""
                         )
                     }
                 } else {
