@@ -42,6 +42,15 @@ struct BuildingInfrastructureCatalog {
     static func commercialUnits(for id: String) -> Int? { map[id]?.commercialUnits }
     static func floorCount(for id: String) -> Int? { map[id]?.floors }
 
+    // DSNY container mode derived from validated residential unit counts
+    enum DSNYContainerMode: String { case bins = "Bins", bags = "Black Bags", empire = "Empire Containers", none = "N/A" }
+    static func containerMode(for buildingId: String) -> DSNYContainerMode {
+        if BuildingUnitValidator.requiresEmpireContainers(buildingId: buildingId) { return .empire }
+        if BuildingUnitValidator.requiresIndividualBins(buildingId: buildingId) { return .bins }
+        if BuildingUnitValidator.canChooseContainerType(buildingId: buildingId) { return .bags } // default to bags when choice
+        return .bags
+    }
+
     // Special notes (e.g., key box location)
     static func notes(for id: String) -> String? {
         switch id {

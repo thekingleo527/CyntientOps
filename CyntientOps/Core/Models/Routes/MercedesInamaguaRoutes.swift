@@ -46,6 +46,24 @@ public struct MercedesInamaguaRoutes {
                     estimatedDuration: 30 * 60,
                     isWeatherSensitive: false,
                     skillLevel: .basic
+                ),
+                OperationTask(
+                    id: "117_lobby_glass",
+                    name: "Lobby Glass & Doors",
+                    category: .maintenance,
+                    location: .entrance,
+                    estimatedDuration: 20 * 60,
+                    isWeatherSensitive: false,
+                    skillLevel: .basic
+                ),
+                OperationTask(
+                    id: "117_elevator_cab",
+                    name: "Elevator Cab Clean",
+                    category: .maintenance,
+                    location: .hallway,
+                    estimatedDuration: 20 * 60,
+                    isWeatherSensitive: false,
+                    skillLevel: .basic
                 )
             ]
         )
@@ -74,9 +92,77 @@ public struct MercedesInamaguaRoutes {
                     estimatedDuration: 30 * 60,
                     isWeatherSensitive: false,
                     skillLevel: .basic
+                ),
+                OperationTask(
+                    id: "135_lobby_glass",
+                    name: "Lobby Glass & Doors",
+                    category: .maintenance,
+                    location: .entrance,
+                    estimatedDuration: 20 * 60,
+                    isWeatherSensitive: false,
+                    skillLevel: .basic
+                ),
+                OperationTask(
+                    id: "135_elevator_cab",
+                    name: "Elevator Cab Clean",
+                    category: .maintenance,
+                    location: .hallway,
+                    estimatedDuration: 20 * 60,
+                    isWeatherSensitive: false,
+                    skillLevel: .basic
                 )
             ],
             dependencies: [seqMorning117.id]
+        )
+
+        // Midday — 112 W 18th lobby/glass
+        let seqMid112 = sequence(
+            seqId: "mer_112_mid_\(day)",
+            buildingId: CanonicalIDs.Buildings.westEighteenth112,
+            buildingName: "112 West 18th Street",
+            hour: 11, minute: 30,
+            ops: [
+                OperationTask(
+                    id: "112_lobby_glass",
+                    name: "Lobby Glass & Doors",
+                    category: .maintenance,
+                    location: .entrance,
+                    estimatedDuration: 20 * 60,
+                    isWeatherSensitive: false,
+                    skillLevel: .basic
+                ),
+                OperationTask(
+                    id: "112_mail_area",
+                    name: "Mail Area Tidy",
+                    category: .maintenance,
+                    location: .hallway,
+                    estimatedDuration: 15 * 60,
+                    isWeatherSensitive: false,
+                    skillLevel: .basic
+                )
+            ],
+            dependencies: [seqMorning135.id]
+        )
+
+        // Rubin Complex (walkups) — mail areas / lobby vestibules (no elevators)
+        let seqRubinMail = sequence(
+            seqId: "mer_rubin_mail_\(day)",
+            buildingId: CanonicalIDs.Buildings.rubinMuseum,
+            buildingName: "Rubin Museum Complex (142-148 W 17th)",
+            hour: 12, minute: 15,
+            ops: [
+                OperationTask(
+                    id: "rubin_mail_lobby_walkups",
+                    name: "Mail Areas & Lobby Vestibules – Rubin (Walkups)",
+                    category: .maintenance,
+                    location: .entrance,
+                    estimatedDuration: 30 * 60,
+                    isWeatherSensitive: false,
+                    skillLevel: .basic,
+                    instructions: "Clean mail areas and vestibules for 142, 144, 146, 148 W 17th; no elevators in these walkups."
+                )
+            ],
+            dependencies: [seqMid112.id]
         )
 
         // Afternoon split shift — rotations
@@ -105,7 +191,7 @@ public struct MercedesInamaguaRoutes {
             dayOfWeek: day,
             startTime: startTime,
             estimatedEndTime: endTime,
-            sequences: [seqMorning117, seqMorning135, seqAfternoon],
+            sequences: [seqMorning117, seqMorning135, seqMid112, seqRubinMail, seqAfternoon],
             routeType: .morningCleaning
         )
     }

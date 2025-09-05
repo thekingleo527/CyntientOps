@@ -34,6 +34,22 @@ public struct DSNYCollectionSchedule {
         
         for buildingId in buildingsNeedingBins {
             switch buildingId {
+            case CanonicalIDs.Buildings.franklin104:
+                schedules[buildingId] = BuildingDSNYSchedule(
+                    buildingId: buildingId,
+                    buildingName: "104 Franklin Street",
+                    unitCount: BuildingUnitValidator.verifiedUnitCounts[buildingId] ?? 6,
+                    collectionDays: [CollectionDay.monday, CollectionDay.wednesday, CollectionDay.friday],
+                    binSetOutTime: DSNYTime(hour: 20, minute: 0),
+                    binRetrievalTime: DSNYTime(hour: 8, minute: 30),
+                    binLocation: "curbside",
+                    specialInstructions: "Commercial floors 2 & 4 offsite removal handled by Angel; bins for residential only",
+                    wasteStreams: [
+                        WasteStreamGuidance(wasteType: WasteType.trash, collectionDays: [.monday, .wednesday, .friday], containerType: ContainerType.blackBin, specialInstructions: "6 residential units require bins"),
+                        WasteStreamGuidance(wasteType: WasteType.recycling, collectionDays: [.wednesday, .friday], containerType: ContainerType.greenBin, specialInstructions: "Follow TriBeCa recycling schedule"),
+                        WasteStreamGuidance(wasteType: WasteType.compost, collectionDays: [.monday, .wednesday], containerType: ContainerType.brownBin, specialInstructions: "Organics collection where available")
+                    ]
+                )
             case CanonicalIDs.Buildings.springStreet178:
                 schedules[buildingId] = BuildingDSNYSchedule(
                     buildingId: buildingId,

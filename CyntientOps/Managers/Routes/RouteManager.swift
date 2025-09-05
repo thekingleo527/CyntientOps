@@ -15,6 +15,9 @@ import GRDB
 @MainActor
 public final class RouteManager: ObservableObject {
     
+    // MARK: - Shared Instance
+    public static let shared = RouteManager(database: GRDBManager.shared)
+    
     // MARK: - Published Properties
     
     @Published public private(set) var routes: [WorkerRoute] = []
@@ -238,6 +241,112 @@ public final class RouteManager: ObservableObject {
         
         return totalSequences > 0 ? Double(completedSequences) / Double(totalSequences) : 0.0
     }
+    
+    // MARK: - Hero Card Support Methods
+    
+    /// Get next upcoming route item for hero cards
+    public func nextUp(for workerId: String, from date: Date = Date()) -> RouteItem? {
+        guard let route = getCurrentRoute(for: workerId) else { return nil }
+        
+        let now = date
+        let upcomingSequences = route.sequences
+            .filter { $0.arrivalTime > now }
+            .sorted { $0.arrivalTime < $1.arrivalTime }
+        
+        guard let nextSequence = upcomingSequences.first,
+              let nextOperation = nextSequence.operations.first else {
+            return nil
+        }
+        
+        return RouteItem(
+            id: nextSequence.id,
+            buildingName: nextOperation.name,
+            buildingId: nextSequence.buildingId,
+            time: formatTimeRange(start: nextSequence.arrivalTime, duration: nextSequence.estimatedDuration),
+            icon: iconForOperationType(nextOperation.category.rawValue),
+            isActive: false
+        )
+    }
+    
+    /// Get today's route items for a worker
+    public func today(for workerId: String, date: Date = Date()) -> [RouteItem] {
+        guard let route = getCurrentRoute(for: workerId) else { return [] }
+        
+        return route.sequences.compactMap { sequence in
+            guard let operation = sequence.operations.first else { return nil }
+            
+            return RouteItem(
+                id: sequence.id,
+                buildingName: operation.name,
+                buildingId: sequence.buildingId,
+                time: formatTimeRange(start: sequence.arrivalTime, duration: sequence.estimatedDuration),
+                icon: iconForOperationType(operation.category.rawValue),
+                isActive: isSequenceActive(sequence, at: date)
+            )
+        }
+    }
+    
+    /// Get week's route items for a worker
+    public func week(for workerId: String, startingFrom date: Date = Date()) -> [RouteItem] {
+        let calendar = Calendar.current
+        var weekItems: [RouteItem] = []
+        
+        for dayOffset in 0..<7 {
+            guard let dayDate = calendar.date(byAdding: .day, value: dayOffset, to: date) else { continue }
+            let dayOfWeek = calendar.component(.weekday, from: dayDate)
+            
+            if let route = getRoute(for: workerId, dayOfWeek: dayOfWeek) {
+                let dayItems = route.sequences.compactMap { (sequence: RouteSequence) -> RouteItem? in
+                    guard let operation = sequence.operations.first else { return nil }
+                    
+                    return RouteItem(
+                        id: "\(sequence.id)_\(dayOffset)",
+                        buildingName: operation.name,
+                        buildingId: sequence.buildingId,
+                        time: formatTimeRange(start: sequence.arrivalTime, duration: sequence.estimatedDuration),
+                        icon: iconForOperationType(operation.category.rawValue),
+                        isActive: false,
+                        dayOfWeek: dayOfWeek
+                    )
+                }
+                weekItems.append(contentsOf: dayItems)
+            }
+        }
+        
+        return weekItems
+    }
+    
+    // MARK: - Helper Methods
+    
+    private func formatTimeRange(start: Date, duration: TimeInterval) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm"
+        
+        let startTime = formatter.string(from: start)
+        let endTime = formatter.string(from: start.addingTimeInterval(duration))
+        
+        return "\(startTime)–\(endTime)"
+    }
+    
+    private func iconForOperationType(_ type: String) -> String {
+        switch type.lowercased() {
+        case "cleaning":
+            return "sparkles"
+        case "maintenance":
+            return "wrench"
+        case "inspection":
+            return "magnifyingglass"
+        case "delivery":
+            return "box"
+        default:
+            return "building.2"
+        }
+    }
+    
+    private func isSequenceActive(_ sequence: RouteSequence, at date: Date) -> Bool {
+        let endTime = sequence.arrivalTime.addingTimeInterval(sequence.estimatedDuration)
+        return sequence.arrivalTime <= date && date <= endTime
+    }
 }
 
 // MARK: - Supporting Types
@@ -278,5 +387,26 @@ public struct SequenceProgress {
         guard !completedOperations.isEmpty else { return 0.0 }
         // This would need to be calculated against total operations in the sequence
         return status == .completed ? 1.0 : 0.5
+    }
+}
+
+// MARK: - Route Item for Hero Cards and Schedule Views
+public struct RouteItem {
+    public let id: String
+    public let buildingName: String
+    public let buildingId: String?
+    public let time: String
+    public let icon: String
+    public let isActive: Bool
+    public let dayOfWeek: Int?
+    
+    public init(id: String, buildingName: String, buildingId: String?, time: String, icon: String, isActive: Bool, dayOfWeek: Int? = nil) {
+        self.id = id
+        self.buildingName = buildingName
+        self.buildingId = buildingId
+        self.time = time
+        self.icon = icon
+        self.isActive = isActive
+        self.dayOfWeek = dayOfWeek
     }
 }

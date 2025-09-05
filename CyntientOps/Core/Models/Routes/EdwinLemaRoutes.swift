@@ -428,19 +428,19 @@ public struct EdwinLemaRoutes {
         return RouteSequence(
             id: "edwin_kevin_coverage_\(day.lowercased())",
             buildingId: "17th_street_complex",
-            buildingName: "Kevin Coverage - 17th Street",
+            buildingName: "Chelsea Circuit (Coverage)",
             arrivalTime: arrivalTime,
             estimatedDuration: 90 * 60,
             operations: [
                 OperationTask(
                     id: "coverage_morning_routine_\(day.lowercased())",
-                    name: "Morning Routine Coverage",
+                    name: "Morning Circuit Coverage",
                     category: .sweeping,
                     location: .sidewalk,
                     estimatedDuration: 45 * 60,
                     isWeatherSensitive: true,
                     skillLevel: .basic,
-                    instructions: "\(day): Cover Kevin's morning sidewalk and entrance cleaning"
+                    instructions: "\(day): Cover Chelsea Circuit sidewalks (defer if unsafe); prioritize interior tasks if needed."
                 ),
                 OperationTask(
                     id: "coverage_trash_areas_\(day.lowercased())",
@@ -450,7 +450,7 @@ public struct EdwinLemaRoutes {
                     estimatedDuration: 45 * 60,
                     isWeatherSensitive: false,
                     skillLevel: .basic,
-                    instructions: "Cover Kevin's trash area responsibilities"
+                    instructions: "Cover trash areas across all circuit buildings; mop floors; clean laundry areas at 142 & 146; sanitize machine tops."
                 )
             ],
             sequenceType: .indoorCleaning,

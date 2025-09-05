@@ -207,12 +207,12 @@ echo "====================================="
 
 # 1. Clean build folder
 echo "🧹 Cleaning build folder..."
-xcodebuild clean -project FrancoSphere.xcodeproj -scheme CyntientOps
+xcodebuild clean -project CyntientOps.xcodeproj -scheme CyntientOps
 
 # 2. Archive for App Store
 echo "📦 Creating Archive..."
 xcodebuild archive \
-  -project FrancoSphere.xcodeproj \
+  -project CyntientOps.xcodeproj \
   -scheme CyntientOps \
   -configuration Release \
   -archivePath ./build/CyntientOps.xcarchive

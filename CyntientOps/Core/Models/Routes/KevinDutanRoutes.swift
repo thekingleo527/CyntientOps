@@ -122,28 +122,28 @@ public struct KevinDutanRoutes {
         )
     }
     
-    /// 9:15 AM - 12:00 PM - 17th Street Complex (Most Complex Sequence)
+    /// 9:00 AM - 11:30 AM - Chelsea Circuit (17th/18th St morning)
     private static func seventeenthStreetComplexSequence() -> RouteSequence {
         let arrivalTime = Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: Date()) ?? Date()
         
         return RouteSequence(
             id: "kevin_17th_complex",
             buildingId: "17th_street_complex", // Multi-building sequence
-            buildingName: "17th Street Building Complex",
+            buildingName: "Chelsea Circuit",
             arrivalTime: arrivalTime,
-            estimatedDuration: 120 * 60, // 2 hours
+            estimatedDuration: 150 * 60, // 2.5 hours (9:00–11:30)
             operations: [
                 // Phase 1: Outdoor Operations (Weather-Sensitive)
                 OperationTask(
                     id: "sidewalk_hosing_112_117",
-                    name: "Sidewalk Hosing - 112 & 117 W 17th",
+                    name: "Sidewalk Hosing - 112 W 18th & 117 W 17th",
                     category: .hosing,
                     location: .sidewalk,
                     estimatedDuration: 30 * 60,
                     isWeatherSensitive: true,
                     requiredEquipment: ["Hose", "Squeegee"],
                     skillLevel: .basic,
-                    instructions: "Hose sidewalks, squeegee clean, ensure proper drainage"
+                    instructions: "Hose sidewalks, squeegee, ensure drainage (skip heavy rain/ice; Weather card suggests deferral)."
                 ),
                 OperationTask(
                     id: "sidewalk_hosing_135_139",
@@ -174,36 +174,26 @@ public struct KevinDutanRoutes {
                 ),
                 
                 // Phase 2: Indoor Operations (Weather-Protected)
-                OperationTask(
-                    id: "vacuum_hallways_112",
-                    name: "Vacuum Hallways Floors 2-6 - 112 W 17th",
-                    category: .vacuuming,
-                    location: .hallway,
-                    estimatedDuration: 30 * 60,
-                    isWeatherSensitive: false,
-                    requiredEquipment: ["Vacuum"],
-                    instructions: "Floors 2, 3, 4, 5, 6 hallways and stairwell landings"
-                ),
-                OperationTask(
-                    id: "vacuum_hallways_117",
-                    name: "Vacuum Hallways Floors 2-6 - 117 W 17th",
-                    category: .vacuuming,
-                    location: .hallway,
-                    estimatedDuration: 30 * 60,
-                    isWeatherSensitive: false,
-                    requiredEquipment: ["Vacuum"],
-                    instructions: "Floors 2, 3, 4, 5, 6 hallways and stairwell landings"
-                ),
+                // Note: Hallway vacuum shows on M/W/F only (handled in complete schedule)
                 
                 // Phase 3: Sanitation Operations
                 OperationTask(
+                    id: "garbage_removal_circuit",
+                    name: "Garbage Removal – Circuit Buildings",
+                    category: .trashCollection,
+                    location: .trashArea,
+                    estimatedDuration: 20 * 60,
+                    isWeatherSensitive: false,
+                    instructions: "Consolidate bags and stage in trash rooms (no curb set-out until DSNY window)."
+                ),
+                OperationTask(
                     id: "trash_areas_multiple",
-                    name: "Trash Area Cleaning - All 17th St Buildings",
+                    name: "Trash Areas – All 17th/18th Buildings",
                     category: .trashCollection,
                     location: .trashArea,
                     estimatedDuration: 45 * 60,
                     isWeatherSensitive: false,
-                    instructions: "Clean trash areas for 112, 117, 136, 138, 142-148"
+                    instructions: "Sweep, mop floors, wipe bins; clean laundry areas at 142 & 146; sanitize machine tops."
                 ),
                 OperationTask(
                     id: "basement_cleaning_135",
@@ -248,16 +238,16 @@ public struct KevinDutanRoutes {
         )
     }
     
-    /// 12:00 PM - 115 7th Avenue (Weather-Sensitive Detail Work)
+    /// 11:30 AM - 115 7th Avenue (Poster Removal)
     private static func seventhAvenueSequence() -> RouteSequence {
-        let arrivalTime = Calendar.current.date(bySettingHour: 11, minute: 0, second: 0, of: Date()) ?? Date()
+        let arrivalTime = Calendar.current.date(bySettingHour: 11, minute: 30, second: 0, of: Date()) ?? Date()
         
         return RouteSequence(
             id: "kevin_7th_avenue",
             buildingId: CanonicalIDs.Buildings.seventhAvenue115,
             buildingName: "115 7th Avenue",
             arrivalTime: arrivalTime,
-            estimatedDuration: 60 * 60, // 1 hour
+            estimatedDuration: 30 * 60, // 15–30 minutes
             operations: [
                 OperationTask(
                     id: "poster_removal_7th_ave",
@@ -268,16 +258,6 @@ public struct KevinDutanRoutes {
                     isWeatherSensitive: true, // Cannot do in rain
                     skillLevel: .intermediate,
                     instructions: "Remove illegal postings, clean adhesive residue"
-                ),
-                OperationTask(
-                    id: "treepit_cleaning_7th_ave",
-                    name: "Treepit Cleaning - 115 7th Avenue Area",
-                    category: .treepitCleaning,
-                    location: .treepit,
-                    estimatedDuration: 30 * 60,
-                    isWeatherSensitive: true, // Difficult in wet conditions
-                    requiredEquipment: ["Hand tools", "Trash bags"],
-                    instructions: "Clean tree pits, remove debris, maintain landscaping"
                 )
             ],
             sequenceType: .outdoorCleaning,
@@ -298,6 +278,16 @@ public struct KevinDutanRoutes {
             estimatedDuration: 90 * 60, // 1.5 hours
             operations: [
                 OperationTask(
+                    id: "firstave_garbage_removal",
+                    name: "Garbage Removal - 123 1st Avenue",
+                    category: .trashCollection,
+                    location: .trashArea,
+                    estimatedDuration: 20 * 60,
+                    isWeatherSensitive: false,
+                    skillLevel: .basic,
+                    instructions: "Consolidate and stage trash; do not curb before set-out window."
+                ),
+                OperationTask(
                     id: "building_maintenance_1st_ave",
                     name: "Building Maintenance - 123 1st Avenue",
                     category: .maintenance,
@@ -305,6 +295,16 @@ public struct KevinDutanRoutes {
                     estimatedDuration: 45 * 60,
                     isWeatherSensitive: true,
                     skillLevel: .intermediate
+                ),
+                OperationTask(
+                    id: "spring_garbage_removal",
+                    name: "Garbage Removal - 178 Spring Street",
+                    category: .trashCollection,
+                    location: .trashArea,
+                    estimatedDuration: 20 * 60,
+                    isWeatherSensitive: false,
+                    skillLevel: .basic,
+                    instructions: "Consolidate and stage trash; do not curb before set-out window."
                 ),
                 OperationTask(
                     id: "building_cleaning_spring",

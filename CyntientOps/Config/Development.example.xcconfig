@@ -1,0 +1,13 @@
+// Example development configuration (do not commit real secrets)
+// Copy to Config/Development.xcconfig and set per-machine values.
+
+// NYC Open Data
+NYC_APP_TOKEN = your-nyc-app-token
+DSNY_API_TOKEN = your-dsny-token
+
+// Supabase / Nova
+SUPABASE_URL = https://your-project-ref.supabase.co
+SUPABASE_ANON_KEY = your-anon-key
+
+// Sentry (optional; override via CI or per-env)
+SENTRY_DSN = https://examplePublicKey@o0.ingest.sentry.io/0

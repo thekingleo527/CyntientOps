@@ -2957,9 +2957,24 @@ public class OperationalDataManager: ObservableObject {
             )
         """)
         
+        // Update uniqueness to include RRULE to avoid duplicates across different times
         try await self.grdbManager.execute("""
-            CREATE UNIQUE INDEX IF NOT EXISTS idx_routine_unique 
-            ON routine_schedules(building_id, worker_id, name)
+            DROP INDEX IF EXISTS idx_routine_unique;
+        """)
+        try await self.grdbManager.execute("""
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_rs_unique 
+            ON routine_schedules(building_id, worker_id, name, rrule)
+        """)
+
+        // Guard trigger to prevent phantom building references
+        try await self.grdbManager.execute("""
+            CREATE TRIGGER IF NOT EXISTS rs_building_guard
+            BEFORE INSERT ON routine_schedules
+            FOR EACH ROW
+            WHEN (SELECT COUNT(1) FROM buildings b WHERE b.id = NEW.building_id) = 0
+            BEGIN
+              SELECT RAISE(ABORT, 'routine_schedules.building_id not found');
+            END;
         """)
         
         var skippedRoutines = 0
@@ -2991,10 +3006,17 @@ public class OperationalDataManager: ObservableObject {
             let id = "routine_\(routine.buildingId)_\(routine.workerId)_\(routine.name.hashValue.magnitude)"
             let weatherDependent = routine.category == "Cleaning" ? 1 : 0
             
+            // Upsert using unique key (building_id, worker_id, name, rrule)
             try await self.grdbManager.execute("""
-                INSERT OR REPLACE INTO routine_schedules 
+                INSERT INTO routine_schedules 
                 (id, name, building_id, rrule, worker_id, category, weather_dependent)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(building_id, worker_id, name, rrule)
+                DO UPDATE SET
+                    id=excluded.id,
+                    category=excluded.category,
+                    weather_dependent=excluded.weather_dependent,
+                    updated_at=CURRENT_TIMESTAMP
             """, [id, routine.name, routine.buildingId, routine.rrule, routine.workerId, routine.category, String(weatherDependent)])
             routineCount += 1
             

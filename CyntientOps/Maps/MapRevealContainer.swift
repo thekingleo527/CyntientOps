@@ -25,6 +25,8 @@ struct MapRevealContainer<Content: View>: View {
     
     // Building data
     let buildings: [NamedCoordinate]
+    let assignedBuildingIds: Set<String>?
+    let visitedBuildingIds: Set<String>?
     let currentBuildingId: String?
     let focusBuildingId: String?
     
@@ -36,6 +38,14 @@ struct MapRevealContainer<Content: View>: View {
     
     // Map camera
     @State private var position: MapCameraPosition
+    @State private var selectedFilter: MapFilter = .all
+    @State private var showLegend: Bool = true
+
+    enum MapFilter: String, CaseIterable {
+        case all = "All"
+        case assigned = "Assigned"
+        case visited = "Visited"
+    }
     
     // Intelligence data
     @State private var buildingMetrics: [String: BuildingMetrics] = [:]
@@ -53,6 +63,8 @@ struct MapRevealContainer<Content: View>: View {
         buildings: [NamedCoordinate],
         currentBuildingId: String? = nil,
         focusBuildingId: String? = nil,
+        assignedBuildingIds: Set<String>? = nil,
+        visitedBuildingIds: Set<String>? = nil,
         isRevealed: Binding<Bool>,
         container: ServiceContainer,
         onBuildingTap: @escaping (NamedCoordinate) -> Void,
@@ -61,6 +73,8 @@ struct MapRevealContainer<Content: View>: View {
         self.buildings = buildings
         self.currentBuildingId = currentBuildingId
         self.focusBuildingId = focusBuildingId
+        self.assignedBuildingIds = assignedBuildingIds
+        self.visitedBuildingIds = visitedBuildingIds
         self._isRevealed = isRevealed
         self.container = container
         self.onBuildingTap = onBuildingTap
@@ -141,12 +155,17 @@ struct MapRevealContainer<Content: View>: View {
         .onAppear {
             // Only show the hint once per app install unless reset.
             // Gate by both our app storage and the internal MapInteractionHint persistence.
+            // Load persisted UI prefs per worker
+            loadPersistedMapPrefs()
+
             if !mapCoachmarkSeen && !MapInteractionHint.hasUserSeenHint() {
                 showHint = true
             } else {
                 showHint = false
             }
         }
+        .onChange(of: selectedFilter) { _ in persistMapPrefs() }
+        .onChange(of: showLegend) { _ in persistMapPrefs() }
     }
     
     // MARK: - Unified Map Layer
@@ -155,7 +174,7 @@ struct MapRevealContainer<Content: View>: View {
         ZStack {
             // The actual map (always present, but conditionally styled)
             Map(position: isRevealed ? $position : .constant(position)) {
-                ForEach(buildings, id: \.id) { building in
+                ForEach(displayedBuildings, id: \.id) { building in
                     Annotation(
                         building.name,
                         coordinate: building.coordinate
@@ -165,6 +184,8 @@ struct MapRevealContainer<Content: View>: View {
                             isSelected: building.id == currentBuildingId,
                             isFocused: isRevealed && (building.id == focusBuildingId || building.id == hoveredBuildingId),
                             isInteractive: isRevealed,
+                            isAssigned: assignedBuildingIds?.contains(building.id) ?? false,
+                            isVisited: visitedBuildingIds?.contains(building.id) ?? false,
                             metrics: buildingMetrics[building.id],
                             onTap: isRevealed ? {
                                 handleBuildingTap(building)
@@ -208,112 +229,79 @@ struct MapRevealContainer<Content: View>: View {
             }
         }
     }
+
+    private var displayedBuildings: [NamedCoordinate] {
+        let filteredByActive = buildings.filter { building in
+            // Filter out 29-31 East 20th (building ID "2") and any buildings with that name
+            building.id != "2" && !building.name.localizedCaseInsensitiveContains("29-31 East 20th")
+        }
+        
+        switch selectedFilter {
+        case .all: 
+            return filteredByActive
+        case .assigned:
+            guard let ids = assignedBuildingIds else { return filteredByActive }
+            return filteredByActive.filter { ids.contains($0.id) }
+        case .visited:
+            guard let ids = visitedBuildingIds else { return filteredByActive }
+            return filteredByActive.filter { ids.contains($0.id) }
+        }
+    }
     
     // MARK: - Map Controls
     
     private var mapControls: some View {
         VStack {
-            HStack {
-                Spacer()
-                
-                // Zoom controls
-                VStack(spacing: 8) {
-                    // Zoom In button
-                    Button(action: zoomIn) {
-                        ZStack {
-                            Circle()
-                                .fill(.ultraThinMaterial)
-                                .frame(width: 44, height: 44)
-                            
-                            Image(systemName: "plus")
-                                .font(.title3)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.white)
-                        }
-                    }
-                    
-                    // Zoom Out button
-                    Button(action: zoomOut) {
-                        ZStack {
-                            Circle()
-                                .fill(.ultraThinMaterial)
-                                .frame(width: 44, height: 44)
-                            
-                            Image(systemName: "minus")
-                                .font(.title3)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.white)
-                        }
-                    }
-                }
-                .padding(.trailing, 8)
-                
-                // Close button
-                Button(action: closeMap) {
-                    ZStack {
-                        Circle()
-                            .fill(.ultraThinMaterial)
-                            .frame(width: 50, height: 50)
-                        
-                        Image(systemName: "chevron.down")
-                            .font(.title3)
-                            .fontWeight(.semibold)
-                            .foregroundColor(.white)
-                    }
-                }
-                .padding(.trailing, 20)
-                .padding(.top, 60)
-            }
-            
+            MapControlsBar(
+                filters: MapFilter.allCases.map { $0.rawValue },
+                selectedFilter: selectedFilter.rawValue,
+                onSelectFilter: { label in
+                    if let f = MapFilter(rawValue: label) { selectedFilter = f }
+                },
+                showLegend: $showLegend,
+                onZoomIn: zoomIn,
+                onZoomOut: zoomOut,
+                onClose: closeMap
+            )
             Spacer()
-            
-            // Map legend
             mapLegend
         }
+    }
+
+    // Legend helper moved to MapControlsBar
+
+    // MARK: - Persistence (per-worker)
+
+    private func prefKey(_ name: String) -> String {
+        let user = container.auth.currentUserId ?? "anon"
+        return "map.pref.\(name).\(user)"
+    }
+
+    private func loadPersistedMapPrefs() {
+        let defaults = UserDefaults.standard
+        if let raw = defaults.string(forKey: prefKey("filter")), let f = MapFilter(rawValue: raw) {
+            selectedFilter = f
+        }
+        // Default to true if unset
+        if defaults.object(forKey: prefKey("legendVisible")) != nil {
+            showLegend = defaults.bool(forKey: prefKey("legendVisible"))
+        }
+    }
+
+    private func persistMapPrefs() {
+        let defaults = UserDefaults.standard
+        defaults.set(selectedFilter.rawValue, forKey: prefKey("filter"))
+        defaults.set(showLegend, forKey: prefKey("legendVisible"))
     }
     
     // MARK: - Map Legend (Compact and Non-Intrusive)
     
     private var mapLegend: some View {
-        VStack(spacing: 8) {
-            HStack(spacing: 12) {
-                // Building count badge
-                HStack(spacing: 6) {
-                    Image(systemName: "building.2.fill")
-                        .font(.caption)
-                        .foregroundColor(.blue)
-                    Text("\(buildings.count)")
-                        .font(.caption)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.white)
-                }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background(.ultraThinMaterial, in: Capsule())
-                
-                // Current building indicator
-                if currentBuildingId != nil {
-                    HStack(spacing: 4) {
-                        Circle()
-                            .fill(.green)
-                            .frame(width: 8, height: 8)
-                        Text("Current")
-                            .font(.caption)
-                            .foregroundColor(.white)
-                    }
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .background(.ultraThinMaterial, in: Capsule())
-                }
-                
-                Spacer()
-            }
-        }
-        .padding(.horizontal, 20)
-        .padding(.bottom, 20)
-        .allowsHitTesting(false)
-        .opacity(isRevealed ? 1.0 : 0.0)
-        .animation(.easeInOut(duration: 0.3).delay(0.2), value: isRevealed)
+        MapLegendBar(
+            buildingCount: buildings.count,
+            hasCurrent: currentBuildingId != nil,
+            isVisible: isRevealed
+        )
     }
     
     // MARK: - Intelligence Popover
@@ -464,233 +452,7 @@ struct MapRevealContainer<Content: View>: View {
     }
 }
 
-// MARK: - Enhanced Building Marker with Image Support
-
-struct MapBuildingBubble: View {
-    let building: NamedCoordinate
-    let isSelected: Bool
-    let isFocused: Bool
-    let isInteractive: Bool
-    let metrics: BuildingMetrics?
-    var onTap: (() -> Void)?
-    var onHover: ((Bool) -> Void)?
-    
-    @State private var isPressed = false
-    
-    
-    var body: some View {
-        Button(action: { onTap?() }) {
-            ZStack {
-                // Outer ring for focus/selection
-                if isFocused || isSelected {
-                    Circle()
-                        .fill(ringColor.opacity(0.3))
-                        .frame(width: 65, height: 65)
-                        .blur(radius: 2)
-                }
-                
-                // Always show building image if available, otherwise show icon
-                if BuildingAssets.assetName(for: building.id) != nil {
-                    // Show building image bubble (default)
-                    buildingImageBubble
-                } else {
-                    // Show icon bubble as fallback
-                    iconBubble
-                }
-                
-                // Status indicator
-                if let metrics = metrics {
-                    statusIndicator(metrics)
-                }
-                
-                // Star badge for current building (when selected)
-                if isSelected {
-                    Image(systemName: "star.fill")
-                        .font(.caption)
-                        .foregroundColor(.yellow)
-                        .background(Circle().fill(.white).frame(width: 16, height: 16))
-                        .offset(x: 20, y: -20)
-                }
-            }
-            .scaleEffect(isPressed ? 0.95 : 1.0)
-            .scaleEffect(isFocused ? 1.15 : 1.0)
-            .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isPressed)
-            .animation(.easeInOut(duration: 0.2), value: isFocused)
-        }
-        .buttonStyle(PlainButtonStyle())
-        .disabled(!isInteractive)
-        .onHover { hovering in
-            onHover?(hovering)
-        }
-        .simultaneousGesture(
-            DragGesture(minimumDistance: 0)
-                .onChanged { _ in isPressed = true }
-                .onEnded { _ in isPressed = false }
-        )
-    }
-    
-    @ViewBuilder
-    private var buildingImageBubble: some View {
-        ZStack {
-            // Background circle
-            Circle()
-                .fill(.ultraThinMaterial)
-                .frame(width: 55, height: 55)
-            
-            // Building image or fallback via shared mapping
-            if let assetName = BuildingAssets.assetName(for: building.id) {
-                Image(assetName)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: 50, height: 50)
-                    .clipShape(Circle())
-                    .overlay(
-                        Circle()
-                            .stroke(borderColor, lineWidth: 2)
-                    )
-                    .overlay(
-                        // Selection overlay
-                        selectedOverlay
-                    )
-            } else {
-                // Fallback to icon bubble
-                iconBubbleContent
-            }
-        }
-        .shadow(color: shadowColor, radius: 10, x: 0, y: 5)
-    }
-    
-    @ViewBuilder
-    private var iconBubble: some View {
-        ZStack {
-            Circle()
-                .fill(.ultraThinMaterial)
-                .frame(width: 50, height: 50)
-                .overlay(
-                    Circle()
-                        .stroke(borderColor, lineWidth: 2)
-                )
-            
-            iconBubbleContent
-        }
-        .shadow(color: shadowColor, radius: 8, x: 0, y: 4)
-    }
-    
-    @ViewBuilder
-    private var iconBubbleContent: some View {
-        if isSelected {
-            Image(systemName: "checkmark.circle.fill")
-                .font(.title2)
-                .foregroundColor(.green)
-        } else {
-            VStack(spacing: 0) {
-                Image(systemName: buildingIcon)
-                    .font(.system(size: 20))
-                    .foregroundColor(iconColor)
-            }
-        }
-    }
-    
-    @ViewBuilder
-    private var selectedOverlay: some View {
-        if isSelected {
-            ZStack {
-                Circle()
-                    .fill(.black.opacity(0.4))
-                    .frame(width: 50, height: 50)
-                
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.title2)
-                    .foregroundColor(.green)
-                    .background(Circle().fill(.white).frame(width: 24, height: 24))
-            }
-        }
-    }
-    
-    private var ringColor: Color {
-        if isSelected {
-            return .green
-        } else if let metrics = metrics {
-            return riskColor(for: metrics)
-        } else {
-            return .blue
-        }
-    }
-    
-    private var borderColor: Color {
-        if isSelected {
-            return .green
-        } else if let metrics = metrics {
-            return riskColor(for: metrics).opacity(0.8)
-        } else {
-            return .white.opacity(0.3)
-        }
-    }
-    
-    private var shadowColor: Color {
-        if isSelected {
-            return .green.opacity(0.5)
-        } else if isFocused {
-            return .blue.opacity(0.5)
-        } else {
-            return .black.opacity(0.3)
-        }
-    }
-    
-    private var buildingIcon: String {
-        let name = building.name.lowercased()
-        
-        // Enhanced icon matching based on actual building names
-        if name.contains("museum") || name.contains("rubin") {
-            return "building.columns.fill"
-        } else if name.contains("park") || name.contains("stuyvesant") || name.contains("cove") {
-            return "leaf.fill"
-        } else if name.contains("perry") || name.contains("elizabeth") || name.contains("walker") {
-            return "house.fill"
-        } else if name.contains("west") || name.contains("east") || name.contains("franklin") {
-            return "building.2.fill"
-        } else if name.contains("avenue") {
-            return "building.fill"
-        } else {
-            return "building.2.fill"
-        }
-    }
-    
-    private var iconColor: Color {
-        if let metrics = metrics {
-            return riskColor(for: metrics)
-        } else {
-            return .blue
-        }
-    }
-    
-    @ViewBuilder
-    private func statusIndicator(_ metrics: BuildingMetrics) -> some View {
-        if metrics.urgentTasksCount > 0 {
-            ZStack {
-                Circle()
-                    .fill(.red)
-                    .frame(width: 20, height: 20)
-                
-                Text("\(metrics.urgentTasksCount)")
-                    .font(.caption2)
-                    .fontWeight(.bold)
-                    .foregroundColor(.white)
-            }
-            .offset(x: 18, y: -18)
-        }
-    }
-    
-    private func riskColor(for metrics: BuildingMetrics) -> Color {
-        if metrics.overdueTasks > 0 || metrics.urgentTasksCount > 0 {
-            return .red
-        } else if metrics.completionRate < 0.7 {
-            return .orange
-        } else {
-            return .green
-        }
-    }
-}
+// MapBuildingBubble moved to CyntientOps/Maps/Components/MapBuildingBubble.swift
 
 // MARK: - Preview Provider
 

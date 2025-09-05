@@ -487,35 +487,23 @@ public final class NYCComplianceService: ObservableObject {
     }
     
     private func extractBIN(from building: CoreTypes.NamedCoordinate) -> String {
-        // NYC BIN mapping for portfolio buildings
-        switch building.id {
-        case "14", "14a": return "1034304" // Rubin Museum - 142 W 17th St
-        case "14b": return "1034305" // 144 W 17th St  
-        case "14c": return "1034306" // 146 W 17th St
-        case "14d": return "1034307" // 148 W 17th St
-        case "4": return "1008765" // 68 Perry Street
-        case "8": return "1002456" // 123 1st Avenue
-        case "7": return "1034289" // 117 W 17th Street
-        case "6": return "1034351" // 112 W 18th Street
-        case "16": return "" // Stuyvesant Cove Park - no BIN (public park)
-        default: return building.id // Fallback to app ID
-        }
+        // 1) DB first
+        let binFromDB: String = (try? GRDBManager.shared.database.read({ db in
+            try (String.fetchOne(db, sql: "SELECT bin FROM buildings WHERE id = ?", arguments: [building.id]) ?? "")
+        })) ?? ""
+        if !binFromDB.isEmpty { return binFromDB }
+        // 2) API Service fallback
+        return NYCAPIService.shared.extractBIN(from: building)
     }
     
     private func extractBBL(from building: CoreTypes.NamedCoordinate) -> String {
-        // NYC BBL (Borough-Block-Lot) mapping for portfolio buildings
-        switch building.id {
-        case "14", "14a": return "1008490017" // Manhattan Block 849, Lot 17
-        case "14b": return "1008490018" // Manhattan Block 849, Lot 18
-        case "14c": return "1008490019" // Manhattan Block 849, Lot 19
-        case "14d": return "1008490020" // Manhattan Block 849, Lot 20
-        case "4": return "1006210036" // Manhattan Block 621, Lot 36 (Perry St)
-        case "8": return "1003900015" // Manhattan Block 390, Lot 15 (1st Ave)
-        case "7": return "1008490015" // Manhattan Block 849, Lot 15 (W 17th)
-        case "6": return "1008500025" // Manhattan Block 850, Lot 25 (W 18th)
-        case "16": return "" // Stuyvesant Cove Park - no BBL (public park)
-        default: return "" // Unknown building
-        }
+        // 1) DB first
+        let bblFromDB: String = (try? GRDBManager.shared.database.read({ db in
+            try (String.fetchOne(db, sql: "SELECT bbl FROM buildings WHERE id = ?", arguments: [building.id]) ?? "")
+        })) ?? ""
+        if !bblFromDB.isEmpty { return bblFromDB }
+        // 2) API Service fallback
+        return NYCAPIService.shared.extractBBL(from: building)
     }
     
     private func updateMainComplianceSystem(buildingId: String, nycData: NYCBuildingCompliance) async {

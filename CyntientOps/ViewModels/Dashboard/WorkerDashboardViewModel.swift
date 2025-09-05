@@ -868,6 +868,7 @@ public class WorkerDashboardViewModel: ObservableObject {
     
     private var currentWorkerId: String?
     private var cancellables = Set<AnyCancellable>()
+    private var scheduleRefreshGeneration: Int = 0
     private var refreshTimer: Timer?
     private var weatherUpdateTimer: Timer?
     
@@ -1816,6 +1817,12 @@ public class WorkerDashboardViewModel: ObservableObject {
         guard let workerId = worker?.workerId else { return }
 
         do {
+            // Debounce/coalesce: only keep the latest refresh
+            scheduleRefreshGeneration &+= 1
+            let myGen = scheduleRefreshGeneration
+            try? await Task.sleep(nanoseconds: 200_000_000) // 200ms debounce
+            if myGen != scheduleRefreshGeneration { return }
+
             let calendar = Calendar.current
             var weekSchedule: [DaySchedule] = []
 
@@ -1849,14 +1856,37 @@ public class WorkerDashboardViewModel: ObservableObject {
                 // Add scheduled tasks (from TaskService) for that date
                 do {
                     let tasks = try await container.tasks.getTasks(for: workerId, date: date)
+
+                    // Compute route for fallback building resolution (active or nearest upcoming)
+                    let weekday = calendar.component(.weekday, from: date)
+                    let route = container.routes.getRoute(for: workerId, dayOfWeek: weekday)
+                    func fallbackBuildingId(near time: Date) -> String? {
+                        guard let route = route else { return nil }
+                        // Active or closest upcoming sequence within 2 hours
+                        if let active = route.sequences.first(where: { seq in
+                            let end = seq.arrivalTime.addingTimeInterval(seq.estimatedDuration)
+                            return seq.arrivalTime <= time && time <= end
+                        }) { return active.buildingId }
+                        let horizon: TimeInterval = 2 * 3600
+                        return route.sequences
+                            .filter { abs($0.arrivalTime.timeIntervalSince(time)) <= horizon }
+                            .sorted { abs($0.arrivalTime.timeIntervalSince(time)) < abs($1.arrivalTime.timeIntervalSince(time)) }
+                            .first?.buildingId
+                    }
+
                     let taskItems: [DaySchedule.ScheduleItem] = tasks.compactMap { t in
                         let start = t.dueDate ?? calendar.date(bySettingHour: 9, minute: 0, second: 0, of: date) ?? date
                         let end = start.addingTimeInterval(60 * 60) // default 1h if unknown
+                        let bid: String = {
+                            if let id = t.buildingId, !id.isEmpty { return id }
+                            if let fb = fallbackBuildingId(near: start) { return fb }
+                            return self.currentBuilding?.id ?? ""
+                        }()
                         return DaySchedule.ScheduleItem(
                             id: t.id,
                             startTime: start,
                             endTime: end,
-                            buildingId: t.buildingId ?? (self.currentBuilding?.id ?? ""),
+                            buildingId: bid,
                             title: t.title,
                             taskCount: 1
                         )
@@ -1866,22 +1896,80 @@ public class WorkerDashboardViewModel: ObservableObject {
                     // Ignore task fetch errors; routine instances still show
                 }
 
+                // Inject DSNY Circuit (Chelsea) for Kevin on DSNY set-out days so he sees "what's next"
+                if workerId == CanonicalIDs.Workers.kevinDutan {
+                    let weekday = calendar.component(.weekday, from: date)
+                    let cday = CollectionDay.from(weekday: weekday)
+                    // DSNY set-out days (Su/Tu/Th) — use 8–9 PM window
+                    let dsnyDays: Set<CollectionDay> = [.sunday, .tuesday, .thursday]
+                    if dsnyDays.contains(cday) {
+                        if let start = calendar.date(bySettingHour: 20, minute: 0, second: 0, of: date),
+                           let end = calendar.date(bySettingHour: 21, minute: 0, second: 0, of: date) {
+                            // Coalesce buildings into Chelsea Circuit group; child items show per-building
+                            let chelseaBuildings: [(id: String, name: String)] = [
+                                (CanonicalIDs.Buildings.westEighteenth112, CanonicalIDs.Buildings.getName(for: CanonicalIDs.Buildings.westEighteenth112) ?? "112 W 18th"),
+                                (CanonicalIDs.Buildings.westSeventeenth117, CanonicalIDs.Buildings.getName(for: CanonicalIDs.Buildings.westSeventeenth117) ?? "117 W 17th"),
+                                (CanonicalIDs.Buildings.westSeventeenth135_139, CanonicalIDs.Buildings.getName(for: CanonicalIDs.Buildings.westSeventeenth135_139) ?? "135–139 W 17th"),
+                                (CanonicalIDs.Buildings.rubinMuseum, CanonicalIDs.Buildings.getName(for: CanonicalIDs.Buildings.rubinMuseum) ?? "136–148 W 17th")
+                            ]
+                            let dsnyChildren: [DaySchedule.ScheduleItem] = chelseaBuildings.map { b in
+                                DaySchedule.ScheduleItem(
+                                    id: "dsny_setout_\(b.id)_\(Int(start.timeIntervalSince1970))",
+                                    startTime: start,
+                                    endTime: end,
+                                    buildingId: "17th_street_complex",
+                                    title: "Set Out Trash — \(b.name)",
+                                    taskCount: 1
+                                )
+                            }
+                            items.append(contentsOf: dsnyChildren)
+                        }
+                    }
+                }
+
+                // Deduplicate identical items by (buildingId + title + startTime minute) and aggregate counts/durations
+                let grouped: [String: [DaySchedule.ScheduleItem]] = Dictionary(grouping: items) { item in
+                    let minute = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: item.startTime)
+                    let timeKey = String(format: "%04d-%02d-%02d %02d:%02d",
+                                         minute.year ?? 0, minute.month ?? 0, minute.day ?? 0,
+                                         minute.hour ?? 0, minute.minute ?? 0)
+                    return "\(item.buildingId)|\(item.title.lowercased())|\(timeKey)"
+                }
+                var deduped: [DaySchedule.ScheduleItem] = []
+                deduped.reserveCapacity(grouped.count)
+                for (_, bucket) in grouped {
+                    guard let first = bucket.first else { continue }
+                    let totalCount = bucket.reduce(0) { $0 + $1.taskCount }
+                    let maxEnd = bucket.map { $0.endTime }.max() ?? first.endTime
+                    let combined = DaySchedule.ScheduleItem(
+                        id: first.id,
+                        startTime: first.startTime,
+                        endTime: maxEnd,
+                        buildingId: first.buildingId,
+                        title: first.title,
+                        taskCount: totalCount
+                    )
+                    deduped.append(combined)
+                }
+
                 // Sort by start time, then title (acts as category surrogate)
-                items.sort { lhs, rhs in
+                deduped.sort { lhs, rhs in
                     if lhs.startTime != rhs.startTime { return lhs.startTime < rhs.startTime }
                     return lhs.title.localizedCaseInsensitiveCompare(rhs.title) == .orderedAscending
                 }
 
                 // Compute total hours
-                let totalHours = items.reduce(0.0) { sum, i in
+                let totalHours = deduped.reduce(0.0) { sum, i in
                     sum + i.endTime.timeIntervalSince(i.startTime) / 3600.0
                 }
 
-                weekSchedule.append(DaySchedule(date: date, items: items, totalHours: totalHours))
+                weekSchedule.append(DaySchedule(date: date, items: deduped, totalHours: totalHours))
             }
 
-            await MainActor.run {
-                self.scheduleWeek = weekSchedule
+            if myGen == scheduleRefreshGeneration {
+                await MainActor.run {
+                    self.scheduleWeek = weekSchedule
+                }
             }
 
             print("✅ Loaded weekly schedule with merge: routines + scheduled tasks")

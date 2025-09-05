@@ -1067,7 +1067,17 @@ struct NovaInteractionView: View {
         novaPrompts.append(prompt)
         
         Task {
-            await processNovaPrompt(prompt)
+            // General grounding: try to answer from app data first
+            let assigned = contextAdapter.getAssignedBuildings()
+            if let grounded = await NovaGroundingService.shared.ground(query: prompt.text, container: container, assignedBuildings: assigned, defaultWorkerId: contextAdapter.getCurrentWorker()?.id ?? CanonicalIDs.Workers.kevinDutan) {
+                novaResponses.append(grounded)
+                processingState = .idle
+            } else if let groundedRoutine = await tryResolveRoutineIntent(prompt.text) {
+                novaResponses.append(groundedRoutine)
+                processingState = .idle
+            } else {
+                await processNovaPrompt(prompt)
+            }
         }
     }
     
@@ -1095,6 +1105,60 @@ struct NovaInteractionView: View {
             )
             novaResponses.append(errorResponse)
             processingState = .error
+        }
+    }
+
+    // MARK: - Intent Resolver (Grounded Answers)
+    private func normalize(_ s: String) -> String {
+        s.lowercased().replacingOccurrences(of: "street", with: "st").replacingOccurrences(of: ".", with: "").trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func tryResolveRoutineIntent(_ text: String) async -> NovaResponse? {
+        let q = normalize(text)
+        guard q.contains("routine") else { return nil }
+
+        // Attempt to extract building phrase; heuristics for "for 68 Perry"
+        let buildingCandidates = contextAdapter.getAssignedBuildings().map { ($0.id, $0.name) }
+        let matched: (id: String, name: String)? = {
+            // Direct match via canonical map
+            for (id, name) in buildingCandidates {
+                if q.contains(normalize(name)) { return (id, name) }
+            }
+            // Fuzzy: match "68 perry" pattern
+            if q.contains("68 perry") { return (CanonicalIDs.Buildings.perry68, "68 Perry Street") }
+            if q.contains("131 perry") { return (CanonicalIDs.Buildings.perry131, "131 Perry Street") }
+            if q.contains("112 w 18") || q.contains("112 west 18") { return (CanonicalIDs.Buildings.westEighteenth112, "112 West 18th Street") }
+            if q.contains("117 w 17") || q.contains("117 west 17") { return (CanonicalIDs.Buildings.westSeventeenth117, "117 West 17th Street") }
+            if q.contains("chelsa circuit") || q.contains("chelsea circuit") { return ("17th_street_complex", "Chelsea Circuit") }
+            return nil
+        }()
+
+        guard let target = matched else { return nil }
+
+        // Resolve worker and fetch routine instances for the week
+        let workerId = contextAdapter.getCurrentWorker()?.id ?? CanonicalIDs.Workers.kevinDutan
+        let start = Calendar.current.startOfDay(for: Date())
+        let end = Calendar.current.date(byAdding: .day, value: 7, to: start) ?? Date().addingTimeInterval(7*86400)
+
+        do {
+            let instances = try await operationalManager.getWorkerWeeklySchedule(for: workerId)
+            let windowed = instances.filter { inst in
+                inst.buildingId == target.id && inst.startTime >= start && inst.startTime <= end
+            }
+            if windowed.isEmpty {
+                let msg = "No upcoming instances for \(target.name) in the next 7 days. Standing routines still apply."
+                return NovaResponse(success: true, message: msg, metadata: ["buildingId": target.id])
+            }
+            // Compose
+            let df = DateFormatter(); df.dateFormat = "E h:mm a"; df.locale = Locale(identifier: "en_US_POSIX")
+            let lines = windowed.sorted { $0.startTime < $1.startTime }.prefix(6).map { it in
+                let time = df.string(from: it.startTime)
+                return "• \(time) — \(it.title)"
+            }
+            let msg = "Routines for \(target.name) (next 7 days):\n" + lines.joined(separator: "\n")
+            return NovaResponse(success: true, message: msg, metadata: ["buildingId": target.id])
+        } catch {
+            return NovaResponse(success: true, message: "I couldn’t load live instances. Try again shortly.", metadata: ["buildingId": target.id, "error": error.localizedDescription])
         }
     }
     

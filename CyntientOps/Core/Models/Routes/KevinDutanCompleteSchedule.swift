@@ -43,8 +43,10 @@ public struct KevinDutanCompleteSchedule {
             estimatedEndTime: endTime,
             sequences: [
                 perryStreet131Sequence(day: "Monday", time: 7, 0),
-                perryStreet68Sequence(day: "Monday", time: 8, 0),
+                perryStreet68Sequence(day: "Monday", time: 8, 30),
                 seventeenthStreetMorningSequence(day: "Monday", time: 9, 0),
+                // Poster removal immediately after Chelsea Circuit (11:30–12:00)
+                seventhAvenueSequence(day: "Monday", time: 11, 30),
                 // Monday afternoon: 123 1st Ave & 178 Spring (M W F pattern)
                 firstAvenueAndSpringSequence(day: "Monday", time: 13, 0),
                 // Weekly stairwell rotation (determined by week of year)
@@ -74,8 +76,10 @@ public struct KevinDutanCompleteSchedule {
             estimatedEndTime: endTime,
             sequences: [
                 perryStreet131Sequence(day: "Wednesday", time: 7, 0),
-                perryStreet68Sequence(day: "Wednesday", time: 8, 0),
+                perryStreet68Sequence(day: "Wednesday", time: 8, 30),
                 seventeenthStreetMorningSequence(day: "Wednesday", time: 9, 0),
+                // Poster removal immediately after Chelsea Circuit (11:30–12:00)
+                seventhAvenueSequence(day: "Wednesday", time: 11, 30),
                 // Wednesday afternoon: 123 1st Ave & 178 Spring (M W F pattern) + Angel covers evening garbage
                 firstAvenueAndSpringSequence(day: "Wednesday", time: 13, 0)
                 // No evening garbage - Angel handles Wednesday evenings
@@ -99,9 +103,10 @@ public struct KevinDutanCompleteSchedule {
             estimatedEndTime: endTime,
             sequences: [
                 perryStreet131Sequence(day: "Thursday", time: 7, 0),
-                perryStreet68Sequence(day: "Thursday", time: 8, 0),
+                perryStreet68Sequence(day: "Thursday", time: 8, 30),
                 seventeenthStreetMorningSequence(day: "Thursday", time: 9, 0),
-                seventhAvenueSequence(day: "Thursday", time: 11, 0),
+                // Poster removal immediately after Chelsea Circuit (11:30–12:00)
+                seventhAvenueSequence(day: "Thursday", time: 11, 30),
                 // Thursday afternoon: Alternative buildings or projects
                 alternativeBuildingsSequence(day: "Thursday", time: 14, 0)
             ],
@@ -124,8 +129,10 @@ public struct KevinDutanCompleteSchedule {
             estimatedEndTime: endTime,
             sequences: [
                 perryStreet131Sequence(day: "Friday", time: 7, 0),
-                perryStreet68Sequence(day: "Friday", time: 8, 0),
+                perryStreet68Sequence(day: "Friday", time: 8, 30),
                 seventeenthStreetMorningSequence(day: "Friday", time: 9, 15),
+                // Poster removal immediately after Chelsea Circuit (11:30–12:00)
+                seventhAvenueSequence(day: "Friday", time: 11, 30),
                 // Friday afternoon: 123 1st Ave & 178 Spring (M W F pattern)
                 firstAvenueAndSpringSequence(day: "Friday", time: 13, 0),
                 // Weekly maintenance tasks (water filters monthly, etc.)
@@ -141,15 +148,19 @@ public struct KevinDutanCompleteSchedule {
     /// Reusable Perry Street 131 sequence with day/time parameters
     private static func perryStreet131Sequence(day: String, time hour: Int, _ minute: Int) -> RouteSequence {
         let arrivalTime = Calendar.current.date(bySettingHour: hour, minute: minute, second: 0, of: Date()) ?? Date()
-        
+        let dayUpper = day.uppercased()
+        let isMWF = dayUpper.contains("MON") || dayUpper.contains("WED") || dayUpper.contains("FRI")
+        let stairsMopDay = dayUpper.contains("WED")
+
         return RouteSequence(
             id: "kevin_perry131_\(day.lowercased())",
             buildingId: CanonicalIDs.Buildings.perry131,
             buildingName: "131 Perry Street",
             arrivalTime: arrivalTime,
             estimatedDuration: 90 * 60,
-            operations: [
-                OperationTask(
+            operations: {
+                var ops: [OperationTask] = []
+                ops.append(OperationTask(
                     id: "perry131_building_check_\(day.lowercased())",
                     name: "Building Check & Assessment",
                     category: .buildingInspection,
@@ -158,8 +169,8 @@ public struct KevinDutanCompleteSchedule {
                     isWeatherSensitive: false,
                     skillLevel: .basic,
                     instructions: "\(day) building check - entrance, lobby, immediate issues"
-                ),
-                OperationTask(
+                ))
+                ops.append(OperationTask(
                     id: "perry131_entrance_cleaning_\(day.lowercased())",
                     name: "Entrance Area Cleaning",
                     category: .sweeping,
@@ -167,8 +178,19 @@ public struct KevinDutanCompleteSchedule {
                     estimatedDuration: 15 * 60,
                     isWeatherSensitive: true,
                     skillLevel: .basic
-                ),
-                OperationTask(
+                ))
+                // Daily bathroom check/restock
+                ops.append(OperationTask(
+                    id: "perry131_bathroom_check_\(day.lowercased())",
+                    name: "Bathroom Check & Restock",
+                    category: .maintenance,
+                    location: .hallway,
+                    estimatedDuration: 10 * 60,
+                    isWeatherSensitive: false,
+                    skillLevel: .basic
+                ))
+                // Interior/Stairwell routine
+                ops.append(OperationTask(
                     id: "perry131_interior_stairwell_\(day.lowercased())",
                     name: "Interior/Stairwell Routine",
                     category: .stairwellCleaning,
@@ -177,8 +199,33 @@ public struct KevinDutanCompleteSchedule {
                     isWeatherSensitive: false,
                     skillLevel: .basic,
                     instructions: "Stairwell and interior floors routine"
-                )
-            ],
+                ))
+                // Hallway vacuum on M/W/F only
+                if isMWF {
+                    ops.append(OperationTask(
+                        id: "perry131_hallway_vacuum_\(day.lowercased())",
+                        name: "Hallway Vacuum (M/W/F)",
+                        category: .vacuuming,
+                        location: .hallway,
+                        estimatedDuration: 20 * 60,
+                        isWeatherSensitive: false,
+                        skillLevel: .basic
+                    ))
+                }
+                // Weekly stairs mop (Wednesday)
+                if stairsMopDay {
+                    ops.append(OperationTask(
+                        id: "perry131_stairs_mop_\(day.lowercased())",
+                        name: "Stairs Mop (Weekly)",
+                        category: .mopping,
+                        location: .stairwell,
+                        estimatedDuration: 20 * 60,
+                        isWeatherSensitive: false,
+                        skillLevel: .basic
+                    ))
+                }
+                return ops
+            }(),
             sequenceType: .buildingCheck,
             isFlexible: true
         )
@@ -223,54 +270,105 @@ public struct KevinDutanCompleteSchedule {
     /// 17th Street morning sequence (consistent across weekdays)
     private static func seventeenthStreetMorningSequence(day: String, time hour: Int, _ minute: Int) -> RouteSequence {
         let arrivalTime = Calendar.current.date(bySettingHour: hour, minute: minute, second: 0, of: Date()) ?? Date()
-        
+        let dayUpper = day.uppercased()
+        let isMWF = dayUpper.contains("MON") || dayUpper.contains("WED") || dayUpper.contains("FRI")
+
         return RouteSequence(
             id: "kevin_17th_complex_\(day.lowercased())",
             buildingId: "17th_street_complex",
-            buildingName: "17th Street Building Complex",
+            buildingName: "Chelsea Circuit",
             arrivalTime: arrivalTime,
-            estimatedDuration: 120 * 60, // 2 hours (9–11am)
-            operations: [
-                // Same operations as Tuesday but with day-specific IDs
-                OperationTask(
-                    id: "sidewalk_hosing_112_117_\(day.lowercased())",
+            estimatedDuration: 150 * 60, // 2.5 hours (9–11:30am)
+            operations: {
+                var ops: [OperationTask] = []
+                // A) Sidewalk Hosing – All buildings (weather-dependent)
+                ops.append(OperationTask(
+                    id: "sidewalk_hosing_\(day.lowercased())_112_117",
                     name: "Sidewalk Hosing - 112 & 117 W 17th",
                     category: .hosing,
                     location: .sidewalk,
-                    estimatedDuration: 30 * 60,
+                    estimatedDuration: 20 * 60,
                     isWeatherSensitive: true,
                     requiredEquipment: ["Hose", "Squeegee"],
                     skillLevel: .basic,
-                    instructions: "\(day): Hose sidewalks, squeegee clean, ensure proper drainage"
-                ),
-                OperationTask(
-                    id: "vacuum_hallways_112_\(day.lowercased())",
-                    name: "Vacuum Hallways Floors 2-6 - 112 W 17th",
-                    category: .vacuuming,
-                    location: .hallway,
-                    estimatedDuration: 30 * 60,
-                    isWeatherSensitive: false,
-                    requiredEquipment: ["Vacuum"],
-                    instructions: "Floors 2, 3, 4, 5, 6 hallways and stairwell landings"
-                ),
-                OperationTask(
-                    id: "trash_areas_multiple_\(day.lowercased())",
-                    name: "Trash Area Cleaning - All 17th St Buildings",
+                    instructions: "Hose sidewalks, squeegee, ensure drainage (skip heavy rain/ice; Weather card suggests deferral)."
+                ))
+                ops.append(OperationTask(
+                    id: "sidewalk_hosing_\(day.lowercased())_135_139",
+                    name: "Sidewalk Hosing - 135–139 W 17th",
+                    category: .hosing,
+                    location: .sidewalk,
+                    estimatedDuration: 15 * 60,
+                    isWeatherSensitive: true,
+                    skillLevel: .basic,
+                    instructions: "Combined facade; focus around 139 side entrance."
+                ))
+                ops.append(OperationTask(
+                    id: "sidewalk_hosing_\(day.lowercased())_136_148",
+                    name: "Sidewalk Hosing - 136–148 W 17th",
+                    category: .hosing,
+                    location: .sidewalk,
+                    estimatedDuration: 15 * 60,
+                    isWeatherSensitive: true,
+                    skillLevel: .basic,
+                    instructions: "Grouped entrances including 142, 144, 146, 148."
+                ))
+
+                // B) Hallway Vacuum – M/W/F only (112, 117)
+                if isMWF {
+                    ops.append(OperationTask(
+                        id: "vacuum_hallways_\(day.lowercased())_112",
+                        name: "Hallway Vacuum – 112 W 18th (Floors 2–6)",
+                        category: .vacuuming,
+                        location: .hallway,
+                        estimatedDuration: 30 * 60,
+                        isWeatherSensitive: false,
+                        requiredEquipment: ["Vacuum"],
+                        instructions: "Show on M/W/F only; hallways + stair landings."
+                    ))
+                    ops.append(OperationTask(
+                        id: "vacuum_hallways_\(day.lowercased())_117",
+                        name: "Hallway Vacuum – 117 W 17th (Floors 2–6)",
+                        category: .vacuuming,
+                        location: .hallway,
+                        estimatedDuration: 30 * 60,
+                        isWeatherSensitive: false,
+                        requiredEquipment: ["Vacuum"],
+                        instructions: "Show on M/W/F only; hallways + stair landings."
+                    ))
+                }
+
+                // C) Trash Areas – All buildings
+                ops.append(OperationTask(
+                    id: "trash_areas_all_\(day.lowercased())",
+                    name: "Trash Areas – All (112, 117, 135–139, 136–148)",
                     category: .trashCollection,
                     location: .trashArea,
                     estimatedDuration: 45 * 60,
                     isWeatherSensitive: false,
-                    instructions: "Clean trash areas for 112, 117, 136, 138, 142-148"
-                )
-                // Additional operations as needed per day
-            ],
+                    instructions: "Sweep, mop floors, wipe bins; clean laundry areas at 142 & 146; sanitize machine tops."
+                ))
+
+                // D) Garbage Removal – Consolidation (no curb set-out)
+                ops.append(OperationTask(
+                    id: "garbage_removal_circuit_\(day.lowercased())",
+                    name: "Garbage Removal – Circuit Buildings",
+                    category: .trashCollection,
+                    location: .trashArea,
+                    estimatedDuration: 20 * 60,
+                    isWeatherSensitive: false,
+                    instructions: "Consolidate and stage trash in building trash rooms; set-out only at DSNY times."
+                ))
+
+                return ops
+            }(),
             sequenceType: .indoorCleaning,
             isFlexible: true,
             dependencies: ["kevin_perry68_\(day.lowercased())"]
         )
     }
     
-    /// 7th Avenue sequence (poster removal & treepit cleaning)
+    /// 7th Avenue sequence (poster removal only, after circuit)
     private static func seventhAvenueSequence(day: String, time hour: Int, _ minute: Int) -> RouteSequence {
         let arrivalTime = Calendar.current.date(bySettingHour: hour, minute: minute, second: 0, of: Date()) ?? Date()
         
@@ -279,7 +377,7 @@ public struct KevinDutanCompleteSchedule {
             buildingId: CanonicalIDs.Buildings.seventhAvenue115,
             buildingName: "115 7th Avenue",
             arrivalTime: arrivalTime,
-            estimatedDuration: 60 * 60,
+            estimatedDuration: 30 * 60, // 15–30 minutes
             operations: [
                 OperationTask(
                     id: "poster_removal_7th_ave_\(day.lowercased())",
@@ -289,17 +387,7 @@ public struct KevinDutanCompleteSchedule {
                     estimatedDuration: 30 * 60,
                     isWeatherSensitive: true,
                     skillLevel: .intermediate,
-                    instructions: "\(day): Remove illegal postings, clean adhesive residue"
-                ),
-                OperationTask(
-                    id: "treepit_cleaning_7th_ave_\(day.lowercased())",
-                    name: "Treepit Cleaning - 115 7th Avenue Area",
-                    category: .treepitCleaning,
-                    location: .treepit,
-                    estimatedDuration: 30 * 60,
-                    isWeatherSensitive: true,
-                    requiredEquipment: ["Hand tools", "Trash bags"],
-                    instructions: "\(day): Clean tree pits, remove debris, maintain landscaping"
+                    instructions: "\(day): Remove illegal postings; clean adhesive residue."
                 )
             ],
             sequenceType: .outdoorCleaning,
@@ -320,6 +408,16 @@ public struct KevinDutanCompleteSchedule {
             estimatedDuration: 120 * 60, // 2 hours
             operations: [
                 OperationTask(
+                    id: "firstave_garbage_removal_\(day.lowercased())",
+                    name: "Garbage Removal - 123 1st Avenue",
+                    category: .trashCollection,
+                    location: .trashArea,
+                    estimatedDuration: 20 * 60,
+                    isWeatherSensitive: false,
+                    skillLevel: .basic,
+                    instructions: "Consolidate and stage trash; do not curb before set-out window."
+                ),
+                OperationTask(
                     id: "building_maintenance_1st_ave_\(day.lowercased())",
                     name: "Building Maintenance - 123 1st Avenue",
                     category: .maintenance,
@@ -328,6 +426,16 @@ public struct KevinDutanCompleteSchedule {
                     isWeatherSensitive: true,
                     skillLevel: .intermediate,
                     instructions: "\(day): Full building exterior and common area maintenance"
+                ),
+                OperationTask(
+                    id: "spring_garbage_removal_\(day.lowercased())",
+                    name: "Garbage Removal - 178 Spring Street",
+                    category: .trashCollection,
+                    location: .trashArea,
+                    estimatedDuration: 20 * 60,
+                    isWeatherSensitive: false,
+                    skillLevel: .basic,
+                    instructions: "Consolidate and stage trash; do not curb before set-out window."
                 ),
                 OperationTask(
                     id: "building_cleaning_spring_\(day.lowercased())",

@@ -895,7 +895,12 @@ public final class NYCAPIService: ObservableObject {
     }
     
     public func extractBIN(from building: CoreTypes.NamedCoordinate) -> String {
-        // NYC BIN mapping for portfolio buildings
+        // 1) Check database first (already hydrated by NYCIntegrationManager)
+        let dbBin: String = (try? GRDBManager.shared.database.read({ db in
+            try (String.fetchOne(db, sql: "SELECT bin FROM buildings WHERE id = ?", arguments: [building.id]) ?? "")
+        })) ?? ""
+        if !dbBin.isEmpty { return dbBin }
+        // 2) Hardcoded fallback for known portfolio buildings
         switch building.id {
         case "14", "14a": return "1034304" // Rubin Museum - 142 W 17th St
         case "14b": return "1034305" // 144 W 17th St  
@@ -905,23 +910,30 @@ public final class NYCAPIService: ObservableObject {
         case "8": return "1002456" // 123 1st Avenue
         case "7": return "1034289" // 117 W 17th Street
         case "6": return "1034351" // 112 W 18th Street
-        default: return building.id // Fallback to app ID
+        default: break
         }
+        return ""
     }
     
     public func extractBBL(from building: CoreTypes.NamedCoordinate) -> String {
-        // NYC BBL (Borough-Block-Lot) mapping for portfolio buildings
+        // 1) Check database first (already hydrated)
+        let dbBbl: String = (try? GRDBManager.shared.database.read({ db in
+            try (String.fetchOne(db, sql: "SELECT bbl FROM buildings WHERE id = ?", arguments: [building.id]) ?? "")
+        })) ?? ""
+        if !dbBbl.isEmpty { return dbBbl }
+        // 2) Hardcoded portfolio fallbacks
         switch building.id {
-        case "14", "14a": return "1008490017" // Manhattan Block 849, Lot 17
-        case "14b": return "1008490018" // Manhattan Block 849, Lot 18
-        case "14c": return "1008490019" // Manhattan Block 849, Lot 19
-        case "14d": return "1008490020" // Manhattan Block 849, Lot 20
-        case "4": return "1006210036" // Manhattan Block 621, Lot 36 (Perry St)
-        case "8": return "1003900015" // Manhattan Block 390, Lot 15 (1st Ave)
-        case "7": return "1008490015" // Manhattan Block 849, Lot 15 (W 17th)
-        case "6": return "1008500025" // Manhattan Block 850, Lot 25 (W 18th)
-        default: return "" // Unknown building
+        case "14", "14a": return "1008490017"
+        case "14b": return "1008490018"
+        case "14c": return "1008490019"
+        case "14d": return "1008490020"
+        case "4": return "1006210036"
+        case "8": return "1003900015"
+        case "7": return "1008490015"
+        case "6": return "1008500025"
+        default: break
         }
+        return ""
     }
     
     public func extractDistrict(from bin: String) -> String {

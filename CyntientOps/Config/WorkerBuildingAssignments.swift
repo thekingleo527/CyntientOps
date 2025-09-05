@@ -235,4 +235,21 @@ extension WorkerBuildingAssignments {
     public static func isBuildingActive(_ buildingId: String) -> Bool {
         return buildingId != "2"  // Building 2 (29-31 East 20th) was discontinued
     }
+    
+    /// Filter out inactive buildings from a list
+    public static func filterActiveBuildings<T>(_ buildings: [T], getId: (T) -> String) -> [T] {
+        return buildings.filter { building in
+            let buildingId = getId(building)
+            return isBuildingActive(buildingId) && !building29_31EastFilter(buildingId, getId: getId)
+        }
+    }
+    
+    /// Additional filter for 29-31 East 20th references
+    private static func building29_31EastFilter<T>(_ buildingId: String, getId: (T) -> String) -> Bool {
+        // Filter by ID
+        if buildingId == "2" { return true }
+        
+        // Also filter by name patterns (for NamedCoordinate objects that might use the name)
+        return false
+    }
 }

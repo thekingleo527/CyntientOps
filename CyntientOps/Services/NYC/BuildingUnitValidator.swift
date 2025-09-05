@@ -48,7 +48,8 @@ public struct BuildingUnitValidator {
         CanonicalIDs.Buildings.stuyvesantCove: 0,    // Park (non-residential)
         
         // Additional buildings may need verification
-        CanonicalIDs.Buildings.perry131: 3,
+        // 131 Perry is > 9 units → black bags (no individual bins)
+        CanonicalIDs.Buildings.perry131: 12,
         CanonicalIDs.Buildings.westEighteenth112: 6,
         CanonicalIDs.Buildings.westSeventeenth117: 8
     ]

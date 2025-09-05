@@ -88,31 +88,121 @@ public actor NovaAPIService {
     
     // MARK: - Hybrid Processing Methods
     
-    /// Process prompt when online - can call Supabase/LLM (placeholder for now)
+    /// Process prompt when online — prefer Supabase Edge Function if configured; otherwise local logic
     private func processPromptOnline(_ prompt: NovaPrompt) async throws -> NovaResponse {
-        // TODO: Replace this with real Supabase Edge Function call
-        // This is a placeholder that still uses the existing logic but marks it for replacement
-        
         do {
-            print("🌐 Nova: Processing prompt online (using enhanced local logic)")
-            
-            // Get context for the prompt
             let context = await getOrCreateContext(for: prompt)
-            
-            // FOR NOW: Use the existing generateResponse logic (to be replaced with Supabase)
-            let response = try await generateResponse(for: prompt, context: context)
-            
-            // TODO: When implementing Supabase, replace above with:
-            // let response = try await callSupabaseEdgeFunction(prompt, context: context)
-            
-            print("✅ Nova: Online response generated successfully")
-            return response
-            
+            if let (url, anonKey) = supabaseConfig() {
+                return try await callSupabaseEdgeFunction(url: url, anonKey: anonKey, prompt: prompt, context: context)
+            } else {
+                // No Supabase env configured — use local generation but mark as online
+                print("ℹ️ Nova: SUPABASE_URL/ANON_KEY not set — using local generation")
+                let local = try await generateResponse(for: prompt, context: context)
+                return NovaResponse(
+                    id: local.id,
+                    success: local.success,
+                    message: local.message,
+                    insights: local.insights,
+                    actions: local.actions,
+                    confidence: local.confidence,
+                    timestamp: local.timestamp,
+                    processingTime: local.processingTime,
+                    context: local.context,
+                    metadata: local.metadata.merging(["mode": "online-local"]) { $1 }
+                )
+            }
         } catch {
             print("❌ Nova: Online processing failed, falling back to offline: \(error)")
-            // Fallback to offline processing if online fails
             return await processPromptOffline(prompt)
         }
+    }
+
+    // MARK: - Supabase Integration
+    
+    private func supabaseConfig() -> (URL, String)? {
+        let env = ProcessInfo.processInfo.environment
+        guard let base = env["SUPABASE_URL"], !base.isEmpty,
+              let key = env["SUPABASE_ANON_KEY"], !key.isEmpty,
+              let url = URL(string: base.trimmingCharacters(in: .whitespacesAndNewlines).trimmingCharacters(in: CharacterSet(charactersIn: "/")) + "/functions/v1/nova-ai-processor") else {
+            return nil
+        }
+        return (url, key)
+    }
+
+    private struct SupabaseResponse: Decodable {
+        let success: Bool
+        let response: String?
+        let model: String?
+        let tokensUsed: Int?
+        let error: String?
+    }
+
+    private func buildContextPayload(for prompt: NovaPrompt, using ctx: NovaContext) async -> [String: Any] {
+        var payload: [String: Any] = [
+            "timestamp": ISO8601DateFormatter().string(from: Date()),
+            "promptId": prompt.id.uuidString,
+            "appVersion": Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown"
+        ]
+        // Include a few helpful bits of context without heavy queries
+        for (k, v) in ctx.data { payload[k] = v }
+        for (k, v) in ctx.metadata { payload["meta_\(k)"] = v }
+        if let role = ctx.userRole { payload["userRole"] = role.rawValue }
+        if let b = ctx.buildingContext { payload["buildingId"] = b }
+        return payload
+    }
+
+    private func currentUserRole() async -> String {
+        if let role = await WorkerContextEngineAdapter.shared.getCurrentWorker()?.role { return role.rawValue }
+        return "worker"
+    }
+
+    private func callSupabaseEdgeFunction(url: URL, anonKey: String, prompt: NovaPrompt, context: NovaContext) async throws -> NovaResponse {
+        print("🌐 Nova: Calling Supabase Edge Function…")
+        let start = Date()
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(anonKey)", forHTTPHeaderField: "Authorization")
+
+        let history: [[String: String]] = [] // Placeholder; no persisted history yet
+        let body: [String: Any] = [
+            "prompt": prompt.text,
+            "history": history,
+            "userRole": await currentUserRole(),
+            "context": await buildContextPayload(for: prompt, using: context)
+        ]
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse else {
+            throw NovaAPIError.responseGenerationFailed
+        }
+        guard http.statusCode == 200 else {
+            let text = String(data: data, encoding: .utf8) ?? ""
+            throw NSError(domain: "Supabase", code: http.statusCode, userInfo: [NSLocalizedDescriptionKey: text])
+        }
+
+        let decoded = try JSONDecoder().decode(SupabaseResponse.self, from: data)
+        guard decoded.success, let message = decoded.response else {
+            throw NSError(domain: "Supabase", code: -1, userInfo: [NSLocalizedDescriptionKey: decoded.error ?? "Unknown error"])
+        }
+
+        let processing = Date().timeIntervalSince(start)
+        print("✅ Nova: Supabase response in \(String(format: "%.2f", processing))s")
+        return NovaResponse(
+            success: true,
+            message: message,
+            insights: [],
+            actions: [],
+            confidence: 1.0,
+            processingTime: processing,
+            context: context,
+            metadata: [
+                "mode": "online-supabase",
+                "model": decoded.model ?? "gpt-4",
+                "tokensUsed": String(decoded.tokensUsed ?? 0)
+            ]
+        )
     }
     
     /// Process prompt when offline - uses local database search
