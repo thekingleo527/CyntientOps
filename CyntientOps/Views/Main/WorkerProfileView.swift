@@ -14,7 +14,19 @@ struct WorkerProfileView: View {
     @StateObject private var viewModel = WorkerProfileLocalViewModel()
     let workerId: String
     let container: ServiceContainer
-    @EnvironmentObject private var navigationCoordinator: NavigationCoordinator
+    @State private var activeSheet: SheetType?
+    
+    enum SheetType: Identifiable {
+        case buildingDetail(String)
+        case taskSchedule(workerId: String, date: Date)
+        
+        var id: String {
+            switch self {
+            case .buildingDetail(let buildingId): return "building-\(buildingId)"
+            case .taskSchedule(let workerId, let date): return "schedule-\(workerId)-\(date.timeIntervalSince1970)"
+            }
+        }
+    }
     
     var body: some View {
         ZStack {
@@ -38,13 +50,13 @@ struct WorkerProfileView: View {
                     
                     // Weekly Schedule Section (Per Design Brief)
                     ProfileWeeklyScheduleView(schedule: viewModel.weeklySchedule) { dayItem in
-                        navigationCoordinator.push(.taskSchedule(workerId: workerId, date: dayItem.date))
+                        activeSheet = .taskSchedule(workerId: workerId, date: dayItem.date)
                     }
                     .animatedGlassAppear(delay: 0.3)
                     
                     // Assigned Buildings Section (Per Design Brief) 
                     ProfileAssignedBuildingsViewEmbedded(buildings: viewModel.assignedBuildings) { building in
-                        navigationCoordinator.push(.buildingDetail(buildingId: building.id))
+                        activeSheet = .buildingDetail(building.id)
                     }
                     .animatedGlassAppear(delay: 0.4)
                     
@@ -72,6 +84,38 @@ struct WorkerProfileView: View {
         .overlay {
             if viewModel.isLoading {
                 GlassLoadingState()
+            }
+        }
+        .sheet(item: $activeSheet) { sheetType in
+            switch sheetType {
+            case .buildingDetail(let buildingId):
+                if let building = viewModel.assignedBuildings.first(where: { $0.id == buildingId }) {
+                    NavigationView {
+                        BuildingDetailView(
+                            building: NamedCoordinate(
+                                id: building.id,
+                                name: building.name,
+                                address: building.address ?? "",
+                                latitude: 40.7128,  // Default NYC coordinates
+                                longitude: -74.0060
+                            ),
+                            container: container
+                        )
+                    }
+                } else {
+                    Text("Building not found")
+                }
+            case .taskSchedule(let workerId, let date):
+                NavigationView {
+                    TaskScheduleView(workerId: workerId, date: date, container: container)
+                        .navigationTitle("Schedule for \(date.formatted(date: .abbreviated, time: .omitted))")
+                        .navigationBarTitleDisplayMode(.inline)
+                        .toolbar {
+                            ToolbarItem(placement: .navigationBarLeading) {
+                                Button("Close") { activeSheet = nil }
+                            }
+                        }
+                }
             }
         }
     }
