@@ -1,0 +1,255 @@
+//
+//  WorkerSimpleHeader.swift
+//  CyntientOps v6.0
+//
+//  Simple header for WorkerDashboard refactor with user-requested layout:
+//  CyntientOps Logo -- Nova Button -- WorkerProfile/ClockIn
+//  Replaces complex HeaderV3B with clean, focused design
+//
+
+import SwiftUI
+import CoreLocation
+
+struct WorkerSimpleHeader: View {
+    let workerName: String
+    let workerId: String
+    let isNovaProcessing: Bool
+    let clockInStatus: ClockInStatus
+    let showClockButton: Bool
+    
+    // Action callbacks
+    let onLogoTap: () -> Void
+    let onNovaPress: () -> Void
+    let onProfileTap: () -> Void
+    let onClockAction: () -> Void
+    
+    enum ClockInStatus {
+        case notClockedIn
+        case clockedIn(building: String, time: Date)
+    }
+
+    init(
+        workerName: String,
+        workerId: String,
+        isNovaProcessing: Bool,
+        clockInStatus: ClockInStatus,
+        showClockButton: Bool = true,
+        onLogoTap: @escaping () -> Void,
+        onNovaPress: @escaping () -> Void,
+        onProfileTap: @escaping () -> Void,
+        onClockAction: @escaping () -> Void
+    ) {
+        self.workerName = workerName
+        self.workerId = workerId
+        self.isNovaProcessing = isNovaProcessing
+        self.clockInStatus = clockInStatus
+        self.showClockButton = showClockButton
+        self.onLogoTap = onLogoTap
+        self.onNovaPress = onNovaPress
+        self.onProfileTap = onProfileTap
+        self.onClockAction = onClockAction
+    }
+    
+    var body: some View {
+        HStack(spacing: 0) {
+            // CyntientOps Logo (Left)
+            Button(action: onLogoTap) {
+                CyntientOpsLogo(size: .compact)
+            }
+            .buttonStyle(PlainButtonStyle())
+            
+            Spacer()
+            
+            // Nova Button (Center) - Using persistent size for always-available assistant
+            NovaAvatar(
+                size: .persistent,  // Optimized for persistent assistant evolution
+                isActive: false,
+                hasUrgentInsights: false,
+                isBusy: isNovaProcessing,
+                onTap: onNovaPress,
+                onLongPress: { /* Quick Nova actions could be added here */ }
+            )
+            
+            Spacer()
+            
+            // WorkerProfile/ClockIn (Right)
+            HStack(spacing: 12) {
+                // Worker Profile
+                Button(action: onProfileTap) {
+                    HStack(spacing: 8) {
+                        // Worker avatar
+                        Circle()
+                            .fill(
+                                LinearGradient(
+                                    colors: [.gray.opacity(0.8), .gray.opacity(0.6)],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .frame(width: 32, height: 32)
+                            .overlay(
+                                Text(getInitials(from: workerName))
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundColor(.white)
+                            )
+                        
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(getInitials(from: workerName))
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                                .lineLimit(1)
+                            
+                            switch clockInStatus {
+                            case .notClockedIn:
+                                EmptyView()
+                            case .clockedIn(let building, let time):
+                                Text(timeWorked(from: time))
+                                    .font(.system(size: 10))
+                                    .foregroundColor(CyntientOpsDesign.DashboardColors.success)
+                            }
+                        }
+                    }
+                }
+                .buttonStyle(PlainButtonStyle())
+                
+                // Clock In/Out Action (can be hidden when moved to quick actions)
+                if showClockButton {
+                    Button(action: onClockAction) {
+                        HStack(spacing: 6) {
+                            Image(systemName: clockIcon)
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundColor(clockColor)
+                            
+                            Text(clockText)
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundColor(clockColor)
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(
+                            Capsule()
+                                .fill(clockColor.opacity(0.15))
+                                .overlay(
+                                    Capsule()
+                                        .stroke(clockColor.opacity(0.3), lineWidth: 1)
+                                )
+                        )
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                }
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 12)
+        .frame(height: 60)
+        .background(
+            CyntientOpsDesign.DashboardColors.cardBackground
+                .overlay(
+                    Rectangle()
+                        .frame(height: 0.5)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.borderSubtle.opacity(0.3)),
+                    alignment: .bottom
+                )
+        )
+    }
+    
+    // MARK: - Clock Status Helpers
+    
+    private var clockIcon: String {
+        switch clockInStatus {
+        case .notClockedIn:
+            return "clock"
+        case .clockedIn:
+            return "clock.fill"
+        }
+    }
+    
+    private var clockText: String {
+        switch clockInStatus {
+        case .notClockedIn:
+            return "Clock In"
+        case .clockedIn:
+            return "Clock Out"
+        }
+    }
+    
+    private var clockColor: Color {
+        switch clockInStatus {
+        case .notClockedIn:
+            return CyntientOpsDesign.DashboardColors.info
+        case .clockedIn:
+            return CyntientOpsDesign.DashboardColors.success
+        }
+    }
+    
+    private func timeWorked(from startTime: Date) -> String {
+        let duration = Date().timeIntervalSince(startTime)
+        let seconds = Int(duration)
+        let hours = seconds / 3600
+        let minutes = (seconds % 3600) / 60
+        
+        if hours > 0 {
+            return "\(hours)h \(minutes)m"
+        } else {
+            return "\(minutes)m"
+        }
+    }
+    
+    private func getInitials(from name: String) -> String {
+        let components = name.components(separatedBy: " ")
+        let firstInitial = components.first?.prefix(1).uppercased() ?? "W"
+        let lastInitial = components.count > 1 ? components.last?.prefix(1).uppercased() ?? "" : ""
+        return "\(firstInitial)\(lastInitial)"
+    }
+}
+
+// MARK: - CyntientOps Logo Component
+
+struct CyntientOpsLogo: View {
+    enum Size {
+        case compact
+        case standard
+        
+        var height: CGFloat {
+            switch self {
+            case .compact: return 32
+            case .standard: return 40
+            }
+        }
+        
+        var fontSize: CGFloat {
+            switch self {
+            case .compact: return 16
+            case .standard: return 20
+            }
+        }
+    }
+    
+    let size: Size
+    
+    var body: some View {
+        HStack(spacing: 8) {
+            // Logo mark
+            ZStack {
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(
+                        LinearGradient(
+                            colors: [.blue, .cyan],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: size.height, height: size.height)
+                
+                Text("C")
+                    .font(.system(size: size.fontSize, weight: .bold))
+                    .foregroundColor(.white)
+            }
+            
+            // Text
+            Text("CyntientOps")
+                .font(.system(size: size.fontSize - 2, weight: .semibold))
+                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+        }
+    }
+}

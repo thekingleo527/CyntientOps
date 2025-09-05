@@ -1,0 +1,860 @@
+//
+//  WorkerDashboardMainView.swift
+//  CyntientOps v6.0
+//
+//  ✅ FIXED: Type reference errors for UrgencyLevel and DashboardSource
+//  ✅ FIXED: Using correct types from CoreTypes
+//  ✅ FIXED: TaskUrgency instead of UrgencyLevel
+//  ✅ FIXED: DashboardUpdate.Source instead of DashboardSource
+//
+
+import SwiftUI
+import Combine
+import CoreLocation
+
+struct WorkerDashboardMainView: View {
+    // MARK: - ServiceContainer Integration
+    let container: ServiceContainer
+    
+    // MARK: - ViewModels
+    @StateObject private var viewModel: WorkerDashboardViewModel
+    @StateObject private var profileVM: WorkerProfileViewModel
+    @StateObject private var locationManager = LocationManager.shared
+    
+    // MARK: - Environment Objects
+    @EnvironmentObject private var authManager: NewAuthManager
+    @EnvironmentObject private var session: CoreTypes.Session
+    @EnvironmentObject private var dashboardSync: DashboardSyncService
+    
+    // MARK: - State Management
+    @State private var showingTaskDetail = false
+    @State private var selectedTask: CoreTypes.ContextualTask?
+    @State private var showingBuildingSelector = false
+    @State private var showingProfile = false
+    @State private var showingCamera = false
+    @State private var currentPhotoTaskId: String?
+    @State private var showingErrorAlert = false
+    @State private var isHeroCardExpanded = true
+    @State private var isIntelligencePanelExpanded = false
+    @State private var showingVendorAccessSheet = false
+    @State private var showingQuickNoteSheet = false
+    @State private var showingClockInSheet = false
+    @State private var weatherSnapshot: WeatherSnapshot?
+    @State private var dsnyTasks: [DSNYTask] = []
+    @State private var showingHourlyWeather = false
+    @State private var showingSiteDeparture = false
+    @State private var siteDepartureVM: SiteDepartureViewModel? = nil
+    @State private var siteDepartureBuildings: [NamedCoordinate] = []
+    @State private var showingBuildingDetailSheet = false
+    @State private var buildingDetailIdTemp: String? = nil
+
+    // MARK: - App Storage
+    @AppStorage("workerPreferredLanguage") private var preferredLanguage = "en"
+    @AppStorage("workerSimplifiedMode") private var simplifiedMode = false
+    
+    // MARK: - Initialization
+    
+    init(container: ServiceContainer) {
+        self.container = container
+        self._viewModel = StateObject(wrappedValue: WorkerDashboardViewModel(container: container))
+        self._profileVM = StateObject(wrappedValue: WorkerProfileViewModel(serviceContainer: container))
+    }
+    
+    var body: some View {
+        ZStack {
+            // Background
+            Color.black.ignoresSafeArea()
+            
+            // Main Content
+            VStack(spacing: 0) {
+                // Header (60px) - Fixed
+                WorkerSimpleHeader(
+                    workerName: viewModel.workerProfile?.name ?? "Worker",
+                    workerId: viewModel.workerProfile?.id ?? "",
+                    isNovaProcessing: false,
+                    clockInStatus: viewModel.isCurrentlyClockedIn ? WorkerSimpleHeader.ClockInStatus.clockedIn(building: viewModel.currentBuilding?.name ?? "", time: Date()) : WorkerSimpleHeader.ClockInStatus.notClockedIn,
+                    onLogoTap: { /* no-op */ },
+                    onNovaPress: { showingProfile = true },
+                    onProfileTap: { showingProfile = true },
+                    onClockAction: { handleClockAction() }
+                )
+                .frame(height: 60)
+                
+                // Worker Hero Card (simplified for MainView)
+                VStack(spacing: 16) {
+                    // Hero: Now / Next cards
+                    WorkerHeroNowNext(viewModel: viewModel) { tapped in
+                        // Open details for the underlying contextual task
+                        selectedTask = tapped.task
+                        showingTaskDetail = true
+                    }
+                        .padding(.horizontal)
+
+                    // Weather Hybrid Card (tethered to worker/location)
+                    WeatherHybridCard(
+                        snapshot: viewModel.weather,
+                        suggestions: viewModel.weatherSuggestions,
+                        onSuggestionTap: { suggestion in
+                            // Forward to building detail or task start as appropriate
+                            if let bid = suggestion.buildingId {
+                                buildingDetailIdTemp = bid
+                                showingBuildingDetailSheet = true
+                            }
+                        },
+                        onViewHourly: { showingHourlyWeather = true },
+                        onLongPressAction: { suggestion, action in
+                            switch action {
+                            case .start:
+                                // No-op here; handled in full dashboard
+                                break
+                            case .viewPolicy:
+                                if let bid = suggestion.buildingId {
+                                    buildingDetailIdTemp = bid
+                                    showingBuildingDetailSheet = true
+                                }
+                            case .snooze:
+                                break
+                            }
+                        },
+                        weatherAffectedTasks: {
+                            if let snap = viewModel.weather {
+                                return WeatherIntelligenceAdvisor.getWeatherAffectedTaskItems(
+                                    tasks: viewModel.todaysTasks,
+                                    weather: snap,
+                                    currentBuildingId: viewModel.currentBuilding?.id
+                                )
+                            }
+                            return nil
+                        }(),
+                        onTaskTap: { taskId in
+                            if let task = viewModel.todaysTasks.first(where: { $0.id == taskId }) {
+                                selectedTask = CoreTypes.ContextualTask(
+                                    id: task.id,
+                                    title: task.title,
+                                    description: task.description ?? "",
+                                    status: task.isCompleted ? .completed : .pending,
+                                    completedAt: nil,
+                                    scheduledDate: Calendar.current.startOfDay(for: Date()),
+                                    dueDate: task.dueDate,
+                                    category: CoreTypes.TaskCategory(rawValue: task.category) ?? .administrative,
+                                    urgency: {
+                                        switch task.urgency {
+                                        case .low: return .low
+                                        case .normal: return .normal
+                                        case .high: return .high
+                                        case .urgent: return .urgent
+                                        case .critical: return .critical
+                                        case .emergency: return .emergency
+                                        }
+                                    }(),
+                                    buildingId: task.buildingId,
+                                    buildingName: task.buildingId,
+                                    assignedWorkerId: viewModel.worker?.workerId,
+                                    priority: .normal,
+                                    frequency: nil,
+                                    requiresPhoto: task.requiresPhoto,
+                                    estimatedDuration: 60
+                                )
+                                showingTaskDetail = true
+                            }
+                        }
+                    )
+                    .padding(.horizontal)
+
+                    // Compact policy chips for current building
+                    if let bid = viewModel.currentBuilding?.id {
+                        PolicyChipsRow(buildingId: bid)
+                            .padding(.horizontal)
+                    }
+
+                    // Weekly Schedule Panel
+                    if !viewModel.scheduleWeek.isEmpty {
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                Text("Weekly Schedule")
+                                    .font(.headline)
+                                    .foregroundColor(.white)
+                                Spacer()
+                            }
+                            VStack(spacing: 8) {
+                                ForEach(viewModel.scheduleWeek, id: \.date) { day in
+                                    VStack(alignment: .leading, spacing: 6) {
+                                        Text(day.date.formatted(date: .abbreviated, time: .omitted))
+                                            .font(.subheadline)
+                                            .foregroundColor(.white)
+                                        ForEach(day.items, id: \.id) { si in
+                                            HStack {
+                                                VStack(alignment: .leading) {
+                                                    Text(si.title)
+                                                        .foregroundColor(.white)
+                                                    Text("\(CoreTypes.DateUtils.timeFormatter.string(from: si.startTime)) – \(CoreTypes.DateUtils.timeFormatter.string(from: si.endTime))")
+                                                        .font(.caption)
+                                                        .foregroundColor(.gray)
+                                                }
+                                                Spacer()
+                                                Text("\(si.taskCount)")
+                                                    .font(.caption)
+                                                    .foregroundColor(.gray)
+                                            }
+                                            .padding(10)
+                                            .background(.ultraThinMaterial)
+                                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                                        }
+                                    }
+                                    .padding(10)
+                                    .background(.regularMaterial)
+                                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                                }
+                            }
+                        }
+                        .padding(.horizontal)
+                    }
+                    HStack {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Good Morning, \(viewModel.workerProfile?.name ?? "Worker")")
+                                .font(.title2)
+                                .fontWeight(.bold)
+                                .foregroundColor(.white)
+                            
+                            Text("Current: \(viewModel.currentBuilding?.name ?? "Not Clocked In")")
+                                .font(.subheadline)
+                                .foregroundColor(.gray)
+                        }
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            if let current = viewModel.currentBuilding {
+                                // Show building detail for current building
+                                showingBuildingSelector = false
+                                selectedTask = nil
+                                // Reuse task detail presentation to show a building detail sheet
+                                // Instead, open a dedicated sheet below
+                                // Set a flag via clock-in sheet variable to route properly
+                                buildingDetailIdTemp = current.id
+                                showingBuildingDetailSheet = true
+                            }
+                        }
+                        
+                        Spacer()
+                        
+                        Button(action: handleClockAction) {
+                            HStack(spacing: 8) {
+                                Image(systemName: viewModel.isCurrentlyClockedIn ? "clock.fill" : "clock")
+                                    .font(.system(size: 14))
+                                Text(viewModel.isCurrentlyClockedIn ? "Clock Out" : "Clock In")
+                                    .font(.caption)
+                                    .fontWeight(.medium)
+                            }
+                            .foregroundColor(.blue)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background(Color.blue.opacity(0.2))
+                            .cornerRadius(8)
+                        }
+                    }
+                    
+                    // Progress bar
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Text("Today's Progress")
+                                .font(.caption)
+                                .foregroundColor(.gray)
+                            Spacer()
+                            Text("\(Int(calculateTodaysProgress() * 100))%")
+                                .font(.caption)
+                                .foregroundColor(.white)
+                        }
+                        
+                        ProgressView(value: calculateTodaysProgress())
+                            .progressViewStyle(LinearProgressViewStyle(tint: CyntientOpsDesign.DashboardColors.workerSecondary))
+                    }
+                }
+                .padding()
+                .cyntientOpsDarkCardBackground()
+
+                // Weather + Upcoming
+                if let snapshot = weatherSnapshot {
+                    WeatherRibbonView(snapshot: snapshot)
+                        .padding(.horizontal)
+                        .padding(.top, 8)
+                }
+
+                if !viewModel.upcoming.isEmpty {
+                    UpcomingTaskListView(rows: viewModel.upcoming) { tapped in
+                        selectedTask = tapped.task
+                        showingTaskDetail = true
+                    }
+                    .padding(.horizontal)
+                }
+
+                // Broadcast strip (thin, urgent-first)
+                BroadcastStrip()
+                    .environmentObject(dashboardSync)
+                    .padding(.horizontal)
+                    .padding(.bottom, 4)
+
+                // DSNY Bin Tasks (if any)
+                if !dsnyTasks.isEmpty {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Sanitation Tasks")
+                            .font(.headline)
+                            .foregroundColor(.white)
+                            .padding(.horizontal)
+                        DSNYBinTaskCard(tasks: dsnyTasks) { _ in }
+                            .padding(.horizontal)
+                    }
+                }
+
+                // Intelligence Panel (Operations, Compliance, Performance, Portfolio)
+                VStack(spacing: 16) {
+                    WorkerIntelligencePanel(container: container, dashboardVM: viewModel, profileVM: profileVM)
+                        .environmentObject(authManager)
+                        .padding(.horizontal)
+                        .padding(.bottom)
+                }
+
+                Spacer()
+            }
+            
+            // Worker Intelligence Panel
+            if isIntelligencePanelExpanded {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Intelligence")
+                        .font(.headline)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                    if viewModel.insights.isEmpty {
+                        Text("No insights yet").font(.caption).foregroundColor(.gray)
+                    } else {
+                        ForEach(viewModel.insights, id: \.id) { insight in
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(insight.title).font(.subheadline).foregroundColor(.white)
+                                if let message = insight.description as String?, !message.isEmpty {
+                                    Text(message).font(.caption).foregroundColor(.gray)
+                                }
+                            }
+                            .padding(.vertical, 4)
+                            Divider().background(Color.white.opacity(0.1))
+                        }
+                    }
+                }
+                .padding()
+                .cyntientOpsDarkCardBackground()
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        // Quick Actions (floating button)
+        .overlay(alignment: .bottomTrailing) {
+            Menu {
+                if container.clockIn.getClockInStatus(for: authManager.workerId ?? "") == nil {
+                    Button(action: { showingClockInSheet = true }) {
+                        Label("Clock In", systemImage: "clock.fill")
+                    }
+                } else {
+                    Button(role: .destructive, action: { Task { await handleQuickClockOut() } }) {
+                        Label("Clock Out", systemImage: "clock")
+                    }
+                }
+
+                Button(action: { showingVendorAccessSheet = true }) {
+                    Label("Log Vendor Access", systemImage: "person.badge.key.fill")
+                }
+                Button(action: { showingCamera = true }) {
+                    Label("Quick Photo/Note", systemImage: "camera.fill")
+                }
+                Button(action: { showingQuickNoteSheet = true }) {
+                    Label("Quick Note", systemImage: "note.text")
+                }
+            } label: {
+                ZStack {
+                    Circle()
+                        .fill(CyntientOpsDesign.DashboardColors.secondaryAction)
+                        .frame(width: 56, height: 56)
+                        .shadow(color: .black.opacity(0.3), radius: 8, x: 0, y: 4)
+                    Image(systemName: "plus")
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundColor(.white)
+                }
+                .padding(20)
+            }
+        }
+        .task {
+            await viewModel.loadInitialData()
+            // Load profile data for current worker
+            if let workerId = authManager.workerId {
+                await profileVM.loadWorkerProfile(workerId: workerId)
+                // DSNY tasks for this worker
+                dsnyTasks = container.dsnyTaskManager.getBinTasks(for: workerId)
+            }
+            // Weather snapshot conversion
+            if let snap = WeatherSnapshot.from(current: container.weather.currentWeather, hourly: container.weather.forecast) {
+                weatherSnapshot = snap
+            }
+        }
+        .alert("Error", isPresented: .constant(viewModel.errorMessage != nil)) {
+            Button("OK") {
+                viewModel.errorMessage = nil
+            }
+            Button("Retry") {
+                Task { await viewModel.refreshData() }
+            }
+        } message: {
+            Text(viewModel.errorMessage ?? "")
+        }
+        .sheet(isPresented: $showingVendorAccessSheet) {
+            VendorAccessLogSheet(viewModel: viewModel)
+                .presentationDetents([.large])
+        }
+        // Building Detail Sheet
+        .sheet(isPresented: $showingBuildingDetailSheet) {
+            if let bid = buildingDetailIdTemp, let b = viewModel.assignedBuildings.first(where: { $0.id == bid }) {
+                NavigationView {
+                    BuildingDetailView(container: container, buildingId: b.id, buildingName: b.name, buildingAddress: b.address)
+                        .navigationBarTitleDisplayMode(.inline)
+                }
+            } else {
+                EmptyView()
+            }
+        }
+        .sheet(isPresented: $showingSiteDeparture) {
+            if let vm = siteDepartureVM {
+                NavigationView {
+                    SiteDepartureSingleView(viewModel: vm, buttonTitle: "Submit Log & Clock Out") {
+                        Task { await viewModel.clockOut() }
+                        showingSiteDeparture = false
+                    }
+                    .navigationTitle("Site Departure")
+                    .navigationBarTitleDisplayMode(.inline)
+                }
+            } else if !siteDepartureBuildings.isEmpty, let wid = authManager.workerId {
+                NavigationView {
+                    MultiSiteDepartureSheet(workerId: wid, buildings: siteDepartureBuildings, container: container) {
+                        Task { await viewModel.clockOut() }
+                        showingSiteDeparture = false
+                    }
+                    .navigationTitle("Site Departure")
+                    .navigationBarTitleDisplayMode(.inline)
+                }
+            } else {
+                EmptyView()
+            }
+        }
+        .sheet(isPresented: $showingHourlyWeather) {
+            if let snap = viewModel.weather {
+                NavigationView {
+                    WeatherRibbonView(snapshot: snap)
+                        .navigationTitle("Hourly Weather")
+                        .navigationBarTitleDisplayMode(.inline)
+                }
+            } else {
+                EmptyView()
+            }
+        }
+        .sheet(isPresented: $showingQuickNoteSheet) {
+            QuickNoteSheet(viewModel: viewModel)
+                .presentationDetents([.medium, .large])
+        }
+        .sheet(isPresented: $showingClockInSheet) {
+            if let wid = authManager.workerId {
+                ClockInSheet(container: container, workerId: wid)
+                    .presentationDetents([.large])
+            }
+        }
+        .sheet(isPresented: $showingTaskDetail) {
+            if let task = selectedTask {
+                NavigationView {
+                    VStack(alignment: .leading, spacing: 16) {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(task.title)
+                                .font(.title2)
+                                .fontWeight(.bold)
+                                .foregroundColor(.white)
+                            
+                            Text(task.description ?? "No description provided")
+                                .font(.body)
+                                .foregroundColor(.gray)
+                        }
+                        
+                        if let urgency = task.urgency {
+                            HStack {
+                                Circle()
+                                    .fill(urgency == .critical ? .red : urgency == .urgent ? .orange : .blue)
+                                    .frame(width: 8, height: 8)
+                                Text(urgency.rawValue.capitalized)
+                                    .font(.caption)
+                                    .foregroundColor(.gray)
+                            }
+                        }
+                        
+                        Spacer()
+                        
+                        HStack(spacing: 16) {
+                            if !task.isCompleted {
+                                Button("Start Task") {
+                                    Task {
+                                        await viewModel.startTask(task)
+                                        showingTaskDetail = false
+                                    }
+                                }
+                                .buttonStyle(.borderedProminent)
+                                
+                                Button("Complete") {
+                                    let evidence = CoreTypes.ActionEvidence(
+                                        description: "Task completed",
+                                        photoURLs: [],
+                                        timestamp: Date()
+                                    )
+                                    Task {
+                                        await viewModel.completeTask(task, evidence: evidence)
+                                        showingTaskDetail = false
+                                    }
+                                }
+                                .buttonStyle(.bordered)
+                            }
+                        }
+                    }
+                    .padding()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    .background(CyntientOpsDesign.DashboardColors.baseBackground)
+                    .navigationTitle("Task Details")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .navigationBarBackButtonHidden(true)
+                    .overlay(
+                        Button("Done") {
+                            showingTaskDetail = false
+                        }
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                        .padding()
+                        , alignment: .topTrailing
+                    )
+                }
+                .preferredColorScheme(.dark)
+            }
+        }
+        .sheet(isPresented: $showingBuildingSelector) {
+            NavigationView {
+                List(viewModel.assignedBuildings, id: \.id) { building in
+                    Button(action: {
+                        Task {
+                            await viewModel.clockIn(to: building)
+                            showingBuildingSelector = false
+                        }
+                    }) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(building.name)
+                                .font(.headline)
+                                .foregroundColor(.white)
+                            Text(building.address)
+                                .font(.caption)
+                                .foregroundColor(.gray)
+                        }
+                        .padding(.vertical, 4)
+                    }
+                }
+                .listStyle(PlainListStyle())
+                .background(CyntientOpsDesign.DashboardColors.baseBackground)
+                .navigationTitle("Select Building")
+                .navigationBarTitleDisplayMode(.inline)
+                .overlay(
+                    Button("Cancel") {
+                        showingBuildingSelector = false
+                    }
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                    .padding()
+                    , alignment: .topTrailing
+                )
+            }
+            .preferredColorScheme(.dark)
+        }
+        .sheet(isPresented: $showingProfile) {
+            NavigationView {
+                VStack(alignment: .leading, spacing: 20) {
+                    if let profile = viewModel.workerProfile {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(profile.name)
+                                .font(.title)
+                                .fontWeight(.bold)
+                                .foregroundColor(.white)
+                            
+                            Text("Role: \(profile.role.rawValue.capitalized)")
+                                .font(.subheadline)
+                                .foregroundColor(.gray)
+                            
+                            Text("Employee ID: \(profile.id)")
+                                .font(.caption)
+                                .foregroundColor(.gray)
+                        }
+                        
+                        Divider()
+                            .background(.gray)
+                        
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Today's Activity")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                            
+                            HStack {
+                                Text("Hours Worked:")
+                                Spacer()
+                                Text(String(format: "%.1f hours", viewModel.hoursWorkedToday))
+                                    .foregroundColor(.blue)
+                            }
+                            
+                            HStack {
+                                Text("Tasks Completed:")
+                                Spacer()
+                                Text("\(viewModel.todaysTasks.filter { $0.isCompleted }.count)")
+                                    .foregroundColor(CyntientOpsDesign.DashboardColors.success)
+                            }
+                        }
+                    }
+                    
+                    Spacer()
+                }
+                .padding()
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .background(CyntientOpsDesign.DashboardColors.baseBackground)
+                .navigationTitle("Worker Profile")
+                .navigationBarTitleDisplayMode(.inline)
+                .navigationBarBackButtonHidden(true)
+                .overlay(
+                    Button("Done") {
+                        showingProfile = false
+                    }
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                    .padding()
+                    , alignment: .topTrailing
+                )
+            }
+            .preferredColorScheme(.dark)
+        }
+        .fullScreenCover(isPresented: $showingCamera) {
+            CyntientOpsImagePicker(
+                image: .constant(nil),
+                onImagePicked: { image in
+                    // Handle photo capture for task using PhotoEvidenceService
+                    if let taskId = currentPhotoTaskId,
+                       let task = viewModel.todaysTasks.first(where: { $0.id == taskId }) {
+                        Task {
+                            do {
+                                if let profile = viewModel.workerProfile {
+                                    let photoEvidence = try await container.photos.captureQuick(
+                                        image: image,
+                                        category: CoreTypes.CyntientOpsPhotoCategory.duringWork,
+                                        buildingId: task.buildingId ?? "",
+                                        workerId: profile.id,
+                                        notes: "Task completion photo for \(task.title)"
+                                    )
+                                    
+                                    let evidence = CoreTypes.ActionEvidence(
+                                        description: "Photo evidence for \(task.title)",
+                                        photoURLs: [photoEvidence.filePath],
+                                        timestamp: Date()
+                                    )
+                                    
+                                    // Convert TaskItem to CoreTypes.ContextualTask
+                                    let contextualTask = CoreTypes.ContextualTask(
+                                        id: task.id,
+                                        title: task.title,
+                                        description: task.description ?? "",
+                                        status: task.isCompleted ? .completed : .pending,
+                                        dueDate: task.dueDate,
+                                        category: CoreTypes.TaskCategory(rawValue: task.category) ?? .administrative,
+                                        urgency: convertTaskUrgencyToCore(task.urgency),
+                                        buildingId: task.buildingId
+                                    )
+                                    await viewModel.completeTask(contextualTask, evidence: evidence)
+                                }
+                            } catch {
+                                print("Failed to capture photo evidence: \(error)")
+                                // Show error to user
+                            }
+                        }
+                    }
+                    showingCamera = false
+                    currentPhotoTaskId = nil
+                },
+                sourceType: .camera
+            )
+        }
+    }
+
+    private func handleQuickClockOut() async {
+        guard let wid = authManager.workerId else { return }
+        do {
+            try await container.clockIn.clockOut(workerId: wid)
+        } catch {
+            // Show a lightweight error; can enhance with toast later
+            viewModel.errorMessage = error.localizedDescription
+        }
+    }
+
+    // MARK: - Action Handlers
+    
+    private func handleClockIn() {
+        if viewModel.assignedBuildings.count == 1 {
+            // Auto clock-in if only one building
+            Task {
+                await viewModel.clockIn(to: viewModel.assignedBuildings[0])
+            }
+        } else {
+            // Show building selector
+            showingBuildingSelector = true
+        }
+    }
+    
+    private func handleClockOut() {
+        // Present Site Departure before final clock out
+        guard let workerId = authManager.workerId else {
+            Task { await viewModel.clockOut() }
+            return
+        }
+        let summaries: [WorkerDashboardViewModel.BuildingSummary] = {
+            if !viewModel.pendingDepartures.isEmpty { return viewModel.pendingDepartures }
+            if !viewModel.visitedToday.isEmpty { return viewModel.visitedToday }
+            if let current = viewModel.currentBuilding { return [current] }
+            return viewModel.assignedBuildings
+        }()
+        let coords: [NamedCoordinate] = summaries.map { b in
+            NamedCoordinate(id: b.id, name: b.name, address: b.address, latitude: b.coordinate.latitude, longitude: b.coordinate.longitude)
+        }
+        if coords.count > 1 {
+            siteDepartureVM = nil
+            siteDepartureBuildings = coords
+            showingSiteDeparture = true
+        } else if let current = coords.first {
+            siteDepartureVM = SiteDepartureViewModel(workerId: workerId, currentBuilding: current, container: container)
+            siteDepartureBuildings = []
+            showingSiteDeparture = true
+        } else {
+            Task { await viewModel.clockOut() }
+        }
+    }
+    
+    private func handleTaskTap(_ task: CoreTypes.ContextualTask) {
+        selectedTask = task
+        showingTaskDetail = true
+    }
+    
+    private func handleCameraTap(for taskId: String) {
+        if viewModel.workerCapabilities?.canUploadPhotos ?? true {
+            currentPhotoTaskId = taskId
+            showingCamera = true
+        }
+    }
+    
+    // MARK: - Helper Methods
+    
+    private func calculateTodaysProgress() -> Double {
+        guard !viewModel.todaysTasks.isEmpty else { return 0.0 }
+        let completedCount = viewModel.todaysTasks.filter { $0.isCompleted }.count
+        return Double(completedCount) / Double(viewModel.todaysTasks.count)
+    }
+    
+    private func handleClockAction() {
+        if viewModel.isCurrentlyClockedIn {
+            handleClockOut()
+        } else {
+            handleClockIn()
+        }
+    }
+    
+    private func generateWorkerContext() -> [String: Any] {
+        var context: [String: Any] = [:]
+        
+        // Worker info
+        if let profile = viewModel.workerProfile {
+            context["workerId"] = profile.id
+            context["workerName"] = profile.name
+            context["role"] = profile.role.rawValue
+        }
+        
+        // Current status
+        context["isClockedIn"] = viewModel.isCurrentlyClockedIn
+        context["currentBuilding"] = viewModel.currentBuilding?.name
+        
+        // Task progress
+        context["totalTasks"] = viewModel.todaysTasks.count
+        context["completedTasks"] = viewModel.completedTasksCount
+        context["urgentTasks"] = viewModel.urgentTasks.count
+        context["overdueTasks"] = viewModel.todaysTasks.filter { task in
+            guard let dueDate = task.dueDate else { return false }
+            return dueDate < Date() && !task.isCompleted
+        }.count
+        
+        // Performance metrics
+        context["todaysProgress"] = calculateTodaysProgress()
+        context["hoursWorked"] = viewModel.hoursWorkedToday
+        
+        return context
+    }
+    
+    // MARK: - Helper Methods
+    
+    private func convertTaskUrgencyToCore(_ urgency: WorkerDashboardViewModel.TaskItem.TaskUrgency) -> CoreTypes.TaskUrgency {
+        switch urgency {
+        case .low: return .low
+        case .normal: return .normal
+        case .high: return .high
+        case .urgent: return .urgent
+        case .critical: return .critical
+        case .emergency: return .emergency
+        }
+    }
+}
+
+// MARK: - Policy Chips (Compact badges)
+private struct PolicyChipsRow: View {
+    let buildingId: String
+
+    var body: some View {
+        let chips = policyChips(for: buildingId)
+        if chips.isEmpty { EmptyView() } else {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(chips, id: \.label) { chip in
+                        HStack(spacing: 4) {
+                            Image(systemName: chip.symbol)
+                            Text(chip.label)
+                        }
+                        .font(.caption2)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(chip.color.opacity(0.15))
+                        .foregroundColor(chip.color)
+                        .clipShape(Capsule())
+                    }
+                }
+            }
+        }
+    }
+
+    private struct Chip { let label: String; let symbol: String; let color: Color }
+
+    private func policyChips(for id: String) -> [Chip] {
+        var list: [Chip] = []
+        
+        // Rain mats buildings: 12 W 18th (1), 112 W 18th (7), 117 W 17th (9)
+        if ["1","7","9"].contains(id) {
+            list.append(Chip(label: "Mats", symbol: "water.waves", color: .blue))
+        }
+        
+        // Roof drain buildings: 135/138/117/112 W 17th + 12 W 18th
+        if ["1","3","5","7","9"].contains(id) {
+            list.append(Chip(label: "Drains", symbol: "cloud.drizzle", color: .cyan))
+        }
+        
+        // Backyard monthly: 135 (3) and 138 (5)
+        if ["3","5"].contains(id) {
+            list.append(Chip(label: "Backyard", symbol: "leaf.circle", color: .brown))
+        }
+        
+        // Special building notes
+        if id == "6" { // 68 Perry - key box
+            list.append(Chip(label: "Key Box", symbol: "key.fill", color: .yellow))
+        }
+        
+        // DSNY bring-in by 10:00 applies portfolio-wide
+        list.append(Chip(label: "DSNY 10:00", symbol: "trash.circle", color: .green))
+        
+        return list
+    }
+}

@@ -1,0 +1,459 @@
+//
+//  NYCIntegrationManager.swift
+//  CyntientOps Phase 5
+//
+//  Central manager for NYC API integrations
+//  Coordinates all NYC compliance services and data synchronization
+//
+
+import Foundation
+import Combine
+
+@MainActor
+public final class NYCIntegrationManager: ObservableObject {
+    
+    // MARK: - Published Properties
+    @Published public var integrationStatus: IntegrationStatus = .initializing
+    @Published public var lastFullSync: Date?
+    @Published public var syncProgress: Double = 0.0
+    @Published public var apiHealth: [String: APIHealth] = [:]
+    
+    // MARK: - Services
+    private let nycAPI: NYCAPIService
+    private let complianceService: NYCComplianceService
+    private let database: GRDBManager
+    
+    // MARK: - Background Tasks
+    private var syncTask: Task<Void, Never>?
+    private var healthCheckTimer: Timer?
+    
+    // MARK: - Configuration
+    private struct Config {
+        static let fullSyncInterval: TimeInterval = 21600 // 6 hours
+        static let healthCheckInterval: TimeInterval = 300 // 5 minutes
+        static let maxRetryAttempts = 3
+        static let backoffMultiplier = 2.0
+    }
+    
+    public enum IntegrationStatus: Equatable {
+        case initializing
+        case ready
+        case syncing
+        case error(String)
+        case disabled
+    }
+    
+    public struct APIHealth {
+        let name: String
+        let isHealthy: Bool
+        let lastSuccessfulCall: Date?
+        let errorCount: Int
+        let averageResponseTime: TimeInterval
+        
+        var statusDescription: String {
+            if isHealthy {
+                return "✅ Operational"
+            } else {
+                return "❌ \(errorCount) errors"
+            }
+        }
+    }
+    
+    // MARK: - Initialization
+    
+    public init(database: GRDBManager) {
+        self.database = database
+        self.nycAPI = NYCAPIService.shared
+        self.complianceService = NYCComplianceService(database: database)
+        
+        Task {
+            await initialize()
+        }
+    }
+    
+    // MARK: - Public Methods
+    
+    /// Initialize NYC integrations
+    public func initialize() async {
+        integrationStatus = .initializing
+        
+        do {
+            // Check database schema
+            try await setupDatabaseSchema()
+            
+            // Fill missing BIN/BBL/district deterministically via Building Footprints
+            await seedIdentifiersFromFootprints()
+            
+            // Verify API connectivity
+            await checkAPIHealth()
+            
+            // Load cached data
+            await loadCachedComplianceData()
+            
+            // Setup background sync
+            startBackgroundSync()
+            
+            // Start health monitoring
+            startHealthMonitoring()
+            
+            integrationStatus = .ready
+            
+            print("✅ NYC Integration Manager initialized successfully")
+            
+        } catch {
+            integrationStatus = .error(error.localizedDescription)
+            print("❌ NYC Integration Manager initialization failed: \(error)")
+        }
+    }
+    
+    /// Perform full sync of all NYC compliance data
+    public func performFullSync() async {
+        guard integrationStatus != .syncing else { return }
+        
+        integrationStatus = .syncing
+        syncProgress = 0.0
+        
+        await complianceService.syncAllBuildingsCompliance()
+        
+        // Update sync progress from compliance service
+        complianceService.$syncProgress
+            .assign(to: &$syncProgress)
+        
+        lastFullSync = Date()
+        integrationStatus = .ready
+        
+        // Post notification
+        NotificationCenter.default.post(name: .nycDataSyncCompleted, object: self, userInfo: nil)
+    }
+    
+    /// Get compliance summary for all buildings
+    public func getComplianceSummary() -> ComplianceSummary {
+        let allIssues = getAllComplianceIssues()
+        let criticalIssues = allIssues.filter { $0.severity == .critical }
+        let openIssues = allIssues.filter { $0.status == .open }
+        
+        let buildingScores = complianceService.complianceData.mapValues { $0.overallComplianceScore }
+        let averageScore = buildingScores.values.isEmpty ? 1.0 : buildingScores.values.reduce(0, +) / Double(buildingScores.count)
+        
+        return ComplianceSummary(
+            totalBuildings: buildingScores.count,
+            averageComplianceScore: averageScore,
+            totalIssues: allIssues.count,
+            criticalIssues: criticalIssues.count,
+            openIssues: openIssues.count,
+            buildingScores: buildingScores,
+            lastUpdated: lastFullSync ?? Date()
+        )
+    }
+    
+    /// Get compliance issues for specific building
+    public func getComplianceIssues(for buildingId: String) -> [CoreTypes.ComplianceIssue] {
+        return complianceService.getComplianceIssues(for: buildingId)
+    }
+    
+    /// Get LL97 compliance status for all buildings
+    public func getLL97Status() -> [String: String] {
+        return complianceService.complianceData.mapValues { $0.ll97ComplianceStatus }
+    }
+    
+    /// Force refresh specific building
+    public func refreshBuilding(_ buildingId: String) async {
+        await complianceService.refreshBuilding(buildingId)
+    }
+    
+    /// Get API health status
+    public func getAPIHealthReport() -> [APIHealth] {
+        return Array(apiHealth.values)
+    }
+    
+    /// Enable/disable NYC integrations
+    public func setIntegrationEnabled(_ enabled: Bool) {
+        if enabled && integrationStatus == .disabled {
+            Task { await initialize() }
+        } else if !enabled {
+            integrationStatus = .disabled
+            stopBackgroundSync()
+            stopHealthMonitoring()
+        }
+    }
+    
+    // MARK: - Private Methods
+    
+    private func setupDatabaseSchema() async throws {
+        // Create NYC compliance cache table
+        let createCacheTable = """
+            CREATE TABLE IF NOT EXISTS nyc_compliance_cache (
+                building_id TEXT PRIMARY KEY,
+                data BLOB NOT NULL,
+                updated_at REAL NOT NULL
+            )
+        """
+        
+        // Execute schema updates
+        try await database.execute(createCacheTable)
+
+        // Introspect compliance_issues schema to avoid duplicate/invalid migrations
+        let ciInfo = try await database.query("PRAGMA table_info(compliance_issues)")
+        let ciColumns: Set<String> = Set(ciInfo.compactMap { $0["name"] as? String })
+
+        // Add missing optional columns if not present
+        if !ciColumns.contains("source") {
+            try? await database.execute("ALTER TABLE compliance_issues ADD COLUMN source TEXT")
+        }
+        if !ciColumns.contains("external_id") {
+            try? await database.execute("ALTER TABLE compliance_issues ADD COLUMN external_id TEXT")
+        }
+        if !ciColumns.contains("notes") {
+            try? await database.execute("ALTER TABLE compliance_issues ADD COLUMN notes TEXT")
+        }
+        if !ciColumns.contains("reported_date") && !ciColumns.contains("reportedDate") {
+            try? await database.execute("ALTER TABLE compliance_issues ADD COLUMN reported_date REAL")
+        }
+        if !ciColumns.contains("resolved_date") && !ciColumns.contains("resolvedDate") {
+            try? await database.execute("ALTER TABLE compliance_issues ADD COLUMN resolved_date REAL")
+        }
+
+        // Buildings table columns
+        let bInfo = try await database.query("PRAGMA table_info(buildings)")
+        let bColumns: Set<String> = Set(bInfo.compactMap { $0["name"] as? String })
+        if !bColumns.contains("compliance_score") {
+            try? await database.execute("ALTER TABLE buildings ADD COLUMN compliance_score REAL DEFAULT 1.0")
+        }
+        if !bColumns.contains("last_compliance_update") {
+            try? await database.execute("ALTER TABLE buildings ADD COLUMN last_compliance_update REAL")
+        }
+
+        // Create indexes for performance using whichever column naming exists
+        let buildingColumn = ciColumns.contains("buildingId") ? "buildingId" : (ciColumns.contains("building_id") ? "building_id" : nil)
+        if let bcol = buildingColumn {
+            try? await database.execute("CREATE INDEX IF NOT EXISTS idx_compliance_building ON compliance_issues(\(bcol))")
+        }
+        if ciColumns.contains("severity") {
+            try? await database.execute("CREATE INDEX IF NOT EXISTS idx_compliance_severity ON compliance_issues(severity)")
+        }
+        if ciColumns.contains("status") {
+            try? await database.execute("CREATE INDEX IF NOT EXISTS idx_compliance_status ON compliance_issues(status)")
+        }
+        if ciColumns.contains("source") {
+            try? await database.execute("CREATE INDEX IF NOT EXISTS idx_compliance_source ON compliance_issues(source)")
+        }
+    }
+    
+    private func checkAPIHealth() async {
+        let endpoints: [String: () async -> Bool] = [
+            "HPD": { 
+                do {
+                    _ = try await self.nycAPI.fetchHPDViolations(bin: "1000001")
+                    return true
+                } catch {
+                    return false
+                }
+            },
+            "DOB": {
+                do {
+                    _ = try await self.nycAPI.fetchDOBPermits(bin: "1000001")
+                    return true
+                } catch {
+                    return false
+                }
+            },
+            "LL97": {
+                do {
+                    _ = try await self.nycAPI.fetchLL97Compliance(bbl: "1000010001")
+                    return true
+                } catch {
+                    return false
+                }
+            },
+            "311": {
+                do {
+                    _ = try await self.nycAPI.fetch311Complaints(address: "104 Franklin Street, New York, NY 10013")
+                    return true
+                } catch {
+                    return false
+                }
+            }
+        ]
+        
+        for (name, check) in endpoints {
+            let startTime = Date()
+            var healthy = await check()
+            if !healthy {
+                // Soft retry for transient cancellation
+                try? await Task.sleep(nanoseconds: 300_000_000)
+                healthy = await check()
+            }
+            let responseTime = Date().timeIntervalSince(startTime)
+            apiHealth[name] = APIHealth(
+                name: name,
+                isHealthy: healthy,
+                lastSuccessfulCall: healthy ? Date() : apiHealth[name]?.lastSuccessfulCall,
+                errorCount: healthy ? 0 : (apiHealth[name]?.errorCount ?? 0) + 1,
+                averageResponseTime: responseTime
+            )
+        }
+    }
+    
+    private func loadCachedComplianceData() async {
+        do {
+            let query = "SELECT building_id, data FROM nyc_compliance_cache"
+            let rows = try await database.query(query)
+            
+            for row in rows {
+                if let buildingId = row["building_id"] as? String,
+                   let data = row["data"] as? Data {
+                    do {
+                        let compliance = try JSONDecoder().decode(NYCBuildingCompliance.self, from: data)
+                        complianceService.complianceData[buildingId] = compliance
+                    } catch {
+                        print("Failed to decode cached compliance data for \(buildingId): \(error)")
+                    }
+                }
+            }
+            
+            print("✅ Loaded cached compliance data for \(complianceService.complianceData.count) buildings")
+            
+        } catch {
+            print("⚠️ Failed to load cached compliance data: \(error)")
+        }
+    }
+    
+    private func startBackgroundSync() {
+        syncTask = Task {
+            while !Task.isCancelled {
+                // Wait for sync interval
+                try? await Task.sleep(nanoseconds: UInt64(Config.fullSyncInterval * 1_000_000_000))
+                
+                if !Task.isCancelled && integrationStatus == .ready {
+                    await performFullSync()
+                }
+            }
+        }
+    }
+    
+    private func stopBackgroundSync() {
+        syncTask?.cancel()
+        syncTask = nil
+    }
+    
+    private func startHealthMonitoring() {
+        healthCheckTimer = Timer.scheduledTimer(withTimeInterval: Config.healthCheckInterval, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                await self?.checkAPIHealth()
+            }
+        }
+    }
+    
+    private func stopHealthMonitoring() {
+        healthCheckTimer?.invalidate()
+        healthCheckTimer = nil
+    }
+    
+    private func getAllComplianceIssues() -> [CoreTypes.ComplianceIssue] {
+        return complianceService.complianceData.values.flatMap { compliance in
+            complianceService.getComplianceIssues(for: compliance.bin)
+        }
+    }
+
+    // MARK: - Identifier Seeding
+    /// Resolve and persist BIN, BBL, and DSNY community district for portfolio buildings
+    private func seedIdentifiersFromFootprints() async {
+        do {
+            let rows = try await database.query("""
+                SELECT id, name, address, latitude, longitude, COALESCE(bin, bin_number) AS bin, bbl, dsny_district
+                FROM buildings
+                ORDER BY name
+            """)
+
+            for row in rows {
+                guard let id = row["id"] as? String,
+                      let lat = row["latitude"] as? Double,
+                      let lon = row["longitude"] as? Double else { continue }
+                let currentBIN = (row["bin"] as? String) ?? ""
+                let currentBBL = (row["bbl"] as? String) ?? ""
+                let currentDistrict = (row["dsny_district"] as? String) ?? ""
+
+                // Skip if already fully populated
+                if !currentBIN.isEmpty && !currentBBL.isEmpty && !currentDistrict.isEmpty { continue }
+
+                // Resolve from footprints with flexible radii
+                let resolved = await nycAPI.resolveBinBbl(lat: lat, lon: lon)
+                let bin = resolved.bin ?? currentBIN
+                let bbl = resolved.bbl ?? currentBBL
+
+                // Estimate community district when missing (simple Manhattan heuristic)
+                let district: String
+                if !currentDistrict.isEmpty { district = currentDistrict }
+                else {
+                    // Very rough heuristic using latitude bands for MN01–MN07; fallback to MN05
+                    if lat > 40.795 { district = "MN07" }
+                    else if lat > 40.775 { district = "MN06" }
+                    else if lat > 40.76 { district = "MN05" }
+                    else if lat > 40.74 { district = "MN05" }
+                    else if lat > 40.72 { district = "MN02" }
+                    else { district = "MN01" }
+                }
+
+                // Persist updates if anything changed
+                if (!bin.isEmpty && bin != currentBIN) || (!bbl.isEmpty && bbl != currentBBL) || (district != currentDistrict) {
+                    try await database.execute(
+                        "UPDATE buildings SET bin = ?, bbl = ?, dsny_district = ? WHERE id = ?",
+                        [bin, bbl, district, id]
+                    )
+                    print("🔎 Seeded identifiers for \(row["name"] as? String ?? id): BIN=\(bin), BBL=\(bbl), DSNY=\(district)")
+                }
+                // Gentle backoff to avoid bursts
+                try? await Task.sleep(nanoseconds: 150_000_000)
+            }
+        } catch {
+            print("⚠️ Identifier seeding skipped due to error: \(error)")
+        }
+    }
+    
+    deinit {
+        syncTask?.cancel()
+        healthCheckTimer?.invalidate()
+    }
+}
+
+// MARK: - Supporting Types
+
+public struct ComplianceSummary {
+    public let totalBuildings: Int
+    public let averageComplianceScore: Double
+    public let totalIssues: Int
+    public let criticalIssues: Int
+    public let openIssues: Int
+    public let buildingScores: [String: Double]
+    public let lastUpdated: Date
+    
+    public var overallGrade: String {
+        switch averageComplianceScore {
+        case 0.95...1.0: return "A+"
+        case 0.90..<0.95: return "A"
+        case 0.85..<0.90: return "B+"
+        case 0.80..<0.85: return "B"
+        case 0.75..<0.80: return "C+"
+        case 0.70..<0.75: return "C"
+        default: return "Needs Attention"
+        }
+    }
+    
+    public var riskLevel: String {
+        if criticalIssues > 5 || averageComplianceScore < 0.7 {
+            return "High Risk"
+        } else if criticalIssues > 2 || averageComplianceScore < 0.85 {
+            return "Medium Risk"
+        } else {
+            return "Low Risk"
+        }
+    }
+}
+
+// MARK: - Notifications
+
+extension Notification.Name {
+    static let nycDataSyncCompleted = Notification.Name("nycDataSyncCompleted")
+    static let nycAPIHealthChanged = Notification.Name("nycAPIHealthChanged")
+    static let complianceScoreUpdated = Notification.Name("complianceScoreUpdated")
+}

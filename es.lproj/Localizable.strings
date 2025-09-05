@@ -1,0 +1,93 @@
+"weather.apply" = "Aplicar";
+"weather.view_hourly" = "Ver por hora";
+"weather.offline" = "Tiempo sin conexión";
+"weather.affected_tasks" = "Tareas afectadas por el clima";
+"weather.rain_likely_at" = "Lluvia probable ~%d%% a las %@";
+"weather.risk.wind" = "Viento fuerte: asegurar exteriores";
+"weather.risk.heat" = "Riesgo de calor: hidratarse";
+
+"weather.advice.optimal_drain_inspection" = "Momento óptimo para inspeccionar desagües";
+"weather.advice.postpone_exterior" = "Aplazar hasta que mejore el clima";
+"weather.advice.move_indoors" = "Moverse a tareas interiores si es posible";
+"weather.advice.heat_complete_early" = "Completar temprano para evitar el calor";
+"weather.advice.cold_dress_warm" = "Abrígate y toma descansos frecuentes";
+"weather.advice.wind_roof_caution" = "Extremar precaución en trabajos de techo";
+"weather.advice.wind_secure_materials" = "Asegurar materiales y equipos sueltos";
+"weather.advice.monitor" = "Monitorear condiciones durante la tarea";
+
+"building.general.water_entry_title" = "Revisar puntos de entrada de agua";
+"building.general.water_entry_reco" = "Inspeccionar puertas y ventanas por intrusión de agua";
+"building.generic.walkup_heat_breaks" = "Edificio sin ascensor: planear descansos por calor";
+"building.generic.commercial_rain_attention" = "Atención extra en entradas comerciales: mayor tráfico";
+
+"building.1.check_mats_title" = "Revisar tapetes y drenaje del vestíbulo";
+"building.1.check_mats_reco" = "Asegurar tapetes y verificar drenaje del vestíbulo";
+"building.1.verify_elevator_heat_title" = "Verificar calefacción de ascensores";
+"building.1.verify_elevator_heat_reco" = "Revisar calefacción de ascensor de carga y de pasajeros";
+"building.1.freight_in_rain" = "Usar ascensor de carga para minimizar agua en el vestíbulo";
+"building.1.mats_foot_traffic" = "Más atención a tapetes: 9 pisos de tráfico";
+
+"building.3.check_backyard_drain_title" = "Revisar desagüe del patio antes de la lluvia";
+"building.3.check_backyard_drain_reco" = "Inspeccionar y despejar el desagüe del patio antes de la lluvia";
+
+"building.5.lobby_flow_title" = "Gestionar flujo del vestíbulo durante lluvia";
+"building.5.lobby_flow_reco" = "Colocar tapetes y conos; mayor tráfico (museo/oficinas)";
+"building.5.secure_signage_title" = "Asegurar señalización y exhibidores";
+"building.5.secure_signage_reco" = "Asegurar señalización por ráfagas de viento";
+
+"building.6.inspect_roof_drain_title" = "Inspeccionar desagüe del techo (2º piso)";
+"building.6.inspect_roof_drain_reco" = "Revisar por Apt 2R durante la lluvia";
+"building.6.inspect_drain_now" = "Momento ideal para revisar el desagüe (Apt 2R)";
+"building.6.observe_gutter" = "Observar rendimiento de canaletas durante la lluvia";
+
+"building.7.check_mats_title" = "Revisar tapetes de lluvia en la entrada";
+"building.7.check_mats_reco" = "Colocar tapetes y monitorear agua en el vestíbulo";
+
+"building.8.commercial_logistics_title" = "Coordinar logística comercial bajo lluvia";
+"building.8.commercial_logistics_reco" = "Usar ascensor de carga; añadir tapetes en el vestíbulo";
+
+"building.9.check_mats_title" = "Revisar tapetes de lluvia en la entrada";
+"building.9.check_mats_reco" = "Colocar tapetes; más arrastre de agua";
+
+"building.10.elevator_cold_title" = "Frío: revisar cuartos de ascensores";
+"building.10.elevator_cold_reco" = "Verificar temperatura de máquinas y sellado de puertas";
+
+"building.11.awnings_title" = "Revisar toldos y tapetes";
+"building.11.awnings_reco" = "Asegurar drenaje de toldos; tapetes en el umbral";
+
+"building.13.commercial_mats_title" = "Tapetes en local de planta baja";
+"building.13.commercial_mats_reco" = "Colocar tapetes y conos en lluvia";
+
+"building.14.secure_stair_windows_title" = "Asegurar ventanas de escaleras";
+"building.14.secure_stair_windows_reco" = "Revisar ventanas en 5 pisos";
+"building.14.window_check_walkup" = "Revisar 5 pisos: sin ascensor";
+"building.14.start_early_heat" = "Empezar temprano: 5 pisos sin ascensor en calor";
+
+"building.15.lobby_mats_title" = "Tapetes de lluvia en vestíbulo";
+"building.15.lobby_mats_reco" = "Colocar tapetes en vestíbulo; 4 unidades por piso";
+
+"building.16.early_maintenance_title" = "Mantenimiento del parque temprano";
+"building.16.early_maintenance_reco" = "Completar antes de las 10 AM para evitar calor";
+"building.16.suspend_outdoor_rain" = "Suspender mantenimiento exterior hasta que escampe";
+"building.16.complete_before_9" = "Completar antes de las 9 AM - sin refugio";
+"building.16.secure_equipment" = "Asegurar equipos - parque abierto";
+"building.16.rain_reschedule_title" = "Reprogramar mantenimiento del parque";
+"building.16.rain_reschedule_reco" = "Lluvia temprano: reprogramar para más tarde cuando escampe";
+
+"building.17.walkup_heat_title" = "Edificio sin ascensor: descansos por calor";
+"building.17.walkup_heat_reco" = "Programar escaleras más temprano; descansos frecuentes";
+
+"building.19.postpone_exterior_title" = "Aplazar limpieza exterior";
+"building.19.postpone_exterior_reco" = "Esperar clima despejado para la acera";
+"building.19.exterior_wait_clear" = "Trabajo exterior: esperar condiciones claras";
+"building.19.hose_freeze_risk" = "Riesgo de congelación: usar agua tibia en manguera";
+
+"building.20.secure_equipment_title" = "Asegurar equipos exteriores";
+"building.20.secure_equipment_reco" = "Asegurar equipos y señalización con vientos fuertes";
+
+"building.4.commercial_threshold_mats_title" = "Tapetes en entrada comercial";
+"building.4.commercial_threshold_mats_reco" = "Colocar tapetes; monitorear riesgo de resbalones";
+
+"building.21.private_elevator_cold_title" = "Frío: ascensor privado";
+"building.21.private_elevator_cold_reco" = "Revisar confort donde el ascensor abre en la unidad";
+"building.21.private_elevator_cold_detail" = "Revisar ascensor que abre en la unidad: confort del residente";
