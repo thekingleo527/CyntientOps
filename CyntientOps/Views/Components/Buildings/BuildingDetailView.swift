@@ -412,6 +412,7 @@ struct BuildingDetailView: View {
                         TabButton(
                             tab: tab,
                             isSelected: selectedTab == tab,
+                            userRole: viewModel.userRole,
                             action: {
                                 withAnimation(.easeInOut(duration: 0.2)) {
                                     selectedTab = tab
@@ -483,12 +484,31 @@ struct BuildingDetailView: View {
                 // .sanitation merged into .routes
                 
                 case .media:
-                    BuildingMediaTab(
-                        buildingId: buildingId,
-                        buildingName: buildingName,
-                        container: container,
-                        viewModel: viewModel
-                    )
+                    VStack(spacing: 20) {
+                        // Main media functionality
+                        BuildingMediaTab(
+                            buildingId: buildingId,
+                            buildingName: buildingName,
+                            container: container,
+                            viewModel: viewModel
+                        )
+                        
+                        // Add spaces functionality for non-admin users (consolidation)
+                        if viewModel.userRole != .admin && viewModel.userRole != .superAdmin {
+                            Divider()
+                                .background(CyntientOpsDesign.DashboardColors.tertiaryText.opacity(0.3))
+                            
+                            BuildingSpacesTab(
+                                buildingId: buildingId,
+                                buildingName: buildingName,
+                                viewModel: viewModel,
+                                onPhotoCapture: {
+                                    photoCategory = .utilities
+                                    showingPhotoCapture = true
+                                }
+                            )
+                        }
+                    }
                     
                 case .inventory:
                     BuildingInventoryTab(
@@ -582,8 +602,11 @@ struct BuildingDetailView: View {
     
     private func shouldShowTab(_ tab: BuildingDetailTab) -> Bool {
         switch tab {
-        case .inventory, .spaces:
+        case .inventory:
             return viewModel.userRole != .client
+        case .spaces:
+            // Only show separate spaces tab for admins; workers get it consolidated in media
+            return viewModel.userRole == .admin || viewModel.userRole == .superAdmin
         default:
             return true
         }
@@ -688,17 +711,39 @@ enum BuildingDetailTab: String, CaseIterable {
     case spaces = "Spaces"
     case emergency = "Emergency"
     
-    var icon: String {
+    func title(for userRole: CoreTypes.UserRole?) -> String {
+        switch self {
+        case .media:
+            // For workers, media tab includes spaces functionality
+            if userRole != .admin && userRole != .superAdmin {
+                return "Media & Spaces"
+            }
+            return "Media"
+        default:
+            return self.rawValue
+        }
+    }
+    
+    func icon(for userRole: CoreTypes.UserRole?) -> String {
         switch self {
         case .overview: return "chart.bar.fill"
         case .routes: return "map.circle.fill"
         case .workers: return "person.3.fill"
         case .maintenance: return "wrench.and.screwdriver.fill"
-        case .media: return "photo.on.rectangle.angled"
+        case .media:
+            // For workers, use a combined media+spaces icon
+            if userRole != .admin && userRole != .superAdmin {
+                return "photo.badge.key"
+            }
+            return "photo.on.rectangle.angled"
         case .inventory: return "shippingbox.fill"
         case .spaces: return "key.fill"
         case .emergency: return "phone.arrow.up.right"
         }
+    }
+    
+    var icon: String {
+        return icon(for: nil)
     }
 }
 
@@ -1367,16 +1412,17 @@ struct OnSiteWorkerRow: View {
 struct TabButton: View {
     let tab: BuildingDetailTab
     let isSelected: Bool
+    let userRole: CoreTypes.UserRole?
     let action: () -> Void
     
     var body: some View {
         Button(action: action) {
             VStack(spacing: 6) {
-                Image(systemName: tab.icon)
+                Image(systemName: tab.icon(for: userRole))
                     .font(.system(size: 18))
                     .symbolRenderingMode(.hierarchical)
                 
-                Text(tab.rawValue)
+                Text(tab.title(for: userRole))
                     .font(.caption)
                     .fontWeight(isSelected ? .semibold : .regular)
             }
@@ -2504,9 +2550,11 @@ struct BuildingMaintenanceTab: View {
     
     var body: some View {
         VStack(spacing: 20) {
-            // Stats overview
-            maintenanceStatsSection
-                .animatedGlassAppear(delay: 0.1)
+            // Stats overview - hidden for workers
+            if viewModel.userRole != .worker {
+                maintenanceStatsSection
+                    .animatedGlassAppear(delay: 0.1)
+            }
             
             // Filters
             maintenanceFiltersSection
@@ -4536,48 +4584,64 @@ class BuildingDetailVM: ObservableObject {
         }
         
         private func generateMonthlyDSNYSchedule() -> [(day: String, time: String, items: String, isToday: Bool)] {
-            let calendar = Calendar.current
+            // Prefer canonical DSNYCollectionSchedule for accurate per-building schedule
             let now = Date()
+            let calendar = Calendar.current
+            var rows: [(day: String, time: String, items: String, isToday: Bool)] = []
+
+            if let sched = DSNYCollectionSchedule.buildingCollectionSchedules[buildingId] {
+                // Build entries for each collection day using configured windows
+                for day in CollectionDay.allCases {
+                    let isCollection = sched.collectionDays.contains(day)
+                    if isCollection {
+                        // Collection early morning entry
+                        let dayDate = nextDate(for: day, from: now, calendar: calendar)
+                        let timeStr = String(format: "%02d:%02d %@ - Collection",
+                                             sched.binRetrievalTime.hour, sched.binRetrievalTime.minute, "AM")
+                        rows.append((day: day.rawValue, time: timeStr, items: "Regular Pickup", isToday: calendar.isDateInToday(dayDate)))
+
+                        // Set-out previous evening
+                        let prev = day.previousDay()
+                        let prevDate = nextDate(for: prev, from: now, calendar: calendar)
+                        let setOutStr = String(format: "%02d:%02d %@ - Set Out",
+                                               sched.binSetOutTime.hour, sched.binSetOutTime.minute, "PM")
+                        rows.append((day: prev.rawValue, time: setOutStr, items: "Trash, Recycling", isToday: calendar.isDateInToday(prevDate)))
+                    }
+                }
+                return rows
+            }
+
+            // Fallback generic M/W/F pattern if no catalog
             let startOfMonth = calendar.dateInterval(of: .month, for: now)?.start ?? now
             let daysInMonth = calendar.range(of: .day, in: .month, for: now)?.count ?? 30
-            
-            var schedule: [(day: String, time: String, items: String, isToday: Bool)] = []
-            
             for day in 1...daysInMonth {
                 guard let date = calendar.date(byAdding: .day, value: day - 1, to: startOfMonth) else { continue }
-                
                 let dayOfWeek = calendar.component(.weekday, from: date)
                 let dayName = calendar.weekdaySymbols[dayOfWeek - 1]
                 let dayNumber = calendar.component(.day, from: date)
                 let isToday = calendar.isDate(date, inSameDayAs: now)
-                
-                // Monday, Wednesday, Friday collection (2, 4, 6 in weekday where Sunday = 1)
                 if dayOfWeek == 2 || dayOfWeek == 4 || dayOfWeek == 6 {
-                    schedule.append((
-                        day: "\(dayName) \(dayNumber)",
-                        time: "6:00 AM - Collection",
-                        items: "Regular Pickup",
-                        isToday: isToday
-                    ))
-                    
-                    // Add set-out the night before
+                    rows.append((day: "\(dayName) \(dayNumber)", time: "6:00 AM - Collection", items: "Regular Pickup", isToday: isToday))
                     if let previousDay = calendar.date(byAdding: .day, value: -1, to: date) {
                         let prevDayOfWeek = calendar.component(.weekday, from: previousDay)
                         let prevDayName = calendar.weekdaySymbols[prevDayOfWeek - 1]
                         let prevDayNumber = calendar.component(.day, from: previousDay)
                         let isPrevToday = calendar.isDate(previousDay, inSameDayAs: now)
-                        
-                        schedule.append((
-                            day: "\(prevDayName) \(prevDayNumber)",
-                            time: "8:00 PM - Set Out",
-                            items: "Trash, Recycling",
-                            isToday: isPrevToday
-                        ))
+                        rows.append((day: "\(prevDayName) \(prevDayNumber)", time: "8:00 PM - Set Out", items: "Trash, Recycling", isToday: isPrevToday))
                     }
                 }
             }
-            
-            return schedule.sorted { $0.day < $1.day }
+            return rows.sorted { $0.day < $1.day }
+        }
+
+        private func nextDate(for collectionDay: CollectionDay, from ref: Date, calendar: Calendar) -> Date {
+            var date = calendar.startOfDay(for: ref)
+            for _ in 0..<7 {
+                let weekday = calendar.component(.weekday, from: date)
+                if CollectionDay.from(weekday: weekday) == collectionDay { return date }
+                date = calendar.date(byAdding: .day, value: 1, to: date) ?? date
+            }
+            return date
         }
         
         private var sanitationTasksCard: some View {

@@ -13,52 +13,67 @@ struct WeatherSuggestionEngine {
         let buildingId = building.id
         let policies = BuildingOperationsCatalog.map[buildingId]
 
-        // A. Precipitation (next 6 hours)
-        let next6 = Array(forecast.hourly.prefix(6))
-        if let maxPrecip = next6.map({ $0.precipProb }).max(), maxPrecip >= 0.5 {
-            if let start = next6.first(where: { $0.precipProb >= 0.5 })?.date,
-               let end = next6.last(where: { $0.precipProb >= 0.5 })?.date {
-                let window = timeWindowString(start: start, end: end)
-
-                if let seasonal = policies?.seasonal {
-                    // Clear curbs before rain (if leaf blower policy exists)
-                    out.append(
-                        WeatherSuggestion(
-                            id: "curb-pre-rain-\(buildingId)-\(Int(start.timeIntervalSince1970))",
-                            kind: .rain,
-                            title: "Rain expected \(window)",
-                            subtitle: "Blow leaves & clear \(seasonal.curbClearInches)″ curbs at \(shortName(building.name)) before rain",
-                            taskTemplateId: "curbClearPreRain",
-                            dueBy: Calendar.current.date(byAdding: .minute, value: -30, to: start),
-                            buildingId: buildingId
-                        )
-                    )
-                }
-
-                if policies?.roofDrains?.checkBeforeRain == true {
-                    out.append(
-                        WeatherSuggestion(
-                            id: "roof-drain-pre-rain-\(buildingId)-\(Int(start.timeIntervalSince1970))",
-                            kind: .rain,
-                            title: "Check roof drains before rain",
-                            subtitle: "Walk-through & remove debris at \(shortName(building.name))",
-                            taskTemplateId: "roofDrainCheck",
-                            dueBy: Calendar.current.date(byAdding: .minute, value: -60, to: start),
-                            buildingId: buildingId
-                        )
-                    )
-                }
-            }
+        // A. Precipitation (next 24 hours - lowered threshold and extended window)
+        let next24 = Array(forecast.hourly.prefix(24))
+        let maxPrecip = next24.map({ $0.precipProb }).max() ?? 0
+        let totalRainInches = next24.reduce(into: 0.0) { result, hour in
+            result += (hour.precipIntensity ?? 0)
+        }
+        
+        // Rain/precipitation suggestions with lower thresholds
+        if maxPrecip >= 0.25 || totalRainInches >= 0.1 {
+            // Skip hosing if rain is likely
+            out.append(
+                WeatherSuggestion(
+                    id: "skip-hosing-\(buildingId)-\(Int(today.timeIntervalSince1970))",
+                    kind: .rain,
+                    title: "Skip sidewalk hosing",
+                    subtitle: "Rain expected — use spot clean; prevent pooling & slippery walkways",
+                    taskTemplateId: "skipHosing",
+                    dueBy: nil,
+                    buildingId: buildingId
+                )
+            )
+        }
+        
+        if maxPrecip >= 0.4 || totalRainInches >= 0.25 {
+            // Clear roof and yard drains
+            out.append(
+                WeatherSuggestion(
+                    id: "clear-drains-\(buildingId)-\(Int(today.timeIntervalSince1970))",
+                    kind: .rain,
+                    title: "Clear roof & curb drains",
+                    subtitle: "Check scuppers & drains before precipitation at \(shortName(building.name))",
+                    taskTemplateId: "roofDrainCheck",
+                    dueBy: nil,
+                    buildingId: buildingId
+                )
+            )
+        }
+        
+        // Rain mats for buildings with entrances
+        if maxPrecip >= 0.3 {
+            out.append(
+                WeatherSuggestion(
+                    id: "rain-mats-\(buildingId)-\(Int(today.timeIntervalSince1970))",
+                    kind: .rain,
+                    title: "Deploy / clean rain mats",
+                    subtitle: "Reduce slip risk at lobby entrance",
+                    taskTemplateId: "rainMats",
+                    dueBy: nil,
+                    buildingId: buildingId
+                )
+            )
         }
 
-        // B. Temperature (hot day)
+        // B. Temperature (hot day) - lowered threshold
         let maxTempNext12 = forecast.hourly.prefix(12).map({ $0.tempF }).max() ?? forecast.current.tempF
-        if maxTempNext12 >= 85 {
+        if maxTempNext12 >= 78 && maxPrecip < 0.3 { // Only if not raining
             out.append(
                 WeatherSuggestion(
                     id: "hot-day-\(buildingId)-\(Int(maxTempNext12))",
                     kind: .heat,
-                    title: "Hot today (\(Int(maxTempNext12))°)",
+                    title: "Warm today (\(Int(maxTempNext12))°)",
                     subtitle: "Hose & squeegee sidewalks at \(shortName(building.name))",
                     taskTemplateId: "hoseSidewalks",
                     dueBy: nil,
@@ -66,27 +81,50 @@ struct WeatherSuggestionEngine {
                 )
             )
         }
-
-        // C. DSNY set-out (day-of)
-        let weekday = Calendar.current.component(.weekday, from: today)
-        let todayDay = CollectionDay.from(weekday: weekday)
-        let setOuts = DSNYCollectionSchedule.getBinSetOutReminders(for: todayDay)
-        if let reminder = setOuts.first(where: { $0.buildingId == buildingId }) {
-            let timeString = reminder.scheduledTime.timeString
+        
+        // C. Wind conditions
+        let maxWindNext12 = forecast.hourly.prefix(12).map({ $0.windMph }).max() ?? 0
+        if maxWindNext12 >= 15 {
             out.append(
                 WeatherSuggestion(
-                    id: "dsny-setout-\(buildingId)-\(todayDay.rawValue)",
-                    kind: .dsny,
-                    title: "DSNY set-out tonight",
-                    subtitle: "Set out bins at \(timeString) @ \(shortName(building.name))",
-                    taskTemplateId: "dsnySetout",
-                    dueBy: dateFromDSNYTime(reminder.scheduledTime, offsetMinutes: -10, on: today),
+                    id: "wind-secure-\(buildingId)-\(Int(maxWindNext12))",
+                    kind: .wind,
+                    title: "Windy conditions (\(Int(maxWindNext12)) mph)",
+                    subtitle: "Secure trash lids & tie bags to prevent litter",
+                    taskTemplateId: "secureTrash",
+                    dueBy: nil,
                     buildingId: buildingId
                 )
             )
         }
 
-        // D. Snow (winter policy proxy)
+        // D. DSNY set-out (only show on actual collection days)
+        let weekday = Calendar.current.component(.weekday, from: today)
+        let todayDay = CollectionDay.from(weekday: weekday)
+        
+        // Check if today is actually a collection day for this building
+        // Sunday = 1, Monday = 2, Tuesday = 3, Wednesday = 4, Thursday = 5, Friday = 6, Saturday = 7
+        let isDSNYDay = (weekday == 1 || weekday == 3 || weekday == 5) // Sunday, Tuesday, Thursday
+        
+        if isDSNYDay {
+            let setOuts = DSNYCollectionSchedule.getBinSetOutReminders(for: todayDay)
+            if let reminder = setOuts.first(where: { $0.buildingId == buildingId }) {
+                let timeString = reminder.scheduledTime.timeString
+                out.append(
+                    WeatherSuggestion(
+                        id: "dsny-setout-\(buildingId)-\(todayDay.rawValue)",
+                        kind: .dsny,
+                        title: "DSNY set-out tonight",
+                        subtitle: "Set out bins at \(timeString) @ \(shortName(building.name))",
+                        taskTemplateId: "dsnySetout",
+                        dueBy: dateFromDSNYTime(reminder.scheduledTime, offsetMinutes: -10, on: today),
+                        buildingId: buildingId
+                    )
+                )
+            }
+        }
+
+        // E. Snow (winter policy proxy)
         let snowLikelyNext24 = forecast.hourly.prefix(12).contains { hb in
             hb.precipProb >= 0.5 && forecast.current.condition.lowercased().contains("snow")
         }
@@ -103,9 +141,36 @@ struct WeatherSuggestionEngine {
                 )
             )
         }
+        
+        // F. General maintenance suggestions if no weather conditions
+        if out.isEmpty {
+            // Add a general suggestion to ensure there's always something
+            out.append(
+                WeatherSuggestion(
+                    id: "general-maintenance-\(buildingId)",
+                    kind: .generic,
+                    title: "Perfect weather for outdoor tasks",
+                    subtitle: "Complete exterior maintenance at \(shortName(building.name))",
+                    taskTemplateId: "exteriorMaintenance",
+                    dueBy: nil,
+                    buildingId: buildingId
+                )
+            )
+        }
 
+        // Priority sorting: DSNY (highest), rain/wind (urgent weather), temperature (routine)
+        let prioritySorted = out.sorted { first, second in
+            switch (first.kind, second.kind) {
+            case (.dsny, _): return true
+            case (_, .dsny): return false
+            case (.rain, .heat), (.rain, .generic), (.wind, .heat), (.wind, .generic): return true
+            case (.heat, .rain), (.generic, .rain), (.heat, .wind), (.generic, .wind): return false
+            default: return first.title < second.title
+            }
+        }
+        
         // Return top 3
-        return Array(out.prefix(3))
+        return Array(prioritySorted.prefix(3))
     }
 
     // MARK: - Helpers

@@ -14,6 +14,7 @@ struct WorkerProfileView: View {
     @StateObject private var viewModel = WorkerProfileLocalViewModel()
     let workerId: String
     let container: ServiceContainer
+    @EnvironmentObject private var navigationCoordinator: NavigationCoordinator
     
     var body: some View {
         ZStack {
@@ -36,12 +37,16 @@ struct WorkerProfileView: View {
                     }
                     
                     // Weekly Schedule Section (Per Design Brief)
-                    ProfileWeeklyScheduleView(schedule: viewModel.weeklySchedule)
-                        .animatedGlassAppear(delay: 0.3)
+                    ProfileWeeklyScheduleView(schedule: viewModel.weeklySchedule) { dayItem in
+                        navigationCoordinator.push(.taskSchedule(workerId: workerId, date: dayItem.date))
+                    }
+                    .animatedGlassAppear(delay: 0.3)
                     
                     // Assigned Buildings Section (Per Design Brief) 
-                    ProfileAssignedBuildingsViewEmbedded(buildings: viewModel.assignedBuildings)
-                        .animatedGlassAppear(delay: 0.4)
+                    ProfileAssignedBuildingsViewEmbedded(buildings: viewModel.assignedBuildings) { building in
+                        navigationCoordinator.push(.buildingDetail(buildingId: building.id))
+                    }
+                    .animatedGlassAppear(delay: 0.4)
                     
                     // Skills Section
                     if let worker = viewModel.worker, let skills = worker.skills {
@@ -886,6 +891,7 @@ struct LogoutSectionView: View {
 
 struct ProfileWeeklyScheduleView: View {
     let schedule: [DayScheduleItem]
+    let onDayTap: (DayScheduleItem) -> Void
     
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
@@ -918,7 +924,9 @@ struct ProfileWeeklyScheduleView: View {
             } else {
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
                     ForEach(schedule, id: \.id) { day in
-                        ScheduleDayCard(day: day)
+                        ScheduleDayCard(day: day, onTap: {
+                            onDayTap(day)
+                        })
                     }
                 }
             }
@@ -932,6 +940,7 @@ struct ProfileWeeklyScheduleView: View {
 
 struct ProfileAssignedBuildingsViewEmbedded: View {
     let buildings: [BuildingSummary]
+    let onBuildingTap: (BuildingSummary) -> Void
     
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
@@ -964,7 +973,9 @@ struct ProfileAssignedBuildingsViewEmbedded: View {
             } else {
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
                     ForEach(buildings, id: \.id) { building in
-                        BuildingChip(building: building)
+                        BuildingChip(building: building, onTap: {
+                            onBuildingTap(building)
+                        })
                     }
                 }
             }
@@ -978,9 +989,11 @@ struct ProfileAssignedBuildingsViewEmbedded: View {
 
 struct ScheduleDayCard: View {
     let day: DayScheduleItem
+    let onTap: () -> Void
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        Button(action: onTap) {
+            VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Text(dayOfWeek)
                     .font(.caption)
@@ -1030,6 +1043,8 @@ struct ScheduleDayCard: View {
                         )
                 )
         )
+        }
+        .buttonStyle(PlainButtonStyle())
     }
     
     private var dayOfWeek: String {
@@ -1047,11 +1062,10 @@ struct ScheduleDayCard: View {
 
 struct BuildingChip: View {
     let building: BuildingSummary
+    let onTap: () -> Void
     
     var body: some View {
-        Button(action: {
-            // Navigate to building detail
-        }) {
+        Button(action: onTap) {
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
                     Image(systemName: "building.2.fill")

@@ -300,9 +300,13 @@ struct WorkerDashboardView: View {
 
     private var mapContainerView: some View {
         let currentId: String? = viewModel.currentBuilding?.id
+        let assignedIds = Set(viewModel.assignedBuildings.map { $0.id })
+        let visitedIds = Set((viewModel.visitedToday).map { $0.id })
         return MapRevealContainer(
             buildings: mapBuildings,
             currentBuildingId: currentId,
+            assignedBuildingIds: assignedIds,
+            visitedBuildingIds: visitedIds,
             isRevealed: $isPortfolioMapRevealed,
             container: container,
             onBuildingTap: { building in
@@ -349,7 +353,20 @@ struct WorkerDashboardView: View {
     }
 
     private var mapBuildings: [NamedCoordinate] {
-        viewModel.assignedBuildings.map { building in
+        // Show the full portfolio to workers, not just assigned buildings
+        if !viewModel.allBuildings.isEmpty {
+            return viewModel.allBuildings.map { building in
+                NamedCoordinate(
+                    id: building.id,
+                    name: building.name,
+                    address: building.address,
+                    latitude: building.coordinate.latitude,
+                    longitude: building.coordinate.longitude
+                )
+            }
+        }
+        // Fallback to assigned buildings if portfolio not yet loaded
+        return viewModel.assignedBuildings.map { building in
             NamedCoordinate(
                 id: building.id,
                 name: building.name,
@@ -366,47 +383,17 @@ struct WorkerDashboardView: View {
     private var heroSection: some View {
         if heroExpanded {
             VStack(spacing: CyntientOpsDesign.Spacing.md) {
-                HStack(spacing: CyntientOpsDesign.Spacing.md) {
-                    // Card 1: Immediate Routine/Tasks for Assigned Building
-                    Button(action: {
-                        #if os(iOS)
-                        let haptic = UIImpactFeedbackGenerator(style: .light)
-                        haptic.impactOccurred()
-                        #endif
-                        if let buildingId = viewModel.currentBuilding?.id {
-                            sheet = .buildingDetail(buildingId)
-                        }
-                    }) {
-                        GlassCard(
-                            intensity: .regular,
-                            cornerRadius: CyntientOpsDesign.CornerRadius.glassCard,
-                            padding: CyntientOpsDesign.Spacing.cardPadding
-                        ) {
-                            immediateRoutineCard
-                        }
+                // Route-driven Hero Cards (Now/Next)
+                WorkerHeroNowNext(viewModel: viewModel, onTaskTap: { taskVM in
+                    // Handle task tap from hero cards
+                    if let buildingId = taskVM.task.buildingId {
+                        sheet = .buildingDetail(buildingId)
                     }
-                    .buttonStyle(InteractiveCardButtonStyle())
-                    
-                    // Card 2: Immediate Next Tasks
-                    Button(action: {
-                        #if os(iOS)
-                        let haptic = UIImpactFeedbackGenerator(style: .light)
-                        haptic.impactOccurred()
-                        #endif
-                        if let nextTask = getNextTask() {
-                            sheet = .taskDetail(nextTask.id)
-                        }
-                    }) {
-                        GlassCard(
-                            intensity: .regular,
-                            cornerRadius: CyntientOpsDesign.CornerRadius.glassCard,
-                            padding: CyntientOpsDesign.Spacing.cardPadding
-                        ) {
-                            immediateNextTasksCard
-                        }
-                    }
-                    .buttonStyle(InteractiveCardButtonStyle())
-                }
+                }, onBuildingTap: { buildingId in
+                    // Direct building navigation
+                    sheet = .buildingDetail(buildingId)
+                })
+                .padding(.horizontal, CyntientOpsDesign.Spacing.md)
                 .frame(height: 200)
                 
                 // Collapse/Expand Toggle
@@ -775,55 +762,13 @@ private func handleClockAction() {
             #endif
             isClockBusy = true
             if viewModel.isClockedIn {
-                // Always show a day log sheet when worker is clocking out and has any visits today.
-                // Use multi-site when >1 visited; else single-site for that building.
+                // Always show the consolidated MultiSiteDepartureSheet for all clock-outs
+                // This uses the new building-grouped departure flow
                 if let wid = viewModel.worker?.id ?? authManager.workerId {
-                    // Choose building list: visited → current → assigned
-                    let visited = viewModel.visitedToday
-                    if visited.count > 1 {
-                        siteDepartureVM = nil
-                        showingSiteDeparture = true
-                    } else {
-                        let b: WorkerDashboardViewModel.BuildingSummary? = visited.first ?? viewModel.currentBuilding ?? viewModel.assignedBuildings.first
-                        if let b {
-                        let named = NamedCoordinate(
-                            id: b.id,
-                            name: b.name,
-                            address: b.address,
-                            latitude: b.coordinate.latitude,
-                            longitude: b.coordinate.longitude
-                        )
-                        siteDepartureVM = SiteDepartureViewModel(
-                            workerId: wid,
-                            currentBuilding: named,
-                            container: container
-                        )
-                        showingSiteDeparture = true
-                    } else {
-                        // No building context at all; fall back to immediate clock out
-                        await viewModel.clockOut()
-                        #if os(iOS)
-                        haptic.notificationOccurred(.success)
-                        #endif
-                        toastMessage = "Clocked out"
-                        withAnimation { showToast = true }
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                            withAnimation { showToast = false }
-                        }
-                    }
+                    // Always use the consolidated departure flow regardless of building count
+                    siteDepartureVM = nil  // Clear old single-building VM
+                    showingSiteDeparture = true  // Show MultiSiteDepartureSheet
                 }
-            } else {
-                // No visits recorded today; proceed to immediate clock out.
-                await viewModel.clockOut()
-                #if os(iOS)
-                haptic.notificationOccurred(.success)
-                #endif
-                toastMessage = "Clocked out"
-                withAnimation { showToast = true }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                    withAnimation { showToast = false }
-                }
-            }
             } else {
                 // Present clock-in sheet to choose building
                 showingClockInSheet = true
@@ -1737,7 +1682,8 @@ private func handleClockAction() {
                 }
             } else {
                 // Show weekly schedule summarized by building with expand/collapse
-                ForEach(viewModel.scheduleWeek, id: \.date) { day in
+                ForEach(viewModel.scheduleWeek.indices, id: \.self) { index in
+                    let day = viewModel.scheduleWeek[index]
                     VStack(alignment: .leading, spacing: 10) {
                         HStack {
                             Text(day.date.formatted(date: .abbreviated, time: .omitted))
@@ -1751,13 +1697,50 @@ private func handleClockAction() {
                         }
 
                         let groups = Dictionary(grouping: day.items, by: { $0.buildingId })
-                        ForEach(groups.keys.sorted(), id: \.self) { bid in
-                            let items = groups[bid] ?? []
+                        // Order by: DSNY circuit first (if before 8 PM today), then earliest start time
+                        let now = Date()
+                        let isToday = Calendar.current.isDateInToday(day.date)
+                        let dsnyCutoff = Calendar.current.date(bySettingHour: 20, minute: 0, second: 0, of: day.date) ?? day.date
+                        let ordered = groups.map { (bid: $0.key, items: $0.value) }.sorted { lhs, rhs in
+                            func rank(_ entry: (bid: String, items: [WorkerDashboardViewModel.DaySchedule.ScheduleItem])) -> (Int, Date) {
+                                let minStart = entry.items.map { $0.startTime }.min() ?? day.date
+                                let isCircuit = entry.bid == "17th_street_complex"
+                                let hasDSNY = entry.items.contains { $0.title.localizedCaseInsensitiveContains("set out") || $0.title.localizedCaseInsensitiveContains("dsny") }
+                                let forceTop = isToday && now < dsnyCutoff && isCircuit && hasDSNY
+                                return (forceTop ? 0 : 1, minStart)
+                            }
+                            let (lRank, lTime) = rank(lhs)
+                            let (rRank, rTime) = rank(rhs)
+                            if lRank != rRank { return lRank < rRank }
+                            return lTime < rTime
+                        }
+                        ForEach(ordered, id: \.bid) { entry in
+                            let bid = entry.bid
+                            let items = entry.items
                             let building = viewModel.assignedBuildings.first { $0.id == bid }
-                            let buildingName = building?.name ?? "Unknown Building"
+                            let buildingName: String = {
+                                switch bid {
+                                case "17th_street_complex":
+                                    // If DSNY children present, show DSNY header variant
+                                    let hasDSNY = items.contains { $0.title.localizedCaseInsensitiveContains("set out") || $0.title.localizedCaseInsensitiveContains("dsny") }
+                                    return hasDSNY ? "Chelsea Circuit — DSNY Set-Out" : "Chelsea Circuit"
+                                case "17th_18th_street_buildings":
+                                    return "Chelsea Circuit (Weekend Coverage)"
+                                default:
+                                    return building?.name ?? (CanonicalIDs.Buildings.getName(for: bid) ?? "Unknown Building")
+                                }
+                            }()
                             let sectionKey = "\(Int(day.date.timeIntervalSince1970))_\(bid)"
                             let count = items.count
                             let totalMinutes = items.reduce(0) { sum, it in sum + Int(it.endTime.timeIntervalSince(it.startTime) / 60) }
+                            // Derive time window for Chelsea Circuit
+                            let circuitTimeLabel: String? = {
+                                guard bid == "17th_street_complex" else { return nil }
+                                guard let minStart = items.map({ $0.startTime }).min(), let maxEnd = items.map({ $0.endTime }).max() else { return nil }
+                                let tf = DateFormatter()
+                                tf.dateFormat = "h:mm a"
+                                return "\(tf.string(from: minStart)) – \(tf.string(from: maxEnd))"
+                            }()
 
                             VStack(alignment: .leading, spacing: 6) {
                                 HStack(spacing: 8) {
@@ -1774,7 +1757,7 @@ private func handleClockAction() {
                                     }
                                     .buttonStyle(.plain)
 
-                                    Text(buildingName)
+                                    Text(circuitTimeLabel != nil ? "\(buildingName) • \(circuitTimeLabel!)" : buildingName)
                                         .font(.subheadline)
                                         .fontWeight(.medium)
                                         .foregroundColor(.white)
@@ -1933,10 +1916,11 @@ private func handleClockAction() {
             .clipShape(RoundedRectangle(cornerRadius: 12))
             
             // Expanded day details (summarized by building with expand/collapse per building)
-            ForEach(viewModel.scheduleWeek.filter { day in
+            let monthDays = viewModel.scheduleWeek.filter { day in
                 // Show only expanded days that fall in this month view
                 expandedMonthDays.contains(Calendar.current.startOfDay(for: day.date).ISO8601Format())
-            }, id: \.date) { day in
+            }
+            ForEach(Array(monthDays.enumerated()), id: \.offset) { _, day in
                 VStack(alignment: .leading, spacing: 10) {
                     HStack {
                         Text(day.date.formatted(date: .abbreviated, time: .omitted))
@@ -1950,13 +1934,49 @@ private func handleClockAction() {
                     }
 
                     let groups = Dictionary(grouping: day.items, by: { $0.buildingId })
-                    ForEach(groups.keys.sorted(), id: \.self) { bid in
-                        let items = groups[bid] ?? []
+                    // Order groups similar to week view
+                    let now = Date()
+                    let isToday = Calendar.current.isDateInToday(day.date)
+                    let dsnyCutoff = Calendar.current.date(bySettingHour: 20, minute: 0, second: 0, of: day.date) ?? day.date
+                    let ordered = groups.map { (bid: $0.key, items: $0.value) }.sorted { lhs, rhs in
+                        func rank(_ entry: (bid: String, items: [WorkerDashboardViewModel.DaySchedule.ScheduleItem])) -> (Int, Date) {
+                            let minStart = entry.items.map { $0.startTime }.min() ?? day.date
+                            let isCircuit = entry.bid == "17th_street_complex"
+                            let hasDSNY = entry.items.contains { $0.title.localizedCaseInsensitiveContains("set out") || $0.title.localizedCaseInsensitiveContains("dsny") }
+                            let forceTop = isToday && now < dsnyCutoff && isCircuit && hasDSNY
+                            return (forceTop ? 0 : 1, minStart)
+                        }
+                        let (lRank, lTime) = rank(lhs)
+                        let (rRank, rTime) = rank(rhs)
+                        if lRank != rRank { return lRank < rRank }
+                        return lTime < rTime
+                    }
+                    ForEach(ordered, id: \.bid) { entry in
+                        let bid = entry.bid
+                        let items = entry.items
                         let building = viewModel.assignedBuildings.first { $0.id == bid }
-                        let buildingName = building?.name ?? "Unknown Building"
+                        let buildingName: String = {
+                            switch bid {
+                            case "17th_street_complex":
+                                let hasDSNY = items.contains { $0.title.localizedCaseInsensitiveContains("set out") || $0.title.localizedCaseInsensitiveContains("dsny") }
+                                return hasDSNY ? "Chelsea Circuit — DSNY Set-Out" : "Chelsea Circuit"
+                            case "17th_18th_street_buildings":
+                                return "Chelsea Circuit (Weekend Coverage)"
+                            default:
+                                return building?.name ?? (CanonicalIDs.Buildings.getName(for: bid) ?? "Unknown Building")
+                            }
+                        }()
                         let sectionKey = "m_\(Int(day.date.timeIntervalSince1970))_\(bid)"
                         let count = items.count
                         let totalMinutes = items.reduce(0) { sum, it in sum + Int(it.endTime.timeIntervalSince(it.startTime) / 60) }
+                        // Derive time window for Chelsea Circuit
+                        let circuitTimeLabel: String? = {
+                            guard bid == "17th_street_complex" else { return nil }
+                            guard let minStart = items.map({ $0.startTime }).min(), let maxEnd = items.map({ $0.endTime }).max() else { return nil }
+                            let tf = DateFormatter()
+                            tf.dateFormat = "h:mm a"
+                            return "\(tf.string(from: minStart)) – \(tf.string(from: maxEnd))"
+                        }()
 
                         VStack(alignment: .leading, spacing: 6) {
                             HStack(spacing: 8) {
@@ -1973,7 +1993,7 @@ private func handleClockAction() {
                                 }
                                 .buttonStyle(.plain)
 
-                                Text(buildingName)
+                                Text(circuitTimeLabel != nil ? "\(buildingName) • \(circuitTimeLabel!)" : buildingName)
                                     .font(.subheadline)
                                     .fontWeight(.medium)
                                     .foregroundColor(.white)
