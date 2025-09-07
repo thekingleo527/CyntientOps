@@ -83,7 +83,7 @@ struct WorkerDashboardMainView: View {
                 // Worker Hero Card (simplified for MainView)
                 VStack(spacing: 16) {
                     // Hero: Now / Next cards
-                    WorkerHeroNowNext(viewModel: viewModel) { tapped in
+                    WorkerHeroNowNext(viewModel: viewModel, container: container) { tapped in
                         // Open details for the underlying contextual task
                         selectedTask = tapped.task
                         showingTaskDetail = true

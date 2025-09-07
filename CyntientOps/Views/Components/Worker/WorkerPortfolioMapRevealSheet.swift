@@ -15,6 +15,8 @@ struct WorkerPortfolioMapRevealSheet: View {
                 buildings: buildings,
                 currentBuildingId: currentBuildingId,
                 focusBuildingId: nil,
+                assignedBuildingIds: nil, // Workers see full portfolio - no filtering
+                forceShowAll: true, // Workers always see full portfolio
                 isRevealed: $revealed,
                 container: container,
                 onBuildingTap: { b in

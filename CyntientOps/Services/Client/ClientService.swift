@@ -104,6 +104,10 @@ public actor ClientService {
         print("🔍 ClientService: Found userId: \(userId) for email: \(email)")
         
         // Get client association
+        // First check if client_users table exists and has data
+        let tableCheck = try await grdbManager.query("SELECT COUNT(*) as count FROM client_users WHERE user_id = ?", [userId])
+        print("🔍 ClientService: client_users table check for user \(userId): \(tableCheck)")
+        
         let clientResult = try await grdbManager.query("""
             SELECT c.* 
             FROM clients c

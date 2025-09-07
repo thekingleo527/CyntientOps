@@ -2,6 +2,7 @@ import SwiftUI
 
 struct WorkerHeroNowNext: View {
     @ObservedObject var viewModel: WorkerDashboardViewModel
+    let container: ServiceContainer
     var onTaskTap: ((TaskRowVM) -> Void)? = nil
     var onBuildingTap: ((String) -> Void)? = nil
 
@@ -64,7 +65,7 @@ struct WorkerHeroNowNext: View {
         
         // Get current active routes from RouteManager
         let now = Date()
-        let todaysRoutes = RouteManager.shared.today(for: workerId, date: now)
+        let todaysRoutes = container.routes.today(for: workerId, date: now)
         
         // Return active routes (currently happening)
         return Array(todaysRoutes.filter { $0.isActive }.prefix(2))
@@ -74,13 +75,13 @@ struct WorkerHeroNowNext: View {
         guard let workerId = viewModel.worker?.id else { return [] }
         
         // Get next upcoming route
-        if let nextRoute = RouteManager.shared.nextUp(for: workerId, from: Date()) {
+        if let nextRoute = container.routes.nextUp(for: workerId, from: Date()) {
             return [nextRoute]
         }
         
         // Fallback: get next few routes from today that aren't active yet
         let now = Date()
-        let todaysRoutes = RouteManager.shared.today(for: workerId, date: now)
+        let todaysRoutes = container.routes.today(for: workerId, date: now)
         let upcomingRoutes = todaysRoutes.filter { !$0.isActive }
         
         return Array(upcomingRoutes.prefix(2))

@@ -97,17 +97,22 @@ struct WorkerIntelligencePanel: View {
     }
 
     private func openPortfolio() async {
-        // Load all buildings; set current building if clocked in
+        // Load ALL buildings for workers - full portfolio visibility
         if let list = try? await container.buildings.getAllBuildings() {
             portfolioBuildings = list
+            print("🗺️ Loaded \(portfolioBuildings.count) buildings for worker portfolio map")
         } else {
             portfolioBuildings = []
         }
-        if let wid = auth.workerId, let status = container.clockIn.getClockInStatus(for: wid) {
+        
+        // Set current building if clocked in
+        if let workerId = auth.workerId, 
+           let status = container.clockIn.getClockInStatus(for: workerId) {
             currentBuildingId = status.buildingId
         } else {
             currentBuildingId = nil
         }
+        
         showingPortfolioMap = true
     }
 }

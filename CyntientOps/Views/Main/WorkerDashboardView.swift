@@ -384,7 +384,7 @@ struct WorkerDashboardView: View {
         if heroExpanded {
             VStack(spacing: CyntientOpsDesign.Spacing.md) {
                 // Route-driven Hero Cards (Now/Next)
-                WorkerHeroNowNext(viewModel: viewModel, onTaskTap: { taskVM in
+                WorkerHeroNowNext(viewModel: viewModel, container: container, onTaskTap: { taskVM in
                     // Handle task tap from hero cards
                     if let buildingId = taskVM.task.buildingId {
                         sheet = .buildingDetail(buildingId)

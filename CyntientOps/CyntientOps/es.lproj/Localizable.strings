@@ -1,0 +1,466 @@
+/*
+  Localizable.strings (Spanish)
+  CyntientOps v6.0
+
+  ✅ COMPLETE: Full Spanish localization for all app strings
+  ✅ PROFESSIONAL: Native Spanish translations
+  ✅ ACCESSIBLE: Clear, simple language for all workers
+*/
+
+// MARK: - General UI
+"OK" = "Aceptar";
+"Cancel" = "Cancelar";
+"Save" = "Guardar";
+"Submit" = "Enviar";
+"Delete" = "Eliminar";
+"Edit" = "Editar";
+"Add" = "Agregar";
+"Close" = "Cerrar";
+"Error" = "Error";
+"Success" = "Éxito";
+"Warning" = "Advertencia";
+"Info" = "Información";
+"Loading" = "Cargando";
+"Loading..." = "Cargando...";
+"Please wait..." = "Por favor espere...";
+"Retry" = "Reintentar";
+"Back" = "Atrás";
+"Next" = "Siguiente";
+"Previous" = "Anterior";
+"Done" = "Hecho";
+"Continue" = "Continuar";
+"Yes" = "Sí";
+"No" = "No";
+"All" = "Todo";
+"None" = "Ninguno";
+"Select" = "Seleccionar";
+"Search" = "Buscar";
+"Filter" = "Filtrar";
+"Sort" = "Ordenar";
+"Refresh" = "Actualizar";
+"Share" = "Compartir";
+"More" = "Más";
+"Less" = "Menos";
+"Settings" = "Configuración";
+"Help" = "Ayuda";
+"About" = "Acerca de";
+"Version" = "Versión";
+
+// MARK: - Authentication
+"Login" = "Iniciar Sesión";
+"Logout" = "Cerrar Sesión";
+"Sign In" = "Ingresar";
+"Sign Out" = "Salir";
+"Email" = "Correo Electrónico";
+"Password" = "Contraseña";
+"Forgot Password?" = "¿Olvidó su Contraseña?";
+"Remember Me" = "Recordarme";
+"Authentication required" = "Autenticación requerida";
+"Invalid credentials" = "Credenciales inválidas";
+"Account locked" = "Cuenta bloqueada";
+"Too many attempts" = "Demasiados intentos";
+"Session expired" = "Sesión expirada";
+"Please log in again" = "Por favor inicie sesión nuevamente";
+"Biometric Authentication" = "Autenticación Biométrica";
+"Use Face ID" = "Usar Face ID";
+"Use Touch ID" = "Usar Touch ID";
+"Enter Passcode" = "Ingrese Código";
+
+// MARK: - Dashboard
+"Dashboard" = "Panel";
+"Worker Dashboard" = "Panel del Trabajador";
+"Admin Dashboard" = "Panel de Administrador";
+"Client Dashboard" = "Panel de Cliente";
+"Welcome" = "Bienvenido";
+"Welcome, %@" = "Bienvenido, %@";
+"Good Morning" = "Buenos Días";
+"Good Afternoon" = "Buenas Tardes";
+"Good Evening" = "Buenas Noches";
+"Today" = "Hoy";
+"Yesterday" = "Ayer";
+"Tomorrow" = "Mañana";
+"This Week" = "Esta Semana";
+"Last Week" = "Semana Pasada";
+"This Month" = "Este Mes";
+"Last Month" = "Mes Pasado";
+
+// MARK: - Clock In/Out
+"Clock In" = "Registrar Entrada";
+"Clock Out" = "Registrar Salida";
+"Clocked In" = "Entrada Registrada";
+"Clocked Out" = "Salida Registrada";
+"Current Status" = "Estado Actual";
+"Time Worked" = "Tiempo Trabajado";
+"Clock In Time" = "Hora de Entrada";
+"Clock Out Time" = "Hora de Salida";
+"Duration" = "Duración";
+"Break Time" = "Tiempo de Descanso";
+"Overtime" = "Horas Extra";
+"You are clocked in at %@" = "Está registrado en %@";
+"Clock in successful" = "Entrada registrada exitosamente";
+"Clock out successful" = "Salida registrada exitosamente";
+"Please select a building" = "Por favor seleccione un edificio";
+
+// MARK: - Buildings
+"Building" = "Edificio";
+"Buildings" = "Edificios";
+"Current Building" = "Edificio Actual";
+"My Buildings" = "Mis Edificios";
+"All Buildings" = "Todos los Edificios";
+"Building Details" = "Detalles del Edificio";
+"Building Information" = "Información del Edificio";
+"Address" = "Dirección";
+"Contact" = "Contacto";
+"Phone" = "Teléfono";
+"Units" = "Unidades";
+"Floors" = "Pisos";
+"Square Feet" = "Pies Cuadrados";
+"Year Built" = "Año de Construcción";
+"Special Notes" = "Notas Especiales";
+"Not currently clocked in at a building." = "No está registrado en ningún edificio actualmente.";
+"No buildings assigned" = "No hay edificios asignados";
+"%d buildings" = "%d edificios";
+
+// MARK: - Tasks
+"Task" = "Tarea";
+"Tasks" = "Tareas";
+"Today's Tasks" = "Tareas de Hoy";
+"My Tasks" = "Mis Tareas";
+"All Tasks" = "Todas las Tareas";
+"Pending Tasks" = "Tareas Pendientes";
+"Completed Tasks" = "Tareas Completadas";
+"Overdue Tasks" = "Tareas Atrasadas";
+"Task Details" = "Detalles de la Tarea";
+"Task Description" = "Descripción de la Tarea";
+"Complete" = "Completar";
+"Complete Task" = "Completar Tarea";
+"Completed" = "Completado";
+"Incomplete" = "Incompleto";
+"In Progress" = "En Progreso";
+"Not Started" = "No Iniciado";
+"Pending" = "Pendiente";
+"Overdue" = "Atrasado";
+"Due Date" = "Fecha de Vencimiento";
+"Due Time" = "Hora de Vencimiento";
+"Due Today" = "Vence Hoy";
+"Due Tomorrow" = "Vence Mañana";
+"Due in %d days" = "Vence en %d días";
+"Overdue by %d days" = "Atrasado por %d días";
+"Scheduled Date" = "Fecha Programada";
+"Scheduled Time" = "Hora Programada";
+"Start Time" = "Hora de Inicio";
+"End Time" = "Hora de Fin";
+"Estimated Duration" = "Duración Estimada";
+"%d minutes" = "%d minutos";
+"%d hour" = "%d hora";
+"%d hours" = "%d horas";
+"Task marked as complete." = "Tarea marcada como completada.";
+"Mark as Complete" = "Marcar como Completada";
+"All tasks complete!" = "¡Todas las tareas completadas!";
+"Great job. You are all caught up for today." = "Excelente trabajo. Estás al día por hoy.";
+"No tasks found" = "No se encontraron tareas";
+"No tasks for today" = "No hay tareas para hoy";
+"%d tasks remaining" = "%d tareas restantes";
+"%d of %d completed" = "%d de %d completadas";
+
+// MARK: - Task Categories
+"Category" = "Categoría";
+"Categories" = "Categorías";
+"Cleaning" = "Limpieza";
+"Maintenance" = "Mantenimiento";
+"Inspection" = "Inspección";
+"Repair" = "Reparación";
+"Delivery" = "Entrega";
+"Other" = "Otro";
+"General" = "General";
+"Sanitation" = "Saneamiento";
+"Landscaping" = "Jardinería";
+"Snow Removal" = "Remoción de Nieve";
+"Emergency" = "Emergencia";
+
+// MARK: - Task Priority/Urgency
+"Priority" = "Prioridad";
+"Urgency" = "Urgencia";
+"Urgent" = "Urgente";
+"High Priority" = "Alta Prioridad";
+"Normal" = "Normal";
+"Normal Priority" = "Prioridad Normal";
+"Low" = "Baja";
+"Low Priority" = "Baja Prioridad";
+"Critical" = "Crítico";
+"High" = "Alta";
+"Medium" = "Media";
+
+// MARK: - Task Frequency
+"Frequency" = "Frecuencia";
+"One Time" = "Una Vez";
+"Daily" = "Diario";
+"Weekly" = "Semanal";
+"Bi-Weekly" = "Quincenal";
+"Monthly" = "Mensual";
+"Quarterly" = "Trimestral";
+"Yearly" = "Anual";
+"As Needed" = "Según sea Necesario";
+"Recurring" = "Recurrente";
+"Recurrence" = "Recurrencia";
+
+// MARK: - Photos
+"Photo" = "Foto";
+"Photos" = "Fotos";
+"Photo Required" = "Se Requiere Foto";
+"Photo Optional" = "Foto Opcional";
+"Take Photo" = "Tomar Foto";
+"Choose Photo" = "Elegir Foto";
+"Retake Photo" = "Volver a Tomar";
+"Delete Photo" = "Eliminar Foto";
+"View Photo" = "Ver Foto";
+"Photo Evidence" = "Evidencia Fotográfica";
+"Add Photo" = "Agregar Foto";
+"Camera" = "Cámara";
+"Photo Library" = "Biblioteca de Fotos";
+"No Photo" = "Sin Foto";
+"Photo uploaded successfully" = "Foto subida exitosamente";
+"Photo upload failed" = "Error al subir foto";
+"Uploading photo..." = "Subiendo foto...";
+"%d photos" = "%d fotos";
+"Tap to add photo" = "Toque para agregar foto";
+
+// MARK: - Notes
+"Notes" = "Notas";
+"Add Notes" = "Agregar Notas";
+"View Notes" = "Ver Notas";
+"Edit Notes" = "Editar Notas";
+"No notes" = "Sin notas";
+"Optional notes..." = "Notas opcionales...";
+"Add a note..." = "Agregar una nota...";
+"Task Notes" = "Notas de la Tarea";
+
+// MARK: - Workers
+"Worker" = "Trabajador";
+"Workers" = "Trabajadores";
+"Worker Name" = "Nombre del Trabajador";
+"Worker Details" = "Detalles del Trabajador";
+"Active Workers" = "Trabajadores Activos";
+"All Workers" = "Todos los Trabajadores";
+"Assigned Workers" = "Trabajadores Asignados";
+"Available Workers" = "Trabajadores Disponibles";
+"On Site" = "En el Sitio";
+"Off Site" = "Fuera del Sitio";
+"On Break" = "En Descanso";
+"%d workers" = "%d trabajadores";
+
+// MARK: - Status
+"Status" = "Estado";
+"Active" = "Activo";
+"Inactive" = "Inactivo";
+"Online" = "En Línea";
+"Offline" = "Fuera de Línea";
+"Available" = "Disponible";
+"Busy" = "Ocupado";
+"Away" = "Ausente";
+"On Duty" = "En Servicio";
+"Off Duty" = "Fuera de Servicio";
+
+// MARK: - Time
+"Time" = "Tiempo";
+"Date" = "Fecha";
+"Today" = "Hoy";
+"Yesterday" = "Ayer";
+"Tomorrow" = "Mañana";
+"Now" = "Ahora";
+"Just now" = "Justo ahora";
+"%d minutes ago" = "hace %d minutos";
+"%d hours ago" = "hace %d horas";
+"%d days ago" = "hace %d días";
+"In %d minutes" = "En %d minutos";
+"In %d hours" = "En %d horas";
+"In %d days" = "En %d días";
+"This morning" = "Esta mañana";
+"This afternoon" = "Esta tarde";
+"This evening" = "Esta noche";
+"Tonight" = "Esta noche";
+
+// MARK: - Reports
+"Reports" = "Reportes";
+"Report" = "Reporte";
+"Daily Report" = "Reporte Diario";
+"Weekly Report" = "Reporte Semanal";
+"Monthly Report" = "Reporte Mensual";
+"Generate Report" = "Generar Reporte";
+"Export Report" = "Exportar Reporte";
+"View Report" = "Ver Reporte";
+
+// MARK: - Metrics
+"Metrics" = "Métricas";
+"Performance" = "Rendimiento";
+"Completion Rate" = "Tasa de Finalización";
+"Average Time" = "Tiempo Promedio";
+"Total Tasks" = "Total de Tareas";
+"Tasks Completed" = "Tareas Completadas";
+"Hours Worked" = "Horas Trabajadas";
+"Efficiency" = "Eficiencia";
+"Productivity" = "Productividad";
+
+// MARK: - Errors
+"Error" = "Error";
+"An error occurred" = "Ocurrió un error";
+"Unknown error" = "Error desconocido";
+"Please try again" = "Por favor intente de nuevo";
+"Try Again" = "Intentar de Nuevo";
+"Network error" = "Error de red";
+"No internet connection" = "Sin conexión a internet";
+"Connection lost" = "Conexión perdida";
+"Server error" = "Error del servidor";
+"Request failed" = "Solicitud fallida";
+"Invalid data" = "Datos inválidos";
+"Not found" = "No encontrado";
+"Access denied" = "Acceso denegado";
+"Permission denied" = "Permiso denegado";
+"Operation failed" = "Operación fallida";
+"Unable to complete request" = "No se puede completar la solicitud";
+
+// MARK: - Success Messages
+"Success!" = "¡Éxito!";
+"Changes saved" = "Cambios guardados";
+"Saved successfully" = "Guardado exitosamente";
+"Updated successfully" = "Actualizado exitosamente";
+"Deleted successfully" = "Eliminado exitosamente";
+"Operation completed" = "Operación completada";
+"Request completed" = "Solicitud completada";
+"Sync complete" = "Sincronización completa";
+
+// MARK: - Confirmations
+"Are you sure?" = "¿Está seguro?";
+"Confirm" = "Confirmar";
+"Confirm Action" = "Confirmar Acción";
+"This cannot be undone" = "Esto no se puede deshacer";
+"Delete Confirmation" = "Confirmación de Eliminación";
+"Are you sure you want to delete this?" = "¿Está seguro de que desea eliminar esto?";
+"Are you sure you want to logout?" = "¿Está seguro de que desea cerrar sesión?";
+
+// MARK: - Inventory
+"Inventory" = "Inventario";
+"Items" = "Artículos";
+"Supplies" = "Suministros";
+"Equipment" = "Equipo";
+"Stock Level" = "Nivel de Inventario";
+"Low Stock" = "Inventario Bajo";
+"Out of Stock" = "Sin Inventario";
+"In Stock" = "En Inventario";
+"Quantity" = "Cantidad";
+"Unit" = "Unidad";
+"Location" = "Ubicación";
+
+// MARK: - Compliance
+"Compliance" = "Cumplimiento";
+"Compliant" = "Cumple";
+"Non-Compliant" = "No Cumple";
+"Violations" = "Violaciones";
+"Issues" = "Problemas";
+"Resolved" = "Resuelto";
+"Unresolved" = "No Resuelto";
+"Due for Inspection" = "Pendiente de Inspección";
+
+// MARK: - Settings & Preferences
+"Settings" = "Configuración";
+"Preferences" = "Preferencias";
+"Account" = "Cuenta";
+"Profile" = "Perfil";
+"My Profile" = "Mi Perfil";
+"Edit Profile" = "Editar Perfil";
+"Language" = "Idioma";
+"Preferred Language" = "Idioma Preferido";
+"Notifications" = "Notificaciones";
+"Push Notifications" = "Notificaciones Push";
+"Email Notifications" = "Notificaciones por Email";
+"Sound" = "Sonido";
+"Vibration" = "Vibración";
+"Privacy" = "Privacidad";
+"Security" = "Seguridad";
+"Change Password" = "Cambiar Contraseña";
+"Terms of Service" = "Términos de Servicio";
+"Privacy Policy" = "Política de Privacidad";
+"Support" = "Soporte";
+"Contact Support" = "Contactar Soporte";
+"Send Feedback" = "Enviar Comentarios";
+
+// MARK: - Accessibility
+"Accessibility" = "Accesibilidad";
+"Simplified Interface" = "Interfaz Simplificada";
+"Large Text" = "Texto Grande";
+"High Contrast" = "Alto Contraste";
+"Reduce Motion" = "Reducir Movimiento";
+"Screen Reader" = "Lector de Pantalla";
+"Voice Control" = "Control por Voz";
+
+// MARK: - Sync & Network
+"Sync" = "Sincronizar";
+"Syncing..." = "Sincronizando...";
+"Last synced" = "Última sincronización";
+"Sync failed" = "Sincronización fallida";
+"Retry sync" = "Reintentar sincronización";
+"Offline mode" = "Modo sin conexión";
+"You are offline" = "Está sin conexión";
+"Waiting for connection" = "Esperando conexión";
+"Connecting..." = "Conectando...";
+"Connected" = "Conectado";
+"Disconnected" = "Desconectado";
+
+// MARK: - Admin Features
+"Administration" = "Administración";
+"Manage Workers" = "Administrar Trabajadores";
+"Manage Buildings" = "Administrar Edificios";
+"Manage Tasks" = "Administrar Tareas";
+"Assign Task" = "Asignar Tarea";
+"Unassign Task" = "Desasignar Tarea";
+"Create Task" = "Crear Tarea";
+"Edit Task" = "Editar Tarea";
+"Delete Task" = "Eliminar Tarea";
+"Approve" = "Aprobar";
+"Reject" = "Rechazar";
+"Override" = "Anular";
+
+// MARK: - Intelligence & Insights
+"Insights" = "Perspectivas";
+"Recommendations" = "Recomendaciones";
+"Trends" = "Tendencias";
+"Analytics" = "Analítica";
+"Predictions" = "Predicciones";
+"Alerts" = "Alertas";
+"Suggestions" = "Sugerencias";
+"AI Assistant" = "Asistente IA";
+"Nova says" = "Nova dice";
+
+// MARK: - Weather
+"Weather" = "Clima";
+"Temperature" = "Temperatura";
+"Conditions" = "Condiciones";
+"Rain" = "Lluvia";
+"Snow" = "Nieve";
+"Wind" = "Viento";
+"Humidity" = "Humedad";
+
+// MARK: - Emergency
+"Emergency" = "Emergencia";
+"Emergency Contact" = "Contacto de Emergencia";
+"Call Emergency" = "Llamar Emergencia";
+"Report Issue" = "Reportar Problema";
+"Safety Alert" = "Alerta de Seguridad";
+
+// MARK: - Migration
+"Database Migration Required" = "Migración de Base de Datos Requerida";
+"We need to upgrade your database to enable new features" = "Necesitamos actualizar su base de datos para habilitar nuevas funciones";
+"Estimated Time" = "Tiempo Estimado";
+"Data Safety" = "Seguridad de Datos";
+"What's New" = "Qué hay de Nuevo";
+"Start Migration" = "Iniciar Migración";
+"Migration in Progress" = "Migración en Progreso";
+"Migration Complete" = "Migración Completa";
+"Migration Failed" = "Migración Fallida";
+"Creating backup" = "Creando respaldo";
+"Verifying data integrity" = "Verificando integridad de datos";
+"Importing workers" = "Importando trabajadores";
+"Importing buildings" = "Importando edificios";
+"Creating task templates" = "Creando plantillas de tareas";
+"Setting up assignments" = "Configurando asignaciones";
+"Configuring capabilities" = "Configurando capacidades";

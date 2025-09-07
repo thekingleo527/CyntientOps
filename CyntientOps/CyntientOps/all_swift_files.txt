@@ -1,0 +1,167 @@
+./Components/Design/AbstractFrancoSphereLogo.swift
+./Components/Design/AIAssistantImageLoader.swift
+./Components/Design/CurrentBuildingStatusCard.swift
+./Components/Design/EnhancedClockInGlassCard.swift
+./Components/Design/FrancoSphereDesign.swift
+./Components/Design/HeaderV3B.swift
+./Components/Design/ModelColorsExtensions.swift
+./Components/Design/TimelineProgressBar.swift
+./Components/Design/TodaysTasksGlassCard.swift
+./Components/Design/WeatherTaskTimelineCard.swift
+./Components/Glass/BuildingHeaderGlassOverlay.swift
+./Components/Glass/BuildingStatsGlassCard.swift
+./Components/Glass/ClockInGlassModal.swift
+./Components/Glass/GlassButton.swift
+./Components/Glass/GlassButtonModifier.swift
+./Components/Glass/GlassCard.swift
+./Components/Glass/GlassDeckContainer.swift
+./Components/Glass/GlassLoadingView.swift
+./Components/Glass/GlassModal.swift
+./Components/Glass/GlassMorphismStyles.swift
+./Components/Glass/GlassNavigationBar.swift
+./Components/Glass/GlassStatusBadge.swift
+./Components/Glass/GlassTabBar.swift
+./Components/Glass/GlassTransitions.swift
+./Components/Glass/GlassTypes.swift
+./Components/Glass/PressableGlassCard.swift
+./Components/Glass/TaskCategoryGlassCard.swift
+./Components/Glass/WorkerAssignmentGlassCard.swift
+./Components/Intelligence/IntelligencePreviewPanel.swift
+./Components/Intelligence/SyncStatusComponents.swift
+./Components/Shared Components/AdaptiveGlassModifier.swift
+./Components/Shared Components/Building.swift
+./Components/Shared Components/BuildingIntelligencePanel.swift
+./Components/Shared Components/CoverageInfoCard.swift
+./Components/Shared Components/FrancoSphereColors.swift
+./Components/Shared Components/HeroStatusCard.swift
+./Components/Shared Components/ImagePicker.swift
+./Components/Shared Components/InitializationStatus.swift
+./Components/Shared Components/MyAssignedBuildingsSection.swift
+./Components/Shared Components/MySitesCard.swift
+./Components/Shared Components/NovaAvatar.swift
+./Components/Shared Components/ProfileBadge.swift
+./Components/Shared Components/PropertyCard.swift
+./Components/Shared Components/RoutinePriority.swift
+./Components/Shared Components/StatCard.swift
+./Components/Shared Components/TaskDisplayHelpers.swift
+./Components/Shared Components/TaskTimelineRow.swift
+./Components/Shared Components/TodaysProgressDetailView.swift
+./Components/Shared Components/TodaysRoutineSummaryView.swift
+./Components/Shared Components/WeatherDashboardComponent.swift
+./Components/Shared Components/WeatherTasksSection.swift
+./Components/Shared Components/WeatherViewModifier.swift
+./Components/Shared Components/WorkersInlineList.swift
+./Components/Sheets/EmergencyContactsSheet.swift
+./Data/DatabaseSchemaVerifier.swift
+./Data/SchemaMigrationPatch.swift
+./FrancoSphereApp.swift
+./Managers/AssetImageDebugger.swift
+./Managers/ClockInManager.swift
+./Managers/DatabaseInitializer.swift
+./Managers/DatabaseMigrationFix.swift
+./Managers/Extensions/TimeStatus.swift
+./Managers/Extensions/V012.swift
+./Managers/GRDBManager.swift
+./Managers/HapticManager.swift
+./Managers/LocationManager.swift
+./Managers/Migrations/DatabaseMigrations.swift
+./Managers/Migrations/V003_WorkerAssignments.swift
+./Managers/NewAuthManager.swift
+./Managers/NotificationManager.swift
+./Managers/OperationalDataManager.swift
+./Managers/TaskManager.swift
+./Managers/WorkerManager.swift
+./Maps/MapInteractionHint.swift
+./Maps/MapRevealContainer.swift
+./Models/AI/AIScenario.swift
+./Models/AI/AIScenarioType.swift
+./Models/AI/Nova/NovaTypes.swift
+./Models/CLLocationCoordinate2DExtension.swift
+./Models/ComplianceIssue.swift
+./Models/Core/CoreTypes.swift
+./Models/DTOs/BuildingIntelligenceDTO.swift
+./Models/DTOs/ComplianceDataDTO.swift
+./Models/DTOs/WorkerMetricsDTO.swift
+./Models/Enums/QBConnectionStatus.swift
+./Models/FilteredTaskResult.swift
+./Models/FrancoSphereExtensions.swift
+./Models/FrancoSphereImports.swift
+./Models/FrancoSphereModels.swift
+./Models/ImportHelper.swift
+./Models/ModelExtensions.swift
+./Models/SharedTypes.swift
+./Models/TypeAliases.swift
+./Models/UserExtensions.swift
+./Models/VerificationRecord.swift
+./Models/WorkerActionType.swift
+./Models/WorkerConstants.swift
+./Models/WorkerContextEngine.swift
+./Models/WorkerRoutineViewModel.swift
+./Nova/Core/NovaAPIService.swift
+./Nova/Core/NovaFeatureManager.swift
+./Nova/Core/NovaIntelligenceEngine.swift
+./Nova/Core/NovaInteractionView.swift
+./Nova/Core/NovaTypes.swift
+./Scripts/TestRealDataIntegration.swift
+./Security/SecurityManager.swift
+./Services/BuildingMetricsService.swift
+./Services/BuildingService.swift
+./Services/Configuration/BuildingFeatureConfiguration.swift
+./Services/DailyOpsReset.swift
+./Services/DashboardSyncService.swift
+./Services/DSNYTaskGenerator.swift
+./Services/IntelligenceService.swift
+./Services/Migration/WorkerAssignmentEngine.swift
+./Services/QuickBooksOAuthManager.swift
+./Services/QuickBooksPayrollExporter.swift
+./Services/RealTime/WorkerFeedbackManager.swift
+./Services/TaskService.swift
+./Services/TaskService+OperationalFallback.swift
+./Services/TelemetryService.swift
+./Services/TimeBasedTaskFilter.swift
+./Services/UnifiedDataService.swift
+./Services/WeatherDataAdapter.swift
+./Services/WorkerMetricsService.swift
+./Services/WorkerService.swift
+./SharedViews/QuickActionMenu.swift
+./SharedViews/RouteStatItem.swift
+./SharedViews/TrackableScrollView.swift
+./Sync/DataSynchronizationService.swift
+./Sync/TypeMigrationService.swift
+./Sync/WorkerEventOutbox.swift
+./Views/Auth/ForgotPasswordView.swift
+./Views/Auth/LoginView.swift
+./Views/Auth/SignUpView.swift
+./Views/Buildings/AssignedBuildingsView.swift
+./Views/Buildings/BuildingDetailView.swift
+./Views/Buildings/BuildingMapDetailView.swift
+./Views/Buildings/BuildingSelectionView.swift
+./Views/Buildings/BuildingsView.swift
+./Views/Buildings/BuildingTaskDetailView.swift
+./Views/Buildings/InventoryView.swift
+./Views/Buildings/MaintenanceHistoryView.swift
+./Views/Buildings/MaintenanceTaskView.swift
+./Views/Buildings/TaskFormView.swift
+./Views/Buildings/TaskScheduleView.swift
+./Views/Main/AdminDashboardView.swift
+./Views/Main/BuildingPreviewPopover.swift
+./Views/Main/ClientDashboardView.swift
+./Views/Main/ComplianceOverviewView.swift
+./Views/Main/ContentView.swift
+./Views/Main/DashboardTaskDetailView.swift
+./Views/Main/InitializationView.swift
+./Views/Main/PortfolioOverviewView.swift
+./Views/Main/ProfileView.swift
+./Views/Main/TaskDetailView.swift
+./Views/Main/TaskRequestView.swift
+./Views/Main/TaskTimelineView.swift
+./Views/Main/WorkerDashboardView.swift
+./Views/Main/WorkerProfileView.swift
+./Views/ViewModels/AdminDashboardViewModel.swift
+./Views/ViewModels/BuildingDetailViewModel.swift
+./Views/ViewModels/BuildingIntelligenceViewModel.swift
+./Views/ViewModels/ClientDashboardViewModel.swift
+./Views/ViewModels/InitializationViewModel.swift
+./Views/ViewModels/TaskDetailViewModel.swift
+./Views/ViewModels/TodayTasksViewModel.swift
+./Views/ViewModels/WorkerDashboardViewModel.swift

@@ -65,6 +65,12 @@ public actor WebSocketManager {
             return
         }
         
+        // TEMPORARY: Skip WebSocket connection in development until server is deployed
+        #if DEBUG
+        print("🔌 WebSocket connection disabled in development mode - working offline")
+        return
+        #endif
+        
         guard let url = getWebSocketURL() else {
             print("❌ Invalid WebSocket URL.")
             return
@@ -93,6 +99,12 @@ public actor WebSocketManager {
     // MARK: - Message Handling
     
     public func send(_ update: CoreTypes.DashboardUpdate) async throws {
+        // TEMPORARY: Skip sending in development mode - work offline
+        #if DEBUG
+        print("🔌 WebSocket send disabled in development mode - update queued locally")
+        return
+        #endif
+        
         guard isConnected, let task = webSocketTask else {
             throw WebSocketError.notConnected
         }

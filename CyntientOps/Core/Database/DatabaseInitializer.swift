@@ -266,6 +266,15 @@ public class DatabaseInitializer: ObservableObject {
         // Check if we need operational data
         let needsOperationalData = await shouldImportOperationalData()
         
+        // Seed client-building structure EARLY so buildings exist before routines/DSNY upserts
+        do {
+            let clientSeeder = ClientBuildingSeeder()
+            try await clientSeeder.seedClientStructure()
+            print("✅ Client-building structure seeded (pre-routines)")
+        } catch {
+            print("⚠️ Client-building seeding failed (pre-routines): \(error)")
+        }
+        
         if needsOperationalData {
             // Seed operational data from database
             try await seedOperationalDataIfNeeded()
@@ -288,14 +297,7 @@ public class DatabaseInitializer: ObservableObject {
             initializationProgress = 0.7
         }
 
-        // Seed client-building structure and relationships (ensures client dashboards have real data)
-        do {
-            let clientSeeder = ClientBuildingSeeder()
-            try await clientSeeder.seedClientStructure()
-            print("✅ Client-building structure seeded")
-        } catch {
-            print("⚠️ Client-building seeding failed: \(error)")
-        }
+        // Client-building structure already seeded above
     }
     
     // MARK: - Phase 3: Verification
@@ -517,7 +519,10 @@ public class DatabaseInitializer: ObservableObject {
     private func seedOperationalDataIfNeeded() async throws {
         print("🌱 Checking operational data...")
         
-        // Check if we have buildings
+        // Always ensure the required buildings exist (idempotent: INSERT OR IGNORE)
+        try await seedBuildings()
+        
+        // Check if we have buildings for additional seeding
         let buildingCountResult = try await grdbManager.query(
             "SELECT COUNT(*) as count FROM buildings"
         )
@@ -526,7 +531,7 @@ public class DatabaseInitializer: ObservableObject {
         if buildingCount == 0 {
             print("📝 Seeding operational data...")
             
-            try await seedBuildings()
+            // Buildings already ensured above
             try await seedWorkerAssignments()
             try await seedSampleTasks()
             try await seedInventoryItems()

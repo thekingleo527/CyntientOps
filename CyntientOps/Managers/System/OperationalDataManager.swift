@@ -4064,6 +4064,16 @@ public class OperationalDataManager: ObservableObject {
     /// Gets worker's routine schedules from the real operational data
     public func getWorkerRoutineSchedules(for workerId: String) async throws -> [WorkerRoutineSchedule] {
         do {
+            // First check if this user is actually a worker (not a client)
+            let userCheck = try await self.grdbManager.query("""
+                SELECT role FROM workers WHERE id = ?
+            """, [workerId])
+            
+            guard let userRole = userCheck.first?["role"] as? String, userRole != "client" else {
+                print("🔍 DEBUG: User \(workerId) is a client, returning 0 schedules")
+                return []
+            }
+            
             // Query from routine_schedules table which contains the recurring patterns
             let results = try await self.grdbManager.query("""
                 SELECT rs.*, b.name as building_name, b.address, b.latitude, b.longitude

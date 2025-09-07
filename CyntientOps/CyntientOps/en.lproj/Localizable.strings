@@ -1,0 +1,91 @@
+/* 
+  Localizable.strings
+  CyntientOps
+
+  Created by Shawn Magloire on 7/31/25.
+  
+*/
+/*
+  Localizable.strings (Spanish)
+  CyntientOps
+
+  Stream A: UI/UX & Spanish
+  Mission: Provide complete Spanish localization for the application.
+*/
+
+// MARK: - General UI
+"OK" = "OK";
+"Cancel" = "Cancel";
+"Save" = "Save";
+"Submit" = "Submit";
+"Error" = "Error";
+"Success" = "Success";
+"Loading..." = "Loading...";
+"Retry" = "Retry";
+"Back" = "Back";
+"Done" = "Done";
+
+// MARK: - Login & Auth
+"Login" = "Login";
+"Email" = "Email";
+"Password" = "Password";
+"Authentication required" = "Authentication required";
+"Invalid credentials" = "Invalid credentials";
+
+// MARK: - Dashboard
+"Dashboard" = "Dashboard";
+"Good Morning" = "Good Morning";
+"Good Afternoon" = "Good Afternoon";
+"Good Evening" = "Good Evening";
+"Today's Tasks" = "Today's Tasks";
+"All tasks complete!" = "All tasks complete!";
+"Great job. You are all caught up for today." = "Great job. You are all caught up for today.";
+"Current Building" = "Current Building";
+"Not currently clocked in at a building." = "Not currently clocked in at a building.";
+"Clock In" = "Clock In";
+"Clock Out" = "Clock Out";
+
+// MARK: - Tasks
+"Task" = "Tarea";
+"Tasks" = "Tareas";
+"Complete" = "Complete";
+"Completed" = "Completed";
+"Pending" = "Pending";
+"Overdue" = "Overdue";
+"Due Time" = "Due Time";
+"Building" = "Building";
+"Photo Required" = "Photo Required";
+"Take Photo" = "Take Photo";
+"Task marked as complete." = "Task marked as complete.";
+"Complete Task" = "Complete Task";
+
+// MARK: - Urgency
+"Urgent" = "Urgent";
+"Normal" = "Normal";
+"Low" = "Low";
+"High" = "High";
+"Critical" = "Critical";
+
+// MARK: - Admin & Client Dashboards
+"Admin Dashboard" = "Panel de Administrador";
+"Client Dashboard" = "Panel de Cliente";
+"Portfolio Overview" = "Resumen del Portafolio";
+"Buildings" = "Edificios";
+"Workers" = "Trabajadores";
+"Compliance" = "Cumplimiento";
+"Insights" = "Perspectivas";
+
+// MARK: - Preferences
+"Preferences" = "Preferencias";
+"Language" = "Idioma";
+"Preferred Language" = "Idioma Preferido";
+"English" = "English";
+"Español" = "Español";
+"Accessibility" = "Accesibilidad";
+"Simplified Interface" = "Interfaz Simplificada";
+"High Contrast Mode" = "Modo de Alto Contraste";
+"Text Size" = "Tamaño del Texto";
+"Sample Text" = "Texto de Ejemplo";
+"Notifications" = "Notificaciones";
+"Enable Push Notifications" = "Activar Notificaciones Push";
+"Urgent Task Alerts" = "Alertas de Tareas Urgentes";

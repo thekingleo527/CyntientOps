@@ -625,6 +625,12 @@ public class DashboardSyncService: ObservableObject {
     
     /// Send update to server via WebSocket
     private func sendToServer(_ update: CoreTypes.DashboardUpdate) async {
+        // TEMPORARY: Skip sending in development mode - work offline
+        #if DEBUG
+        print("🔌 Dashboard update queued locally (offline mode): \(update.type.rawValue)")
+        return
+        #endif
+        
         do {
             try await webSocketManager.send(update)
             print("🌐 Sent update to server: \(update.type.rawValue)")
