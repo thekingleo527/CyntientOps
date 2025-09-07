@@ -1095,7 +1095,7 @@ private func handleClockAction() {
                             }
                         }
                     } else {
-                        // Empty state
+                        // Empty state with schedule preview
                         VStack(spacing: 16) {
                             Image(systemName: "checklist")
                                 .font(.system(size: 48))
@@ -1106,10 +1106,31 @@ private func handleClockAction() {
                                 .fontWeight(.semibold)
                                 .foregroundColor(.white)
                             
-                            Text("All your routine tasks are complete, or no tasks are scheduled for today.")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                                .multilineTextAlignment(.center)
+                            let nextItems = viewModel.nextSchedulePreview(limit: 2)
+                            if !nextItems.isEmpty {
+                                Text("Here's what's next:")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+
+                                ForEach(nextItems, id: \.id) { item in
+                                    HStack {
+                                        Text(item.title)
+                                            .foregroundColor(.white)
+                                        Spacer()
+                                        Text(CoreTypes.DateUtils.timeFormatter.string(from: item.startTime))
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                    }
+                                    .padding(12)
+                                    .background(.regularMaterial)
+                                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                                }
+                            } else {
+                                Text("All your routine tasks are complete, or no tasks are scheduled for today.")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                                    .multilineTextAlignment(.center)
+                            }
                         }
                         .padding(32)
                         .background(.ultraThinMaterial)

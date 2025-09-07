@@ -1661,35 +1661,42 @@ public class WorkerDashboardViewModel: ObservableObject {
     
     /// Update map region to show assigned buildings optimally
     private func updateMapRegion() {
-        guard !assignedBuildings.isEmpty else { return }
+        // Use assigned if present; otherwise fall back to allBuildings so the portfolio shows
+        let source: [BuildingSummary]
+        if !assignedBuildings.isEmpty {
+            source = assignedBuildings
+        } else if !allBuildings.isEmpty {
+            source = allBuildings
+        } else {
+            return
+        }
         
-        if assignedBuildings.count == 1 {
-            // Single building - center with 1km span
-            let building = assignedBuildings[0]
+        if source.count == 1 {
+            let building = source[0]
             mapRegion = MKCoordinateRegion(
                 center: building.coordinate,
                 span: MKCoordinateSpan(latitudeDelta: 0.008, longitudeDelta: 0.008) // ~1km
             )
-        } else {
-            // Multiple buildings - calculate bounding region
-            let coordinates = assignedBuildings.map { $0.coordinate }
-            let minLat = coordinates.min { $0.latitude < $1.latitude }?.latitude ?? 40.7580
-            let maxLat = coordinates.max { $0.latitude < $1.latitude }?.latitude ?? 40.7580
-            let minLon = coordinates.min { $0.longitude < $1.longitude }?.longitude ?? -73.9855
-            let maxLon = coordinates.max { $0.longitude < $1.longitude }?.longitude ?? -73.9855
-            
-            let center = CLLocationCoordinate2D(
-                latitude: (minLat + maxLat) / 2,
-                longitude: (minLon + maxLon) / 2
-            )
-            
-            let span = MKCoordinateSpan(
-                latitudeDelta: max(0.008, (maxLat - minLat) * 1.3), // 30% padding
-                longitudeDelta: max(0.008, (maxLon - minLon) * 1.3)
-            )
-            
-            mapRegion = MKCoordinateRegion(center: center, span: span)
+            return
         }
+        
+        let coordinates = source.map { $0.coordinate }
+        let minLat = coordinates.map(\.latitude).min()!
+        let maxLat = coordinates.map(\.latitude).max()!
+        let minLon = coordinates.map(\.longitude).min()!
+        let maxLon = coordinates.map(\.longitude).max()!
+        
+        let center = CLLocationCoordinate2D(
+            latitude: (minLat + maxLat) / 2,
+            longitude: (minLon + maxLon) / 2
+        )
+        
+        let span = MKCoordinateSpan(
+            latitudeDelta: max(0.008, (maxLat - minLat) * 1.3), // 30% padding
+            longitudeDelta: max(0.008, (maxLon - minLon) * 1.3)
+        )
+        
+        mapRegion = MKCoordinateRegion(center: center, span: span)
         
         print("✅ Updated map region for \(assignedBuildings.count) assigned buildings")
     }
@@ -2583,6 +2590,11 @@ public class WorkerDashboardViewModel: ObservableObject {
             nextPriorityTitle = nextTask.task.title
             nextPriorityTime = nextTask.scheduledAt
             currentBuildingName = getBuilding(id: nextTask.task.buildingId ?? "")?.name ?? "Unknown Building"
+        } else if let sched = nextFromSchedule() {
+            // NEW: fall back to schedule so Kevin sees "Set Out Trash — 17th St Circuit • 8:00 PM"
+            nextPriorityTitle = sched.title
+            nextPriorityTime = sched.time
+            currentBuildingName = sched.buildingName
         } else {
             nextPriorityTitle = "All Clear"
             nextPriorityTime = nil
@@ -2604,6 +2616,31 @@ public class WorkerDashboardViewModel: ObservableObject {
     /// Get building by ID
     private func getBuilding(id: String) -> BuildingSummary? {
         assignedBuildings.first { $0.id == id } ?? allBuildings.first { $0.id == id }
+    }
+    
+    /// Get next schedule item starting after now
+    private func nextFromSchedule() -> (title: String, time: Date, buildingName: String)? {
+        // Flatten this week's schedule, find the first item starting after now
+        let now = Date()
+        let items = scheduleWeek
+            .flatMap { day in day.items }
+            .filter { $0.startTime >= now }
+            .sorted { $0.startTime < $1.startTime }
+
+        guard let next = items.first else { return nil }
+        let buildingName = getBuilding(id: next.buildingId)?.name ?? next.buildingId
+        return (next.title, next.startTime, buildingName)
+    }
+    
+    /// Get next few schedule items for preview in empty state
+    public func nextSchedulePreview(limit: Int = 2) -> [DaySchedule.ScheduleItem] {
+        let now = Date()
+        return scheduleWeek
+            .flatMap { $0.items }
+            .filter { $0.startTime >= now }
+            .sorted { $0.startTime < $1.startTime }
+            .prefix(limit)
+            .map { $0 }
     }
 
     /// Update HeroTile-specific properties (Per Design Brief)

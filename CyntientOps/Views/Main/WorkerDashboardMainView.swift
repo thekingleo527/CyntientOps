@@ -713,8 +713,29 @@ struct WorkerDashboardMainView: View {
             if let current = viewModel.currentBuilding { return [current] }
             return viewModel.assignedBuildings
         }()
-        let coords: [NamedCoordinate] = summaries.map { b in
+        
+        var coords: [NamedCoordinate] = summaries.map { b in
             NamedCoordinate(id: b.id, name: b.name, address: b.address, latitude: b.coordinate.latitude, longitude: b.coordinate.longitude)
+        }
+        
+        // DSNY fallback: if no breadth yet, but it's a DSNY set-out window for Kevin, inject circuit buildings
+        if coords.count <= 1,
+           let wid = viewModel.worker?.workerId,
+           wid == CanonicalIDs.Workers.kevinDutan {
+            let now = Date()
+            let weekday = Calendar.current.component(.weekday, from: now)
+            let cday = CollectionDay.from(weekday: weekday)
+            let dsnyDays: Set<CollectionDay> = [.sunday, .tuesday, .thursday]
+            if dsnyDays.contains(cday),
+               let start = Calendar.current.date(bySettingHour: 20, minute: 0, second: 0, of: now),
+               now >= start {
+                let dsnyBuildings = DSNYCoordinator.buildingsForBinSetOut(on: cday)
+                let dsnyCoords = dsnyBuildings.map { b in
+                    NamedCoordinate(id: b.buildingId, name: b.name, address: b.address,
+                                   latitude: b.coordinate.latitude, longitude: b.coordinate.longitude)
+                }
+                if dsnyCoords.count > coords.count { coords = dsnyCoords }
+            }
         }
         if coords.count > 1 {
             siteDepartureVM = nil
