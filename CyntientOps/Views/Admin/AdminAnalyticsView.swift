@@ -22,6 +22,9 @@ public struct AdminAnalyticsView: View {
                 
                 // Worker Analytics
                 workerAnalyticsSection
+
+                // Health & Observability
+                healthSection
             }
             .padding()
         }
@@ -104,6 +107,45 @@ public struct AdminAnalyticsView: View {
             Text("Worker performance and efficiency metrics")
                 .font(.caption)
                 .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+        }
+        .padding()
+        .cyntientOpsDarkCardBackground()
+    }
+
+    @EnvironmentObject private var container: ServiceContainer
+    @EnvironmentObject private var offlineQueue: OfflineQueueManager
+    private var healthSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("System Health")
+                .font(.headline)
+                .fontWeight(.semibold)
+                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+            
+            let q = offlineQueue.getQueueStatus()
+            HStack {
+                Label("Offline Queue", systemImage: "arrow.triangle.2.circlepath").foregroundColor(.orange)
+                Spacer()
+                Text("\(q.totalActions) pending")
+                    .foregroundColor(.orange)
+            }
+            .font(.caption)
+
+            HStack {
+                Label("Network", systemImage: "wave.3.left").foregroundColor(q.networkStatus == .connected ? .green : .red)
+                Spacer()
+                Text(q.networkStatus == .connected ? "Online" : "Offline")
+                    .foregroundColor(q.networkStatus == .connected ? .green : .red)
+            }
+            .font(.caption)
+
+            // Placeholder hooks for LLM metrics: would read from nova_usage_analytics_local
+            HStack {
+                Label("LLM Latency", systemImage: "bolt.fill").foregroundColor(.cyan)
+                Spacer()
+                Text("~ n/a ms (see analytics)")
+                    .foregroundColor(.cyan)
+            }
+            .font(.caption)
         }
         .padding()
         .cyntientOpsDarkCardBackground()
