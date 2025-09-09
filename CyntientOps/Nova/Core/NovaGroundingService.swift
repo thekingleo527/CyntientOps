@@ -258,7 +258,14 @@ final class NovaGroundingService {
         rows.sort { $0.count > $1.count }
         let header = "Building | New HPD Issues (7d)"
         let table = rows.map { "• \($0.name) — \($0.count)" }.joined(separator: "\n")
-        return NovaResponse(success: true, message: header + "\n" + table, metadata: ["openView": "admin_hpd_list"]) // UI can drill-in if wired
+        let action = NovaAction(
+            title: "Open HPD Issues",
+            description: "View details and drill down",
+            actionType: .navigate,
+            priority: .medium,
+            parameters: ["openView": "admin_hpd_list"]
+        )
+        return NovaResponse(success: true, message: header + "\n" + table, actions: [action], metadata: ["openView": "admin_hpd_list"]) // UI can drill-in if wired
     }
 
     // MARK: - Create Sanitation Reminder

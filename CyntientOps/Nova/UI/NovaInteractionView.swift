@@ -1734,7 +1734,7 @@ struct NovaActionButtons: View {
             switch action.actionType {
             case .navigate:
                 print("Navigate to: \(action.title)")
-                // Handle navigation
+                NotificationCenter.default.post(name: Notification.Name("NovaNavigate"), object: nil, userInfo: action.parameters)
             case .schedule:
                 print("Schedule: \(action.title)")
                 // Handle scheduling
