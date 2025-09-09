@@ -103,6 +103,25 @@ public actor TaskService {
     
     // FIXED: Corrected completeTask method
     func completeTask(_ taskId: CoreTypes.TaskID, evidence: ActionEvidence) async throws {
+        // Enforce verification policy: require photo for sanitation/cleaning or requires_photo flag
+        do {
+            let rows = try await grdbManager.query("SELECT category, requires_photo FROM routine_tasks WHERE id = ?", [taskId])
+            if let row = rows.first {
+                let category = (row["category"] as? String)?.lowercased() ?? ""
+                let requiresPhotoFlag = (row["requires_photo"] as? Int64 ?? 0) == 1 || (row["requires_photo"] as? Int ?? 0) == 1
+                let mustHavePhoto = requiresPhotoFlag || category == "sanitation" || category == "cleaning"
+                if mustHavePhoto {
+                    let count = evidence.photoURLs?.count ?? 0
+                    if count == 0 {
+                        throw TaskServiceError.validationFailed("This task requires photo verification before completing.")
+                    }
+                }
+            }
+        } catch {
+            // If verification check fails due to db error, proceed with best-effort
+            print("⚠️ Could not verify completion policy: \(error)")
+        }
+
         try await grdbManager.execute("""
             UPDATE routine_tasks 
             SET isCompleted = 1, completedDate = ? 

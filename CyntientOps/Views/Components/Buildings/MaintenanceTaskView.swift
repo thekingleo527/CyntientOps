@@ -13,6 +13,7 @@ struct MaintenanceTaskView: View {
     private var buildingService: BuildingService { container.buildings }
     private var taskService: TaskService { container.tasks }
     private var workerService: WorkerService { container.workers }
+    @EnvironmentObject private var offlineQueue: OfflineQueueManager
 
     // ✅ FIXED: Complete switch with all CyntientOps.TaskUrgency cases
     private func getUrgencyColor(_ urgency: CyntientOps.TaskUrgency) -> Color {
@@ -35,6 +36,15 @@ struct MaintenanceTaskView: View {
                     Text(task.title).font(.title).bold()
                     Spacer()
                     MaintenanceStatusBadge(isCompleted: task.status == .completed, urgency: task.urgency)
+                    if offlineQueue.isTaskPending(task.id) {
+                        Text("Pending")
+                            .font(.caption2)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color.orange.opacity(0.2))
+                            .foregroundColor(.orange)
+                            .clipShape(RoundedRectangle(cornerRadius: 6))
+                    }
                 }
 
                 // Building

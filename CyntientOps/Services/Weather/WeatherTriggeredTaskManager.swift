@@ -196,7 +196,14 @@ public final class WeatherTriggeredTaskManager: ObservableObject {
     
     private func setupTriggerDefinitions() {
         // Dynamic templates derived locally (no external catalog dependency)
-        let roofDrainByWorker = self.roofDrainBuildingsPerWorker()
+        let roofDrainByWorker = self.roofDrainBuildingsPerWorker().mapValues { ids in
+            // Only include buildings with pilot/production config
+            ids.filter { id in
+                let cfg = Task { await BuildingConfigurationManager.shared.getConfiguration(for: id) }
+                let conf = (try? await cfg.value) ?? .standard
+                return conf != .standard
+            }
+        }
         let roofDrainBeforeRain: [TaskTemplate] = roofDrainByWorker.flatMap { (workerId, buildingIds) in
             buildingIds.map { bid in
                 TaskTemplate(
@@ -229,7 +236,11 @@ public final class WeatherTriggeredTaskManager: ObservableObject {
             }
         }
 
-        let rainMatBuildings = self.rainMatBuildingIds()
+        let rainMatBuildings = self.rainMatBuildingIds().filter { id in
+            let cfg = Task { await BuildingConfigurationManager.shared.getConfiguration(for: id) }
+            let conf = (try? await cfg.value) ?? .standard
+            return conf != .standard
+        }
         let rainMatPutOut: [TaskTemplate] = rainMatBuildings.map { bid in
             TaskTemplate(
                 name: "Put Out Rain Mats (Pre-Rain)",

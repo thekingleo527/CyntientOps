@@ -366,6 +366,7 @@ public final class GRDBManager {
                 notes TEXT,
                 photoPaths TEXT,
                 requires_photo INTEGER DEFAULT 0,
+                verification_policy TEXT DEFAULT 'none',
                 priority TEXT DEFAULT 'medium',
                 status TEXT DEFAULT 'pending',
                 assigned_worker_id TEXT,
@@ -376,6 +377,17 @@ public final class GRDBManager {
                 FOREIGN KEY (building_id) REFERENCES buildings(id)
             )
         """)
+
+        // Add verification_policy column if missing
+        do {
+            let cols = try db.columns(in: "routine_tasks")
+            if !cols.contains(where: { $0.name == "verification_policy" }) {
+                try db.execute(sql: "ALTER TABLE routine_tasks ADD COLUMN verification_policy TEXT DEFAULT 'none'")
+                print("✅ Added verification_policy column to routine_tasks")
+            }
+        } catch {
+            print("⚠️ Could not ensure verification_policy column: \(error)")
+        }
         
         // Worker building assignments
         try db.execute(sql: """

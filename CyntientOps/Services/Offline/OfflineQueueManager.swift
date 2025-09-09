@@ -426,6 +426,18 @@ public final class OfflineQueueManager: ObservableObject {
     deinit {
         networkMonitor.cancel()
     }
+
+    // MARK: - UI Helpers
+    /// Returns true if there is any pending offline action related to a task (completion or photo upload)
+    public func isTaskPending(_ taskId: String) -> Bool {
+        return pendingActions.contains { action in
+            switch action.data {
+            case let d as TaskCompletionData: return d.taskId == taskId
+            case let d as PhotoUploadData: return d.taskId == taskId
+            default: return false
+            }
+        }
+    }
 }
 
 // MARK: - Supporting Types

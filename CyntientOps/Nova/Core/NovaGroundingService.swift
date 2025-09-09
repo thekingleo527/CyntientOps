@@ -29,6 +29,10 @@ final class NovaGroundingService {
         case buildingInfo(String)
         case hpdIssuesThisWeek
         case createSanitationReminder(String, String?) // buildingId, weekday name optional
+        case getBuildings
+        case getWorkerStatus
+        case listOpenIssues(String) // buildingId
+        case portfolioMetrics
         case unknown
     }
 
@@ -58,6 +62,14 @@ final class NovaGroundingService {
             return await answerHPDIssuesThisWeek(container: container)
         case .createSanitationReminder(let bid, let weekday):
             return await createSanitationReminder(for: bid, weekday: weekday, container: container)
+        case .getBuildings:
+            return await answerGetBuildings(container: container)
+        case .getWorkerStatus:
+            return await answerGetWorkerStatus(container: container)
+        case .listOpenIssues(let bid):
+            return await answerListOpenIssues(for: bid, container: container)
+        case .portfolioMetrics:
+            return await answerPortfolioMetrics(container: container)
         case .unknown:
             // Provide a deterministic generic summary for the worker
             return await answerGenericSummary(ctx: ctx, container: container)
@@ -95,6 +107,9 @@ final class NovaGroundingService {
                 let found = weekdays.first(where: { q.contains($0) })
                 return .createSanitationReminder(b, found)
             }
+            if q.contains("issues") || q.contains("violations") {
+                return .listOpenIssues(b)
+            }
             return .scheduleForBuilding(b)
         }
         // Portfolio queries
@@ -103,6 +118,15 @@ final class NovaGroundingService {
         }
         if q.contains("what's next") || q.contains("whats next") || q.contains("next up") || q.contains("what do i have") || q.contains("my schedule") {
             return .nextAction
+        }
+        if q.contains("buildings") || q.contains("portfolio buildings") || q.contains("list buildings") {
+            return .getBuildings
+        }
+        if (q.contains("worker") || q.contains("team")) && (q.contains("active") || q.contains("status")) {
+            return .getWorkerStatus
+        }
+        if q.contains("portfolio") && (q.contains("metrics") || q.contains("summary") || q.contains("completion")) {
+            return .portfolioMetrics
         }
         return .unknown
     }
@@ -276,6 +300,60 @@ final class NovaGroundingService {
             return NovaResponse(success: true, message: "Created sanitation reminder for \(name) on \(DateFormatter.localizedString(from: targetDate, dateStyle: .medium, timeStyle: .short)).")
         } catch {
             return NovaResponse(success: false, message: "Couldn’t create task: \(error.localizedDescription)")
+        }
+    }
+
+    // MARK: - Tools: get_buildings
+    private func answerGetBuildings(container: ServiceContainer) async -> NovaResponse? {
+        do {
+            let buildings = try await container.buildings.getAllBuildings()
+            let body = buildings.prefix(10).map { "• \($0.name)" }.joined(separator: "\n")
+            let more = buildings.count > 10 ? "\n…and \(buildings.count - 10) more" : ""
+            return NovaResponse(success: true, message: "Portfolio Buildings (\(buildings.count)):\n\(body)\(more)")
+        } catch {
+            return NovaResponse(success: false, message: "Couldn’t load buildings: \(error.localizedDescription)")
+        }
+    }
+
+    // MARK: - Tools: get_worker_status
+    private func answerGetWorkerStatus(container: ServiceContainer) async -> NovaResponse? {
+        do {
+            let workers = try await container.workers.getAllActiveWorkers()
+            let active = workers.filter { $0.isActive }.count
+            let msg = active == workers.count ? "All Active" : "\(active)/\(workers.count) Active"
+            return NovaResponse(success: true, message: "Worker Status: \(msg)")
+        } catch {
+            return NovaResponse(success: false, message: "Couldn’t load workers: \(error.localizedDescription)")
+        }
+    }
+
+    // MARK: - Tools: list_open_issues(building_id)
+    private func answerListOpenIssues(for buildingId: String, container: ServiceContainer) async -> NovaResponse? {
+        do {
+            let issues = try await container.compliance.getComplianceIssues(for: buildingId)
+            let open = issues.filter { $0.status == .open || $0.status == .inProgress }
+            if open.isEmpty { return NovaResponse(success: true, message: "No open issues for this building.") }
+            let lines = open.prefix(6).map { "• [\($0.severity.rawValue.capitalized)] \($0.title)" }.joined(separator: "\n")
+            return NovaResponse(success: true, message: "Open Issues (\(open.count)):\n\(lines)", metadata: ["buildingId": buildingId])
+        } catch {
+            return NovaResponse(success: false, message: "Couldn’t load compliance issues: \(error.localizedDescription)")
+        }
+    }
+
+    // MARK: - Tools: portfolio_metrics
+    private func answerPortfolioMetrics(container: ServiceContainer) async -> NovaResponse? {
+        // Derive from AdminDashboardViewModel logic via services: completion rate, compliance score
+        do {
+            let buildings = try await container.buildings.getAllBuildings()
+            let tasks = try await container.tasks.getAllTasks()
+            let done = tasks.filter { $0.isCompleted }.count
+            let completion = tasks.isEmpty ? 0.0 : Double(done) / Double(tasks.count)
+            // Compliance: estimate from NYC historical service (active violations in 30d)
+            let snapshot = await container.compliance.fetchPortfolioSnapshot(timeframe: .thirtyDays)
+            let msg = "Buildings: \(buildings.count)\nCompletion: \(Int(completion * 100))%\nHPD(30d): \(snapshot.hpdNew)  DSNY(30d): \(snapshot.dsnyNew)  DOB active: \(snapshot.dobActive)"
+            return NovaResponse(success: true, message: msg)
+        } catch {
+            return NovaResponse(success: false, message: "Couldn’t compute portfolio metrics: \(error.localizedDescription)")
         }
     }
 
