@@ -254,13 +254,20 @@ struct TaskTimelineView: View {
         HStack(alignment: .top, spacing: 16) {
             timelineIndicator(for: task, isFirst: isFirst, isLast: isLast && isLastGroup)
             
-            TaskTimelineCard(task: task) {
+            TaskTimelineCard(task: task,
+                             onTap: {
                 showingTaskDetail = task
-            }
+            },
+                             isPendingSync: offlinePending(task.id),
+                             isFailedSync: offlineFailed(task.id))
             .transition(.scale.combined(with: .opacity))
         }
         .padding(.vertical, 8)
     }
+
+    @EnvironmentObject private var offlineQueue: OfflineQueueManager
+    private func offlinePending(_ taskId: String) -> Bool { offlineQueue.isTaskPending(taskId) }
+    private func offlineFailed(_ taskId: String) -> Bool { offlineQueue.isTaskFailed(taskId) }
     
     private func timelineIndicator(for task: CoreTypes.ContextualTask, isFirst: Bool, isLast: Bool) -> some View {
         VStack(spacing: 0) {
@@ -333,6 +340,8 @@ struct TaskTimelineView: View {
 struct TaskTimelineCard: View {
     let task: CoreTypes.ContextualTask
     let onTap: () -> Void
+    var isPendingSync: Bool = false
+    var isFailedSync: Bool = false
     
     @State private var isPressed = false
     
@@ -374,6 +383,26 @@ struct TaskTimelineCard: View {
                     
                     Spacer()
                     
+                    if isFailedSync {
+                        Text("Failed")
+                            .francoTypography(CyntientOpsDesign.Typography.caption2)
+                            .fontWeight(.medium)
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color.red)
+                            .cornerRadius(CyntientOpsDesign.CornerRadius.sm)
+                    } else if isPendingSync {
+                        Text("Pending")
+                            .francoTypography(CyntientOpsDesign.Typography.caption2)
+                            .fontWeight(.medium)
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color.orange)
+                            .cornerRadius(CyntientOpsDesign.CornerRadius.sm)
+                    }
+
                     if let dueDate = task.dueDate {
                         timeDisplay(for: dueDate)
                     }

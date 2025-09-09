@@ -118,6 +118,7 @@ struct CyntientOpsApp: App {
                             .environmentObject(dbInitializer)
                             .environmentObject(languageManager) // Language management
                             .environmentObject(container) // Phase 2: Service Container
+                            .environmentObject(container.offlineQueue)
                             .environmentObject(container.novaManager) // Nova AI from Container
                             .environmentObject(container.dashboardSync) // Dashboard Sync Service
                             .environmentObject(session)

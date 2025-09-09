@@ -438,6 +438,19 @@ public final class OfflineQueueManager: ObservableObject {
             }
         }
     }
+
+    /// Returns true if the task has a failed offline action (exceeded retry attempts)
+    public func isTaskFailed(_ taskId: String) -> Bool {
+        return pendingActions.contains { action in
+            let isForTask: Bool
+            switch action.data {
+            case let d as TaskCompletionData: isForTask = (d.taskId == taskId)
+            case let d as PhotoUploadData: isForTask = (d.taskId == taskId)
+            default: isForTask = false
+            }
+            return isForTask && action.retryCount >= Config.maxRetryAttempts
+        }
+    }
 }
 
 // MARK: - Supporting Types

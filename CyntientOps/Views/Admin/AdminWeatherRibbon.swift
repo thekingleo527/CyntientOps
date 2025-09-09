@@ -91,6 +91,12 @@ public struct AdminWeatherRibbon: View {
         .padding()
         .cyntientOpsDarkCardBackground()
         .task { computeAdvisory() }
+        .onReceive(NotificationCenter.default.publisher(for: Notification.Name("WeatherAdvisory"))) { note in
+            if let info = note.userInfo as? [String: String],
+               let body = info["body"] {
+                advisory = body
+            }
+        }
     }
 
     private func computeAdvisory() {
