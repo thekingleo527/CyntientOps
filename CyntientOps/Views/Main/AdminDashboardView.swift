@@ -214,6 +214,23 @@ public struct AdminDashboardView: View {
                 adminSheetContent(for: route)
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: Notification.Name("NovaNavigate"))) { note in
+            guard let info = note.userInfo as? [String: String] else { return }
+            if let view = info["openView"] {
+                switch view {
+                case "admin_hpd_list":
+                    activeSheet = .hpdSheet(nil)
+                case "admin_dsny_list":
+                    activeSheet = .dsnySheet(nil)
+                case "admin_dob_list":
+                    activeSheet = .dobSheet(nil)
+                case "admin_building_detail":
+                    if let bid = info["buildingId"] { activeSheet = .buildingDetail(bid) }
+                default:
+                    break
+                }
+            }
+        }
         .task {
             await viewModel.initialize()
         }

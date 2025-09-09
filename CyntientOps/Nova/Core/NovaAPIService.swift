@@ -66,7 +66,7 @@ public actor NovaAPIService {
         isProcessing = true
         defer { isProcessing = false }
         
-        print("🧠 Processing Nova prompt: \(prompt.text)")
+        AppLog.ai.log("Processing Nova prompt: \(prompt.text)")
         let userId = await MainActor.run { NewAuthManager.shared.currentUserId ?? "anon" }
         // Track request analytics
         await logAnalytics(event: "novaRequest", properties: [
@@ -95,7 +95,7 @@ public actor NovaAPIService {
         
         // HYBRID ROUTING: Check network status first
         if await NetworkMonitor.shared.isConnected {
-            print("🌐 Nova: Online mode - using full AI capabilities")
+            AppLog.ai.log("Nova: Online mode - using full AI capabilities")
             let result = try await processPromptOnline(prompt)
             await logAnalytics(event: "novaResponse", properties: [
                 "user_id": userId,
@@ -107,7 +107,7 @@ public actor NovaAPIService {
             ])
             return result
         } else {
-            print("📱 Nova: Offline mode - using local data search")
+            AppLog.ai.log("Nova: Offline mode - using local data search")
             let local = await processPromptOffline(prompt)
             await logAnalytics(event: "novaResponse", properties: [
                 "user_id": userId,
@@ -155,7 +155,7 @@ public actor NovaAPIService {
                 )
             }
         } catch {
-            print("❌ Nova: Online processing failed, falling back to offline: \(error)")
+            AppLog.ai.error("Nova: Online processing failed, falling back to offline: \(String(describing: error))")
             return await processPromptOffline(prompt)
         }
     }
@@ -200,7 +200,7 @@ public actor NovaAPIService {
     }
 
     private func callSupabaseEdgeFunction(url: URL, anonKey: String, prompt: NovaPrompt, context: NovaContext) async throws -> NovaResponse {
-        print("🌐 Nova: Calling Supabase Edge Function…")
+        AppLog.ai.log("Nova: Calling Supabase Edge Function …")
         let start = Date()
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -218,7 +218,7 @@ public actor NovaAPIService {
             request.setValue("Bearer \(anonKey)", forHTTPHeaderField: "Authorization")
         } else {
             // No JWT available and anon fallback not allowed → return offline response
-            print("⚠️ Nova: No session JWT; using offline mode due to secure configuration")
+            AppLog.ai.warning("Nova: No session JWT; using offline mode due to secure configuration")
             return await processPromptOffline(prompt)
         }
         // Provide client identity hints for rate limiting and observability
@@ -250,7 +250,7 @@ public actor NovaAPIService {
         }
 
         let processing = Date().timeIntervalSince(start)
-        print("✅ Nova: Supabase response in \(String(format: "%.2f", processing))s")
+        AppLog.ai.log("Nova: Supabase response in \(String(format: \"%.2f\", processing))s")
         let result = NovaResponse(
             success: true,
             message: message,

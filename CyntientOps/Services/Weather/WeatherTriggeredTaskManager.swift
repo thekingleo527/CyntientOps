@@ -367,6 +367,19 @@ public final class WeatherTriggeredTaskManager: ObservableObject {
         
         print("✅ WeatherTriggeredTaskManager: Loaded \(activeTriggers.count) weather trigger definitions")
     }
+
+    // MARK: - Advisory Broadcast
+    private func postAdvisory(_ title: String, body: String, buildingIds: [String]) {
+        NotificationCenter.default.post(
+            name: Notification.Name("WeatherAdvisory"),
+            object: nil,
+            userInfo: [
+                "title": title,
+                "body": body,
+                "buildingIds": buildingIds.joined(separator: ",")
+            ]
+        )
+    }
     
     // MARK: - Weather Evaluation
     
@@ -566,8 +579,11 @@ public final class WeatherTriggeredTaskManager: ObservableObject {
     }
     
     private func notifyUrgentTaskCreated(_ priority: WeatherTrigger.Priority) {
-        // This would integrate with notification system
         print("🚨 Weather-triggered \(priority.rawValue) priority tasks created")
+        let title = "Weather Advisory"
+        let body = "New \(priority.rawValue) weather-triggered tasks created"
+        let bids = pendingTasks.flatMap { $0.template.buildingIds }
+        postAdvisory(title, body: body, buildingIds: bids)
     }
     
     // MARK: - Task Management
