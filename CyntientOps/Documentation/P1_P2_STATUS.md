@@ -11,7 +11,8 @@ P1 — Intelligence, Compliance, and Reliability
   - get_worker_status → active/total summary.
   - list_open_issues(building_id) → open issues for building.
   - portfolio_metrics → buildings, completion %, HPD/DSNY 30d, DOB active.
-- Next: Render answer cards (tap-through) in `NovaInteractionView` using existing `NovaActionButtons` and metadata hooks.
+- Actions/Navigation: `NovaInteractionView` emits `NovaNavigate` on navigate actions; `AdminDashboardView` listens and opens HPD/DOB/DSNY sheets.
+- Next: Add additional answer cards (tables) and extend drill‑downs as needed.
 
 2) Compliance ingestion (seed + adapters)
 - Status: Baseline implemented
@@ -22,7 +23,8 @@ P1 — Intelligence, Compliance, and Reliability
 - Status: Baseline implemented
 - `WeatherTriggeredTaskManager` monitors weather and creates pre/post rain tasks + rain‑mat tasks.
 - Policies: triggers only for buildings in pilot/production via `BuildingConfigurationManager`.
-- Next: Notify assigned workers/admin and add thresholds surface in UI.
+- Advisory notifications: broadcasts via `WeatherAdvisory` Notification with buildingIds when triggered.
+- Next: Notify assigned workers/admin via in-app banner/toast and surface thresholds in settings.
 
 4) Offline‑first reliability + queue
 - Status: In progress
