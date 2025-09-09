@@ -97,6 +97,8 @@ public class DashboardSyncService: ObservableObject {
     
     // Debouncing for high-frequency updates
     private var updateDebouncer: [String: Timer] = [:]
+    private var recentEmitTimer: Timer?
+    private var lastRecentEmit: Date = .distantPast
     
     // Debug mode for logging
     #if DEBUG
@@ -112,6 +114,7 @@ public class DashboardSyncService: ObservableObject {
         urgentQueueTimer?.invalidate()
         cleanupTimer?.invalidate()
         updateDebouncer.values.forEach { $0.invalidate() }
+        recentEmitTimer?.invalidate()
     }
     
     // MARK: - Initialization
@@ -507,7 +510,13 @@ public class DashboardSyncService: ObservableObject {
             data: [
                 "buildingName": realBuildingName,
                 "workerName": workerName
-            ]
+            ],
+            payloadType: "ClockEventPayload",
+            payloadJSON: toJSONString([
+                "workerId": workerId,
+                "buildingId": buildingId,
+                "status": "clockedIn"
+            ])
         )
         broadcastWorkerUpdate(update)
     }
@@ -533,9 +542,25 @@ public class DashboardSyncService: ObservableObject {
             type: .workerClockedOut,
             buildingId: buildingId,
             workerId: workerId,
-            data: data
+            data: data,
+            payloadType: "ClockEventPayload",
+            payloadJSON: toJSONString([
+                "workerId": workerId,
+                "buildingId": buildingId,
+                "status": "clockedOut",
+                "duration": data["duration"] ?? ""
+            ])
         )
         broadcastWorkerUpdate(update)
+    }
+
+    // Helper to build JSON strings safely
+    private func toJSONString(_ dict: [String: Any]) -> String? {
+        guard JSONSerialization.isValidJSONObject(dict) else { return nil }
+        do {
+            let data = try JSONSerialization.data(withJSONObject: dict, options: [])
+            return String(data: data, encoding: .utf8)
+        } catch { return nil }
     }
     
     /// Task completed
@@ -671,6 +696,7 @@ public class DashboardSyncService: ObservableObject {
             // Update local state
             createLiveUpdateFromRemote(update)
             updateUnifiedState(from: update)
+            processRecentActivity(update)
         }
     }
     
@@ -1055,6 +1081,71 @@ public class DashboardSyncService: ObservableObject {
     public func disableCrossDashboardSync() {
         isLive = false
         print("⏸️ Cross-dashboard synchronization disabled")
+    }
+}
+
+// MARK: - Recent Activity Summaries (coalesced)
+extension DashboardSyncService {
+    public struct RecentActivityItem: Identifiable {
+        public let id = UUID()
+        public let buildingId: String
+        public let title: String
+        public let changes: [String]
+        public let occurredAt: Date
+    }
+
+    @Published public private(set) var summarizedRecentActivity: [RecentActivityItem] = []
+
+    // Keep last event timestamp per (buildingId+type) to coalesce within 10 minutes
+    private static let coalesceWindow: TimeInterval = 10 * 60
+    private var recentLastSeen: [String: Date] = [:]
+
+    private func processRecentActivity(_ update: CoreTypes.DashboardUpdate) {
+        // Only summarize selected update types for workers
+        guard update.type == .buildingMetricsChanged else { return }
+        guard !update.buildingId.isEmpty else { return }
+
+        let key = "\(update.type.rawValue)-\(update.buildingId)"
+        let now = Date()
+        if let last = recentLastSeen[key], now.timeIntervalSince(last) < Self.coalesceWindow {
+            // Suppress duplicate within window
+            return
+        }
+        recentLastSeen[key] = now
+
+        // Build a compact change summary
+        var changes: [String] = []
+        if let before = update.data["completionBefore"], let after = update.data["completionAfter"] {
+            changes.append("completion \(before)% → \(after)%")
+        } else if let rate = update.data["completionRate"] {
+            changes.append("completion \(rate)%")
+        } else {
+            changes.append("metrics updated")
+        }
+
+        let item = RecentActivityItem(
+            buildingId: update.buildingId,
+            title: "Metrics updated",
+            changes: changes,
+            occurredAt: update.timestamp
+        )
+
+        // Group by building (latest first)
+        var current = summarizedRecentActivity.filter { $0.buildingId != update.buildingId }
+        current.insert(item, at: 0)
+
+        // Throttle UI render: max once per 3s
+        let since = Date().timeIntervalSince(lastRecentEmit)
+        if since >= 3.0 {
+            summarizedRecentActivity = current
+            lastRecentEmit = Date()
+        } else {
+            recentEmitTimer?.invalidate()
+            recentEmitTimer = Timer.scheduledTimer(withTimeInterval: 3.0 - since, repeats: false) { [weak self] _ in
+                self?.summarizedRecentActivity = current
+                self?.lastRecentEmit = Date()
+            }
+        }
     }
 }
 

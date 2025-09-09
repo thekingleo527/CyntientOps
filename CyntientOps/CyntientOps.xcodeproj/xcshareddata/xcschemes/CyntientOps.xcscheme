@@ -40,6 +40,16 @@
             value = "dbO8NmN2pMcmSQO7w56rTaFax"
             isEnabled = "YES">
          </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "SUPABASE_URL"
+            value = "https://usrbeyixadqwwkzolhzv.supabase.co"
+            isEnabled = "YES">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "SUPABASE_ANON_KEY"
+            value = "sb_publishable_1SEZrdTUxAfgU1Zui3ReKA_qBYql_A9"
+            isEnabled = "YES">
+         </EnvironmentVariable>
       </EnvironmentVariables>
       <Testables>
          <TestableReference
@@ -95,6 +105,61 @@
          <EnvironmentVariable
             key = "DSNY_API_TOKEN"
             value = "dbO8NmN2pMcmSQO7w56rTaFax"
+            isEnabled = "YES">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "SUPABASE_URL"
+            value = "https://usrbeyixadqwwkzolhzv.supabase.co"
+            isEnabled = "YES">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "SUPABASE_ANON_KEY"
+            value = "sb_publishable_1SEZrdTUxAfgU1Zui3ReKA_qBYql_A9"
+            isEnabled = "YES">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "WEBSOCKET_URL"
+            value = "wss://api.cyntientops.com/sync"
+            isEnabled = "YES">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "API_BASE_URL"
+            value = "https://api.cyntientops.com"
+            isEnabled = "YES">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "QUICKBOOKS_CLIENT_ID"
+            value = "ABAQSi9dc27v4DHpdawcoZpHgmRHOnXMdCXTDTvp5fTv3PWOiS"
+            isEnabled = "YES">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "QUICKBOOKS_CLIENT_SECRET"
+            value = "plfYbZc7hhwnATBtPqIVcB7Ak9bxAtz6IUYSQfD7"
+            isEnabled = "YES">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "QB_CLIENT_ID"
+            value = "ABAQSi9dc27v4DHpdawcoZpHgmRHOnXMdCXTDTvp5fTv3PWOiS"
+            isEnabled = "YES">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "QB_CLIENT_SECRET"
+            value = "plfYbZc7hhwnATBtPqIVcB7Ak9bxAtz6IUYSQfD7"
+            isEnabled = "YES">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "HPD_API_KEY"
+            value = "https://api.nyc.gov/hpd/dataFeed/"
+            isEnabled = "YES">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "APPLE_TEAM_ID"
+            value = "S8Z4Y24HNA"
+            isEnabled = "YES">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "APNS_KEY_ID"
+            value = "S8Z4Y24HNA"
             isEnabled = "YES">
          </EnvironmentVariable>
       </EnvironmentVariables>

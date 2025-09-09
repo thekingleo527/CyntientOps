@@ -10,6 +10,7 @@
 //
 
 import SwiftUI
+import UIKit
 import Foundation
 import MapKit
 
@@ -109,8 +110,9 @@ struct BuildingPreviewPopover: View {
     
     @ViewBuilder
     private var buildingImageView: some View {
-        if let assetName = getBuildingAssetName() {
-            Image(assetName)
+        if let assetName = getBuildingAssetName(),
+           let uiImage = UIImage(named: assetName) {
+            Image(uiImage: uiImage)
                 .resizable()
                 .aspectRatio(contentMode: .fill)
         } else {
@@ -144,22 +146,8 @@ struct BuildingPreviewPopover: View {
     }
     
     private func getBuildingAssetName() -> String? {
-        // Try ID mapping first
-        if let assetName = BuildingAssets.assetName(for: building.id) { return assetName }
-        
-        // Special case for parks
-        if building.name.lowercased().contains("stuyvesant") ||
-           building.name.lowercased().contains("cove park") {
-            return "Stuyvesant_Cove_Park"
-        }
-        
-        // Special case for Rubin Museum
-        if building.name.lowercased().contains("rubin") ||
-           building.name.lowercased().contains("museum") {
-            return "Rubin_Museum_142_148_West_17th_Street"
-        }
-        
-        return nil
+        // Use unified resolver (falls back to special-cases internally)
+        return BuildingAssetResolver.assetName(for: building)
     }
     
     private func getBuildingIcon() -> String {

@@ -36,15 +36,28 @@ struct MapRevealContainer<Content: View>: View {
     // Dependencies
     let container: ServiceContainer
     let forceShowAll: Bool
+    // Admin-specific filtering (optional sets of building IDs)
+    let adminMode: Bool
+    let hpdBuildingIds: Set<String>?
+    let dsnyBuildingIds: Set<String>?
     
     // Map camera
     @State private var position: MapCameraPosition
     @State private var selectedFilter: MapFilter = .all
+    @State private var selectedAdminFilter: AdminMapFilter = .all
     @State private var showLegend: Bool = true
 
     enum MapFilter: String, CaseIterable {
         case all = "All"
         case assigned = "Assigned"
+        case visited = "Visited"
+    }
+    enum AdminMapFilter: String, CaseIterable {
+        case all = "All"
+        case issues = "Issues"
+        case hpd = "HPD"
+        case dsny = "DSNY"
+        case active = "Active"
         case visited = "Visited"
     }
     
@@ -67,6 +80,9 @@ struct MapRevealContainer<Content: View>: View {
         assignedBuildingIds: Set<String>? = nil,
         visitedBuildingIds: Set<String>? = nil,
         forceShowAll: Bool = false,
+        adminMode: Bool = false,
+        hpdBuildingIds: Set<String>? = nil,
+        dsnyBuildingIds: Set<String>? = nil,
         isRevealed: Binding<Bool>,
         container: ServiceContainer,
         onBuildingTap: @escaping (NamedCoordinate) -> Void,
@@ -80,6 +96,9 @@ struct MapRevealContainer<Content: View>: View {
         self._isRevealed = isRevealed
         self.container = container
         self.forceShowAll = forceShowAll
+        self.adminMode = adminMode
+        self.hpdBuildingIds = hpdBuildingIds
+        self.dsnyBuildingIds = dsnyBuildingIds
         self.onBuildingTap = onBuildingTap
         self.content = content
         
@@ -238,16 +257,38 @@ struct MapRevealContainer<Content: View>: View {
             // Filter out 29-31 East 20th (building ID "2") and any buildings with that name
             building.id != "2" && !building.name.localizedCaseInsensitiveContains("29-31 East 20th")
         }
-        
-        switch selectedFilter {
-        case .all: 
-            return filteredByActive
-        case .assigned:
-            guard let ids = assignedBuildingIds else { return filteredByActive }
-            return filteredByActive.filter { ids.contains($0.id) }
-        case .visited:
-            guard let ids = visitedBuildingIds else { return filteredByActive }
-            return filteredByActive.filter { ids.contains($0.id) }
+        if adminMode {
+            switch selectedAdminFilter {
+            case .all:
+                return filteredByActive
+            case .issues:
+                return filteredByActive.filter { b in
+                    if let m = buildingMetrics[b.id] { return m.hasIssues }
+                    return false
+                }
+            case .hpd:
+                if let ids = hpdBuildingIds { return filteredByActive.filter { ids.contains($0.id) } }
+                return []
+            case .dsny:
+                if let ids = dsnyBuildingIds { return filteredByActive.filter { ids.contains($0.id) } }
+                return []
+            case .active:
+                return filteredByActive.filter { b in (buildingMetrics[b.id]?.activeWorkers ?? 0) > 0 || (buildingMetrics[b.id]?.hasWorkerOnSite ?? false) }
+            case .visited:
+                if let ids = visitedBuildingIds { return filteredByActive.filter { ids.contains($0.id) } }
+                return []
+            }
+        } else {
+            switch selectedFilter {
+            case .all:
+                return filteredByActive
+            case .assigned:
+                guard let ids = assignedBuildingIds else { return filteredByActive }
+                return filteredByActive.filter { ids.contains($0.id) }
+            case .visited:
+                guard let ids = visitedBuildingIds else { return filteredByActive }
+                return filteredByActive.filter { ids.contains($0.id) }
+            }
         }
     }
     
@@ -256,10 +297,14 @@ struct MapRevealContainer<Content: View>: View {
     private var mapControls: some View {
         VStack {
             MapControlsBar(
-                filters: MapFilter.allCases.map { $0.rawValue },
-                selectedFilter: selectedFilter.rawValue,
+                filters: adminMode ? AdminMapFilter.allCases.map { $0.rawValue } : MapFilter.allCases.map { $0.rawValue },
+                selectedFilter: adminMode ? selectedAdminFilter.rawValue : selectedFilter.rawValue,
                 onSelectFilter: { label in
-                    if let f = MapFilter(rawValue: label) { selectedFilter = f }
+                    if adminMode, let f = AdminMapFilter(rawValue: label) { selectedAdminFilter = f }
+                    else if let f = MapFilter(rawValue: label) { selectedFilter = f }
+                    // Refit region to selected set
+                    let pts = displayedBuildings.map { $0.coordinate }
+                    if !pts.isEmpty { position = .region(.fit(points: pts)) }
                 },
                 showLegend: $showLegend,
                 onZoomIn: zoomIn,

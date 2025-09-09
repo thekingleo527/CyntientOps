@@ -15,23 +15,30 @@ import CoreLocation
 struct BuildingConstants {
     
     // MARK: - Building Metadata (From DatabaseStartupCoordinator)
+    // IMPORTANT: Keep this aligned with CanonicalIDs.Buildings and DatabaseInitializer.seedBuildings()
     static let buildingData: [String: (name: String, address: String, imageAsset: String)] = [
-        "1": ("12 West 18th Street", "12 W 18th St, New York, NY 10011", "12_West_18th_Street"),
+        // Active portfolio
+        "1":  ("12 West 18th Street",        "12 W 18th St, New York, NY 10011",   "12_West_18th_Street"),
         // "2": Building removed from portfolio
-        "3": ("133 East 15th Street", "133 E 15th St, New York, NY 10003", "133_East_15th_Street"),
-        "4": ("104 Franklin Street", "104 Franklin St, New York, NY 10013", "104_Franklin_Street"),
-        "5": ("36 Walker Street", "36 Walker St, New York, NY 10013", "36_Walker_Street"),
-        "6": ("68 Perry Street", "68 Perry St, New York, NY 10014", "68_Perry_Street"),
-        "7": ("136 W 17th Street", "136 W 17th St, New York, NY 10011", "136_West_17th_Street"),
-        "8": ("41 Elizabeth Street", "41 Elizabeth St, New York, NY 10013", "41_Elizabeth_Street"),
-        "9": ("117 West 17th Street", "117 W 17th St, New York, NY 10011", "117_West_17th_Street"),
-        "10": ("123 1st Avenue", "123 1st Ave, New York, NY 10003", "123_1st_Avenue"),
-        "11": ("131 Perry Street", "131 Perry St, New York, NY 10014", "131_Perry_Street"),
-        "12": ("135 West 17th Street", "135 W 17th St, New York, NY 10011", "135West17thStreet"),
-        "13": ("138 West 17th Street", "138 W 17th St, New York, NY 10011", "138West17thStreet"),
-        "14": ("Rubin Museum", "150 W 17th St, New York, NY 10011", "Rubin_Museum_142_148_West_17th_Street"),
-        "15": ("112 West 18th Street", "112 W 18th St, New York, NY 10011", "112_West_18th_Street"),
-        "16": ("Stuyvesant Cove Park", "E 20th St & FDR Dr, New York, NY 10009", "Stuyvesant_Cove_Park")
+        "3":  ("135-139 West 17th Street",   "135-139 W 17th St, New York, NY 10011", "135West17thStreet"),
+        "4":  ("104 Franklin Street",        "104 Franklin St, New York, NY 10013", "104_Franklin_Street"),
+        "5":  ("138 West 17th Street",       "138 W 17th St, New York, NY 10011",   "138West17thStreet"),
+        "6":  ("68 Perry Street",            "68 Perry St, New York, NY 10014",     "68_Perry_Street"),
+        "7":  ("112 West 18th Street",       "112 W 18th St, New York, NY 10011",   "112_West_18th_Street"),
+        "8":  ("41 Elizabeth Street",        "41 Elizabeth St, New York, NY 10013", "41_Elizabeth_Street"),
+        "9":  ("117 West 17th Street",       "117 W 17th St, New York, NY 10011",   "117_West_17th_Street"),
+        "10": ("131 Perry Street",           "131 Perry St, New York, NY 10014",    "131_Perry_Street"),
+        "11": ("123 1st Avenue",             "123 1st Ave, New York, NY 10003",     "123_1st_Avenue"),
+        // "12": not in use
+        "13": ("136 West 17th Street",       "136 W 17th St, New York, NY 10011",   "136_West_17th_Street"),
+        "14": ("Rubin Museum (142–148 W 17th)", "142–148 W 17th St, New York, NY 10011", "Rubin_Museum_142_148_West_17th_Street"),
+        "15": ("133 East 15th Street",       "133 E 15th St, New York, NY 10003",   "133_East_15th_Street"),
+        "16": ("Stuyvesant Cove Park",       "E 18th St & East River, New York, NY 10009", "Stuyvesant_Cove_Park"),
+        "17": ("178 Spring Street",          "178 Spring St, New York, NY 10012",   "178_Spring_Street"),
+        "18": ("36 Walker Street",           "36 Walker St, New York, NY 10013",    "36_Walker_Street"),
+        "19": ("115 7th Avenue",             "115 7th Ave, New York, NY 10011",     "115_7th_Avenue"),
+        // "20": internal/HQ (no image asset bundled)
+        "21": ("148 Chambers Street",        "148 Chambers St, New York, NY 10007", "148_Chambers_Street")
     ]
     
     // MARK: - Building Type Icons

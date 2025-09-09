@@ -51,6 +51,8 @@ public actor NovaAPIService {
     // MARK: - Processing State
     private var isProcessing = false
     private var processingQueue: [NovaPrompt] = []
+    // Simple per-user rate limiter: timestamps of recent requests
+    private var requestLog: [String: [Date]] = [:]
     
     
     // MARK: - Public API
@@ -65,14 +67,55 @@ public actor NovaAPIService {
         defer { isProcessing = false }
         
         print("🧠 Processing Nova prompt: \(prompt.text)")
+        let userId = await MainActor.run { NewAuthManager.shared.currentUserId ?? "anon" }
+        // Track request analytics
+        await logAnalytics(event: "novaRequest", properties: [
+            "user_id": userId,
+            "prompt_id": prompt.id.uuidString,
+            "mode": NetworkMonitor.shared.isConnected ? "online" : "offline"
+        ])
+        // Rate limiting guard (per minute)
+        if isRateLimited(userId: userId) {
+            let message = "You hit the rate limit. Please wait a moment and try again."
+            let limited = NovaResponse(
+                success: false,
+                message: message,
+                insights: [],
+                actions: [],
+                context: nil,
+                metadata: ["rateLimited": "true"]
+            )
+            await logAnalytics(event: "novaRateLimited", properties: [
+                "user_id": userId,
+                "prompt_id": prompt.id.uuidString
+            ])
+            return limited
+        }
+        recordRequest(userId: userId)
         
         // HYBRID ROUTING: Check network status first
         if await NetworkMonitor.shared.isConnected {
             print("🌐 Nova: Online mode - using full AI capabilities")
-            return try await processPromptOnline(prompt)
+            let result = try await processPromptOnline(prompt)
+            await logAnalytics(event: "novaResponse", properties: [
+                "user_id": userId,
+                "prompt_id": prompt.id.uuidString,
+                "mode": result.metadata["mode"] ?? "online",
+                "model": result.metadata["model"] ?? "unknown",
+                "tokens": result.metadata["tokensUsed"] ?? "0",
+                "latency_ms": String(format: "%.0f", (result.processingTime ?? 0) * 1000)
+            ])
+            return result
         } else {
             print("📱 Nova: Offline mode - using local data search")
-            return await processPromptOffline(prompt)
+            let local = await processPromptOffline(prompt)
+            await logAnalytics(event: "novaResponse", properties: [
+                "user_id": userId,
+                "prompt_id": prompt.id.uuidString,
+                "mode": "offline",
+                "latency_ms": String(format: "%.0f", (local.processingTime ?? 0) * 1000)
+            ])
+            return local
         }
     }
     
@@ -162,7 +205,26 @@ public actor NovaAPIService {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("Bearer \(anonKey)", forHTTPHeaderField: "Authorization")
+        // Prefer secure JWT from the authenticated session; optionally allow anon in debug builds only
+        let jwt: String? = await MainActor.run { NewAuthManager.shared.accessToken }
+        #if DEBUG
+        let allowAnonFallback = true
+        #else
+        let allowAnonFallback = false
+        #endif
+        if let token = jwt, !token.isEmpty {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        } else if allowAnonFallback, !anonKey.isEmpty {
+            request.setValue("Bearer \(anonKey)", forHTTPHeaderField: "Authorization")
+        } else {
+            // No JWT available and anon fallback not allowed → return offline response
+            print("⚠️ Nova: No session JWT; using offline mode due to secure configuration")
+            return await processPromptOffline(prompt)
+        }
+        // Provide client identity hints for rate limiting and observability
+        let userId = await MainActor.run { NewAuthManager.shared.currentUserId ?? "" }
+        if !userId.isEmpty { request.setValue(userId, forHTTPHeaderField: "X-Client-Id") }
+        request.setValue(UUID().uuidString, forHTTPHeaderField: "X-Request-Id")
 
         let history: [[String: String]] = [] // Placeholder; no persisted history yet
         let body: [String: Any] = [
@@ -189,7 +251,7 @@ public actor NovaAPIService {
 
         let processing = Date().timeIntervalSince(start)
         print("✅ Nova: Supabase response in \(String(format: "%.2f", processing))s")
-        return NovaResponse(
+        let result = NovaResponse(
             success: true,
             message: message,
             insights: [],
@@ -203,6 +265,34 @@ public actor NovaAPIService {
                 "tokensUsed": String(decoded.tokensUsed ?? 0)
             ]
         )
+        // Persist conversation + attempt sync
+        let userId = await MainActor.run { NewAuthManager.shared.currentUserId ?? "anon" }
+        let role = await MainActor.run { NewAuthManager.shared.userRole?.rawValue ?? "worker" }
+        let ctxJSON: String? = {
+            let payload = await buildContextPayload(for: prompt, using: context)
+            if let data = try? JSONSerialization.data(withJSONObject: payload), let s = String(data: data, encoding: .utf8) { return s }
+            return nil
+        }()
+        await SupabaseSyncService.shared.queueConversation(
+            userId: userId,
+            userRole: role,
+            prompt: prompt.text,
+            response: message,
+            contextJSON: ctxJSON,
+            model: decoded.model ?? "gpt-4",
+            tokens: decoded.tokensUsed,
+            latencyMs: Int(processing * 1000)
+        )
+        await SupabaseSyncService.shared.queueUsage(
+            userId: userId,
+            promptType: "chat",
+            mode: "online",
+            tokens: decoded.tokensUsed,
+            latencyMs: Int(processing * 1000),
+            success: true,
+            errorMessage: nil
+        )
+        return result
     }
     
     /// Process prompt when offline - uses local database search
@@ -708,6 +798,32 @@ public actor NovaAPIService {
         }
         
         return .general
+    }
+
+    // MARK: - Rate limiting
+    private func isRateLimited(userId: String) -> Bool {
+        let maxPerMinute = Int(ProcessInfo.processInfo.environment["NOVA_RATE_LIMIT_PER_MINUTE"] ?? "10") ?? 10
+        let now = Date()
+        let oneMinuteAgo = now.addingTimeInterval(-60)
+        let recent = (requestLog[userId] ?? []).filter { $0 >= oneMinuteAgo }
+        return recent.count >= maxPerMinute
+    }
+
+    private func recordRequest(userId: String) {
+        let now = Date()
+        var list = requestLog[userId] ?? []
+        list.append(now)
+        // Keep only last 60 seconds
+        let cutoff = now.addingTimeInterval(-60)
+        requestLog[userId] = list.filter { $0 >= cutoff }
+    }
+
+    // MARK: - Analytics helpers
+    private func logAnalytics(event: String, properties: [String: String]) async {
+        await MainActor.run {
+            AnalyticsService.shared.track(AnalyticsService.EventType(rawValue: event) ?? .reportGenerated,
+                                          properties: properties)
+        }
     }
 }
 

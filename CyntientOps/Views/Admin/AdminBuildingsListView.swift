@@ -120,18 +120,7 @@ struct AdminBuildingListItem: View {
     let onTap: () -> Void
     @State private var isDragging = false
     
-    var buildingImageAssetName: String? {
-        if let mapped = BuildingAssets.assetName(for: building.id) {
-            return mapped
-        }
-        let address = building.address
-        return address
-            .replacingOccurrences(of: " ", with: "_")
-            .replacingOccurrences(of: "/", with: "_")
-            .replacingOccurrences(of: "-", with: "_")
-            .replacingOccurrences(of: ",", with: "")
-            .replacingOccurrences(of: ".", with: "")
-    }
+    var buildingImageAssetName: String? { BuildingAssetResolver.assetName(for: building) }
     
     var body: some View {
         // Custom tap handling to avoid accidental selection during fast scrolls

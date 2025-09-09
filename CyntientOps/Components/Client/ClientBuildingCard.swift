@@ -7,6 +7,7 @@
 //
 
 import SwiftUI
+import UIKit
 
 struct ClientBuildingCard: View {
     let building: CoreTypes.NamedCoordinate
@@ -20,13 +21,7 @@ struct ClientBuildingCard: View {
     }
     
     var buildingImageAssetName: String? {
-        let address = building.address
-        return address
-            .replacingOccurrences(of: " ", with: "_")
-            .replacingOccurrences(of: "/", with: "_")
-            .replacingOccurrences(of: "-", with: "_")
-            .replacingOccurrences(of: ",", with: "")
-            .replacingOccurrences(of: ".", with: "")
+        BuildingAssetResolver.assetName(for: building)
     }
     
     var body: some View {
@@ -35,8 +30,8 @@ struct ClientBuildingCard: View {
                 // Building Image Header
                 ZStack {
                     if let assetName = buildingImageAssetName,
-                       UIImage(named: assetName) != nil {
-                        Image(assetName)
+                       let img = UIImage(named: assetName) {
+                        Image(uiImage: img)
                             .resizable()
                             .aspectRatio(contentMode: .fill)
                             .frame(height: 80)

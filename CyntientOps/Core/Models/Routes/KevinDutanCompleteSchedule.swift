@@ -130,7 +130,8 @@ public struct KevinDutanCompleteSchedule {
             sequences: [
                 perryStreet131Sequence(day: "Friday", time: 7, 0),
                 perryStreet68Sequence(day: "Friday", time: 8, 30),
-                seventeenthStreetMorningSequence(day: "Friday", time: 9, 15),
+                // Chelsea Circuit fixed to 9:00–11:30 window
+                seventeenthStreetMorningSequence(day: "Friday", time: 9, 0),
                 // Poster removal immediately after Chelsea Circuit (11:30–12:00)
                 seventhAvenueSequence(day: "Friday", time: 11, 30),
                 // Friday afternoon: 123 1st Ave & 178 Spring (M W F pattern)

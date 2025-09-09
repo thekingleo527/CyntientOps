@@ -59,6 +59,17 @@ class AdminDashboardViewModel: ObservableObject {
     @Published var historicalLoadMonths: Int = 12
     @Published var historicalLoadedAt: Date?
     @Published var complianceTrendText: String = ""
+
+    // MARK: - Formatted Strings for UI Tiles
+    var compliancePercentText: String {
+        let clamped = max(0.0, min(1.0, complianceScore))
+        return "\(Int(clamped * 100))%"
+    }
+    
+    var completionPercentText: String {
+        let clamped = max(0.0, min(1.0, completionToday))
+        return "\(Int(clamped * 100))%"
+    }
     
     // MARK: - Convenience Data Properties
     @Published var hpdViolationsData: [String: [HPDViolation]] = [:]
@@ -192,25 +203,8 @@ class AdminDashboardViewModel: ObservableObject {
     @MainActor
     func setInitialMapRegion() {
         guard !buildings.isEmpty else { return }
-        
-        // Calculate centroid of all buildings
-        let latitudes = buildings.map { $0.latitude }
-        let longitudes = buildings.map { $0.longitude }
-        
-        guard let minLat = latitudes.min(), let maxLat = latitudes.max(),
-              let minLon = longitudes.min(), let maxLon = longitudes.max() else { return }
-        
-        let centerLat = (minLat + maxLat) / 2
-        let centerLon = (minLon + maxLon) / 2
-        let spanLat = (maxLat - minLat) * 1.3  // Add 30% padding
-        let spanLon = (maxLon - minLon) * 1.3
-        
-        mapRegion = MKCoordinateRegion(
-            center: CLLocationCoordinate2D(latitude: centerLat, longitude: centerLon),
-            span: MKCoordinateSpan(latitudeDelta: max(spanLat, 0.01), longitudeDelta: max(spanLon, 0.01))
-        )
-        
-        print("🗺️ Set admin map region to center: \(centerLat), \(centerLon)")
+        mapRegion = .fit(points: buildings.map { $0.coordinate })
+        print("🗺️ Set admin map region to fit \(buildings.count) buildings")
     }
     
     /// Get pressing tasks for hero card display (includes operational intelligence)
@@ -2292,6 +2286,11 @@ class AdminDashboardViewModel: ObservableObject {
             crossDashboardUpdates = Array(crossDashboardUpdates.suffix(50))
         }
         
+        // Prefer typed payload when present
+        if let pType = update.payloadType, let pJSON = update.payloadJSON {
+            handleTypedPayload(type: pType, json: pJSON, update: update)
+        }
+
         // Handle specific update types using correct enum cases
         switch update.type {
         case .taskCompleted:
@@ -2323,6 +2322,36 @@ class AdminDashboardViewModel: ObservableObject {
                 await loadPortfolioInsights()
             }
             
+        default:
+            break
+        }
+    }
+
+    private func handleTypedPayload(type: String, json: String, update: CoreTypes.DashboardUpdate) {
+        guard let data = json.data(using: .utf8),
+              let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return }
+        switch type {
+        case "TaskCompletedPayload":
+            if let bid = obj["buildingId"] as? String { Task { await refreshBuildingMetrics(for: bid) } }
+            if let photoCount = obj["photoCount"] as? Int, photoCount > 0 {
+                Task { await countTodaysPhotos(); await loadCompletedTasks() }
+            }
+        case "TaskStartedPayload":
+            // Optionally mark worker active or update live feed
+            break
+        case "ClockEventPayload":
+            // Recompute active workers and refresh quick metrics
+            Task { await self.loadDashboardData() }
+        case "PhotoUploadedPayload":
+            // Update photo counts and any photo-driven metrics
+            Task { await self.countTodaysPhotos() }
+        case "PhotoBatchPayload":
+            Task { await self.countTodaysPhotos() }
+        case "BuildingMetricsPayload":
+            let bid = !update.buildingId.isEmpty ? update.buildingId : (obj["buildingId"] as? String ?? "")
+            if !bid.isEmpty {
+                Task { await refreshBuildingMetrics(for: bid) }
+            }
         default:
             break
         }

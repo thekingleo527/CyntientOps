@@ -193,6 +193,13 @@ struct ClientDashboardView: View {
                         .padding(.vertical, 8)
                         .background(bannerColor.opacity(0.12), in: RoundedRectangle(cornerRadius: 8))
                         
+                        // Recent Activity (client/admin only, summarized & deduped)
+                        RecentActivityList(
+                            onOpenBuilding: { bid in sheet = .buildingDetail(bid) },
+                            isWorker: false
+                        )
+                        .environmentObject(container.dashboardSync)
+                        
                         // Buildings Grid (when hero expanded and client has properties)
                         if heroExpanded && !viewModel.clientBuildingsWithImages.isEmpty {
                             ClientBuildingsGrid(
@@ -1309,6 +1316,9 @@ struct ClientNovaIntelligenceBar: View {
         if intelligencePanelExpanded {
             ScrollView {
                 VStack(spacing: 16) {
+                    // Last Activity Ticker for client (inside intelligence content)
+                    LastActivityTickerClient(updates: Array(viewModel.dashboardUpdates.suffix(8)))
+                        .padding(.horizontal, 4)
                     switch selectedTab {
                     case .priorities:
                         ClientPrioritiesContent(
@@ -2738,4 +2748,62 @@ struct ClientNovaIntelligenceBar: View {
     }
     
     
+}
+
+// MARK: - Last Activity Ticker (Client)
+private struct LastActivityTickerClient: View {
+    let updates: [CoreTypes.DashboardUpdate]
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 6) {
+                Image(systemName: "bolt.horizontal.circle")
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.info)
+                Text("Recent Activity")
+                    .font(.caption)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                Spacer()
+            }
+            ForEach(updates.reversed(), id: \.id) { u in
+                HStack(spacing: 6) {
+                    Text(summary(for: u))
+                        .font(.caption2)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                    Spacer()
+                    Text(shortTime(u.timestamp))
+                        .font(.caption2)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+                }
+            }
+        }
+        .padding(8)
+        .background(CyntientOpsDesign.DashboardColors.cardBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+    
+    private func summary(for u: CoreTypes.DashboardUpdate) -> String {
+        switch u.type {
+        case .taskCompleted:
+            return "Task completed at \(u.data["buildingName"] ?? u.buildingId)"
+        case .workerClockedIn:
+            return "Worker clocked in @ \(u.data["buildingName"] ?? u.buildingId)"
+        case .workerClockedOut:
+            return "Worker clocked out @ \(u.data["buildingName"] ?? u.buildingId)"
+        case .criticalUpdate:
+            if let action = u.data["action"], action == "urgentPhoto" {
+                return "Urgent photo uploaded @ \(u.data["buildingName"] ?? u.buildingId)"
+            }
+            return "Critical update"
+        default:
+            return u.type.rawValue
+        }
+    }
+    
+    private func shortTime(_ date: Date) -> String {
+        let f = DateFormatter()
+        f.timeStyle = .short
+        return f.string(from: date)
+    }
 }

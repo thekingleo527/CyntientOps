@@ -164,6 +164,27 @@ WeatherHybridCard(
 )
 ```
 
+### Admin Parity (Now)
+```swift
+// Docked intelligence panel (no overlay on tab bar)
+.safeAreaInset(edge: .bottom) { AdminNovaIntelligenceBar(...) }
+
+// Portfolio map with admin filters & region fit
+MapRevealContainer(
+    buildings: viewModel.buildings,
+    adminMode: true,
+    hpdBuildingIds: Set(...),
+    dsnyBuildingIds: Set(...),
+    isRevealed: $isPortfolioMapRevealed,
+    container: container,
+    onBuildingTap: { ... }
+) { /* content */ }
+// Refit on filter change handled inside MapRevealContainer
+
+// Routines look‑ahead (Sunday PM DSNY set‑out + next morning first routine)
+let lookahead = await AdminRoutinesViewModel(workerService: ..., routeManager: ...).computeLookahead()
+```
+
 ### Policy Chips Implementation
 ```swift
 // REQUIRED: Building-specific logic for ALL workers
@@ -217,6 +238,12 @@ func loadWeatherData() {
 }
 ```
 
+### 4. Insecure Online Mode
+```swift
+// ❌ NEVER rely on anon + --no-verify-jwt in production
+// ✅ ALWAYS pass the user’s JWT in Authorization and create the Supabase client with that JWT in the Edge Function
+```
+
 ## 📱 CyntientOps Architecture Map
 
 ### Data Layer
@@ -241,8 +268,9 @@ func loadWeatherData() {
 // These MUST be connected for features to display:
 1. Data Load → ViewModel Update → UI Refresh
 2. Weather Load → Suggestion Generation → Card Display  
-3. Routine Load → Schedule Display → Time Calculation
+3. Routine Load → Schedule Display → Look‑Ahead (Sun PM + next AM)
 4. Policy Load → Chip Display → Building Context
+5. Admin Map Filters → Pin Set → Region Fit
 ```
 
 ## 🔄 Testing Protocol

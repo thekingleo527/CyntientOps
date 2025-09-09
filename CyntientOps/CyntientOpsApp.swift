@@ -162,6 +162,12 @@ struct CyntientOpsApp: App {
             .animation(.easeInOut(duration: 0.3), value: authManager.isAuthenticated)
             .animation(.easeInOut(duration: 0.3), value: serviceContainer != nil)
             .onAppear(perform: setupApp)
+            // Kick off Supabase sync when network returns
+            .onReceive(NetworkMonitor.shared.$isConnected) { connected in
+                if connected {
+                    Task { await SupabaseSyncService.shared.syncAll() }
+                }
+            }
             .onChange(of: authManager.currentUser) { _, newValue in
                 updateSentryUserContext(newValue)
             }

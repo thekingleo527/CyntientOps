@@ -44,14 +44,14 @@ This checklist consolidates what’s required for a real‑world App Store submi
 **Runtime Config (No Secrets in Code)**
 
 - NYC tokens: `NYC_APP_TOKEN`, `DSNY_API_TOKEN` via environment/Keychain.
-- Supabase: `SUPABASE_URL`, `SUPABASE_ANON_KEY` via `.xcconfig` or CI secrets.
+- Supabase: `SUPABASE_URL`, `SUPABASE_ANON_KEY` via `.xcconfig` or CI secrets; app sends user JWT for Edge calls and REST writes.
 - Provide `Config/Development.example.xcconfig`; do not commit real keys.
 
 **Operational Readiness**
 
 - Offline: Queue persistence and replay validated; basic cache coverage for NYC datasets.
 - Error handling: Graceful fallback for NYC API 4xx/decoding and Nova offline.
-- Observability: Sentry configured with environment tags; OSLog for performance.
+- Observability: Sentry configured with environment tags; OSLog for performance; Nova analytics (model/tokens/latency) queued locally and synced to Supabase.
 - Health: `ServiceContainer.verifyServicesReady()` returns meaningful status (not placeholders) for release.
 
 **Compliance**

@@ -37,6 +37,11 @@ struct AnalyticsEvent {
         // Navigation
         case screenView = "nav_screen_view"
         case sheetPresented = "nav_sheet_presented"
+
+        // Weather Card
+        case weatherCardView = "weather_card_view"
+        case weatherCardExpand = "weather_card_expand"
+        case weatherCardStart = "weather_card_start"
         
         // Sync
         case syncStarted = "sync_started"

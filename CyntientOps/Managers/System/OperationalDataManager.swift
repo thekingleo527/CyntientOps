@@ -4303,7 +4303,8 @@ public class OperationalDataManager: ObservableObject {
         // Get schedule for next 7 days
         for dayOffset in 0..<7 {
             if let date = calendar.date(byAdding: .day, value: dayOffset, to: today) {
-                let daySchedule = try await getWorkerScheduleForDate(workerId: workerId, date: date)
+                // Weekly view should include full day's items; do not time-filter
+                let daySchedule = try await getWorkerScheduleForDate(workerId: workerId, date: date, skipTimeFiltering: true)
                 weeklySchedule.append(contentsOf: daySchedule)
             }
         }

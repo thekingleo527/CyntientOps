@@ -241,8 +241,8 @@ struct BuildingDetailView: View {
                             )
                         )
                 } else {
-                    // Try to load a mapped preview image for this building
-                    if let mapped = BuildingAssets.assetName(for: viewModel.buildingId), UIImage(named: mapped) != nil {
+                    // Try to load via unified resolver
+                    if let mapped = BuildingAssetResolver.assetName(forBuildingId: viewModel.buildingId), UIImage(named: mapped) != nil {
                         Image(mapped)
                             .resizable()
                             .scaledToFill()

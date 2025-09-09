@@ -13,7 +13,7 @@ public struct AdminPortfolioMapView: View {
     let buildings: [CoreTypes.NamedCoordinate]
     let workers: [CoreTypes.WorkerProfile]
     
-    @State private var position: MapCameraPosition
+    @State private var region: MKCoordinateRegion
     @State private var selectedBuilding: CoreTypes.NamedCoordinate?
     @State private var selectedWorker: CoreTypes.WorkerProfile?
     @State private var showWorkerLayer = true
@@ -29,7 +29,7 @@ public struct AdminPortfolioMapView: View {
             longitude: -73.9950
         )
         
-        self._position = State(initialValue: .region(
+        self._region = State(initialValue:
             MKCoordinateRegion(
                 center: manhattanCenter,
                 span: MKCoordinateSpan(
@@ -37,19 +37,16 @@ public struct AdminPortfolioMapView: View {
                     longitudeDelta: 0.020  // Optimized for Manhattan aspect ratio
                 )
             )
-        ))
+        )
     }
     
     public var body: some View {
         ZStack {
-            // Map with intelligent markers
-            Map(position: $position) {
-                // Building markers with metrics
-                ForEach(buildings, id: \.id) { building in
-                    Annotation(
-                        building.name,
-                        coordinate: building.coordinate
-                    ) {
+            // Map with intelligent markers (classic annotationItems API)
+            Map(coordinateRegion: $region, annotationItems: mapItems) { item in
+                MapAnnotation(coordinate: item.coordinate) {
+                    switch item.kind {
+                    case .building(let building):
                         AdminBuildingMapMarker(
                             building: building,
                             isSelected: selectedBuilding?.id == building.id,
@@ -61,29 +58,17 @@ public struct AdminPortfolioMapView: View {
                                 }
                             }
                         )
-                    }
-                }
-                
-                // Worker location markers (if enabled)
-                if showWorkerLayer {
-                    ForEach(workers.filter { $0.isClockedIn }, id: \.id) { worker in
-                        if let currentLocation = getCurrentWorkerLocation(worker) {
-                            Annotation(
-                                worker.name,
-                                coordinate: currentLocation
-                            ) {
-                                AdminWorkerMapMarker(
-                                    worker: worker,
-                                    isSelected: selectedWorker?.id == worker.id,
-                                    onTap: {
-                                        withAnimation(.spring(response: 0.3)) {
-                                            selectedWorker = worker
-                                            selectedBuilding = nil
-                                        }
-                                    }
-                                )
+                    case .worker(let worker):
+                        AdminWorkerMapMarker(
+                            worker: worker,
+                            isSelected: selectedWorker?.id == worker.id,
+                            onTap: {
+                                withAnimation(.spring(response: 0.3)) {
+                                    selectedWorker = worker
+                                    selectedBuilding = nil
+                                }
                             }
-                        }
+                        )
                     }
                 }
             }
@@ -99,11 +84,11 @@ public struct AdminPortfolioMapView: View {
                     Spacer()
                     
                     // Map controls
-                    AdminMapControls(
-                        showWorkerLayer: $showWorkerLayer,
-                        showBuildingMetrics: $showBuildingMetrics,
-                        position: $position
-                    )
+            AdminMapControls(
+                showWorkerLayer: $showWorkerLayer,
+                showBuildingMetrics: $showBuildingMetrics,
+                region: $region
+            )
                 }
                 
                 Spacer()
@@ -137,6 +122,28 @@ public struct AdminPortfolioMapView: View {
             }
         }
         .background(CyntientOpsDesign.DashboardColors.baseBackground)
+    }
+
+    // MARK: - Map Items
+    private struct MapItem: Identifiable {
+        enum Kind { case building(CoreTypes.NamedCoordinate), worker(CoreTypes.WorkerProfile) }
+        let id: String
+        let coordinate: CLLocationCoordinate2D
+        let kind: Kind
+    }
+
+    private var mapItems: [MapItem] {
+        var items: [MapItem] = buildings.map { b in
+            MapItem(id: "b-\(b.id)", coordinate: b.coordinate, kind: .building(b))
+        }
+        if showWorkerLayer {
+            for w in workers where w.isClockedIn {
+                if let loc = getCurrentWorkerLocation(w) {
+                    items.append(MapItem(id: "w-\(w.id)", coordinate: loc, kind: .worker(w)))
+                }
+            }
+        }
+        return items
     }
     
     private func getCurrentWorkerLocation(_ worker: CoreTypes.WorkerProfile) -> CLLocationCoordinate2D? {
@@ -248,7 +255,7 @@ struct AdminWorkerMapMarker: View {
 struct AdminMapControls: View {
     @Binding var showWorkerLayer: Bool
     @Binding var showBuildingMetrics: Bool
-    @Binding var position: MapCameraPosition
+    @Binding var region: MKCoordinateRegion
     
     var body: some View {
         VStack(spacing: 8) {
@@ -290,33 +297,21 @@ struct AdminMapControls: View {
     }
     
     private func zoomIn() {
-        withAnimation(.easeInOut(duration: 0.3)) {
-            if case let .region(region) = position {
-                let newSpan = MKCoordinateSpan(
-                    latitudeDelta: region.span.latitudeDelta * 0.5,
-                    longitudeDelta: region.span.longitudeDelta * 0.5
-                )
-                position = .region(MKCoordinateRegion(
-                    center: region.center,
-                    span: newSpan
-                ))
-            }
-        }
+        let newSpan = MKCoordinateSpan(
+            latitudeDelta: region.span.latitudeDelta * 0.5,
+            longitudeDelta: region.span.longitudeDelta * 0.5
+        )
+        let newRegion = MKCoordinateRegion(center: region.center, span: newSpan)
+        withAnimation(.easeInOut(duration: 0.3)) { region = newRegion }
     }
     
     private func zoomOut() {
-        withAnimation(.easeInOut(duration: 0.3)) {
-            if case let .region(region) = position {
-                let newSpan = MKCoordinateSpan(
-                    latitudeDelta: min(region.span.latitudeDelta * 2.0, 0.1),
-                    longitudeDelta: min(region.span.longitudeDelta * 2.0, 0.1)
-                )
-                position = .region(MKCoordinateRegion(
-                    center: region.center,
-                    span: newSpan
-                ))
-            }
-        }
+        let newSpan = MKCoordinateSpan(
+            latitudeDelta: min(region.span.latitudeDelta * 2.0, 0.1),
+            longitudeDelta: min(region.span.longitudeDelta * 2.0, 0.1)
+        )
+        let newRegion = MKCoordinateRegion(center: region.center, span: newSpan)
+        withAnimation(.easeInOut(duration: 0.3)) { region = newRegion }
     }
 }
 
@@ -367,7 +362,7 @@ struct AdminMapLegend: View {
                 
                 Spacer()
                 
-                Text("\\(buildingCount)")
+                Text(buildingCount.formatted())
                     .font(.caption)
                     .fontWeight(.bold)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.adminAccent)
@@ -385,7 +380,7 @@ struct AdminMapLegend: View {
                     
                     Spacer()
                     
-                    Text("\\(activeWorkerCount)")
+                    Text(activeWorkerCount.formatted())
                         .font(.caption)
                         .fontWeight(.bold)
                         .foregroundColor(CyntientOpsDesign.DashboardColors.success)
@@ -427,21 +422,21 @@ struct AdminBuildingPreview: View {
             
             // Intelligent Building Metrics
             VStack(spacing: 8) {
-                AdminMetricPreviewRow(
+                AdminMetricRow(
                     icon: "checkmark.circle.fill",
                     title: "Compliance",
                     value: "92%",
                     color: CyntientOpsDesign.DashboardColors.success
                 )
                 
-                AdminMetricPreviewRow(
+                AdminMetricRow(
                     icon: "person.2.fill",
                     title: "Active Workers",
                     value: "3",
                     color: CyntientOpsDesign.DashboardColors.adminAccent
                 )
                 
-                AdminMetricPreviewRow(
+                AdminMetricRow(
                     icon: "checkmark.square.fill",
                     title: "Tasks Today",
                     value: "8/10",
@@ -477,27 +472,27 @@ struct AdminWorkerPreview: View {
                 }
             }
             
-            Text(worker.role)
+            Text(worker.role.rawValue)
                 .font(.caption)
                 .foregroundColor(.white.opacity(0.8))
             
             // Intelligent Worker Metrics
             VStack(spacing: 8) {
-                AdminMetricPreviewRow(
+                AdminMetricRow(
                     icon: "clock.fill",
                     title: "Status",
                     value: worker.isClockedIn ? "Active" : "Offline",
                     color: worker.isClockedIn ? CyntientOpsDesign.DashboardColors.success : CyntientOpsDesign.DashboardColors.warning
                 )
                 
-                AdminMetricPreviewRow(
+                AdminMetricRow(
                     icon: "building.fill",
                     title: "Assigned Sites",
-                    value: "\\(worker.assignedBuildingIds.count)",
+                    value: worker.assignedBuildingIds.count.formatted(),
                     color: CyntientOpsDesign.DashboardColors.adminAccent
                 )
                 
-                AdminMetricPreviewRow(
+                AdminMetricRow(
                     icon: "checkmark.square.fill",
                     title: "Today's Progress",
                     value: "85%",
@@ -512,25 +507,26 @@ struct AdminWorkerPreview: View {
     }
 }
 
-struct AdminMetricPreviewRow: View {
+// Local lightweight metric row used by this view
+private struct AdminMetricRow: View {
     let icon: String
     let title: String
     let value: String
     let color: Color
-    
+
     var body: some View {
         HStack(spacing: 8) {
             Image(systemName: icon)
                 .font(.caption)
                 .foregroundColor(color)
                 .frame(width: 16)
-            
+
             Text(title)
                 .font(.caption)
                 .foregroundColor(.white.opacity(0.8))
-            
+
             Spacer()
-            
+
             Text(value)
                 .font(.caption)
                 .fontWeight(.semibold)

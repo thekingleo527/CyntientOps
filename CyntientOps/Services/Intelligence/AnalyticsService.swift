@@ -56,6 +56,12 @@ public final class AnalyticsService: ObservableObject {
         case userLoggedIn = "user_logged_in"
         case userLoggedOut = "user_logged_out"
         case settingsChanged = "settings_changed"
+
+        // Nova (AI) Events
+        case novaRequest = "novaRequest"
+        case novaResponse = "novaResponse"
+        case novaError = "novaError"
+        case novaRateLimited = "novaRateLimited"
     }
     
     // MARK: - Properties

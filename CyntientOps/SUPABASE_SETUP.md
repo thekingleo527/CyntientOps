@@ -321,6 +321,13 @@ struct SupabaseCredentials {
 
 ### Step 2: Update NovaAPIService 
 
+Note: In this repository, Nova already uses secure JWT pass‑through.
+- App side: `Nova/Core/NovaAPIService.swift` sets `Authorization: Bearer <sessionJWT>` when available (falls back to anon only if no token; disable that fallback for production).
+- Sync side: `Services/Core/SupabaseSyncService.swift` includes the user JWT on REST writes so RLS policies apply.
+- Server side: Your Edge Function must create the Supabase client with the incoming Authorization header so `auth.uid()` is populated (do not deploy with `--no-verify-jwt`). See Step 3 above for secure deploy and the TypeScript example.
+
+The example below shows a generic pattern; prefer the in‑repo implementation paths referenced above.
+
 The `processPromptOnline` method in `NovaAPIService.swift` is already set up with a placeholder. **Replace the TODO section** with:
 
 ```swift

@@ -1220,6 +1220,11 @@ public final class ClientDashboardViewModel: ObservableObject {
     }
     
     private func processUpdate(_ update: CoreTypes.DashboardUpdate) async {
+        // Typed payloads first (non-breaking)
+        if let pType = update.payloadType, let pJSON = update.payloadJSON, !pType.isEmpty, !pJSON.isEmpty {
+            handleTypedPayload(type: pType, json: pJSON, update: update)
+        }
+        
         // Only process updates for client's buildings
         let clientBuildingIds = Set(buildingsList.map { $0.id })
         guard !update.buildingId.isEmpty && clientBuildingIds.contains(update.buildingId) else { return }
@@ -1269,6 +1274,40 @@ public final class ClientDashboardViewModel: ObservableObject {
         dashboardUpdates.append(update)
         if dashboardUpdates.count > 50 {
             dashboardUpdates = Array(dashboardUpdates.suffix(50))
+        }
+    }
+    
+    private func handleTypedPayload(type: String, json: String, update: CoreTypes.DashboardUpdate) {
+        guard let data = json.data(using: .utf8),
+              let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return }
+        switch type {
+        case "TaskCompletedPayload":
+            // Refresh metrics and surface a soft info insight
+            Task { @MainActor in
+                if let updatedMetrics = try? await container.metrics.calculateMetrics(for: update.buildingId) {
+                    self.buildingMetrics[update.buildingId] = updatedMetrics
+                    self.updateComputedMetrics()
+                }
+                if let buildingName = self.buildingsList.first(where: { $0.id == update.buildingId })?.name {
+                    let insight = CoreTypes.IntelligenceInsight(
+                        title: "Task Completed",
+                        description: "A task has just been completed at \(buildingName)",
+                        type: .operations,
+                        priority: .low,
+                        actionRequired: false
+                    )
+                    self.intelligenceInsights.insert(insight, at: 0)
+                }
+            }
+        case "PhotoUploadedPayload", "PhotoBatchPayload":
+            Task {
+                await self.loadRecentPhotos(for: update.buildingId)
+                await self.updatePhotoMetrics()
+            }
+        case "ClockEventPayload":
+            Task { let _ = await self.countActiveWorkers() }
+        default:
+            break
         }
     }
     

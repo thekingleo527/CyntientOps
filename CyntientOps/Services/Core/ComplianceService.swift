@@ -150,6 +150,56 @@ public actor ComplianceService {
         let issues = try await getAllComplianceIssues()
         return issues.first { $0.id == id }
     }
+
+    // MARK: - Portfolio Snapshot (timeframe filters)
+
+    public enum SnapshotTimeframe {
+        case sevenDays
+        case thirtyDays
+        case sixMonths
+
+        var cutoff: Date {
+            let cal = Calendar.current
+            switch self {
+            case .sevenDays: return cal.date(byAdding: .day, value: -7, to: Date()) ?? Date()
+            case .thirtyDays: return cal.date(byAdding: .day, value: -30, to: Date()) ?? Date()
+            case .sixMonths: return cal.date(byAdding: .month, value: -6, to: Date()) ?? Date()
+            }
+        }
+    }
+
+    public struct PortfolioSnapshot {
+        public let timeframe: SnapshotTimeframe
+        public let hpdNew: Int
+        public let dsnyNew: Int
+        public let dobActive: Int
+        public let totalBuildings: Int
+    }
+
+    /// Aggregate compliance snapshot over a timeframe using locally cached NYC data
+    public func fetchPortfolioSnapshot(timeframe: SnapshotTimeframe = .thirtyDays) async -> PortfolioSnapshot {
+        let cutoff = timeframe.cutoff
+        // Buildings from DB
+        let buildings: [CoreTypes.NamedCoordinate] = (try? await getBuildingsFromDatabase()) ?? []
+        let totalB = buildings.count
+
+        func parse(_ s: String) -> Date? {
+            let fmts = ["yyyy-MM-dd'T'HH:mm:ss.SSS","yyyy-MM-dd'T'HH:mm:ss","yyyy-MM-dd","MM/dd/yyyy"]
+            for f in fmts { let df = DateFormatter(); df.locale = Locale(identifier: "en_US_POSIX"); df.dateFormat = f; if let d = df.date(from: s) { return d } }
+            return nil
+        }
+        var hpd = 0
+        var dsny = 0
+        var dob = 0
+        for b in buildings {
+            if let ctx = complianceData[b.id] {
+                hpd += ctx.hpdViolations.filter { v in (parse(v.inspectionDate) ?? .distantPast) >= cutoff }.count
+                dsny += ctx.dsnyViolations.filter { v in (parse(v.issueDate) ?? .distantPast) >= cutoff }.count
+                dob += ctx.dobPermits.filter { !$0.isExpired }.count
+            }
+        }
+        return PortfolioSnapshot(timeframe: timeframe, hpdNew: hpd, dsnyNew: dsny, dobActive: dob, totalBuildings: totalB)
+    }
     
     /// Get compliance overview for portfolio
     func getComplianceOverview() async throws -> CoreTypes.ComplianceOverview {

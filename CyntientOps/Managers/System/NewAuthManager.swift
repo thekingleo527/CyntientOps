@@ -59,6 +59,9 @@ public class NewAuthManager: ObservableObject {
         currentUser?.name ?? "Unknown"
     }
     
+    /// Current access token (JWT) for secure API calls (read-only)
+    public var accessToken: String? { sessionToken }
+    
     public var hasAdminAccess: Bool {
         userRole == .admin || userRole == .manager
     }

@@ -287,7 +287,14 @@ public class PhotoEvidenceService: ObservableObject {
                 "category": batch.category.rawValue,
                 "count": String(photoCount),
                 "timestamp": ISO8601DateFormatter().string(from: batch.timestamp)
-            ]
+            ],
+            payloadType: "PhotoBatchPayload",
+            payloadJSON: toJSONString([
+                "buildingId": batch.buildingId,
+                "category": batch.category.rawValue,
+                "count": photoCount,
+                "timestamp": ISO8601DateFormatter().string(from: batch.timestamp)
+            ])
         )
         dashboardSync?.broadcastWorkerUpdate(update)
     }
@@ -303,9 +310,25 @@ public class PhotoEvidenceService: ObservableObject {
                 "category": photo.category,
                 "photoId": photo.id,
                 "timestamp": ISO8601DateFormatter().string(from: photo.timestamp)
-            ]
+            ],
+            payloadType: "PhotoUploadedPayload",
+            payloadJSON: toJSONString([
+                "photoId": photo.id,
+                "buildingId": photo.buildingId,
+                "category": photo.category,
+                "timestamp": ISO8601DateFormatter().string(from: photo.timestamp)
+            ])
         )
         dashboardSync?.broadcastWorkerUpdate(update)
+    }
+
+    // MARK: - JSON helper
+    private func toJSONString(_ dict: [String: Any]) -> String? {
+        guard JSONSerialization.isValidJSONObject(dict) else { return nil }
+        do {
+            let data = try JSONSerialization.data(withJSONObject: dict, options: [])
+            return String(data: data, encoding: .utf8)
+        } catch { return nil }
     }
     
     // MARK: - Auto Cleanup & Retention

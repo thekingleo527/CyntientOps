@@ -168,7 +168,34 @@ public class SiteDepartureViewModel: ObservableObject {
                 )
             }
             
-            self.buildingEntries = buildingList
+            var finalList = buildingList
+
+            // DSNY fallback: after 8pm, if sparse, include circuit buildings that require set‑out
+            let cal = Calendar.current
+            let hour = cal.component(.hour, from: date)
+            if hour >= 20 && finalList.count <= 1 { // "sparse" threshold
+                let day = DSNYCollectionSchedule.CollectionDay.from(weekday: cal.component(.weekday, from: date))
+                let setout = DSNYCollectionSchedule.getBuildingsForBinSetOut(on: day)
+                let dsnyEntries: [BuildingDepartureEntry] = setout.map { sched in
+                    BuildingDepartureEntry(
+                        id: sched.buildingId,
+                        name: sched.buildingName,
+                        address: nil,
+                        tasksComplete: false,
+                        photos: [],
+                        requiresPhoto: true,
+                        note: "DSNY set‑out"
+                    )
+                }
+                // Merge, avoiding duplicates by id
+                var seen = Set(finalList.map { $0.id })
+                for e in dsnyEntries where !seen.contains(e.id) {
+                    finalList.append(e)
+                    seen.insert(e.id)
+                }
+            }
+
+            self.buildingEntries = finalList
             recomputeSubmitState()
             isLoading = false
             

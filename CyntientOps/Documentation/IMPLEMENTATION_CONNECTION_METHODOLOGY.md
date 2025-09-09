@@ -189,12 +189,17 @@ WeatherHybridCard(
 // ✅ Policy chips MUST be building-aware
 PolicyChipsRow(buildingId: viewModel.currentBuilding?.id)
 
-// ✅ Hero cards MUST be pressable
-Button(action: { 
-    sheet = .buildingDetail(viewModel.currentBuilding?.id) 
-}) {
-    // Hero card content
+// ✅ Admin intelligence panel MUST be docked (no overlay on tab bar)
+.safeAreaInset(edge: .bottom) {
+    AdminNovaIntelligenceBar(...)
 }
+
+// ✅ Admin map MUST refit region on filter change (All, Issues, HPD, DSNY, Active, Visited)
+// On filter change, compute displayedBuildings then:
+position = .region(.fit(points: displayedBuildings.map(\.coordinate)))
+
+// ✅ Routines look‑ahead MUST render when day is empty (Sun PM + next AM)
+AdminRoutinesPanel(...)
 ```
 
 ### Required Service Container Connections
@@ -205,6 +210,8 @@ container.operationalData  // OperationalDataManager
 container.metrics          // BuildingMetricsService
 container.routeBridge      // RouteManager
 container.clockIn          // ClockInService
+container.novaAPI          // NovaAPIService (Supabase online mode)
+container.novaManager      // NovaAIManager (persistent Nova state)
 ```
 
 ## 🚀 Success Implementation Example

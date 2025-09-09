@@ -71,6 +71,10 @@ public struct AdminProfileView: View {
         } message: {
             Text("Are you sure you want to log out of the admin dashboard?")
         }
+        .task {
+            // Ensure tiles hydrate with fresh values when profile opens
+            await viewModel.refreshDashboardData()
+        }
     }
     
     // MARK: - Profile Components
@@ -157,28 +161,28 @@ public struct AdminProfileView: View {
             ], spacing: 12) {
                 AdminProfileStatCard(
                     title: "Buildings Managed",
-                    value: "\\(viewModel.buildingCount)",
+                    value: viewModel.buildingCount.formatted(),
                     icon: "building.2.fill",
                     color: CyntientOpsDesign.DashboardColors.adminAccent
                 )
                 
                 AdminProfileStatCard(
                     title: "Active Workers",
-                    value: "\\(viewModel.workersActive)",
+                    value: viewModel.workersActive.formatted(),
                     icon: "person.2.fill",
                     color: CyntientOpsDesign.DashboardColors.success
                 )
                 
                 AdminProfileStatCard(
                     title: "Compliance Score",
-                    value: "\\(Int(viewModel.complianceScore * 100))%",
+                    value: viewModel.compliancePercentText,
                     icon: "checkmark.shield.fill",
                     color: getComplianceColor()
                 )
                 
                 AdminProfileStatCard(
                     title: "Today's Progress",
-                    value: "\\(Int(viewModel.completionToday * 100))%",
+                    value: viewModel.completionPercentText,
                     icon: "chart.line.uptrend.xyaxis",
                     color: getProgressColor()
                 )

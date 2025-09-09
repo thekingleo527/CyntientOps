@@ -18,6 +18,7 @@ struct WorkerDashboardView: View {
     @StateObject private var viewModel: WorkerDashboardViewModel
     @EnvironmentObject private var authManager: NewAuthManager
     @EnvironmentObject private var novaManager: NovaAIManager
+    @EnvironmentObject private var dashboardSync: DashboardSyncService
     
     private let container: ServiceContainer
     
@@ -54,49 +55,16 @@ struct WorkerDashboardView: View {
                         // Hero Section: Two Glass Cards
                         heroSection
 
-                        // Weather Hybrid Card
-                        WeatherHybridCard(
-                            snapshot: viewModel.weather,
-                            suggestions: viewModel.weatherSuggestions,
-                            onSuggestionTap: { suggestion in
-                                // If the suggestion maps to a task, attempt to open that; otherwise open policy/building detail
-                                if let tid = suggestion.taskTemplateId, let bid = suggestion.buildingId {
-                                    // Create a prefilled task via TaskService and open its detail
-                                    Task { @MainActor in
-                                        try? await container.tasks.createTaskFromTemplate(tid, buildingId: bid, workerId: viewModel.worker?.id, scheduledDate: suggestion.dueBy ?? Date())
-                                        if let created = viewModel.todaysTasks.first(where: { $0.title.localizedCaseInsensitiveContains(suggestion.title) && $0.buildingId == bid }) {
-                                            sheet = .taskDetail(created.id)
-                                        } else if let buildingId = bid as String? {
-                                            sheet = .buildingDetail(buildingId)
-                                        }
-                                    }
-                                } else if let bid = suggestion.buildingId {
-                                    sheet = .buildingDetail(bid)
-                                }
-                            },
-                            onViewHourly: { showingHourlyWeather = true },
-                            onLongPressAction: { suggestion, action in
-                                switch action {
-                                case .start:
-                                    if let tid = suggestion.taskTemplateId, let bid = suggestion.buildingId {
-                                        Task { @MainActor in
-                                            try? await container.tasks.createTaskFromTemplate(tid, buildingId: bid, workerId: viewModel.worker?.id, scheduledDate: suggestion.dueBy ?? Date())
-                                        }
-                                    }
-                                case .viewPolicy:
-                                    if let bid = suggestion.buildingId { sheet = .buildingDetail(bid) }
-                                case .snooze:
-                                    // No-op UI feedback for snooze
-                                    toastMessage = "Suggestion snoozed for today"
-                                    withAnimation { showToast = true }
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { withAnimation { showToast = false } }
-                                }
-                            },
-                            weatherAffectedTasks: getWeatherAffectedTaskItems(),
-                            onTaskTap: { taskId in
-                                sheet = .taskDetail(taskId)
-                            }
-                        )
+                        // Weather Hybrid Card (Accordion + deep link)
+                        if let s = viewModel.topWeatherSuggestionV2 {
+                            WeatherHybridCardV2(
+                                suggestion: s,
+                                onStart: { sug in viewModel.startWeatherFlow(sug) },
+                                onOpenBuilding: { bid in NavigationCoordinator.shared.presentSheet(.buildingDetail(buildingId: bid)) }
+                            )
+                            .padding(.horizontal, CyntientOpsDesign.Spacing.md)
+                            .animatedGlassAppear(delay: 0.3)
+                        }
                         .padding(.horizontal, CyntientOpsDesign.Spacing.md)
                         .animatedGlassAppear(delay: 0.3)
 
@@ -202,7 +170,22 @@ struct WorkerDashboardView: View {
                         return viewModel.assignedBuildings
                     }
                 }()
-                let buildingCoords: [NamedCoordinate] = summaries.map { b in
+                // DSNY fallback after 8pm: include DSNY circuit buildings for today
+                var enrichedSummaries = summaries
+                let now = Date()
+                let hour = Calendar.current.component(.hour, from: now)
+                if hour >= 20 { // after 8pm
+                    let todaysRoutes = container.routes.today(for: wid, date: now)
+                    let dsnyItems = todaysRoutes.filter { $0.icon == "trash.circle" || $0.buildingName.lowercased().contains("dsny") }
+                    for item in dsnyItems {
+                        if let b = viewModel.assignedBuildings.first(where: { $0.id == item.buildingId }) {
+                            if !enrichedSummaries.contains(where: { $0.id == b.id }) {
+                                enrichedSummaries.append(b)
+                            }
+                        }
+                    }
+                }
+                let buildingCoords: [NamedCoordinate] = enrichedSummaries.map { b in
                     NamedCoordinate(
                         id: b.id,
                         name: b.name,
@@ -307,6 +290,7 @@ struct WorkerDashboardView: View {
             currentBuildingId: currentId,
             assignedBuildingIds: assignedIds,
             visitedBuildingIds: visitedIds,
+            forceShowAll: true, // Workers should see full portfolio
             isRevealed: $isPortfolioMapRevealed,
             container: container,
             onBuildingTap: { building in
@@ -319,6 +303,11 @@ struct WorkerDashboardView: View {
     private var intelligenceBar: some View {
         // Intelligence Panel with Working Tabs - Simplified for now
         VStack {
+            // Last Activity ticker for worker (inside intelligence area)
+            let recentActivity: [CoreTypes.DashboardUpdate] = Array(viewModel.recentUpdates.suffix(6))
+            LastActivityTickerWorker(updates: recentActivity)
+                .padding(.horizontal, 12)
+                .padding(.top, 8)
             // Basic tab bar for worker functions
             HStack {
                 ForEach(IntelligenceTab.allCases, id: \.rawValue) { tab in
@@ -349,6 +338,53 @@ struct WorkerDashboardView: View {
                             .stroke(Color.white.opacity(0.1), lineWidth: 1)
                     )
             )
+        }
+    }
+
+    // MARK: - Last Activity Ticker (Worker)
+    private struct LastActivityTickerWorker: View {
+        let updates: [CoreTypes.DashboardUpdate]
+        var body: some View {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 6) {
+                    Image(systemName: "bolt.horizontal.circle")
+                        .foregroundColor(.orange)
+                    Text("Recent Activity")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    Spacer()
+                }
+                ForEach(updates.reversed(), id: \.id) { u in
+                    HStack(spacing: 6) {
+                        Text(summary(u))
+                            .font(.caption2)
+                            .foregroundColor(.primary)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                        Spacer()
+                        Text(shortTime(u.timestamp))
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+            .padding(6)
+            .background(Color(.secondarySystemBackground))
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+        }
+        private func summary(_ u: CoreTypes.DashboardUpdate) -> String {
+            switch u.type {
+            case .taskCompleted: return "Task completed at \(u.data["buildingName"] ?? u.buildingId)"
+            case .workerClockedIn: return "Clocked in @ \(u.data["buildingName"] ?? u.buildingId)"
+            case .workerClockedOut: return "Clocked out @ \(u.data["buildingName"] ?? u.buildingId)"
+            case .criticalUpdate:
+                if let action = u.data["action"], action == "urgentPhoto" { return "Urgent photo uploaded" }
+                return "Critical update"
+            default: return u.type.rawValue
+            }
+        }
+        private func shortTime(_ date: Date) -> String {
+            let f = DateFormatter(); f.timeStyle = .short; return f.string(from: date)
         }
     }
 
@@ -813,7 +849,8 @@ private func handleClockAction() {
                 .navigationBarTitleDisplayMode(.large)
                 
         case .buildingDetail(let buildingId):
-            if let building = viewModel.assignedBuildings.first(where: { $0.id == buildingId }) {
+            if let building = viewModel.assignedBuildings.first(where: { $0.id == buildingId })
+                ?? viewModel.allBuildings.first(where: { $0.id == buildingId }) {
                 BuildingDetailView(
                     container: container,
                     buildingId: building.id,
@@ -877,6 +914,14 @@ private func handleClockAction() {
             withAnimation(.easeInOut(duration: 0.25)) {
                 showingFullScreenTab = nil
                 if tab == .portfolio { isPortfolioMapRevealed = false }
+            }
+            return
+        }
+
+        // Special-case: if Portfolio map is already revealed, tapping Portfolio closes it
+        if tab == .portfolio && isPortfolioMapRevealed {
+            withAnimation(.easeInOut(duration: 0.25)) {
+                isPortfolioMapRevealed = false
             }
             return
         }
@@ -1245,6 +1290,12 @@ private func handleClockAction() {
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .padding(.horizontal)
         .padding(.top, 60)
+        .task(id: scheduleViewMode) {
+            if scheduleViewMode == .month { await loadMonthSchedule() }
+        }
+        .onChange(of: selectedMonth) { _ in
+            if scheduleViewMode == .month { Task { await loadMonthSchedule() } }
+        }
     }
     
     @State private var departureChecklistItems: [DepartureChecklistItem] = []
@@ -1543,6 +1594,9 @@ private func handleClockAction() {
     @State private var selectedMonth = Date()
     @State private var expandedScheduleSections: Set<String> = []
     @State private var expandedMonthDays: Set<String> = []
+    // Month schedule cache keyed by start-of-day ISO8601 string
+    @State private var monthScheduleByDate: [String: [WorkerDashboardViewModel.DaySchedule.ScheduleItem]] = [:]
+    @State private var isLoadingMonth: Bool = false
     
     enum ScheduleViewMode {
         case week, month
@@ -1937,31 +1991,30 @@ private func handleClockAction() {
             .clipShape(RoundedRectangle(cornerRadius: 12))
             
             // Expanded day details (summarized by building with expand/collapse per building)
-            let monthDays = viewModel.scheduleWeek.filter { day in
-                // Show only expanded days that fall in this month view
-                expandedMonthDays.contains(Calendar.current.startOfDay(for: day.date).ISO8601Format())
-            }
-            ForEach(Array(monthDays.enumerated()), id: \.offset) { _, day in
+            let expandedDates: [Date] = expandedMonthDays.compactMap { ISO8601DateFormatter().date(from: $0) }.sorted()
+            ForEach(expandedDates, id: \.self) { date in
+                let dayKey = Calendar.current.startOfDay(for: date).ISO8601Format()
+                let dayItems: [WorkerDashboardViewModel.DaySchedule.ScheduleItem] = monthScheduleByDate[dayKey] ?? []
                 VStack(alignment: .leading, spacing: 10) {
                     HStack {
-                        Text(day.date.formatted(date: .abbreviated, time: .omitted))
+                        Text(date.formatted(date: .abbreviated, time: .omitted))
                             .font(.headline)
                             .fontWeight(.semibold)
                             .foregroundColor(.white)
                         Spacer()
-                        Text("\(day.items.count) items")
+                        Text("\(dayItems.count) items")
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
 
-                    let groups = Dictionary(grouping: day.items, by: { $0.buildingId })
+                    let groups = Dictionary(grouping: dayItems, by: { $0.buildingId })
                     // Order groups similar to week view
                     let now = Date()
-                    let isToday = Calendar.current.isDateInToday(day.date)
-                    let dsnyCutoff = Calendar.current.date(bySettingHour: 20, minute: 0, second: 0, of: day.date) ?? day.date
+                    let isToday = Calendar.current.isDateInToday(date)
+                    let dsnyCutoff = Calendar.current.date(bySettingHour: 20, minute: 0, second: 0, of: date) ?? date
                     let ordered = groups.map { (bid: $0.key, items: $0.value) }.sorted { lhs, rhs in
                         func rank(_ entry: (bid: String, items: [WorkerDashboardViewModel.DaySchedule.ScheduleItem])) -> (Int, Date) {
-                            let minStart = entry.items.map { $0.startTime }.min() ?? day.date
+                            let minStart = entry.items.map { $0.startTime }.min() ?? date
                             let isCircuit = entry.bid == "17th_street_complex"
                             let hasDSNY = entry.items.contains { $0.title.localizedCaseInsensitiveContains("set out") || $0.title.localizedCaseInsensitiveContains("dsny") }
                             let forceTop = isToday && now < dsnyCutoff && isCircuit && hasDSNY
@@ -1987,7 +2040,7 @@ private func handleClockAction() {
                                 return building?.name ?? (CanonicalIDs.Buildings.getName(for: bid) ?? "Unknown Building")
                             }
                         }()
-                        let sectionKey = "m_\(Int(day.date.timeIntervalSince1970))_\(bid)"
+                        let sectionKey = "m_\(Int(date.timeIntervalSince1970))_\(bid)"
                         let count = items.count
                         let totalMinutes = items.reduce(0) { sum, it in sum + Int(it.endTime.timeIntervalSince(it.startTime) / 60) }
                         // Derive time window for Chelsea Circuit
@@ -2030,7 +2083,7 @@ private func handleClockAction() {
                                         }
                                         .foregroundColor(.secondary)
                                     }
-                                    let weekday = Calendar.current.component(.weekday, from: day.date)
+                                    let weekday = Calendar.current.component(.weekday, from: date)
                                     let cday = CollectionDay.from(weekday: weekday)
                                     let setOutToday = DSNYCollectionSchedule.getBuildingsForBinSetOut(on: cday).contains { $0.buildingId == bid }
                                     let retrievalToday = DSNYCollectionSchedule.getBuildingsForBinRetrieval(on: cday).contains { $0.buildingId == bid }
@@ -2156,38 +2209,73 @@ private func handleClockAction() {
     }
     
     private func hasScheduleForDate(_ date: Date) -> Bool {
-        // Check if there are any tasks or schedule items for this date
+        // Prefer month schedule cache when available
+        let key = Calendar.current.startOfDay(for: date).ISO8601Format()
+        if let items = monthScheduleByDate[key], !items.isEmpty { return true }
+        // Fallback to today's tasks (legacy behavior)
         return viewModel.todaysTasks.contains { task in
-            if let dueDate = task.dueDate {
-                return Calendar.current.isDate(dueDate, inSameDayAs: date)
-            }
+            if let dueDate = task.dueDate { return Calendar.current.isDate(dueDate, inSameDayAs: date) }
             return false
         }
     }
     
     private func getTotalTasksForMonth() -> Int {
+        // Sum from month schedule cache when available
         let calendar = Calendar.current
-        return viewModel.todaysTasks.filter { task in
-            if let dueDate = task.dueDate {
-                return calendar.isDate(dueDate, equalTo: selectedMonth, toGranularity: .month)
+        let firstOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: selectedMonth))!
+        let range = calendar.range(of: .day, in: .month, for: selectedMonth)!
+        var total = 0
+        for d in range {
+            if let date = calendar.date(byAdding: .day, value: d - 1, to: firstOfMonth) {
+                let key = calendar.startOfDay(for: date).ISO8601Format()
+                total += monthScheduleByDate[key]?.count ?? 0
             }
-            return false
-        }.count
+        }
+        return total
     }
     
     private func getDaysWithScheduleForMonth() -> Int {
         let calendar = Calendar.current
         let monthRange = calendar.range(of: .day, in: .month, for: selectedMonth)!
         let firstOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: selectedMonth))!
-        
-        var daysWithSchedule = 0
-        for day in 1...monthRange.count {
-            if let date = calendar.date(byAdding: .day, value: day - 1, to: firstOfMonth),
-               hasScheduleForDate(date) {
-                daysWithSchedule += 1
+        return monthRange.reduce(0) { acc, d in
+            guard let date = calendar.date(byAdding: .day, value: d - 1, to: firstOfMonth) else { return acc }
+            let key = calendar.startOfDay(for: date).ISO8601Format()
+            return acc + ((monthScheduleByDate[key]?.isEmpty == false) ? 1 : 0)
+        }
+    }
+
+    // Populate month schedule cache using OperationalDataManager (no time filtering)
+    private func loadMonthSchedule() async {
+        guard let workerId = viewModel.worker?.workerId else { return }
+        isLoadingMonth = true
+        defer { isLoadingMonth = false }
+
+        let calendar = Calendar.current
+        let firstOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: selectedMonth))!
+        let monthRange = calendar.range(of: .day, in: .month, for: selectedMonth)!
+
+        var dict: [String: [WorkerDashboardViewModel.DaySchedule.ScheduleItem]] = [:]
+        for d in monthRange {
+            guard let date = calendar.date(byAdding: .day, value: d - 1, to: firstOfMonth) else { continue }
+            do {
+                let sched = try await container.operationalData.getWorkerScheduleForDate(workerId: workerId, date: date, skipTimeFiltering: true)
+                let mapped = sched.map { s in
+                    WorkerDashboardViewModel.DaySchedule.ScheduleItem(
+                        id: s.id,
+                        startTime: s.startTime,
+                        endTime: s.endTime,
+                        buildingId: s.buildingId,
+                        title: s.title,
+                        taskCount: 1
+                    )
+                }
+                dict[calendar.startOfDay(for: date).ISO8601Format()] = mapped
+            } catch {
+                // Skip this day on error
             }
         }
-        return daysWithSchedule
+        monthScheduleByDate = dict
     }
 }
 

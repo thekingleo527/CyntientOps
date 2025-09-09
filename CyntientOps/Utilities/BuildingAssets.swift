@@ -4,9 +4,11 @@ enum BuildingAssets {
     // Shared mapping from buildingId to asset basename in XCAssets
     static let map: [String: String] = [
         "1": "12_West_18th_Street",
-        "3": "135_139_West_17th_Street",
+        // Use actual bundled asset filename
+        "3": "135West17thStreet",
         "4": "104_Franklin_Street",
-        "5": "138_West_17th_Street",
+        // Use actual bundled asset filename
+        "5": "138West17thStreet",
         "6": "68_Perry_Street",
         "7": "112_West_18th_Street",
         "8": "41_Elizabeth_Street",

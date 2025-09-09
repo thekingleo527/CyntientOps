@@ -48,28 +48,28 @@ public struct AdminAnalyticsView: View {
             ], spacing: 12) {
                 AdminAnalyticCard(
                     title: "Total Buildings",
-                    value: "\\(viewModel.buildingCount)",
+                    value: viewModel.buildingCount.formatted(),
                     icon: "building.2.fill",
                     color: CyntientOpsDesign.DashboardColors.adminAccent
                 )
                 
                 AdminAnalyticCard(
                     title: "Compliance Rate",
-                    value: "\\(Int(viewModel.complianceScore * 100))%",
+                    value: viewModel.compliancePercentText,
                     icon: "checkmark.shield.fill",
                     color: CyntientOpsDesign.DashboardColors.success
                 )
                 
                 AdminAnalyticCard(
                     title: "Active Workers",
-                    value: "\\(viewModel.workersActive)",
+                    value: viewModel.workersActive.formatted(),
                     icon: "person.2.fill",
                     color: CyntientOpsDesign.DashboardColors.success
                 )
                 
                 AdminAnalyticCard(
                     title: "Daily Progress",
-                    value: "\\(Int(viewModel.completionToday * 100))%",
+                    value: viewModel.completionPercentText,
                     icon: "chart.line.uptrend.xyaxis",
                     color: CyntientOpsDesign.DashboardColors.info
                 )

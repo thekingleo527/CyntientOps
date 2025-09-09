@@ -32,7 +32,7 @@ public struct AdminDashboardView: View {
     
     // MARK: - Sheet Navigation
     enum AdminRoute: Identifiable {
-        case profile, buildings, buildingDetail(String), workers, compliance, analytics, reports, emergencies, settings
+        case profile, buildings, buildingDetail(String), workers, compliance, schedules, analytics, reports, emergencies, settings
         case workerDetail(String), chat, map
         case exampleReport(String)
         case verificationSummary
@@ -49,6 +49,7 @@ public struct AdminDashboardView: View {
             case .workers: return "workers"
             case .compliance: return "compliance"
             case .analytics: return "analytics"
+            case .schedules: return "schedules"
             case .reports: return "reports"
             case .emergencies: return "emergencies"
             case .settings: return "settings"
@@ -68,6 +69,7 @@ public struct AdminDashboardView: View {
     // MARK: - Nova Intelligence Tabs (mirroring client)
     enum AdminNovaTab: String, CaseIterable {
         case priorities = "Priorities"
+        case routines = "Routines"
         case workers = "Workers"
         case buildings = "Buildings"
         case compliance = "Compliance"
@@ -76,6 +78,7 @@ public struct AdminDashboardView: View {
         var icon: String {
             switch self {
             case .priorities: return "exclamationmark.triangle"
+            case .routines: return "checklist"
             case .workers: return "person.2"
             case .buildings: return "building.2"
             case .compliance: return "checkmark.shield.fill"
@@ -98,6 +101,10 @@ public struct AdminDashboardView: View {
             buildings: viewModel.buildings,
             currentBuildingId: nil,
             focusBuildingId: nil,
+            forceShowAll: true,
+            adminMode: true,
+            hpdBuildingIds: Set(viewModel.hpdViolationsData.compactMap { (bid, list) in list.first(where: { $0.isActive }) != nil ? bid : nil }),
+            dsnyBuildingIds: Set(viewModel.dsnyViolationsByBuilding.compactMap { (bid, list) in list.first(where: { $0.isActive }) != nil ? bid : nil }),
             isRevealed: $isPortfolioMapRevealed,
             container: container,
             onBuildingTap: { building in
@@ -126,16 +133,26 @@ public struct AdminDashboardView: View {
                     ScrollView {
                         VStack(spacing: 16) {
                             // Collapsible Admin Hero Card (mirroring client)
-                            AdminRealTimeHeroCard(
-                                isExpanded: $heroExpanded,
-                                portfolioMetrics: viewModel.portfolioMetrics,
-                                activeWorkers: viewModel.workersActive,
-                                workersTotal: viewModel.workersTotal,
-                                criticalAlerts: viewModel.criticalAlerts,
-                                onBuildingsTap: { activeSheet = .buildings },
-                                onWorkersTap: { activeSheet = .workers },
-                                onComplianceTap: { activeSheet = .compliance }
-                            )
+                        AdminRealTimeHeroCard(
+                            isExpanded: $heroExpanded,
+                            portfolioMetrics: viewModel.portfolioMetrics,
+                            activeWorkers: viewModel.workersActive,
+                            workersTotal: viewModel.workersTotal,
+                            criticalAlerts: viewModel.criticalAlerts,
+                            onBuildingsTap: { activeSheet = .buildings },
+                            onWorkersTap: { activeSheet = .workers },
+                            onComplianceTap: { activeSheet = .compliance }
+                        )
+                        
+                        // Weather Impact Ribbon (portfolio snapshot)
+                        AdminWeatherRibbon(container: container)
+
+                        // Recent Activity (admin-only, summarized & deduped)
+                        RecentActivityList(
+                            onOpenBuilding: { bid in activeSheet = .buildingDetail(bid) },
+                            isWorker: false
+                        )
+                        .environmentObject(container.dashboardSync)
                             
                             // Urgent Items Section (admin-specific)
                             if hasUrgentItems() {
@@ -155,40 +172,43 @@ public struct AdminDashboardView: View {
                         await viewModel.refreshDashboardData()
                     }
                     
-                    // Intelligence Bar - Expands upward, compacts content (mirroring client)
-                    AdminNovaIntelligenceBar(
-                        selectedTab: $selectedNovaTab,
-                        portfolioMetrics: viewModel.portfolioMetrics,
-                        buildings: viewModel.buildings,
-                        workers: viewModel.workers,
-                        criticalAlerts: viewModel.criticalAlerts,
-                        onTabTap: handleNovaTabTap,
-                        onMapToggle: handlePortfolioMapToggle,
-                        onEmergencyBroadcast: { activeSheet = .emergencies },
-                        onExampleReport: {
-                            if let first = viewModel.buildings.first,
-                               let report = viewModel.getDetailedPropertyReport(buildingId: first.id) {
-                                exampleReportText = report
-                                activeSheet = .exampleReport(first.id)
-                            }
-                        },
-                        onVerificationSummary: {
-                            activeSheet = .verificationSummary
-                        },
-                        // Wiring for tiles
-                        onIssuesTap: { activeSheet = .maintenanceHistory(nil) },
-                        onHPD: { activeSheet = .hpdSheet(nil) },
-                        onDOB: { activeSheet = .dobSheet(nil) },
-                        onDSNY: { activeSheet = .dsnySheet(nil) },
-                        viewModel: viewModel
-                    )
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, isPortfolioMapRevealed ? 0 : 8)
+                    // Intelligence Bar docked with safe area inset (prevents covering tabs)
                 }
             }
         }
         .navigationBarHidden(true)
         .preferredColorScheme(.dark)
+        .safeAreaInset(edge: .bottom) {
+            AdminNovaIntelligenceBar(
+                selectedTab: $selectedNovaTab,
+                portfolioMetrics: viewModel.portfolioMetrics,
+                buildings: viewModel.buildings,
+                workers: viewModel.workers,
+                criticalAlerts: viewModel.criticalAlerts,
+                onTabTap: handleNovaTabTap,
+                onMapToggle: handlePortfolioMapToggle,
+                onEmergencyBroadcast: { activeSheet = .emergencies },
+                onExampleReport: {
+                    if let first = viewModel.buildings.first,
+                       let report = viewModel.getDetailedPropertyReport(buildingId: first.id) {
+                        exampleReportText = report
+                        activeSheet = .exampleReport(first.id)
+                    }
+                },
+                onVerificationSummary: {
+                    activeSheet = .verificationSummary
+                },
+                // Wiring for tiles
+                onIssuesTap: { activeSheet = .maintenanceHistory(nil) },
+                onHPD: { activeSheet = .hpdSheet(nil) },
+                onDOB: { activeSheet = .dobSheet(nil) },
+                onDSNY: { activeSheet = .dsnySheet(nil) },
+                onOpenSchedules: { selectedNovaTab = .routines },
+                container: container,
+                viewModel: viewModel
+            )
+            .background(.ultraThinMaterial)
+        }
         .sheet(item: $activeSheet) { route in
             NavigationView {
                 adminSheetContent(for: route)
@@ -211,10 +231,8 @@ public struct AdminDashboardView: View {
     private func handleNovaTabTap(_ tab: AdminNovaTab) {
         withAnimation(CyntientOpsDesign.Animations.spring) {
             if selectedNovaTab == tab && viewModel.intelligencePanelExpanded {
-                // Clicking same tab when expanded - collapse panel
                 viewModel.intelligencePanelExpanded = false
             } else {
-                // Clicking different tab or clicking when collapsed - switch tab and expand
                 selectedNovaTab = tab
                 viewModel.intelligencePanelExpanded = true
             }
@@ -428,8 +446,12 @@ struct AdminUrgentItem: View {
         switch route {
         case .profile:
             AdminProfileView(viewModel: viewModel)
-                .navigationTitle("Admin Profile")
-                
+            .navigationTitle("Admin Profile")
+
+        case .schedules:
+            AdminScheduleView(container: container)
+                .navigationTitle("Portfolio Schedules")
+
         case .buildings:
             AdminBuildingsListView(
                 buildings: viewModel.buildings,
@@ -685,7 +707,7 @@ struct AdminRealTimeHeroCard: View {
                         AdminMetricCard(
                             icon: "person.2.fill",
                             title: "Workers",
-                            value: "\(activeWorkers)/\(workersTotal)",
+                            value: workersLabel,
                             color: activeWorkersColor,
                             onTap: onWorkersTap
                         )
@@ -868,6 +890,13 @@ struct AdminRealTimeHeroCard: View {
     }
 }
 
+private extension AdminRealTimeHeroCard {
+    var workersLabel: String {
+        guard workersTotal > 0 else { return "0" }
+        return activeWorkers >= workersTotal ? "All Active" : "\(activeWorkers)/\(workersTotal)"
+    }
+}
+
 // MARK: - Admin Nova Intelligence Bar (mirroring client design)
 
 struct AdminNovaIntelligenceBar: View {
@@ -885,12 +914,14 @@ struct AdminNovaIntelligenceBar: View {
     let onHPD: () -> Void
     let onDOB: () -> Void
     let onDSNY: () -> Void
+    let onOpenSchedules: () -> Void
+    let container: ServiceContainer
     @ObservedObject var viewModel: AdminDashboardViewModel
     
     // Panel accordion state with persistence
     enum PanelState: String { case collapsed, half, expanded }
-    @AppStorage("panelState.admin") private var storedPanelState: String = PanelState.half.rawValue
-    @State private var panelState: PanelState = .half
+    @AppStorage("panelState.admin") private var storedPanelState: String = PanelState.collapsed.rawValue
+    @State private var panelState: PanelState = .collapsed
     @State private var dragOffset: CGFloat = 0
     
     var body: some View {
@@ -920,6 +951,20 @@ struct AdminNovaIntelligenceBar: View {
             }
             .frame(height: 65)
             .cyntientOpsDarkCardBackground(cornerRadius: 0)
+            .overlay(alignment: .trailing) {
+                HStack(spacing: 8) {
+                    Chip(text: "Active: \(viewModel.workersActive)", color: CyntientOpsDesign.DashboardColors.success)
+                    Button(action: onOpenSchedules) {
+                        Label("Schedules", systemImage: "calendar")
+                            .font(.footnote)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(CyntientOpsDesign.DashboardColors.cardBackground)
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                    }
+                }
+                .padding(.trailing, 10)
+            }
         }
         .background(CyntientOpsDesign.DashboardColors.cardBackground)
         .clipShape(RoundedRectangle(cornerRadius: 16))
@@ -964,15 +1009,22 @@ struct AdminNovaIntelligenceBar: View {
         if viewModel.intelligencePanelExpanded {
             ScrollView {
                 VStack(spacing: 16) {
+                    // Last Activity Ticker (keep headers clean; show here)
+                    LastActivityTicker(updates: Array(viewModel.crossDashboardUpdates.suffix(8)))
+                        .padding(.horizontal, 4)
                     switch selectedTab {
                     case .priorities:
                         AdminPrioritiesContent(
                             criticalAlerts: criticalAlerts,
                             portfolioMetrics: portfolioMetrics,
+                            workersActive: viewModel.workersActive,
+                            workersTotal: viewModel.workersTotal,
                             onEmergencyBroadcast: onEmergencyBroadcast,
                             onMapToggle: onMapToggle
                         )
                         
+                    case .routines:
+                        AdminRoutinesPanel(viewModel: AdminRoutinesViewModel(workerService: container.workers))
                     case .workers:
                         AdminWorkersContent(
                             workers: workers,
@@ -1033,6 +1085,8 @@ struct AdminNovaIntelligenceBar: View {
         switch tab {
         case .priorities:
             return criticalAlerts.count + portfolioMetrics.criticalIssues
+        case .routines:
+            return 0
         case .workers:
             return workers.filter { !$0.isClockedIn && $0.isActive }.count
         case .buildings:
@@ -1047,6 +1101,85 @@ struct AdminNovaIntelligenceBar: View {
         case .analytics:
             return 0
         }
+    }
+}
+
+// Reusable chip
+private struct Chip: View {
+    let text: String
+    let color: Color
+    var body: some View {
+        Text(text)
+            .font(.caption2)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 3)
+            .background(color.opacity(0.15))
+            .foregroundColor(color)
+            .clipShape(RoundedRectangle(cornerRadius: 6))
+    }
+}
+
+// MARK: - Last Activity Ticker
+private struct LastActivityTicker: View {
+    let updates: [CoreTypes.DashboardUpdate]
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 6) {
+                Image(systemName: "bolt.horizontal.circle")
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.info)
+                Text("Last Activity")
+                    .font(.caption)
+                    .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                Spacer()
+            }
+            ForEach(updates.reversed(), id: \.id) { u in
+                HStack(spacing: 6) {
+                    Text(summary(for: u))
+                        .font(.caption2)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                    Spacer()
+                    Text(shortTime(u.timestamp))
+                        .font(.caption2)
+                        .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
+                }
+            }
+        }
+        .padding(8)
+        .background(CyntientOpsDesign.DashboardColors.cardBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+    
+    private func summary(for u: CoreTypes.DashboardUpdate) -> String {
+        switch u.type {
+        case .taskCompleted:
+            let b = u.data["buildingName"] ?? u.buildingId
+            return "Task completed at \(b)"
+        case .workerClockedIn:
+            let name = u.data["workerName"] ?? u.workerId
+            let b = u.data["buildingName"] ?? u.buildingId
+            return "\(name) clocked in @ \(b)"
+        case .workerClockedOut:
+            let name = u.data["workerName"] ?? u.workerId
+            let b = u.data["buildingName"] ?? u.buildingId
+            return "\(name) clocked out @ \(b)"
+        case .buildingMetricsChanged:
+            let b = u.data["buildingName"] ?? u.buildingId
+            if let action = u.data["action"], action == "photoBatch" || action == "urgentPhoto" {
+                return "Photo update at \(b)"
+            }
+            return "Metrics updated for \(b)"
+        default:
+            return u.type.rawValue
+        }
+    }
+    
+    private func shortTime(_ date: Date) -> String {
+        let f = DateFormatter()
+        f.timeStyle = .short
+        return f.string(from: date)
     }
 }
 
@@ -1183,6 +1316,8 @@ struct AdminNovaTabButton: View {
 struct AdminPrioritiesContent: View {
     let criticalAlerts: [CoreTypes.AdminAlert]
     let portfolioMetrics: CoreTypes.PortfolioMetrics
+    let workersActive: Int
+    let workersTotal: Int
     let onEmergencyBroadcast: () -> Void
     let onMapToggle: () -> Void
     
@@ -1226,13 +1361,21 @@ struct AdminPrioritiesContent: View {
     }
     
     private func startStreamingUpdate() {
+        func liveWorkerMessage() -> String {
+            if workersTotal > 0 && workersActive == workersTotal {
+                return "📡 LIVE: All workers clocked in and active"
+            }
+            if workersTotal > 0 {
+                return "📡 LIVE: \(workersActive)/\(workersTotal) workers active"
+            }
+            return "📡 LIVE: No active workers"
+        }
         let messages = [
-            "📡 LIVE: Portfolio operating at 94% efficiency",
-            "📡 LIVE: All workers clocked in and active",
-            "📡 LIVE: Compliance status: 92% across all buildings",
-            "📡 LIVE: No critical alerts - systems nominal"
+            "📡 LIVE: Portfolio operating at \(Int(portfolioMetrics.overallCompletionRate * 100))% efficiency",
+            liveWorkerMessage(),
+            "📡 LIVE: Compliance status: \(Int(portfolioMetrics.complianceScore * 100))%",
+            criticalAlerts.isEmpty ? "📡 LIVE: No critical alerts - systems nominal" : "📡 LIVE: \(criticalAlerts.count) critical alerts"
         ]
-        
         var messageIndex = 0
         animationTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { _ in
             withAnimation(.easeInOut(duration: 0.5)) {

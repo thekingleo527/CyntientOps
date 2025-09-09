@@ -545,25 +545,26 @@ public class DatabaseInitializer: ObservableObject {
     private func seedBuildings() async throws {
         // Aligned with CanonicalIDs.Buildings and ClientBuildingSeeder
         let buildings = [
-            ("14", "Rubin Museum (142–148 W 17th)", "142–148 West 17th Street, New York, NY 10011", 40.7408, -73.9978, "rubin_museum"),
-            ("1",  "12 West 18th Street",        "12 West 18th Street, New York, NY 10011", 40.7387, -73.9941, "building_12w18"),
-            ("3",  "135-139 West 17th Street",    "135-139 West 17th Street, New York, NY 10011", 40.7406, -73.9974, "building_135w17"),
-            ("4",  "104 Franklin Street",         "104 Franklin Street, New York, NY 10013", 40.7197, -74.0079, "building_104franklin"),
-            ("5",  "138 West 17th Street",        "138 West 17th Street, New York, NY 10011", 40.7407, -73.9976, "building_138w17"),
-            ("6",  "68 Perry Street",             "68 Perry Street, New York, NY 10014", 40.7351, -74.0063, "building_68perry"),
-            ("7",  "112 West 18th Street",        "112 West 18th Street, New York, NY 10011", 40.7388, -73.9957, "building_112w18"),
-            ("8",  "41 Elizabeth Street",         "41 Elizabeth Street, New York, NY 10013", 40.7204, -73.9956, "building_41elizabeth"),
-            ("9",  "117 West 17th Street",        "117 West 17th Street, New York, NY 10011", 40.7407, -73.9967, "building_117w17"),
-            ("10", "131 Perry Street",            "131 Perry Street, New York, NY 10014", 40.7350, -74.0081, "building_131perry"),
-            ("11", "123 1st Avenue",              "123 1st Avenue, New York, NY 10003", 40.7304, -73.9867, "building_123first"),
-            ("13", "136 West 17th Street",        "136 West 17th Street, New York, NY 10011", 40.7407, -73.9975, "building_136w17"),
-            ("15", "133 East 15th Street",        "133 East 15th Street, New York, NY 10003", 40.7340, -73.9862, "building_133e15"),
-            ("16", "Stuyvesant Cove Park",        "E 18th Street & East River, New York, NY 10009", 40.7281, -73.9738, "stuyvesant_park"),
-            ("17", "178 Spring Street",           "178 Spring Street, New York, NY 10012", 40.7248, -73.9971, ""),
-            ("18", "36 Walker Street",            "36 Walker Street, New York, NY 10013", 40.7186, -74.0048, "building_36walker"),
+            ("14", "Rubin Museum (142–148 W 17th)", "142–148 West 17th Street, New York, NY 10011", 40.7408, -73.9978, "Rubin_Museum_142_148_West_17th_Street"),
+            ("1",  "12 West 18th Street",        "12 West 18th Street, New York, NY 10011", 40.7387, -73.9941, "12_West_18th_Street"),
+            ("3",  "135-139 West 17th Street",    "135-139 West 17th Street, New York, NY 10011", 40.7406, -73.9974, "135West17thStreet"),
+            ("4",  "104 Franklin Street",         "104 Franklin Street, New York, NY 10013", 40.7197, -74.0079, "104_Franklin_Street"),
+            ("5",  "138 West 17th Street",        "138 West 17th Street, New York, NY 10011", 40.7407, -73.9976, "138West17thStreet"),
+            ("6",  "68 Perry Street",             "68 Perry Street, New York, NY 10014", 40.7351, -74.0063, "68_Perry_Street"),
+            // Corrected coordinates for accurate map placement (west side of block)
+            ("7",  "112 West 18th Street",        "112 West 18th Street, New York, NY 10011", 40.7408, -73.9967, "112_West_18th_Street"),
+            ("8",  "41 Elizabeth Street",         "41 Elizabeth Street, New York, NY 10013", 40.7204, -73.9956, "41_Elizabeth_Street"),
+            ("9",  "117 West 17th Street",        "117 West 17th Street, New York, NY 10011", 40.7407, -73.9967, "117_West_17th_Street"),
+            ("10", "131 Perry Street",            "131 Perry Street, New York, NY 10014", 40.7350, -74.0081, "131_Perry_Street"),
+            ("11", "123 1st Avenue",              "123 1st Avenue, New York, NY 10003", 40.7304, -73.9867, "123_1st_Avenue"),
+            ("13", "136 West 17th Street",        "136 West 17th Street, New York, NY 10011", 40.7407, -73.9975, "136_West_17th_Street"),
+            ("15", "133 East 15th Street",        "133 East 15th Street, New York, NY 10003", 40.7340, -73.9862, "133_East_15th_Street"),
+            ("16", "Stuyvesant Cove Park",        "E 18th Street & East River, New York, NY 10009", 40.7281, -73.9738, "Stuyvesant_Cove_Park"),
+            ("17", "178 Spring Street",           "178 Spring Street, New York, NY 10012", 40.7248, -73.9971, "178_Spring_Street"),
+            ("18", "36 Walker Street",            "36 Walker Street, New York, NY 10013", 40.7186, -74.0048, "36_Walker_Street"),
             ("19", "115 7th Avenue",              "115 7th Avenue, New York, NY 10011", 40.7405, -73.9987, ""),
             ("20", "CyntientOps HQ",              "Manhattan, NY", 40.7831, -73.9712, ""),
-            ("21", "148 Chambers Street",         "148 Chambers Street, New York, NY 10007", 40.7155, -74.0086, "building_148chambers")
+            ("21", "148 Chambers Street",         "148 Chambers Street, New York, NY 10007", 40.7155, -74.0086, "148_Chambers_Street")
         ]
         
         for (id, name, address, lat, lng, imageAsset) in buildings {
@@ -572,6 +573,40 @@ public class DatabaseInitializer: ObservableObject {
                 (id, name, address, latitude, longitude, imageAssetName)
                 VALUES (?, ?, ?, ?, ?, ?)
             """, [id, name, address, lat, lng, imageAsset])
+        }
+        
+        // Apply targeted fixups for existing rows
+        // Ensure 112 W 18th has the corrected coordinates even if the row exists already
+        try await grdbManager.execute(
+            "UPDATE buildings SET latitude = ?, longitude = ? WHERE id = ?",
+            [40.7408, -73.9967, "7"]
+        )
+        
+        // Ensure imageAssetName matches bundled assets for known buildings
+        let imageFixups: [(String, String)] = [
+            ("14", "Rubin_Museum_142_148_West_17th_Street"),
+            ("1",  "12_West_18th_Street"),
+            ("3",  "135West17thStreet"),
+            ("4",  "104_Franklin_Street"),
+            ("5",  "138West17thStreet"),
+            ("6",  "68_Perry_Street"),
+            ("7",  "112_West_18th_Street"),
+            ("8",  "41_Elizabeth_Street"),
+            ("9",  "117_West_17th_Street"),
+            ("10", "131_Perry_Street"),
+            ("11", "123_1st_Avenue"),
+            ("13", "136_West_17th_Street"),
+            ("15", "133_East_15th_Street"),
+            ("16", "Stuyvesant_Cove_Park"),
+            ("17", "178_Spring_Street"),
+            ("18", "36_Walker_Street"),
+            ("21", "148_Chambers_Street")
+        ]
+        for (bid, asset) in imageFixups {
+            try await grdbManager.execute(
+                "UPDATE buildings SET imageAssetName = ? WHERE id = ?",
+                [asset, bid]
+            )
         }
         
         print("✅ \(buildings.count) buildings seeded")
@@ -819,6 +854,45 @@ public class DatabaseInitializer: ObservableObject {
             )
         """)
         
+        // Conversations (local buffer for Supabase sync)
+        try await grdbManager.execute("""
+            CREATE TABLE IF NOT EXISTS conversations_local (
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                user_role TEXT NOT NULL,
+                prompt TEXT NOT NULL,
+                response TEXT,
+                context_data TEXT,
+                processing_time_ms INTEGER,
+                model_used TEXT,
+                supabase_id TEXT,
+                synced INTEGER DEFAULT 0,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        try await grdbManager.execute("""
+            CREATE INDEX IF NOT EXISTS conversations_local_user_idx ON conversations_local (user_id, created_at DESC)
+        """)
+
+        // Nova usage analytics (local buffer)
+        try await grdbManager.execute("""
+            CREATE TABLE IF NOT EXISTS nova_usage_analytics_local (
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                prompt_type TEXT NOT NULL,
+                processing_mode TEXT NOT NULL,
+                tokens_used INTEGER DEFAULT 0,
+                latency_ms INTEGER,
+                success INTEGER DEFAULT 1,
+                error TEXT,
+                synced INTEGER DEFAULT 0,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        try await grdbManager.execute("""
+            CREATE INDEX IF NOT EXISTS nova_usage_local_user_idx ON nova_usage_analytics_local (user_id, created_at DESC)
+        """)
+
         print("✅ Basic database schema created successfully")
     }
     

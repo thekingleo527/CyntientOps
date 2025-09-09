@@ -544,8 +544,8 @@ struct ClientBuildingListRow: View {
             HStack(spacing: 16) {
                 // Building preview with performance indicator
                 ZStack(alignment: .bottomTrailing) {
-                    if let asset = BuildingAssets.assetName(for: building.id), UIImage(named: asset) != nil {
-                        Image(asset)
+                    if let name = BuildingAssetResolver.assetName(for: building), UIImage(named: name) != nil {
+                        Image(name)
                             .resizable()
                             .aspectRatio(contentMode: .fill)
                             .frame(width: 56, height: 40)

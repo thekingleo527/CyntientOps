@@ -78,3 +78,20 @@ Plan: Replace hardcoded names with data from `WorkerService`/`OperationalDataMan
 Photo policy updates
 
 - Mercedes: no photos required for any workload (including Rubin 2F roof drain); ensure dashboard logic bypasses photo requirement for Mercedes tasks.
+
+Build & Map UI fixes (AdminPortfolioMapView)
+
+- Fix MapCameraPosition pattern matching (done):
+  - Rewrote `if case let .region(region) = position` to `switch position { case .region(let region): … }` in zoom helpers to avoid “Pattern variable binding cannot appear in an expression” under some Swift toolchains.
+- Remove duplicate component (done):
+  - Deleted the second `AdminMetricPreviewRow` definition in `AdminPortfolioMapView.swift` to resolve “Invalid redeclaration” error. A shared implementation already exists in `AdminEmergencyManagementView.swift`.
+- Interpolation cleanup (done):
+  - Fixed escaped interpolation in `AdminMapLegend` and `AdminWorkerPreview` (e.g., `\\(count)` → formatted numeric values).
+- Verify initializer mismatch at L480 (done by dedupe):
+  - The “No exact matches in call to initializer” was a side effect of the duplicate `AdminMetricPreviewRow`. After dedupe and signature alignment the call resolves.
+
+Follow-ups
+
+- Extract `AdminMetricPreviewRow` to a shared component under `Views/Components/Admin/` to avoid future duplication.
+- Add a small `DSNYScheduleCache` for AdminScheduleView to minimize per-cell schedule fetches.
+- Align last-activity ticker styles across Worker/Client/Admin intelligence areas (implemented; monitor UX feedback).

@@ -27,6 +27,8 @@ final class NovaGroundingService {
         case dsnyForBuilding(String)
         case binsModeForBuilding(String)
         case buildingInfo(String)
+        case hpdIssuesThisWeek
+        case createSanitationReminder(String, String?) // buildingId, weekday name optional
         case unknown
     }
 
@@ -52,6 +54,10 @@ final class NovaGroundingService {
             return answerBinsMode(for: bid)
         case .buildingInfo(let bid):
             return answerBuildingInfo(for: bid)
+        case .hpdIssuesThisWeek:
+            return await answerHPDIssuesThisWeek(container: container)
+        case .createSanitationReminder(let bid, let weekday):
+            return await createSanitationReminder(for: bid, weekday: weekday, container: container)
         case .unknown:
             // Provide a deterministic generic summary for the worker
             return await answerGenericSummary(ctx: ctx, container: container)
@@ -83,7 +89,17 @@ final class NovaGroundingService {
             if q.contains("info") || q.contains("address") || q.contains("elevator") || q.contains("notes") {
                 return .buildingInfo(b)
             }
+            if q.contains("create") && (q.contains("sanitation") || q.contains("dsny")) && (q.contains("reminder") || q.contains("task")) {
+                // Try to extract weekday (e.g., "tuesday")
+                let weekdays = ["sunday","monday","tuesday","wednesday","thursday","friday","saturday"]
+                let found = weekdays.first(where: { q.contains($0) })
+                return .createSanitationReminder(b, found)
+            }
             return .scheduleForBuilding(b)
+        }
+        // Portfolio queries
+        if (q.contains("which") || q.contains("what")) && q.contains("hpd") && q.contains("issue") && (q.contains("week") || q.contains("7")) {
+            return .hpdIssuesThisWeek
         }
         if q.contains("what's next") || q.contains("whats next") || q.contains("next up") || q.contains("what do i have") || q.contains("my schedule") {
             return .nextAction
@@ -191,6 +207,78 @@ final class NovaGroundingService {
         return NovaResponse(success: true, message: lines.joined(separator: "\n"), metadata: ["buildingId": buildingId])
     }
 
+    // MARK: - HPD Issues This Week
+    private func answerHPDIssuesThisWeek(container: ServiceContainer) async -> NovaResponse? {
+        // Iterate portfolio buildings and count HPD violations reported in last 7 days
+        let buildings: [CoreTypes.NamedCoordinate]
+        do {
+            buildings = try await container.buildings.getAllBuildings()
+        } catch {
+            return NovaResponse(success: false, message: "Couldn’t load buildings.")
+        }
+        let cutoff = Calendar.current.date(byAdding: .day, value: -7, to: Date()) ?? Date().addingTimeInterval(-7*24*3600)
+        var rows: [(name: String, count: Int, id: String)] = []
+        for b in buildings {
+            let violations = container.nycCompliance.getHPDViolations(for: b.id)
+            let recent = violations.filter { v in
+                let fmts = ["yyyy-MM-dd'T'HH:mm:ss.SSS","yyyy-MM-dd'T'HH:mm:ss","yyyy-MM-dd","MM/dd/yyyy"]
+                let s = v.inspectionDate
+                let d = fmts.lazy.compactMap { f -> Date? in let df = DateFormatter(); df.dateFormat = f; df.locale = Locale(identifier: "en_US_POSIX"); return df.date(from: s) }.first
+                return (d ?? Date.distantPast) >= cutoff
+            }
+            if !recent.isEmpty { rows.append((b.name, recent.count, b.id)) }
+        }
+        if rows.isEmpty {
+            return NovaResponse(success: true, message: "No HPD issues reported this week across the portfolio.")
+        }
+        rows.sort { $0.count > $1.count }
+        let header = "Building | New HPD Issues (7d)"
+        let table = rows.map { "• \($0.name) — \($0.count)" }.joined(separator: "\n")
+        return NovaResponse(success: true, message: header + "\n" + table, metadata: ["openView": "admin_hpd_list"]) // UI can drill-in if wired
+    }
+
+    // MARK: - Create Sanitation Reminder
+    private func createSanitationReminder(for buildingId: String, weekday: String?, container: ServiceContainer) async -> NovaResponse? {
+        let name = CanonicalIDs.Buildings.getName(for: buildingId) ?? "Building"
+        // Compute next date matching requested weekday (or next DSNY set‑out day)
+        let cal = Calendar.current
+        var targetDate = Date()
+        if let w = weekday {
+            let map = ["sunday":1,"monday":2,"tuesday":3,"wednesday":4,"thursday":5,"friday":6,"saturday":7]
+            if let wd = map[w] {
+                var d = Date()
+                for _ in 0..<7 {
+                    if cal.component(.weekday, from: d) == wd { targetDate = d; break }
+                    d = cal.date(byAdding: .day, value: 1, to: d) ?? d
+                }
+            }
+        }
+        // Default sanitation reminder at 19:30 (7:30 PM)
+        if let t = cal.date(bySettingHour: 19, minute: 30, second: 0, of: targetDate) {
+            targetDate = t
+        }
+        // Create ContextualTask
+        let task = CoreTypes.ContextualTask(
+            id: UUID().uuidString,
+            title: "Sanitation Set‑Out Reminder",
+            description: "Place bins per DSNY guidance before collection.",
+            status: .pending,
+            scheduledDate: targetDate,
+            dueDate: targetDate,
+            urgency: .medium,
+            buildingId: buildingId,
+            buildingName: name,
+            requiresPhoto: false,
+            estimatedDuration: 5 * 60
+        )
+        do {
+            try await container.tasks.createTask(task)
+            return NovaResponse(success: true, message: "Created sanitation reminder for \(name) on \(DateFormatter.localizedString(from: targetDate, dateStyle: .medium, timeStyle: .short)).")
+        } catch {
+            return NovaResponse(success: false, message: "Couldn’t create task: \(error.localizedDescription)")
+        }
+    }
+
     private func answerGenericSummary(ctx: GroundingContext, container: ServiceContainer) async -> NovaResponse? {
         // Provide a helpful overview: next action + today’s top 3
         if let next = await answerNextAction(ctx: ctx, container: container) {
@@ -201,4 +289,3 @@ final class NovaGroundingService {
         return NovaResponse(success: true, message: "Assigned Buildings:\n\(buildings)", metadata: [:])
     }
 }
-

@@ -65,6 +65,7 @@ public actor BuildingService {
         
         // Clear existing assignments
         try await grdbManager.execute("DELETE FROM worker_building_assignments")
+        try await grdbManager.execute("DELETE FROM worker_assignments")
         
         // Create assignments for each worker based on their tasks
         for (workerName, workerId) in workerNameToId {
@@ -81,11 +82,18 @@ public actor BuildingService {
                 """, [buildingName, "%\(buildingName.lowercased())%", "%\(buildingName.lowercased())%"])
                 
                 if let buildingId = buildingRows.first?["id"] {
+                    // Primary table
                     try await grdbManager.execute("""
                         INSERT OR REPLACE INTO worker_building_assignments
                         (id, worker_id, building_id, assignment_type, is_primary, created_at)
                         VALUES (?, ?, ?, 'operational', 1, CURRENT_TIMESTAMP)
                     """, [UUID().uuidString, workerId, buildingId])
+                    // Compatibility table for consumers still joining worker_assignments
+                    try await grdbManager.execute("""
+                        INSERT OR REPLACE INTO worker_assignments
+                        (worker_id, building_id, worker_name, building_name, is_active, created_at)
+                        VALUES (?, ?, ?, ?, 1, CURRENT_TIMESTAMP)
+                    """, [workerId, buildingId, workerName, buildingName])
                 } else {
                     print("⚠️ Building not found for assignment: \(buildingName)")
                 }

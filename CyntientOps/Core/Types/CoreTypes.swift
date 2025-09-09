@@ -622,6 +622,8 @@ public struct CoreTypes {
     
     // MARK: - Dashboard & Sync Types
     
+    // Typed payloads are carried via payloadType/payloadJSON for compatibility.
+
     public enum DashboardSyncStatus: String, Codable, CaseIterable {
         case syncing = "Syncing"
         case synced = "Synced"
@@ -669,9 +671,13 @@ public struct CoreTypes {
         public let type: UpdateType
         public let buildingId: String
         public let workerId: String
+        @available(*, deprecated, message: "Use payloadType/payloadJSON instead")
         public let data: [String: String]
         public let timestamp: Date
         public let description: String?
+        // Optional typed payloads (transition-friendly)
+        public let payloadType: String?
+        public let payloadJSON: String?
         
         public init(
             id: String = UUID().uuidString,
@@ -681,7 +687,9 @@ public struct CoreTypes {
             workerId: String,
             data: [String: String] = [:],
             timestamp: Date = Date(),
-            description: String? = nil
+            description: String? = nil,
+            payloadType: String? = nil,
+            payloadJSON: String? = nil
         ) {
             self.id = id
             self.source = source
@@ -691,10 +699,12 @@ public struct CoreTypes {
             self.data = data
             self.timestamp = timestamp
             self.description = description
+            self.payloadType = payloadType
+            self.payloadJSON = payloadJSON
         }
     }
     
-    public struct CrossDashboardUpdate: Codable {
+public struct CrossDashboardUpdate: Codable {
         public let updateType: String
         public let data: [String: String]
         public let timestamp: Date

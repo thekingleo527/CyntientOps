@@ -9,6 +9,7 @@
 //
 
 import SwiftUI
+import UIKit
 import CoreLocation
 import Combine
 import Foundation
@@ -622,19 +623,20 @@ public class BuildingDetailViewModel: ObservableObject {
                     self.coordinate = CLLocationCoordinate2D(latitude: lat, longitude: lon)
                 }
                 
-                // Load actual building image from asset name
-                if let imageAsset = building["imageAssetName"] as? String, !imageAsset.isEmpty {
-                    // Load the actual building preview image
-                    self.buildingImage = UIImage(named: imageAsset)
-                    
-                    // Set building type based on asset name
-                    if imageAsset.contains("museum") || imageAsset.contains("commercial") {
+                // Load building image from DB asset name, then fall back to centralized mapping
+                if let imageAsset = building["imageAssetName"] as? String, !imageAsset.isEmpty,
+                   let img = UIImage(named: imageAsset) {
+                    self.buildingImage = img
+                    // Set building type based on asset heuristic
+                    if imageAsset.localizedCaseInsensitiveContains("museum") {
                         self.buildingType = "Commercial"
-                    } else if imageAsset.contains("office") {
+                    } else if imageAsset.localizedCaseInsensitiveContains("office") {
                         self.buildingType = "Office"
                     }
+                } else if let mapped = BuildingAssets.assetName(for: buildingId),
+                          let img = UIImage(named: mapped) {
+                    self.buildingImage = img
                 } else {
-                    // Fallback to nil for generic display
                     self.buildingImage = nil
                 }
                 

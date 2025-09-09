@@ -552,6 +552,7 @@ public class WorkerDashboardViewModel: ObservableObject {
     @Published public private(set) var weather: WeatherSnapshot?
     @Published public private(set) var weatherBanner: WorkerWeatherSnapshot?
     @Published public private(set) var weatherSuggestions: [WeatherSuggestion] = []
+    @Published public private(set) var topWeatherSuggestionV2: WeatherSuggestionV2?
     @Published public private(set) var upcoming: [TaskRowVM] = []
     
     // MARK: - Route-Based Properties
@@ -1591,7 +1592,10 @@ public class WorkerDashboardViewModel: ObservableObject {
     // MARK: - Private Methods - Data Loading (Per Design Brief)
     
     private func loadWorkerProfile() async {
-        // Load worker profile data
+        // Resolve worker ID from session or current state and load profile
+        let wid = currentWorkerId ?? worker?.workerId ?? CoreTypes.Session.shared.user?.workerId
+        guard let workerId = wid else { return }
+        await loadWorkerProfile(workerId: workerId)
     }
     
     private func loadAssignedBuildings() async {
@@ -2618,10 +2622,30 @@ public class WorkerDashboardViewModel: ObservableObject {
         assignedBuildings.first { $0.id == id } ?? allBuildings.first { $0.id == id }
     }
     
-    /// Get next schedule item starting after now
+    /// Get next schedule item starting after now, including DSNY tasks
     private func nextFromSchedule() -> (title: String, time: Date, buildingName: String)? {
-        // Flatten this week's schedule, find the first item starting after now
         let now = Date()
+        
+        // First check for DSNY set-out tasks if it's Kevin on Sunday/Tuesday/Thursday evenings
+        if let workerId = worker?.workerId,
+           workerId == CanonicalIDs.Workers.kevinDutan {
+            let weekday = Calendar.current.component(.weekday, from: now)
+            let today = CollectionDay.from(weekday: weekday)
+            
+            // Check for evening set-out tasks (8 PM) on Sun/Tue/Thu
+            if [CollectionDay.sunday, .tuesday, .thursday].contains(today) {
+                if let setOutTime = Calendar.current.date(bySettingHour: 20, minute: 0, second: 0, of: now),
+                   setOutTime >= now {
+                    let buildingsForSetOut = DSNYCollectionSchedule.getBuildingsForBinSetOut(on: today)
+                    if !buildingsForSetOut.isEmpty {
+                        let circuitName = buildingsForSetOut.count > 1 ? "17th St Circuit" : buildingsForSetOut.first?.buildingName ?? "Building"
+                        return ("Set Out Trash — \(circuitName)", setOutTime, circuitName)
+                    }
+                }
+            }
+        }
+        
+        // Fallback to regular schedule items
         let items = scheduleWeek
             .flatMap { day in day.items }
             .filter { $0.startTime >= now }
@@ -2761,16 +2785,21 @@ public class WorkerDashboardViewModel: ObservableObject {
             buildingMetrics[buildingId] = metrics
             
             // Broadcast update
-            let update = CoreTypes.DashboardUpdate(
-                source: .worker,
-                type: .buildingMetricsChanged,
-                buildingId: buildingId,
-                workerId: currentWorkerId ?? "",
-                data: [
-                    "completionRate": String(metrics.completionRate),
-                    "overdueTasks": String(metrics.overdueTasks)
-                ]
-            )
+        let update = CoreTypes.DashboardUpdate(
+            source: .worker,
+            type: .buildingMetricsChanged,
+            buildingId: buildingId,
+            workerId: currentWorkerId ?? "",
+            data: [
+                "completionRate": String(metrics.completionRate),
+                "overdueTasks": String(metrics.overdueTasks)
+            ],
+            payloadType: "BuildingMetricsPayload",
+            payloadJSON: toJSONString([
+                "completionRate": metrics.completionRate,
+                "overdueTasks": metrics.overdueTasks
+            ])
+        )
             container.dashboardSync.broadcastWorkerUpdate(update)
         } catch {
             print("⚠️ Failed to update building metrics: \(error)")
@@ -2821,7 +2850,13 @@ public class WorkerDashboardViewModel: ObservableObject {
                 "evidence": evidence.description ?? "",
                 "photoCount": String(evidence.photoURLs?.count ?? 0),
                 "requiresPhoto": String(workerCapabilities?.requiresPhotoForSanitation ?? false)
-            ]
+            ],
+            payloadType: "TaskCompletedPayload",
+            payloadJSON: toJSONString([
+                "taskId": task.id,
+                "buildingId": task.buildingId ?? "",
+                "photoCount": evidence.photoURLs?.count ?? 0
+            ])
         )
         container.dashboardSync.broadcastWorkerUpdate(update)
     }
@@ -2838,9 +2873,23 @@ public class WorkerDashboardViewModel: ObservableObject {
                 "startedAt": ISO8601DateFormatter().string(from: Date()),
                 "latitude": String(location?.coordinate.latitude ?? 0),
                 "longitude": String(location?.coordinate.longitude ?? 0)
-            ]
+            ],
+            payloadType: "TaskStartedPayload",
+            payloadJSON: toJSONString([
+                "taskId": task.id,
+                "title": task.title
+            ])
         )
         container.dashboardSync.broadcastWorkerUpdate(update)
+    }
+
+    // MARK: - JSON helper
+    private func toJSONString(_ dict: [String: Any]) -> String? {
+        guard JSONSerialization.isValidJSONObject(dict) else { return nil }
+        do {
+            let data = try JSONSerialization.data(withJSONObject: dict, options: [])
+            return String(data: data, encoding: .utf8)
+        } catch { return nil }
     }
     
     // MARK: - Private Methods - Setup
@@ -3091,12 +3140,16 @@ public class WorkerDashboardViewModel: ObservableObject {
     private func updateWeatherSuggestions(with weather: WeatherSnapshot) {
         if let current = currentBuilding {
             weatherSuggestions = recomputeSuggestions(for: current, snapshot: weather)
+            topWeatherSuggestionV2 = buildV2Suggestion(from: weatherSuggestions.first, building: current, snapshot: weather)
         } else if let next = nextScheduledBuildingSummary() {
             weatherSuggestions = recomputeSuggestions(for: next, snapshot: weather)
+            topWeatherSuggestionV2 = buildV2Suggestion(from: weatherSuggestions.first, building: next, snapshot: weather)
         } else if let first = assignedBuildings.first {
             weatherSuggestions = recomputeSuggestions(for: first, snapshot: weather)
+            topWeatherSuggestionV2 = buildV2Suggestion(from: weatherSuggestions.first, building: first, snapshot: weather)
         } else {
             weatherSuggestions = []
+            topWeatherSuggestionV2 = nil
         }
     }
 
@@ -3107,6 +3160,68 @@ public class WorkerDashboardViewModel: ObservableObject {
         let heroTitles = Set(upcoming.prefix(2).map { $0.title.lowercased() })
         let deduped = raw.filter { s in !heroTitles.contains(s.title.lowercased()) }
         return Array(deduped.prefix(3))
+    }
+
+    private func buildV2Suggestion(from s: WeatherSuggestion?, building: BuildingSummary, snapshot: WeatherSnapshot) -> WeatherSuggestionV2? {
+        guard let s = s else { return nil }
+        // Simple 2-hour window starting now as default
+        let start = Date()
+        let end = Calendar.current.date(byAdding: .hour, value: 2, to: start) ?? start.addingTimeInterval(7200)
+        let window = DateInterval(start: start, end: end)
+
+        // Heuristic tasks based on suggestion kind/title
+        var tasks: [WeatherTaskV2] = []
+        let lower = s.title.lowercased()
+        if lower.contains("dsny") {
+            tasks = [
+                WeatherTaskV2(id: UUID().uuidString, title: "Secure bags", notes: nil, estimatedMinutes: 10, cautions: ["Avoid blocking entrances"], requiresPhoto: true),
+                WeatherTaskV2(id: UUID().uuidString, title: "Check mats inside vestibule", notes: "Reduce slip risk", estimatedMinutes: 5, cautions: [], requiresPhoto: false),
+                WeatherTaskV2(id: UUID().uuidString, title: "Avoid hosing if wet forecast", notes: nil, estimatedMinutes: nil, cautions: ["Use spot clean"], requiresPhoto: false)
+            ]
+        } else if lower.contains("hose") || lower.contains("outdoor") || lower.contains("drains") {
+            tasks = [
+                WeatherTaskV2(id: UUID().uuidString, title: "Hose sidewalks", notes: "Clear debris then squeegee", estimatedMinutes: 20, cautions: ["Do not hose if temp < 35°F"], requiresPhoto: false),
+                WeatherTaskV2(id: UUID().uuidString, title: "Clear drains", notes: "Check scuppers & curb drains", estimatedMinutes: 10, cautions: [], requiresPhoto: false),
+                WeatherTaskV2(id: UUID().uuidString, title: "Check mats", notes: "Deploy rain mats if wet", estimatedMinutes: 5, cautions: [], requiresPhoto: false)
+            ]
+        } else {
+            tasks = [
+                WeatherTaskV2(id: UUID().uuidString, title: "Exterior sweep", notes: "Focus high-traffic areas", estimatedMinutes: 15, cautions: [], requiresPhoto: false),
+                WeatherTaskV2(id: UUID().uuidString, title: "Entrance clean", notes: "Spot clean glass & handles", estimatedMinutes: 10, cautions: [], requiresPhoto: false),
+                WeatherTaskV2(id: UUID().uuidString, title: "Courtyard check", notes: nil, estimatedMinutes: 10, cautions: ["Watch for slippery surfaces"], requiresPhoto: false)
+            ]
+        }
+
+        let icon = iconForSuggestionTitle(lower)
+        let headline = s.subtitle
+        let rationale = snapshot.current.condition
+
+        return WeatherSuggestionV2(
+            id: s.id,
+            buildingId: building.id,
+            buildingName: building.name,
+            icon: icon,
+            headline: headline,
+            rationale: rationale,
+            window: window,
+            tasks: tasks,
+            priority: 2
+        )
+    }
+
+    private func iconForSuggestionTitle(_ lower: String) -> String {
+        if lower.contains("dsny") { return "trash.circle" }
+        if lower.contains("rain") { return "cloud.rain" }
+        if lower.contains("hose") { return "sun.max" }
+        return "lightbulb"
+    }
+
+    public func startWeatherFlow(_ s: WeatherSuggestionV2) {
+        // Log event
+        let props: [String: Any] = ["buildingId": s.buildingId, "workerId": session.user?.id ?? "", "hourOfDay": Calendar.current.component(.hour, from: Date())]
+        AnalyticsManager.shared.track(AnalyticsEvent(name: .weatherCardStart, properties: props))
+        // Navigate to building detail
+        NavigationCoordinator.shared.presentSheet(.buildingDetail(buildingId: s.buildingId))
     }
 
     private func nextScheduledBuildingSummary() -> BuildingSummary? {

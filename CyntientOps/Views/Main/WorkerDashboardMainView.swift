@@ -725,29 +725,29 @@ struct WorkerDashboardMainView: View {
             let now = Date()
             let weekday = Calendar.current.component(.weekday, from: now)
             let cday = CollectionDay.from(weekday: weekday)
-            let dsnyDays: Set<CollectionDay> = [.sunday, .tuesday, .thursday]
-            if dsnyDays.contains(cday),
-               let start = Calendar.current.date(bySettingHour: 20, minute: 0, second: 0, of: now),
+            
+            // Check if it's set-out time (8 PM) for buildings with collection tomorrow
+            if let start = Calendar.current.date(bySettingHour: 20, minute: 0, second: 0, of: now),
                now >= start {
-                let dsnyBuildings = DSNYCoordinator.buildingsForBinSetOut(on: cday)
-                let dsnyCoords = dsnyBuildings.map { b in
-                    NamedCoordinate(id: b.buildingId, name: b.name, address: b.address,
-                                   latitude: b.coordinate.latitude, longitude: b.coordinate.longitude)
+                let buildingsForSetOut = DSNYCollectionSchedule.getBuildingsForBinSetOut(on: cday)
+                let dsnyCoords = buildingsForSetOut.compactMap { schedule -> NamedCoordinate? in
+                    // Try to find the building in allBuildings first for accurate coordinates
+                    if let existingBuilding = viewModel.allBuildings.first(where: { $0.id == schedule.buildingId }) {
+                        return NamedCoordinate(id: existingBuilding.id, name: existingBuilding.name, address: existingBuilding.address,
+                                              latitude: existingBuilding.coordinate.latitude, longitude: existingBuilding.coordinate.longitude)
+                    }
+                    // Fallback to schedule data with canonical building name
+                    let buildingName = CanonicalIDs.Buildings.getName(for: schedule.buildingId) ?? schedule.buildingName
+                    return NamedCoordinate(id: schedule.buildingId, name: buildingName, address: "NYC",
+                                          latitude: 40.74, longitude: -73.99) // Default NYC coordinates
                 }
                 if dsnyCoords.count > coords.count { coords = dsnyCoords }
             }
         }
-        if coords.count > 1 {
-            siteDepartureVM = nil
-            siteDepartureBuildings = coords
-            showingSiteDeparture = true
-        } else if let current = coords.first {
-            siteDepartureVM = SiteDepartureViewModel(workerId: workerId, currentBuilding: current, container: container)
-            siteDepartureBuildings = []
-            showingSiteDeparture = true
-        } else {
-            Task { await viewModel.clockOut() }
-        }
+        // Always use consolidated MultiSiteDepartureSheet for consistency with WorkerDashboardView
+        siteDepartureVM = nil
+        siteDepartureBuildings = coords
+        showingSiteDeparture = true
     }
     
     private func handleTaskTap(_ task: CoreTypes.ContextualTask) {

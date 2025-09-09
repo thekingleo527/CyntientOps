@@ -300,48 +300,8 @@ struct BuildingMapDetailView: View {
     // MARK: - Helper Methods
     
     private func getBuildingImage() -> UIImage? {
-        // Map building IDs to their image assets
-        switch building.id {
-        case "14", "15":
-            return UIImage(named: "Rubin_Museum_142_148_West_17th_Street")
-        case "1":
-            return UIImage(named: "building_12w18")
-        case "2":
-            return UIImage(named: "building_29e20")
-        case "3":
-            return UIImage(named: "building_133e15")
-        case "4":
-            return UIImage(named: "building_104franklin")
-        case "5":
-            return UIImage(named: "building_36walker")
-        case "6":
-            return UIImage(named: "building_68perry")
-        case "7":
-            return UIImage(named: "building_136w17")
-        case "8":
-            return UIImage(named: "building_41elizabeth")
-        case "9":
-            return UIImage(named: "building_117w17")
-        case "10":
-            return UIImage(named: "building_123first")
-        case "11":
-            return UIImage(named: "building_131perry")
-        case "12":
-            return UIImage(named: "building_135w17")
-        case "13":
-            return UIImage(named: "building_138w17")
-        case "16":
-            return UIImage(named: "stuyvesant_park")
-        default:
-            // Try to create a name from the building name
-            let cleanName = building.name
-                .lowercased()
-                .replacingOccurrences(of: " ", with: "_")
-                .replacingOccurrences(of: "(", with: "")
-                .replacingOccurrences(of: ")", with: "")
-                .replacingOccurrences(of: "-", with: "_")
-            return UIImage(named: cleanName)
-        }
+        // Unified resolver handles DB/central mappings + special cases
+        return BuildingAssetResolver.uiImage(for: building)
     }
     
     // MARK: - Data Loading

@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 // Enhanced Building Marker with Image Support
 struct MapBuildingBubble: View {
@@ -24,7 +25,8 @@ struct MapBuildingBubble: View {
                         .blur(radius: 2)
                 }
 
-                if BuildingAssets.assetName(for: building.id) != nil {
+                if let _ = BuildingAssetResolver.assetName(for: building),
+                   let _ = BuildingAssetResolver.uiImage(for: building) {
                     buildingImageBubble
                 } else {
                     iconBubble
@@ -74,8 +76,8 @@ struct MapBuildingBubble: View {
                 .fill(.ultraThinMaterial)
                 .frame(width: 55, height: 55)
 
-            if let assetName = BuildingAssets.assetName(for: building.id) {
-                Image(assetName)
+            if let uiImage = BuildingAssetResolver.uiImage(for: building) {
+                Image(uiImage: uiImage)
                     .resizable()
                     .scaledToFill()
                     .frame(width: 50, height: 50)
@@ -207,4 +209,3 @@ struct MapBuildingBubble: View {
         }
     }
 }
-
