@@ -150,6 +150,32 @@ public class PhotoEvidenceService: ObservableObject {
         
         return processed
     }
+
+    // MARK: - Site Departure Helpers (scoped to date + building + worker)
+
+    /// Count photos attached for a specific day/building/worker
+    public func countFor(date: Date, buildingId: String, workerId: String) async throws -> Int {
+        let day = ISO8601DateFormatter().string(from: Calendar.current.startOfDay(for: date))
+        let rows = try await database.query("""
+            SELECT COUNT(*) as c FROM photos
+            WHERE building_id = ? AND worker_id = ? AND DATE(timestamp) = DATE(?)
+        """, [buildingId, workerId, day])
+        let count = rows.first?["c"] as? Int64 ?? 0
+        return Int(count)
+    }
+
+    /// Attach a single photo scoped to a day/building/worker for departure flow
+    public func attach(image: UIImage, date: Date, buildingId: String, workerId: String) async throws {
+        // Use documentation category by default; notes include y-m-d for traceability
+        let df = DateFormatter(); df.dateFormat = "yyyy-MM-dd"
+        _ = try await captureQuick(
+            image: image,
+            category: .documentation,
+            buildingId: buildingId,
+            workerId: workerId,
+            notes: "SITE_DEPARTURE_\(df.string(from: date))"
+        )
+    }
     
     // MARK: - DSNY Compliance (Critical Time-Sensitive Photos)
     

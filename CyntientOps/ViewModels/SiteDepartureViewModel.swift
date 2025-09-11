@@ -7,6 +7,7 @@
 
 import SwiftUI
 import CoreLocation
+import UIKit
 
 // MARK: - Building Departure Entry Model
 public struct BuildingDepartureEntry: Identifiable {
@@ -31,6 +32,9 @@ public struct BuildingDepartureEntry: Identifiable {
 
 @MainActor
 public class SiteDepartureViewModel: ObservableObject {
+    // New single-site API
+    @Published public var section: DepartureSection?
+    @Published public var errorMessage: String?
     @Published var checklist: DepartureChecklist?
     @Published var checkmarkStates: [String: Bool] = [:]
     @Published var departureNotes = ""
@@ -211,6 +215,82 @@ public class SiteDepartureViewModel: ObservableObject {
             isLoading = false
         }
     }
+
+    // MARK: - Single-site API (surgical)
+    public var allTasksComplete: Bool {
+        guard let s = section else { return false }
+        return s.tasksRequired > 0 && s.tasksCompleted == s.tasksRequired
+    }
+    public var photosComplete: Bool {
+        guard let s = section else { return false }
+        return s.photosAttached >= s.photosRequired
+    }
+    public var checklistCountDone: Int { (allTasksComplete ? 1 : 0) + (photosComplete ? 1 : 0) }
+    public var checklistCountTotal: Int { 2 }
+
+    /// Hydrate from one source of truth
+    public func hydrate() async {
+        await MainActor.run { self.isLoading = true }
+        defer { Task { await MainActor.run { self.isLoading = false } } }
+        do {
+            // Pick building: current clock-in or route fallback
+            let status = await container.clockIn.getClockInStatus(for: workerId)
+            var building = currentBuilding
+            if let status = status, status.isClockedIn, let b = status.building { building = b }
+            else if let b = await routeCurrentOrNext() { building = b }
+
+            let today = Date()
+            let tasks = try await container.tasks.fetchDailyTasks(workerId: workerId, buildingId: building.id, date: today)
+            let tasksRequired = tasks.filter { !$0.isCancelled }.count
+            let tasksCompleted = tasks.filter { $0.status == .completed }.count
+            let photosRequired = max(1, tasks.filter { $0.requiresPhoto ?? false }.count)
+            let photosAttached = try await container.photos.countFor(date: today, buildingId: building.id, workerId: workerId)
+            await MainActor.run {
+                self.section = DepartureSection(buildingId: building.id, buildingName: building.name, tasksRequired: tasksRequired, tasksCompleted: tasksCompleted, photosRequired: photosRequired, photosAttached: photosAttached)
+            }
+            log("picked building=\(building.id) \(building.name)")
+            log("tasks r/c=\(tasksRequired)/\(tasksCompleted) photos r/c=\(photosRequired)/\(photosAttached)")
+        } catch {
+            await MainActor.run { self.errorMessage = error.localizedDescription }
+        }
+    }
+
+    public func markAllTasksComplete() async throws {
+        guard let s = section else { return }
+        await MainActor.run { self.isSaving = true }
+        defer { await MainActor.run { self.isSaving = false } }
+        try await container.tasks.completeAllFor(workerId: workerId, buildingId: s.buildingId, date: Date())
+        await hydrate()
+    }
+
+    public func attachPhoto(_ image: UIImage) async throws {
+        guard let s = section else { return }
+        await MainActor.run { self.isSaving = true }
+        defer { await MainActor.run { self.isSaving = false } }
+        try await container.photos.attach(image: image, date: Date(), buildingId: s.buildingId, workerId: workerId)
+        await hydrate()
+    }
+
+    public func canClockOut() -> Bool { allTasksComplete && photosComplete }
+
+    private func routeCurrentOrNext() async -> CoreTypes.NamedCoordinate? {
+        let weekday = Calendar.current.component(.weekday, from: Date())
+        if let route = RouteManager.shared.getRoute(for: workerId, dayOfWeek: weekday) {
+            let now = Date()
+            if let active = route.sequences.first(where: { now >= $0.arrivalTime && now <= $0.arrivalTime.addingTimeInterval($0.estimatedDuration) }) {
+                return try? await container.buildings.getBuilding(buildingId: active.buildingId)
+            }
+            if let next = route.sequences.sorted(by: { $0.arrivalTime < $1.arrivalTime }).first(where: { $0.arrivalTime > now }) {
+                return try? await container.buildings.getBuilding(buildingId: next.buildingId)
+            }
+            if let first = route.sequences.first {
+                return try? await container.buildings.getBuilding(buildingId: first.buildingId)
+            }
+        }
+        return nil
+    }
+
+    private func log(_ msg: String) { print("🧭 SiteDepartureVM:", msg) }
     
     private func requiresPhotoForBuilding(_ buildingId: String) async -> Bool {
         do {
