@@ -75,6 +75,8 @@ final class EnvironmentConfig {
     /// Check if app is running in demo mode (missing critical credentials)
     /// Production mode if backend + QuickBooks credentials are configured.
     var isDemoMode: Bool {
+        // In production builds, do not enter demo mode automatically
+        if current == .production { return false }
         let backendOK = backendConfiguration.isConfigured
         let qbOK = quickBooksConfiguration.isConfigured
         return !(backendOK && qbOK)

@@ -144,6 +144,7 @@ struct CyntientOpsApp: App {
                                 #endif
                             }
                             .overlay(alignment: .topLeading) {
+                                #if DEBUG
                                 if EnvironmentConfig.shared.isDemoMode {
                                     Text("Running in Sim Mode")
                                         .font(.caption2.weight(.semibold))
@@ -154,6 +155,7 @@ struct CyntientOpsApp: App {
                                         .padding(.top, 8)
                                         .padding(.leading, 8)
                                 }
+                                #endif
                             }
                     } else {
                         // Show loading while container initializes
