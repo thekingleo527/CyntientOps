@@ -102,6 +102,32 @@ struct MultiSiteDepartureSheet: View {
                     }
                 }
 
+                // Validation summary (blocking reasons)
+                if !viewModel.canSubmit {
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "exclamationmark.triangle.fill").foregroundColor(.yellow)
+                            Text("Please resolve the issues below before submitting:").font(.caption).foregroundColor(.secondary)
+                        }
+                        ForEach(viewModel.buildingEntries.filter { !$0.tasksComplete || ($0.requiresPhoto && $0.photos.isEmpty) }) { entry in
+                            HStack(spacing: 6) {
+                                Image(systemName: entry.tasksComplete ? "camera" : "checklist")
+                                    .foregroundColor(.secondary)
+                                Text(entry.name)
+                                    .font(.caption)
+                                Spacer()
+                                if !entry.tasksComplete { Text("Tasks pending").font(.caption2).foregroundColor(.secondary) }
+                                if entry.requiresPhoto && entry.photos.isEmpty { Text("Photo required").font(.caption2).foregroundColor(.secondary) }
+                            }
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 6)
+                            .background(Color(.systemGray6), in: RoundedRectangle(cornerRadius: 8))
+                        }
+                    }
+                    .padding(.horizontal)
+                    .padding(.top, 6)
+                }
+
                 // Submit Button
                 VStack {
                     Button {

@@ -154,7 +154,7 @@ public class SiteDepartureViewModel: ObservableObject {
                 }
             }
             
-            // Convert to BuildingDepartureEntry objects
+            // Convert to BuildingDepartureEntry objects (initial pass; requiresPhoto resolved below)
             let buildingList = Array(buildingsWorked).compactMap { buildingId -> BuildingDepartureEntry? in
                 guard let buildingName = WorkerBuildingAssignments.getBuildingName(for: buildingId) else { return nil }
                 return BuildingDepartureEntry(
@@ -163,7 +163,7 @@ public class SiteDepartureViewModel: ObservableObject {
                     address: nil, // Could be enhanced with actual addresses
                     tasksComplete: false,
                     photos: [],
-                    requiresPhoto: requiresPhotoForBuilding(buildingId),
+                    requiresPhoto: false,
                     note: nil
                 )
             }
@@ -195,7 +195,14 @@ public class SiteDepartureViewModel: ObservableObject {
                 }
             }
 
-            self.buildingEntries = finalList
+            // Resolve per-building photo requirements based on actual tasks
+            var enriched: [BuildingDepartureEntry] = []
+            for var entry in finalList {
+                entry.requiresPhoto = await requiresPhotoForBuilding(entry.id)
+                enriched.append(entry)
+            }
+
+            self.buildingEntries = enriched
             recomputeSubmitState()
             isLoading = false
             
@@ -205,10 +212,19 @@ public class SiteDepartureViewModel: ObservableObject {
         }
     }
     
-    private func requiresPhotoForBuilding(_ buildingId: String) -> Bool {
-        // Check if any tasks for this building require photos
-        // For now, default to true for sanitation/cleaning tasks
-        return true // Simplified logic - could be enhanced with task-specific requirements
+    private func requiresPhotoForBuilding(_ buildingId: String) async -> Bool {
+        do {
+            let tasks = try await container.tasks.getTasksForBuilding(buildingId)
+            // Require photo if any task explicitly requires it, or if sanitation/cleaning exists per worker policy
+            if tasks.contains(where: { ($0.requiresPhoto ?? false) && !$0.isCompleted }) { return true }
+            if tasks.contains(where: { ($0.category == .sanitation || $0.category == .cleaning) && !$0.isCompleted }) {
+                return true
+            }
+            return false
+        } catch {
+            // On failure, err on the side of requiring photo to avoid missing evidence
+            return true
+        }
     }
     
     public func recomputeSubmitState() {
