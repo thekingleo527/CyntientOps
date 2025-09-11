@@ -356,13 +356,25 @@ class AdminDashboardViewModel: ObservableObject {
     
     /// Build NYCPropertyData for a building using NYC APIs and GRDB (production)
     func generatePropertyDataForBuilding(_ building: CoreTypes.NamedCoordinate, coordinate: CLLocationCoordinate2D) async -> CoreTypes.NYCPropertyData? {
-        // Fetch BBL from DB
+        // Fetch BBL from DB or resolve via NYC APIs if missing
         var bbl = ""
         do {
             let rows = try await container.database.query("SELECT bbl FROM buildings WHERE id = ?", [building.id])
             if let row = rows.first, let value = row["bbl"] as? String { bbl = value }
         } catch {}
-        guard !bbl.isEmpty else { return nil }
+        if bbl.isEmpty {
+            let nyc = NYCAPIService.shared
+            let resolved = await nyc.resolveBinBbl(lat: coordinate.latitude, lon: coordinate.longitude)
+            if let resolvedBBL = resolved.bbl ?? nyc.extractBBL(from: building) {
+                bbl = resolvedBBL
+                // Persist for future requests
+                _ = try? await container.database.execute("UPDATE buildings SET bbl = ? WHERE id = ?", [bbl, building.id])
+                print("🧭 Resolved and saved BBL for \(building.name): \(bbl)")
+            } else {
+                print("⚠️ Could not resolve BBL for \(building.name); skipping DOF property fetch")
+                return nil
+            }
+        }
 
         // DOF assessments, tax bills/liens
         let dof = NYCAPIService.shared
@@ -651,6 +663,14 @@ class AdminDashboardViewModel: ObservableObject {
                 let resolved = await nycAPI.resolveBinBbl(lat: building.latitude, lon: building.longitude)
                 let bin = resolved.bin ?? NYCAPIService.shared.extractBIN(from: building)
                 let bbl = resolved.bbl ?? NYCAPIService.shared.extractBBL(from: building)
+
+                // Persist identifiers so other fetchers (DOF, etc.) can use them later
+                if let saveBBL = bbl, !saveBBL.isEmpty {
+                    _ = try? await container.database.execute("UPDATE buildings SET bbl = ? WHERE id = ?", [saveBBL, building.id])
+                }
+                if let saveBIN = bin, !saveBIN.isEmpty {
+                    _ = try? await container.database.execute("UPDATE buildings SET bin = ? WHERE id = ?", [saveBIN, building.id])
+                }
 
                 // Fetch HPD violations (prefer BIN; fallback to address via $q)
                 var hpdViolations = try await nycAPI.fetchHPDViolations(bin: bin)
