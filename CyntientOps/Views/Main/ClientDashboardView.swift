@@ -250,7 +250,7 @@ struct ClientDashboardView: View {
                                                 case .low: return .gray
                                                 case .medium, .normal: return CyntientOpsDesign.DashboardColors.info
                                                 case .high: return CyntientOpsDesign.DashboardColors.warning
-                                                case .urgent: return CyntientOpsDesign.DashboardColors.accent
+                                                case .urgent: return CyntientOpsDesign.DashboardColors.tertiaryAction
                                                 case .critical, .emergency: return CyntientOpsDesign.DashboardColors.critical
                                                 }
                                             }()
