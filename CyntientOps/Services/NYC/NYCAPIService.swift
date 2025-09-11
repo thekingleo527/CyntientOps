@@ -198,7 +198,8 @@ public final class NYCAPIService: ObservableObject {
             let addrCandidates = try await fetchNearbyAddresses(lat: lat, lon: lon, radiusMeters: 100)
             for addr in addrCandidates {
                 if let bbl = try await deriveBBLFromHPD(address: addr) { return (nil, bbl) }
-                if let (bin, bbl) = try await deriveBinOrBBLFromDOB(address: addr) { return (bin, bbl) }
+                let res = try await deriveBinOrBBLFromDOB(address: addr)
+                if res.0 != nil || res.1 != nil { return res }
             }
         } catch {}
 
@@ -222,26 +223,8 @@ public final class NYCAPIService: ObservableObject {
     }
 
     private func deriveBBLFromHPD(address: String) async throws -> String? {
-        do {
-            let records: [HPDViolation] = try await fetchHPDViolations(address: address)
-            guard let first = records.first else { return nil }
-            // HPD includes boro (text), block, lot; build a 10-digit BBL
-            let boroCode: String = {
-                let b = (first.boro ?? "").uppercased()
-                switch b {
-                case "MANHATTAN": return "1"
-                case "BRONX": return "2"
-                case "BROOKLYN": return "3"
-                case "QUEENS": return "4"
-                case "STATEN IS": return "5"
-                default: return ""
-                }
-            }()
-            guard !boroCode.isEmpty, let block = first.block, let lot = first.lot else { return nil }
-            let blockPadded = String(format: "%05d", Int(block) ?? 0)
-            let lotPadded = String(format: "%04d", Int(lot) ?? 0)
-            return "\(boroCode)\(blockPadded)\(lotPadded)"
-        } catch { return nil }
+        // Our HPDViolation model does not expose block/lot/boro; skip deriving BBL from HPD for now
+        return nil
     }
 
     private func deriveBinOrBBLFromDOB(address: String) async throws -> (String?, String?) {

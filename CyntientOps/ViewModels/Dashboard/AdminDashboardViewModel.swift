@@ -365,7 +365,8 @@ class AdminDashboardViewModel: ObservableObject {
         if bbl.isEmpty {
             let nyc = NYCAPIService.shared
             let resolved = await nyc.resolveBinBbl(lat: coordinate.latitude, lon: coordinate.longitude)
-            if let resolvedBBL = resolved.bbl ?? nyc.extractBBL(from: building) {
+            let resolvedBBL = resolved.bbl ?? nyc.extractBBL(from: building)
+            if !resolvedBBL.isEmpty {
                 bbl = resolvedBBL
                 // Persist for future requests
                 _ = try? await container.database.execute("UPDATE buildings SET bbl = ? WHERE id = ?", [bbl, building.id])
@@ -665,11 +666,11 @@ class AdminDashboardViewModel: ObservableObject {
                 let bbl = resolved.bbl ?? NYCAPIService.shared.extractBBL(from: building)
 
                 // Persist identifiers so other fetchers (DOF, etc.) can use them later
-                if let saveBBL = bbl, !saveBBL.isEmpty {
-                    _ = try? await container.database.execute("UPDATE buildings SET bbl = ? WHERE id = ?", [saveBBL, building.id])
+                if !bbl.isEmpty {
+                    _ = try? await container.database.execute("UPDATE buildings SET bbl = ? WHERE id = ?", [bbl, building.id])
                 }
-                if let saveBIN = bin, !saveBIN.isEmpty {
-                    _ = try? await container.database.execute("UPDATE buildings SET bin = ? WHERE id = ?", [saveBIN, building.id])
+                if !bin.isEmpty {
+                    _ = try? await container.database.execute("UPDATE buildings SET bin = ? WHERE id = ?", [bin, building.id])
                 }
 
                 // Fetch HPD violations (prefer BIN; fallback to address via $q)
