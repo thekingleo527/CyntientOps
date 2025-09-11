@@ -532,9 +532,6 @@ class AdminDashboardViewModel: ObservableObject {
             self.tasks = enhancedTasks
             self.ongoingTasks = enhancedTasks.filter { !$0.isCompleted }
             print("  ✅ [DIAGNOSTIC] AdminDashboard: Assigned \(self.buildings.count) buildings and \(self.tasks.count) tasks to ViewModel.")
-            // Hydration gates (admin perspective)
-            HydrationStatusManager.shared.userReady = (self.session.user != nil)
-            HydrationStatusManager.shared.buildingsReady = !buildings.isEmpty
 
             // ... (remaining loading functions) ...
             await self.loadRealWorkerAssignments(operationalManager: operationalManager)
@@ -542,7 +539,6 @@ class AdminDashboardViewModel: ObservableObject {
             await loadPortfolioInsights()
             await loadPortfolioPropertyData()
             await loadRealComplianceData()
-            HydrationStatusManager.shared.dsnyReady = true
 
             if propertyData.isEmpty && !buildings.isEmpty {
                 print("  ➡️ [DIAGNOSTIC] AdminDashboard: Property data is empty, initializing from APIs.")

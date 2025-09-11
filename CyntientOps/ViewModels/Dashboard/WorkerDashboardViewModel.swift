@@ -1868,12 +1868,6 @@ public class WorkerDashboardViewModel: ObservableObject {
         print("  ✅ [HYDRATION] WorkerDashboard: Assigned \(self.todaysTasks.count) tasks (bridge + DSNY where applicable).")
         print("  [HYDRATION_CONFIRMATION] WorkerDashboard: First 3 tasks - [\(self.todaysTasks.prefix(3).map { $0.title }.joined(separator: ", "))]")
 
-        // Hydration gates
-        let hydration = HydrationStatusManager.shared
-        hydration.userReady = (session.user != nil)
-        hydration.buildingsReady = !assignedBuildings.isEmpty || currentBuilding != nil
-        hydration.routesReady = true
-        hydration.dsnyReady = true
 
         computeDerivedStreams()
         await updateHeroTileProperties()
@@ -2041,8 +2035,7 @@ public class WorkerDashboardViewModel: ObservableObject {
 
             print("✅ Loaded weekly schedule with merge: routines + scheduled tasks")
 
-            // Hydration gate
-            HydrationStatusManager.shared.scheduleReady = true
+            // schedule hydrated
 
         } catch {
             print("❌ Failed to load weekly schedule: \(error)")
@@ -2159,7 +2152,6 @@ public class WorkerDashboardViewModel: ObservableObject {
             }
             if let snap = WeatherSnapshot.from(current: fallbackCurrent, hourly: fallbackHourly) {
                 await MainActor.run { self.weather = snap }
-                HydrationStatusManager.shared.weatherReady = true
             }
         }
     }

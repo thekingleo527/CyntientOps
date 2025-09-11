@@ -445,8 +445,6 @@ public final class ClientDashboardViewModel: ObservableObject {
                 self.clientBuildings = buildingCoords
                 self.totalBuildings = buildingCoords.count
                 print("✅ Loaded \(self.totalBuildings) buildings for client via client_buildings")
-                HydrationStatusManager.shared.buildingsReady = !buildingCoords.isEmpty
-                HydrationStatusManager.shared.userReady = (self.session.user != nil)
             }
         } catch {
             print("❌ Error loading client buildings via client service: \(error)")
@@ -585,7 +583,6 @@ public final class ClientDashboardViewModel: ObservableObject {
             await MainActor.run {
                 self.routePortfolioTodayTasks = unique
                 self.routePortfolioWorkerIds = Array(workerIds)
-                HydrationStatusManager.shared.routesReady = true
             }
         } catch {
             print("⚠️ Failed to load route-derived portfolio data: \(error)")
@@ -2155,8 +2152,7 @@ public final class ClientDashboardViewModel: ObservableObject {
             print("⚠️ WARNING: No real compliance data found - may need NYC API integration fixes")
         }
 
-        // Hydration gate: DSNY/NYC data available
-        HydrationStatusManager.shared.dsnyReady = true
+        // NYC/DSNY data loaded
     }
 
     /// Compute portfolio assessed/market values using DOF Property Assessment API
