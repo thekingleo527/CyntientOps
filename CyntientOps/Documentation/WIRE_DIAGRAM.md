@@ -578,6 +578,7 @@ WeatherScoreBuilder
    - WeatherDataAdapter → WeatherScoreBuilder → Task chips
 3. Routine → Schedule → Time
    - OperationalDataManager → WorkerDashboardViewModel → UI cards
+   - RouteOperationalBridge → ClientDashboardViewModel.routePortfolioTodayTasks → ClientDashboardView list
 4. NYC Compliance → Analytics → Dashboard
    - NYCHistoricalDataService → AdminDashboardViewModel → Analytics tab
 5. Clock-In → Sync → Broadcasting
@@ -609,4 +610,3 @@ WeatherScoreBuilder
 Version: Current Production Build
 Last Updated: Sync’d with latest code on main
 Architecture Status: ✅ Production Ready
-

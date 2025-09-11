@@ -206,7 +206,7 @@ public final class ClientBuildingSeeder {
         
         // Note: Building 2 management is handled elsewhere - no isActive column in buildings table
         
-        // Comprehensive building coordinate update for all Franco Management buildings
+        // Comprehensive building coordinate update for all FME (Franco Management Enterprises) buildings
         let buildingData: [(id: String, name: String, address: String, lat: Double, lng: Double)] = [
             ("1", "12 West 18th Street", "12 West 18th Street, New York, NY 10011", 40.7387, -73.9941),
             // Building ID 2 (29-31 East 20th Street) removed - no longer in portfolio

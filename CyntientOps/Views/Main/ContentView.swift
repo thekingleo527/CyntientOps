@@ -107,11 +107,11 @@ struct UndefinedRoleView: View {
             
             VStack(spacing: CyntientOpsDesign.Spacing.md) {
                 Text("Setting up your dashboard...")
-                    .francoTypography(CyntientOpsDesign.Typography.headline)
+                    .opsTypography(CyntientOpsDesign.Typography.headline)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                 
                 Text("We're preparing your personalized experience")
-                    .francoTypography(CyntientOpsDesign.Typography.subheadline)
+                    .opsTypography(CyntientOpsDesign.Typography.subheadline)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
                     .multilineTextAlignment(.center)
             }
@@ -141,7 +141,7 @@ struct UndefinedRoleView: View {
                 }
             }
         }
-        .francoCardPadding()
+        .opsCardPadding()
         .frame(maxWidth: 400)
     }
     

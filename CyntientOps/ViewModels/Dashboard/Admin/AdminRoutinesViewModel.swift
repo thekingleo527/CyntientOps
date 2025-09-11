@@ -94,8 +94,8 @@ final class AdminRoutinesViewModel: ObservableObject {
         // 2) DSNY set‑out look‑ahead after 7pm on set‑out days (Su/Tu/Th)
         let weekday = calendar.component(.weekday, from: now) // 1=Sun
         let hour = calendar.component(.hour, from: now)
-        let todayDay = DSNYCollectionSchedule.CollectionDay.from(weekday: weekday)
-        let dsnySetoutDays: Set<DSNYCollectionSchedule.CollectionDay> = [.sunday, .tuesday, .thursday]
+        let todayDay = CollectionDay.from(weekday: weekday)
+        let dsnySetoutDays: Set<CollectionDay> = [.sunday, .tuesday, .thursday]
         if hour >= 19 && dsnySetoutDays.contains(todayDay) {
             let setoutBuildings = DSNYCollectionSchedule.getBuildingsForBinSetOut(on: todayDay)
             if !setoutBuildings.isEmpty {
@@ -132,7 +132,7 @@ final class AdminRoutinesViewModel: ObservableObject {
                        let op = firstSeq.operations.first {
                         let item = RouteItem(
                             id: "next_day_\(route.id)_\(firstSeq.id)",
-                            buildingName: op.name,
+                            buildingName: firstSeq.buildingName,
                             buildingId: firstSeq.buildingId,
                             time: formatTimeRange(start: firstSeq.arrivalTime, end: firstSeq.arrivalTime.addingTimeInterval(firstSeq.estimatedDuration)),
                             icon: "calendar",

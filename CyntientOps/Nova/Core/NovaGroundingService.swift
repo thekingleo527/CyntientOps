@@ -341,7 +341,22 @@ final class NovaGroundingService {
             let open = issues.filter { $0.status == .open || $0.status == .inProgress }
             if open.isEmpty { return NovaResponse(success: true, message: "No open issues for this building.") }
             let lines = open.prefix(6).map { "• [\($0.severity.rawValue.capitalized)] \($0.title)" }.joined(separator: "\n")
-            return NovaResponse(success: true, message: "Open Issues (\(open.count)):\n\(lines)", metadata: ["buildingId": buildingId])
+            let action = NovaAction(
+                title: "Open Building Issues",
+                description: "View HPD, DOB, DSNY for this building",
+                actionType: .navigate,
+                priority: .medium,
+                parameters: [
+                    "openView": "admin_building_detail",
+                    "buildingId": buildingId
+                ]
+            )
+            return NovaResponse(
+                success: true,
+                message: "Open Issues (\(open.count)):\n\(lines)",
+                actions: [action],
+                metadata: ["buildingId": buildingId]
+            )
         } catch {
             return NovaResponse(success: false, message: "Couldn’t load compliance issues: \(error.localizedDescription)")
         }

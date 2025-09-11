@@ -19,10 +19,7 @@ final class ProductionReadinessTests: XCTestCase {
         try await super.setUp()
         
         // Initialize production readiness checker
-        serviceContainer = ServiceContainer(
-            database: GRDBManager.shared,
-            operationalData: OperationalDataManager(database: GRDBManager.shared)
-        )
+        serviceContainer = try await ServiceContainer()
         
         productionChecker = ProductionReadinessChecker(serviceContainer: serviceContainer)
     }
@@ -353,10 +350,7 @@ final class MockDataEliminationTests: XCTestCase {
     override func setUp() async throws {
         try await super.setUp()
         
-        serviceContainer = ServiceContainer(
-            database: GRDBManager.shared,
-            operationalData: OperationalDataManager(database: GRDBManager.shared)
-        )
+        serviceContainer = try await ServiceContainer()
     }
     
     /// Test 21: Verify no mock data in production

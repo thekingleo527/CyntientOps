@@ -7,7 +7,7 @@
 //  ✅ SECURITY: Full SecurityManager integration for credential storage
 //  ✅ REAL-TIME: ASWebAuthenticationSession for proper OAuth flow
 //  ✅ INTEGRATION: Seamless PayrollExporter compatibility
-//  ✅ COMPANY: Hardcoded for Franco Management Enterprises (FME) only
+//  ✅ COMPANY: Hardcoded for CyntientOps only
 //  ✅ DEPENDS ON: QBConnectionStatus.swift for connection status enum
 //
 
@@ -540,7 +540,7 @@ public enum QuickBooksOAuthError: LocalizedError {
  - ✅ All enum references use full type name to avoid ambiguity
  
  🔧 FME-SPECIFIC SIMPLIFICATIONS:
- - ✅ Hardcoded company ID for Franco Management Enterprises (FME)
+ - ✅ Hardcoded company ID for CyntientOps
  - ✅ Removed dynamic company ID extraction from OAuth callback
  - ✅ All contractors are FME employees, no multi-company support needed
  

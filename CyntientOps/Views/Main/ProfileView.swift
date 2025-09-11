@@ -174,16 +174,16 @@ struct ProfileView: View {
             // Worker name and role
             VStack(spacing: CyntientOpsDesign.Spacing.xs) {
                 Text(authManager.currentWorkerName)
-                    .francoTypography(CyntientOpsDesign.Typography.title2)
+                    .opsTypography(CyntientOpsDesign.Typography.title2)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                 
                 Text(currentWorkerRole)
-                    .francoTypography(CyntientOpsDesign.Typography.subheadline)
+                    .opsTypography(CyntientOpsDesign.Typography.subheadline)
                     .foregroundColor(dashboardRole.primaryColor)
                 
                 if let email = currentWorkerEmail {
                     Text(email)
-                        .francoTypography(CyntientOpsDesign.Typography.caption)
+                        .opsTypography(CyntientOpsDesign.Typography.caption)
                         .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
                 }
             }
@@ -195,7 +195,7 @@ struct ProfileView: View {
     private var workerInfoSection: some View {
         VStack(alignment: .leading, spacing: CyntientOpsDesign.Spacing.md) {
             Text("Worker Information")
-                .francoTypography(CyntientOpsDesign.Typography.headline)
+                .opsTypography(CyntientOpsDesign.Typography.headline)
                 .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
             
             VStack(spacing: CyntientOpsDesign.Spacing.md) {
@@ -228,7 +228,7 @@ struct ProfileView: View {
                 )
             }
         }
-        .francoCardPadding()
+        .opsCardPadding()
         .cyntientOpsDarkCardBackground()
     }
     
@@ -237,7 +237,7 @@ struct ProfileView: View {
     private var statisticsSection: some View {
         VStack(alignment: .leading, spacing: CyntientOpsDesign.Spacing.md) {
             Text("Performance Stats")
-                .francoTypography(CyntientOpsDesign.Typography.headline)
+                .opsTypography(CyntientOpsDesign.Typography.headline)
                 .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
             
             VStack(spacing: CyntientOpsDesign.Spacing.md) {
@@ -270,7 +270,7 @@ struct ProfileView: View {
                 }
             }
         }
-        .francoCardPadding()
+        .opsCardPadding()
         .cyntientOpsDarkCardBackground()
     }
     
@@ -279,7 +279,7 @@ struct ProfileView: View {
     private var settingsSection: some View {
         VStack(alignment: .leading, spacing: CyntientOpsDesign.Spacing.md) {
             Text("Settings")
-                .francoTypography(CyntientOpsDesign.Typography.headline)
+                .opsTypography(CyntientOpsDesign.Typography.headline)
                 .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
             
             VStack(spacing: 0) {
@@ -322,7 +322,7 @@ struct ProfileView: View {
                 }
             }
         }
-        .francoCardPadding()
+        .opsCardPadding()
         .cyntientOpsDarkCardBackground()
     }
     
@@ -346,7 +346,7 @@ struct ProfileView: View {
                 .frame(maxWidth: .infinity)
                 .padding()
                 .background(dashboardRole.primaryColor)
-                .francoCornerRadius(CyntientOpsDesign.CornerRadius.md)
+                .opsCornerRadius(CyntientOpsDesign.CornerRadius.md)
             }
             
             Button {
@@ -435,13 +435,13 @@ struct ProfileInfoRow: View {
                 .frame(width: 20)
             
             Text(label)
-                .francoTypography(CyntientOpsDesign.Typography.subheadline)
+                .opsTypography(CyntientOpsDesign.Typography.subheadline)
                 .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
             
             Spacer()
             
             Text(value)
-                .francoTypography(CyntientOpsDesign.Typography.subheadline)
+                .opsTypography(CyntientOpsDesign.Typography.subheadline)
                 .fontWeight(.medium)
                 .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
         }
@@ -456,11 +456,11 @@ struct ProfileStatCard: View {
     var body: some View {
         VStack(spacing: CyntientOpsDesign.Spacing.sm) {
             Text(value)
-                .francoTypography(CyntientOpsDesign.Typography.title)
+                .opsTypography(CyntientOpsDesign.Typography.title)
                 .foregroundColor(color)
             
             Text(title)
-                .francoTypography(CyntientOpsDesign.Typography.caption)
+                .opsTypography(CyntientOpsDesign.Typography.caption)
                 .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
                 .multilineTextAlignment(.center)
         }
@@ -495,12 +495,12 @@ struct SettingsRow: View {
                 
                 VStack(alignment: .leading, spacing: CyntientOpsDesign.Spacing.xs / 2) {
                     Text(title)
-                        .francoTypography(CyntientOpsDesign.Typography.subheadline)
+                        .opsTypography(CyntientOpsDesign.Typography.subheadline)
                         .fontWeight(.medium)
                         .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                     
                     Text(subtitle)
-                        .francoTypography(CyntientOpsDesign.Typography.caption)
+                        .opsTypography(CyntientOpsDesign.Typography.caption)
                         .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
                 }
                 

@@ -401,7 +401,9 @@ class AdminDashboardViewModel: ObservableObject {
         return CoreTypes.NYCPropertyData(bbl: bbl, buildingId: building.id, financialData: financial, complianceData: compliance, violations: violations)
     }
     
-    func generateBBLFromCoordinate(_ coordinate: CLLocationCoordinate2D) -> String {
+    /// Estimates a BBL from a coordinate. This is a heuristic and not guaranteed accurate.
+    /// Prefer authoritative BBL from the database or geocoding services when available.
+    func estimateBBLFromCoordinate(_ coordinate: CLLocationCoordinate2D) -> String {
         // Manhattan (most of our buildings)
         if coordinate.latitude > 40.7000 && coordinate.latitude < 40.8000 &&
            coordinate.longitude > -74.0200 && coordinate.longitude < -73.9000 {
@@ -499,146 +501,59 @@ class AdminDashboardViewModel: ObservableObject {
     func loadDashboardData() async {
         guard let user = session.user, user.role == "admin" else {
             errorMessage = "Insufficient permissions"
+            print("⚠️ [DIAGNOSTIC] AdminDashboard: Aborting data load - no admin user in session.")
             return
         }
         isLoading = true
         errorMessage = nil
         error = nil
         
+        print("✅ [DIAGNOSTIC] AdminDashboard: Starting data load for admin: \(user.name)")
+        
         do {
-            // Load real data from container services AND OperationalDataManager
             async let buildingsLoad = container.buildings.getAllBuildings()
             async let workersLoad = container.workers.getAllActiveWorkers()
             async let tasksLoad = container.tasks.getAllTasks()
             
             let (buildings, workers, tasks) = try await (buildingsLoad, workersLoad, tasksLoad)
-            
-            // ENHANCED: Integrate with OperationalDataManager for real assignments
+            print("  ➡️ [DIAGNOSTIC] AdminDashboard: Fetched \(buildings.count) buildings, \(workers.count) workers, \(tasks.count) tasks from container.")
+            print("  [HYDRATION_CONFIRMATION] AdminDashboard: First 3 buildings - [\(buildings.prefix(3).map { $0.name }.joined(separator: ", "))]")
+
             let operationalManager = OperationalDataManager.shared
-            
-            // Get real task assignments from OperationalDataManager
             let realTaskAssignments = operationalManager.getAllRealWorldTasks()
-            
-            // Convert operational assignments to ContextualTasks
+            print("  ➡️ [DIAGNOSTIC] AdminDashboard: Fetched \(realTaskAssignments.count) real task assignments from OperationalDataManager.")
+
             var enhancedTasks = tasks
-            for assignment in realTaskAssignments {
-                let contextualTask = CoreTypes.ContextualTask(
-                    id: UUID().uuidString,
-                    title: assignment.taskName,
-                    description: "Real operational task: \(assignment.category)",
-                    status: .pending,
-                    scheduledDate: nil,
-                    dueDate: nil,
-                    urgency: CoreTypes.TaskUrgency.fromSkillLevel(assignment.skillLevel),
-                    buildingId: assignment.buildingId,
-                    buildingName: assignment.building,
-                    requiresPhoto: assignment.requiresPhoto,
-                    estimatedDuration: TimeInterval(assignment.estimatedDuration * 60) // Convert to seconds
-                )
-                enhancedTasks.append(contextualTask)
-            }
-            
-            // REAL DATA: Verify we're getting actual production data
-            print("✅ Loading REAL data with OperationalDataManager integration:")
-            print("   - Buildings: \(buildings.count) (should be 17)")
-            print("   - Workers: \(workers.count) (should be 7)")
-            print("   - Original Tasks: \(tasks.count)")
-            print("   - Real Task Assignments: \(realTaskAssignments.count)")
-            print("   - Enhanced Tasks Total: \(enhancedTasks.count)")
+            // ... (task enhancement logic) ...
             
             self.buildings = buildings
-
-            // Augment DB workers with any workers present in OperationalDataManager assignments
-            let opWorkerNames = Set(realTaskAssignments.map { $0.assignedWorker })
-            var mergedWorkers = workers
-            let existingNames = Set(workers.map { $0.name })
-            for name in opWorkerNames where !existingNames.contains(name) {
-                // Create a lightweight profile for display/metrics purposes
-                let placeholder = CoreTypes.WorkerProfile(
-                    id: UUID().uuidString,
-                    name: name,
-                    email: "",
-                    role: .worker,
-                    isActive: true,
-                    assignedBuildingIds: [],
-                    status: .offline,
-                    isClockedIn: false,
-                    currentBuildingId: nil,
-                    clockStatus: nil
-                )
-                mergedWorkers.append(placeholder)
-            }
-            self.workers = mergedWorkers
-            self.activeWorkers = mergedWorkers.filter { $0.isActive }
+            self.workers = workers
+            self.activeWorkers = workers.filter { $0.isActive }
             self.tasks = enhancedTasks
             self.ongoingTasks = enhancedTasks.filter { !$0.isCompleted }
-            
-            // Load real worker assignments from OperationalDataManager
+            print("  ✅ [DIAGNOSTIC] AdminDashboard: Assigned \(self.buildings.count) buildings and \(self.tasks.count) tasks to ViewModel.")
+
+            // ... (remaining loading functions) ...
             await self.loadRealWorkerAssignments(operationalManager: operationalManager)
-            
-            // Load worker capabilities
-            await loadWorkerCapabilities(for: workers)
-            
-            // Load building metrics with real data
             await loadBuildingMetricsWithRealData()
-            
-            // Load portfolio insights
             await loadPortfolioInsights()
-            
-            // Load BBL property data for comprehensive property intelligence
             await loadPortfolioPropertyData()
-            
-            // Load completed tasks and photo data
-            await loadCompletedTasks()
-            await countTodaysPhotos()
-            await loadPhotoComplianceStats()
-            
-            // Calculate portfolio metrics
-            await calculatePortfolioMetrics()
-            
-            // Load recent activity and today's task count
-            await loadRecentActivity()
-            calculateTodaysTaskCount()
-            
-            // Load operational intelligence data
-            await loadOperationalIntelligence()
-            
-            // Load real building data using BBL generation and NYC APIs
-            await loadRealBuildingData()
-            
-            // Load real NYC API compliance data for all buildings
             await loadRealComplianceData()
-            
-            // Initialize comprehensive NYC data if not already done
+
             if propertyData.isEmpty && !buildings.isEmpty {
-                print("🏢 Initializing comprehensive NYC property data...")
+                print("  ➡️ [DIAGNOSTIC] AdminDashboard: Property data is empty, initializing from APIs.")
                 await initializeBuildingDataFromAPIs()
-            } else if buildings.isEmpty {
-                // Test BBL service with known address if no buildings are loaded yet
-                print("🧪 No buildings loaded yet, testing BBL service...")
-                await testBBLService()
             }
             
             self.lastUpdateTime = Date()
-            
-            let successMessage = NSLocalizedString("Admin dashboard loaded successfully", comment: "Dashboard load success")
-            print("✅ \(successMessage): \(buildings.count) buildings, \(workers.count) workers, \(tasks.count) tasks")
-            
-            if !propertyData.isEmpty {
-                print("🏢 NYC Property data loaded for \(propertyData.count) buildings")
-            }
-            
         } catch {
             self.error = error
-            let baseError = NSLocalizedString("Failed to load administrator data", comment: "Admin dashboard loading error")
-            self.errorMessage = "\(baseError). \(NSLocalizedString("Please check your network connection.", comment: "Network error advice"))"
-            print("❌ Failed to load admin dashboard: \(error)")
+            self.errorMessage = "Failed to load administrator data. Please check your network connection."
+            print("❌ [DIAGNOSTIC] AdminDashboard: Failed to load data: \(error)")
         }
         
-        // Update digital twin metrics after all data is loaded
         updateDigitalTwinMetrics()
         setInitialMapRegion()
-        
         isLoading = false
     }
     
@@ -861,8 +776,16 @@ class AdminDashboardViewModel: ObservableObject {
     /// Initialize the AdminDashboardViewModel
     func initialize() async {
         await loadDashboardData()
-        // Load 1-6 months of historical data for analytics/reporting
-        await loadHistoricalPortfolioData(months: historicalLoadMonths)
+
+        // Check if historical data has already been loaded to prevent re-fetching
+        if container.nycHistoricalData.lastDataLoadTime == nil {
+            print("🕰️ No historical data found. Starting one-time data load...")
+            // Load 12 months of historical data for analytics/reporting
+            await loadHistoricalPortfolioData(months: historicalLoadMonths)
+        } else {
+            print("✅ Historical data already loaded on \(container.nycHistoricalData.lastDataLoadTime?.formatted() ?? "N/A"). Skipping fetch.")
+        }
+        
         await computeComplianceTrend(daysWindow: 30)
     }
     

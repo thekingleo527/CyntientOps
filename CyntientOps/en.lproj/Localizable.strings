@@ -91,3 +91,16 @@
 "building.21.private_elevator_cold_title" = "Private elevator cold check";
 "building.21.private_elevator_cold_reco" = "Check temperature/comfort where elevator opens into unit";
 "building.21.private_elevator_cold_detail" = "Check elevator that opens into unit - resident comfort critical";
+
+// Dashboard
+"dashboard.upcoming_tasks" = "Upcoming Tasks";
+"dashboard.all_caught_up" = "All caught up!";
+"dashboard.no_upcoming_tasks" = "No upcoming tasks right now.";
+"dashboard.recent_activity" = "Recent Activity";
+
+// Weather Card V2
+"weather.card.title" = "Weather Advisory";
+"weather.details" = "Details";
+"weather.hide_details" = "Hide Details";
+"weather.open_building" = "Open Building";
+"weather.start" = "Start";

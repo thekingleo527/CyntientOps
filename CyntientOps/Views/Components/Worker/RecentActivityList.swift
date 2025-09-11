@@ -11,7 +11,7 @@ struct RecentActivityList: View {
             if dashboardSync.summarizedRecentActivity.isEmpty { EmptyView() } else {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
-                        Text("Recent Activity")
+                        Text(LocalizedStringKey("dashboard.recent_activity"))
                             .font(.headline)
                         Spacer()
                     }
@@ -42,4 +42,3 @@ struct RecentActivityList: View {
         }
     }
 }
-

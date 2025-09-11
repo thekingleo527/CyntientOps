@@ -339,8 +339,8 @@ struct UnifiedTaskDetailView: View {
                     .disabled(!canCompleteSimplifiedTask || isCompleting)
                     
                     // Helper text if photo needed
-                    if task.requiresPhoto == true && capturedPhoto == nil {
-                        Label("Take a photo before completing", systemImage: "exclamationmark.circle")
+                    if requiresPhotoEvidenceUI && capturedPhoto == nil {
+                        Label("Photo required for sanitation/cleaning or flagged tasks", systemImage: "exclamationmark.circle")
                             .font(.title3)
                             .foregroundColor(CyntientOpsDesign.DashboardColors.warning)
                             .padding(.top)
@@ -369,7 +369,7 @@ struct UnifiedTaskDetailView: View {
                 }
                 
                 // Photo evidence section
-                if task.requiresPhoto == true {
+                if requiresPhotoEvidenceUI {
                     photoEvidenceCard
                 }
                 
@@ -405,7 +405,7 @@ struct UnifiedTaskDetailView: View {
                 }
                 
                 // Photo evidence
-                if task.requiresPhoto == true {
+                if requiresPhotoEvidenceUI {
                     photoEvidenceCard
                 }
                 
@@ -1070,17 +1070,19 @@ struct UnifiedTaskDetailView: View {
     
     // MARK: - Helper Methods
     
+    private var requiresPhotoEvidenceUI: Bool {
+        if task.requiresPhoto == true { return true }
+        let cat = task.category?.rawValue.lowercased() ?? ""
+        return cat.contains("sanitation") || cat.contains("cleaning")
+    }
+
     private var canCompleteTask: Bool {
-        if task.requiresPhoto == true && capturedPhoto == nil {
-            return false
-        }
+        if requiresPhotoEvidenceUI && capturedPhoto == nil { return false }
         return task.status != .completed
     }
     
     private var canCompleteSimplifiedTask: Bool {
-        if task.requiresPhoto == true && capturedPhoto == nil {
-            return false
-        }
+        if requiresPhotoEvidenceUI && capturedPhoto == nil { return false }
         return task.status != .completed
     }
     

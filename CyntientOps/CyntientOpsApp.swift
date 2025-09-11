@@ -56,16 +56,30 @@ struct CyntientOpsApp: App {
             object: nil,
             queue: .main
         ) { _ in
-            print("⚠️ MEMORY WARNING - Emergency cleanup")
-            URLCache.shared.removeAllCachedResponses()
-            
-            // Send memory warning notification that ViewModels can listen to
+            print("⚠️ MEMORY WARNING - Cleanup invoked")
+            Self.memoryWarningCount += 1
+            let now = Date()
+            defer { Self.lastMemoryWarning = now }
+
+            // Tiered strategy: first warning trims cache, subsequent within 10 minutes fully clears
+            if let last = Self.lastMemoryWarning, now.timeIntervalSince(last) < 600 {
+                URLCache.shared.removeAllCachedResponses()
+            } else {
+                // Trim capacities by half to encourage eviction without nuking cache
+                URLCache.shared.memoryCapacity = max(URLCache.shared.memoryCapacity / 2, 5_242_880)
+                URLCache.shared.diskCapacity = max(URLCache.shared.diskCapacity / 2, 26_214_400)
+            }
+
             NotificationCenter.default.post(name: .emergencyMemoryCleanup, object: nil)
         }
         
         // Log production configuration
         print("🚀 CyntientOps Production Ready")
     }
+    
+    // MARK: - Memory Warning Tracking
+    private static var memoryWarningCount: Int = 0
+    private static var lastMemoryWarning: Date?
     
     // MARK: - App Body
     var body: some Scene {

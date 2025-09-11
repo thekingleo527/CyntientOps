@@ -16,7 +16,7 @@ struct UpcomingTaskListView: View {
         VStack(alignment: .leading, spacing: 12) {
             // Header
             HStack {
-                Text("Upcoming Tasks")
+                Text(LocalizedStringKey("dashboard.upcoming_tasks"))
                     .font(.headline)
                     .fontWeight(.semibold)
                     .foregroundStyle(.primary)
@@ -150,12 +150,12 @@ private struct EmptyTasksView: View {
                 .font(.title2)
                 .foregroundStyle(.green)
             
-            Text("All caught up!")
+            Text(LocalizedStringKey("dashboard.all_caught_up"))
                 .font(.subheadline)
                 .fontWeight(.medium)
                 .foregroundStyle(.primary)
             
-            Text("No upcoming tasks right now.")
+            Text(LocalizedStringKey("dashboard.no_upcoming_tasks"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }

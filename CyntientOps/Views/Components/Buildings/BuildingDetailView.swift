@@ -1973,7 +1973,7 @@ struct BuildingOverviewTab: View {
                 
                 BuildingContactRow(
                     name: "24/7 Emergency",
-                    role: "Franco Response",
+                        role: "FME Response",
                     phone: "(212) 555-0911",
                     email: nil
                 )
@@ -2999,7 +2999,7 @@ struct BuildingEmergencyTab: View {
                 BuildingEmergencyContactRow(
                     contact: BuildingContact(
                         name: "24/7 Emergency Line",
-                        role: "Franco Response Team",
+                        role: "FME Response Team",
                         email: "emergency@cyntientops.com",
                         phone: "(212) 555-0911",
                         isEmergencyContact: true
@@ -3193,7 +3193,7 @@ struct SpaceAccess: Identifiable {
     let accessCode: String?
     let notes: String?
     let requiresKey: Bool
-    let photos: [FrancoBuildingPhoto]
+    let photos: [BuildingPhoto]
 }
 
 struct AccessCode: Identifiable {
@@ -3240,12 +3240,11 @@ class BuildingDetailVM: ObservableObject {
     let buildingAddress: String
     
     // Services
-    private let photoStorageService = FrancoPhotoStorageService.shared
+    private let photoStorageService = PhotoStorageService.shared
     private let locationManager = LocationManager.shared
-    // private let buildingService = // BuildingService injection needed
-    // private let taskService = // TaskService injection needed
+    // Building and task services are accessed via the provided container
     private let inventoryService = InventoryService.shared
-    // private let workerService = // WorkerService injection needed
+    // Worker service is accessed via container
     private let operationalDataManager = OperationalDataManager.shared
     
     // User context
@@ -4558,14 +4557,32 @@ class BuildingDetailVM: ObservableObject {
         }
         
         private func generateRealDSNYSchedule() -> [(day: String, time: String, items: String, isToday: Bool)] {
-            // Prefer real DSNY schedule via DSNYAPIService (rawDSNYSchedule)
+            // Build next 7 days using fallback schedule
+            let cal = Calendar.current
+            let today = Date()
+            var rows: [(String, String, String, Bool)] = []
+            var cursor = today
+            for i in 0..<7 {
+                let day = CollectionDay.from(weekday: cal.component(.weekday, from: cursor))
+                let streams = DSNYCollectionSchedule.getWasteStreams(for: buildingId, on: day)
+                if !streams.isEmpty {
+                    let time = DSNYCollectionSchedule.allSetOutSchedules[buildingId]?.setOutTime.timeString ?? "8:00 PM"
+                    let items = streams.map { $0.rawValue }.joined(separator: ", ")
+                    let label = (i == 0) ? "Today" : DateFormatter.localizedString(from: cursor, dateStyle: .short, timeStyle: .none)
+                    rows.append((label, "\(time) - Set Out", items, i == 0))
+                }
+                cursor = cal.date(byAdding: .day, value: 1, to: cursor) ?? cursor
+            }
+            if !rows.isEmpty { return rows }
+
+            // Secondary: DSNY API via viewModel.rawDSNYSchedule if present
             if !viewModel.rawDSNYSchedule.isEmpty {
                 return viewModel.rawDSNYSchedule.map { route in
                     (day: route.dayOfWeek, time: route.time, items: route.serviceType, isToday: route.isToday)
                 }
             }
 
-            // Use real DSNY tasks from OperationalDataManager if available
+            // Tertiary: routines from ops if any
             let dsnyRoutines = viewModel.dailyRoutines.filter { $0.title.contains("DSNY") }
             if !dsnyRoutines.isEmpty {
                 return dsnyRoutines.map { routine in
@@ -4584,54 +4601,23 @@ class BuildingDetailVM: ObservableObject {
         }
         
         private func generateMonthlyDSNYSchedule() -> [(day: String, time: String, items: String, isToday: Bool)] {
-            // Prefer canonical DSNYCollectionSchedule for accurate per-building schedule
+            // Build simple week view using fallback
             let now = Date()
-            let calendar = Calendar.current
-            var rows: [(day: String, time: String, items: String, isToday: Bool)] = []
-
-            if let sched = DSNYCollectionSchedule.buildingCollectionSchedules[buildingId] {
-                // Build entries for each collection day using configured windows
-                for day in CollectionDay.allCases {
-                    let isCollection = sched.collectionDays.contains(day)
-                    if isCollection {
-                        // Collection early morning entry
-                        let dayDate = nextDate(for: day, from: now, calendar: calendar)
-                        let timeStr = String(format: "%02d:%02d %@ - Collection",
-                                             sched.binRetrievalTime.hour, sched.binRetrievalTime.minute, "AM")
-                        rows.append((day: day.rawValue, time: timeStr, items: "Regular Pickup", isToday: calendar.isDateInToday(dayDate)))
-
-                        // Set-out previous evening
-                        let prev = day.previousDay()
-                        let prevDate = nextDate(for: prev, from: now, calendar: calendar)
-                        let setOutStr = String(format: "%02d:%02d %@ - Set Out",
-                                               sched.binSetOutTime.hour, sched.binSetOutTime.minute, "PM")
-                        rows.append((day: prev.rawValue, time: setOutStr, items: "Trash, Recycling", isToday: calendar.isDateInToday(prevDate)))
-                    }
+            let cal2 = Calendar.current
+            var rows2: [(String, String, String, Bool)] = []
+            var cursor2 = now
+            for i in 0..<7 {
+                let day = CollectionDay.from(weekday: cal2.component(.weekday, from: cursor2))
+                let streams = DSNYCollectionSchedule.getWasteStreams(for: buildingId, on: day)
+                if !streams.isEmpty {
+                    let time = DSNYCollectionSchedule.allSetOutSchedules[buildingId]?.setOutTime.timeString ?? "8:00 PM"
+                    let items = streams.map { $0.rawValue }.joined(separator: ", ")
+                    let label = DateFormatter.localizedString(from: cursor2, dateStyle: .short, timeStyle: .none)
+                    rows2.append((label, "\(time) - Set Out", items, i == 0))
                 }
-                return rows
+                cursor2 = cal2.date(byAdding: .day, value: 1, to: cursor2) ?? cursor2
             }
-
-            // Fallback generic M/W/F pattern if no catalog
-            let startOfMonth = calendar.dateInterval(of: .month, for: now)?.start ?? now
-            let daysInMonth = calendar.range(of: .day, in: .month, for: now)?.count ?? 30
-            for day in 1...daysInMonth {
-                guard let date = calendar.date(byAdding: .day, value: day - 1, to: startOfMonth) else { continue }
-                let dayOfWeek = calendar.component(.weekday, from: date)
-                let dayName = calendar.weekdaySymbols[dayOfWeek - 1]
-                let dayNumber = calendar.component(.day, from: date)
-                let isToday = calendar.isDate(date, inSameDayAs: now)
-                if dayOfWeek == 2 || dayOfWeek == 4 || dayOfWeek == 6 {
-                    rows.append((day: "\(dayName) \(dayNumber)", time: "6:00 AM - Collection", items: "Regular Pickup", isToday: isToday))
-                    if let previousDay = calendar.date(byAdding: .day, value: -1, to: date) {
-                        let prevDayOfWeek = calendar.component(.weekday, from: previousDay)
-                        let prevDayName = calendar.weekdaySymbols[prevDayOfWeek - 1]
-                        let prevDayNumber = calendar.component(.day, from: previousDay)
-                        let isPrevToday = calendar.isDate(previousDay, inSameDayAs: now)
-                        rows.append((day: "\(prevDayName) \(prevDayNumber)", time: "8:00 PM - Set Out", items: "Trash, Recycling", isToday: isPrevToday))
-                    }
-                }
-            }
-            return rows.sorted { $0.day < $1.day }
+            return rows2
         }
 
         private func nextDate(for collectionDay: CollectionDay, from ref: Date, calendar: Calendar) -> Date {

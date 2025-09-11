@@ -4,7 +4,7 @@ import XCTest
 @MainActor
 final class WorkersWeeklyScheduleCoverageTests: XCTestCase {
     func testWeeklySchedulesExistForCoreWorkers() async throws {
-        let op = OperationalDataManager(database: GRDBManager.shared)
+        let op = OperationalDataManager.shared
         let status = await op.getInitializationStatus()
         if !status.routinesSeeded {
             try await op.initializeOperationalData()
@@ -22,4 +22,3 @@ final class WorkersWeeklyScheduleCoverageTests: XCTestCase {
         }
     }
 }
-

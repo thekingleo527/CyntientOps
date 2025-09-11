@@ -124,27 +124,37 @@ INSERT OR REPLACE INTO clients (id, name, short_name, contact_email, contact_pho
 ('CIT', 'Citadel Realty', 'CIT', 'property@citadelrealty.com', '+1 (212) 555-0204', '104 Franklin Street, New York, NY 10013', 1, datetime('now'), datetime('now')),
 ('COR', 'Corbel Property', 'COR', 'admin@corbelproperty.com', '+1 (212) 555-0205', '133 East 15th Street, New York, NY 10003', 1, datetime('now'), datetime('now'));
 
--- Insert client-building relationships  
+-- Insert client-building relationships
 INSERT OR REPLACE INTO client_buildings (client_id, building_id, is_primary, created_at) VALUES
-('JMR', '3', 1, datetime('now')),  -- JM Realty primary building
-('JMR', '5', 0, datetime('now')),
-('JMR', '6', 0, datetime('now')),
-('JMR', '7', 0, datetime('now')),
-('JMR', '9', 0, datetime('now')),
-('JMR', '10', 0, datetime('now')),
-('JMR', '11', 0, datetime('now')),
-('JMR', '14', 0, datetime('now')),
-('JMR', '21', 0, datetime('now')),
-('WFR', '13', 1, datetime('now')),
-('SOL', '16', 1, datetime('now')),
-('GEL', '8', 1, datetime('now')),
-('CIT', '4', 1, datetime('now')),
-('CIT', '18', 0, datetime('now')),
-('COR', '15', 1, datetime('now'));
+-- JM Realty (David & Jerry Edelman)
+('JMR', '6', 1, datetime('now')),  -- 68 Perry St
+('JMR', '10', 0, datetime('now')), -- 131 Perry St
+('JMR', '17', 0, datetime('now')), -- 178 Spring St
+('JMR', '21', 0, datetime('now')), -- 148 Chambers St
+('JMR', '14', 0, datetime('now')), -- Rubin Museum (142–148 W 17th)
+('JMR', '5', 0, datetime('now')),  -- 138 W 17th St
+('JMR', '3', 0, datetime('now')),  -- 135-139 W 17th St
+('JMR', '7', 0, datetime('now')),  -- 112 W 18th St
+('JMR', '9', 0, datetime('now')),  -- 117 W 17th St
+('JMR', '1', 0, datetime('now')),  -- 12 W 18th St
+
+-- Weber Farhat Realty (Moises Farhat)
+('WFR', '13', 1, datetime('now')), -- 136 West 17th Street
+
+-- Solar One (Candace)
+('SOL', '16', 1, datetime('now')), -- Stuyvesant Cove Park
+
+-- Citadel Realty (Stephen Shapiro)
+('CIT', '4', 1, datetime('now')),  -- 104 Franklin Street
+('CIT', '18', 0, datetime('now')), -- 36 Walker Street
+
+-- Corbel Property (Paul Lamban)
+('COR', '15', 1, datetime('now')); -- 133 East 15th Street
 
 -- Insert client user associations (THIS IS THE KEY FIX)
 INSERT OR REPLACE INTO client_users (user_id, client_id, role, can_view_financials, can_edit_settings, created_at) VALUES
-('101', 'JMR', 'client', 1, 1, datetime('now'));  -- David Edelman -> JM Realty
+('101', 'JMR', 'client', 1, 1, datetime('now')),  -- David Edelman -> JM Realty
+('102', 'JMR', 'client', 1, 1, datetime('now'));  -- Jerry Edelman -> JM Realty
 
 -- Create additional necessary tables
 CREATE TABLE IF NOT EXISTS routine_tasks (

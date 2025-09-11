@@ -175,23 +175,21 @@ struct DeveloperLoginBoard: View {
     // Known display name corrections mapped by email
     private let nameOverrides: [String: String] = [
         "David@jmrealty.org": "David Edelman",
-        "jm@jmrealty.com": "JM Realty Admin",
+        "jedelman@jmrealty.org": "Jerry Edelman",
         "mfarhat@farhatrealtymanagement.com": "Moises Farhat",
         "candace@solar1.org": "Candace",
         "sshapiro@citadelre.com": "Stephen Shapiro",
-        "paul@corbelpm.com": "Paul Lamban",
-        "maria@solarone.org": "Maria Rodriguez"
+        "paul@corbelpm.com": "Paul Lamban"
     ]
 
     // Whitelist of real client emails (DEV only)
     private let allowedClientEmails: Set<String> = [
         "David@jmrealty.org",
-        "jm@jmrealty.com",
+        "jedelman@jmrealty.org",
         "mfarhat@farhatrealtymanagement.com",
         "candace@solar1.org",
         "sshapiro@citadelre.com",
-        "paul@corbelpm.com",
-        "maria@solarone.org"
+        "paul@corbelpm.com"
     ]
 
     // Persist corrections back to DB so other screens use the fixed names

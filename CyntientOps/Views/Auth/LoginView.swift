@@ -336,7 +336,7 @@ struct LoginView: View {
                     
                     
                     // Footer
-                    Text("© 2025 Franco Management Enterprises")
+                    Text("© 2025 CyntientOps")
                         .font(.caption)
                         .foregroundColor(.white.opacity(0.5))
                         .padding(.top, 20)

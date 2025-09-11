@@ -55,7 +55,7 @@ public struct AdminReportsView: View {
                             if !taxBills.isEmpty || !taxLiens.isEmpty {
                                 VStack(alignment: .leading, spacing: 8) {
                                     Text("Portfolio Tax History")
-                                        .francoTypography(CyntientOpsDesign.Typography.headline)
+                                        .opsTypography(CyntientOpsDesign.Typography.headline)
                                         .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                                     if !taxBills.isEmpty {
                                         ForEach(taxBills.prefix(5), id: \.bill.id) { item in
@@ -68,7 +68,7 @@ public struct AdminReportsView: View {
                                         }
                                     }
                                 }
-                                .francoCardPadding()
+                                .opsCardPadding()
                                 .cyntientOpsDarkCardBackground()
                             }
                             VStack(spacing: 12) {
@@ -112,14 +112,14 @@ public struct AdminReportsView: View {
     private var headerBar: some View {
         HStack {
             Text("Reports & Analytics")
-                .francoTypography(CyntientOpsDesign.Typography.dashboardTitle)
+                .opsTypography(CyntientOpsDesign.Typography.dashboardTitle)
                 .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
 
             Spacer()
 
             Button(action: generatePortfolioReport) {
                 Label("Generate", systemImage: "doc.badge.plus")
-                    .francoTypography(CyntientOpsDesign.Typography.caption)
+                    .opsTypography(CyntientOpsDesign.Typography.caption)
             }
             .buttonStyle(ReportActionButtonStyle(color: CyntientOpsDesign.DashboardColors.primaryAction))
 
@@ -134,13 +134,13 @@ public struct AdminReportsView: View {
         VStack(spacing: 12) {
             Image(systemName: icon).foregroundColor(color)
             Text(title)
-                .francoTypography(CyntientOpsDesign.Typography.subheadline)
+                .opsTypography(CyntientOpsDesign.Typography.subheadline)
                 .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
                 .multilineTextAlignment(.center)
             Button(actionTitle, action: action)
-                .francoTypography(CyntientOpsDesign.Typography.caption)
+                .opsTypography(CyntientOpsDesign.Typography.caption)
         }
-        .francoCardPadding()
+        .opsCardPadding()
         .cyntientOpsDarkCardBackground()
     }
 
@@ -152,11 +152,11 @@ public struct AdminReportsView: View {
                 .frame(width: 28)
             VStack(alignment: .leading, spacing: 4) {
                 Text(report.title)
-                    .francoTypography(CyntientOpsDesign.Typography.subheadline)
+                    .opsTypography(CyntientOpsDesign.Typography.subheadline)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                     .lineLimit(1)
                 Text(report.generatedDate.formatted(date: .abbreviated, time: .shortened))
-                    .francoTypography(CyntientOpsDesign.Typography.caption)
+                    .opsTypography(CyntientOpsDesign.Typography.caption)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
             }
             Spacer()
@@ -170,7 +170,7 @@ public struct AdminReportsView: View {
                     .foregroundColor(CyntientOpsDesign.DashboardColors.primaryAction)
             }
         }
-        .francoCardPadding()
+        .opsCardPadding()
         .cyntientOpsDarkCardBackground()
     }
 
@@ -225,10 +225,10 @@ public struct AdminReportsView: View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
                 Text("Tax Bill • \(building)")
-                    .francoTypography(CyntientOpsDesign.Typography.subheadline)
+                    .opsTypography(CyntientOpsDesign.Typography.subheadline)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                 Text("Year: \(bill.year)  Paid: $\(Int(bill.propertyTaxPaid ?? 0))  Outstanding: $\(Int(bill.outstandingAmount ?? 0))")
-                    .francoTypography(CyntientOpsDesign.Typography.caption)
+                    .opsTypography(CyntientOpsDesign.Typography.caption)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
             }
             Spacer()
@@ -239,10 +239,10 @@ public struct AdminReportsView: View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
                 Text("Tax Lien • \(building)")
-                    .francoTypography(CyntientOpsDesign.Typography.subheadline)
+                    .opsTypography(CyntientOpsDesign.Typography.subheadline)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                 Text("Year: \(lien.year)  Amount: $\(Int(lien.lienAmount ?? 0))  Purchaser: \(lien.purchaser ?? "-")")
-                    .francoTypography(CyntientOpsDesign.Typography.caption)
+                    .opsTypography(CyntientOpsDesign.Typography.caption)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
             }
             Spacer()

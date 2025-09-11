@@ -361,10 +361,10 @@ struct EmergencyContactsCard: View {
             
             // Contacts list
             VStack(spacing: 8) {
-                // Franco 24/7 Hotline (always first)
+                // FME 24/7 Hotline (always first)
                 EmergencyContactRow(
                     contact: EmergencyContact(
-                        name: "Franco 24/7 Hotline",
+                        name: "FME 24/7 Hotline",
                         phoneNumber: "(212) 555-0911",
                         type: .buildingSecurity,
                         buildingId: buildingId,

@@ -7,7 +7,8 @@
 
 import SwiftUI
 
-struct CyntientOpsLogo: View {
+// Renamed to avoid conflict with the header's logo component
+struct CyntientOpsBrandLogo: View {
     let size: CGFloat
     let style: LogoStyle
     
@@ -132,4 +133,3 @@ struct CyntientOpsLogo: View {
         }
     }
 }
-

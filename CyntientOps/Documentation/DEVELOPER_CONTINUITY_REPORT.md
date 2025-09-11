@@ -3,6 +3,23 @@
 ## 🎯 Purpose
 This document provides a comprehensive guide for collaborative Codex instances on how to structure coding changes to ensure extensive implementations actually take hold, are properly wired and connected, and display correctly in the CyntientOps application.
 
+## ✅ Recent Changes Summary (Current State)
+
+- Worker dashboard
+  - `loadTodaysTasks()` hydrates tasks via `RouteOperationalBridge` and appends DSNY set‑out (evening, corridor‑aware) and morning retrieval tasks (next morning after set‑out) with correct worker assignment.
+  - Morning retrievals include Saturday: 68 Perry → Shawn; 123 1st Ave, 178 Spring, 148 Chambers → Edwin.
+  - Added subtle morning retrieval staggering for visual order (inverse of evening corridor staggering); no logic changes to assignment.
+- Building detail
+  - DSNY schedule card rows are generated via `DSNYCollectionSchedule` (no direct `DSNYScheduleProvider` reference in VMs).
+  - `loadContextualTasks` adds DSNY set‑out contextual tasks when scheduled for today via `DSNYCollectionSchedule` fallback.
+- Client dashboard
+  - ViewModel exposes `routePortfolioTodayTasks` and `routePortfolioWorkerIds` (route‑derived, portfolio‑scoped).
+  - UI now lists `routePortfolioTodayTasks` directly in `ClientDashboardView`.
+  - Metrics prioritize route‑derived tasks/workers; “Recent Activity” widgets removed to declutter.
+- Dependencies
+  - ViewModels no longer reference `HydrationFacade` or `DSNYScheduleProvider` directly; both implementations remain available for future use.
+
+
 ## 🚨 Critical Learning: Why Features Don't Display
 
 ### The Primary Problem Pattern

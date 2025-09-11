@@ -230,7 +230,7 @@ struct OverviewTabView: View {
                 // Portfolio Performance Hero
                 ClientDashboardPortfolioHeroCard(
                     portfolioHealth: contextEngine.portfolioHealth,
-                    realtimeMetrics: contextEngine.realtimeMetrics,
+                    realtimeMetrics: CoreTypes.RealtimeMetrics(),
                     monthlyMetrics: contextEngine.monthlyMetrics,
                     onDrillDown: {
                         // TODO: Implement drill down functionality

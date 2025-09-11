@@ -125,7 +125,7 @@ struct TaskTimelineView: View {
                 Button("Today") {
                     selectedDate = Date()
                 }
-                .buttonStyle(FrancoGlassButtonStyle())
+                .buttonStyle(OpsGlassButtonStyle())
             }
             .padding(.horizontal)
             
@@ -153,11 +153,11 @@ struct TaskTimelineView: View {
     private func taskSummaryItem(_ title: String, count: Int, color: Color) -> some View {
         VStack(spacing: 4) {
             Text("\(count)")
-                .francoTypography(CyntientOpsDesign.Typography.title2)
+                .opsTypography(CyntientOpsDesign.Typography.title2)
                 .fontWeight(.bold)
                 .foregroundColor(color)
             Text(title)
-                .francoTypography(CyntientOpsDesign.Typography.caption)
+                .opsTypography(CyntientOpsDesign.Typography.caption)
                 .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
         }
         .frame(maxWidth: .infinity)
@@ -169,7 +169,7 @@ struct TaskTimelineView: View {
                 .scaleEffect(1.2)
                 .progressViewStyle(CircularProgressViewStyle(tint: CyntientOpsDesign.DashboardColors.primaryAction))
             Text("Loading timeline...")
-                .francoTypography(CyntientOpsDesign.Typography.body)
+                .opsTypography(CyntientOpsDesign.Typography.body)
                 .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -205,7 +205,7 @@ struct TaskTimelineView: View {
     
     private func timeGroupHeader(_ timeGroup: String) -> some View {
         Text(timeGroup)
-            .francoTypography(CyntientOpsDesign.Typography.headline)
+            .opsTypography(CyntientOpsDesign.Typography.headline)
             .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal)
@@ -224,12 +224,12 @@ struct TaskTimelineView: View {
                 .foregroundColor(CyntientOpsDesign.DashboardColors.inactive)
             
             Text(viewModel.hasActiveTasks ? "No tasks match filters" : "No tasks scheduled")
-                .francoTypography(CyntientOpsDesign.Typography.title2)
+                .opsTypography(CyntientOpsDesign.Typography.title2)
                 .fontWeight(.medium)
                 .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
             
             Text(emptyStateMessage)
-                .francoTypography(CyntientOpsDesign.Typography.body)
+                .opsTypography(CyntientOpsDesign.Typography.body)
                 .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
                 .multilineTextAlignment(.center)
             
@@ -237,7 +237,7 @@ struct TaskTimelineView: View {
                 Button("Clear Filters") {
                     viewModel.clearFilters()
                 }
-                .buttonStyle(FrancoGlassButtonStyle(style: .prominent))
+                .buttonStyle(OpsGlassButtonStyle(style: .prominent))
             }
         }
     }
@@ -352,13 +352,13 @@ struct TaskTimelineCard: View {
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(task.title)
-                            .francoTypography(CyntientOpsDesign.Typography.headline)
+                            .opsTypography(CyntientOpsDesign.Typography.headline)
                             .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                             .multilineTextAlignment(.leading)
                         
                         if let building = task.building {
                             Label(building.name, systemImage: "building.2")
-                                .francoTypography(CyntientOpsDesign.Typography.caption)
+                                .opsTypography(CyntientOpsDesign.Typography.caption)
                                 .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
                         }
                     }
@@ -371,7 +371,7 @@ struct TaskTimelineCard: View {
                 // Description
                 if let description = task.description, !description.isEmpty {
                     Text(description)
-                        .francoTypography(CyntientOpsDesign.Typography.body)
+                        .opsTypography(CyntientOpsDesign.Typography.body)
                         .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
                         .lineLimit(2)
                 }
@@ -385,7 +385,7 @@ struct TaskTimelineCard: View {
                     
                     if isFailedSync {
                         Text("Failed")
-                            .francoTypography(CyntientOpsDesign.Typography.caption2)
+                            .opsTypography(CyntientOpsDesign.Typography.caption2)
                             .fontWeight(.medium)
                             .foregroundColor(.white)
                             .padding(.horizontal, 6)
@@ -394,7 +394,7 @@ struct TaskTimelineCard: View {
                             .cornerRadius(CyntientOpsDesign.CornerRadius.sm)
                     } else if isPendingSync {
                         Text("Pending")
-                            .francoTypography(CyntientOpsDesign.Typography.caption2)
+                            .opsTypography(CyntientOpsDesign.Typography.caption2)
                             .fontWeight(.medium)
                             .foregroundColor(.white)
                             .padding(.horizontal, 6)
@@ -408,7 +408,7 @@ struct TaskTimelineCard: View {
                     }
                 }
             }
-            .francoCardPadding()
+            .opsCardPadding()
             .background(cardBackground)
             .scaleEffect(isPressed ? 0.98 : 1.0)
         }
@@ -454,7 +454,7 @@ struct TaskTimelineCard: View {
     
     private var statusBadge: some View {
         Text(statusText)
-            .francoTypography(CyntientOpsDesign.Typography.caption)
+            .opsTypography(CyntientOpsDesign.Typography.caption)
             .fontWeight(.medium)
             .foregroundColor(.white)
             .padding(.horizontal, 8)
@@ -492,7 +492,7 @@ struct TaskTimelineCard: View {
         Group {
             if let category = task.category {
                 Label(category.rawValue.capitalized, systemImage: category.icon)
-                    .francoTypography(CyntientOpsDesign.Typography.caption2)
+                    .opsTypography(CyntientOpsDesign.Typography.caption2)
                     .fontWeight(.medium)
                     .foregroundColor(CyntientOpsDesign.EnumColors.taskUrgency(task.urgency ?? .normal))
                     .padding(.horizontal, 8)
@@ -509,7 +509,7 @@ struct TaskTimelineCard: View {
         Group {
             if let urgency = task.urgency {
                 Text(urgency.rawValue.capitalized)
-                    .francoTypography(CyntientOpsDesign.Typography.caption2)
+                    .opsTypography(CyntientOpsDesign.Typography.caption2)
                     .fontWeight(.medium)
                     .foregroundColor(.white)
                     .padding(.horizontal, 8)
@@ -522,7 +522,7 @@ struct TaskTimelineCard: View {
     
     private func timeDisplay(for date: Date) -> some View {
         Label(timeFormatter.string(from: date), systemImage: "clock")
-            .francoTypography(CyntientOpsDesign.Typography.caption)
+            .opsTypography(CyntientOpsDesign.Typography.caption)
             .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
     }
     
@@ -642,7 +642,7 @@ struct NovaTaskInsightsView: View {
                                 .scaleEffect(1.2)
                                 .progressViewStyle(CircularProgressViewStyle(tint: CyntientOpsDesign.DashboardColors.primaryAction))
                             Text("Analyzing tasks...")
-                                .francoTypography(CyntientOpsDesign.Typography.body)
+                                .opsTypography(CyntientOpsDesign.Typography.body)
                                 .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
                         }
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -733,13 +733,13 @@ struct NovaInsightRow: View {
                     .foregroundColor(CyntientOpsDesign.EnumColors.insightCategory(insight.type))
                 
                 Text(insight.title)
-                    .francoTypography(CyntientOpsDesign.Typography.headline)
+                    .opsTypography(CyntientOpsDesign.Typography.headline)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                 
                 Spacer()
                 
                 Text(insight.priority.rawValue.capitalized)
-                    .francoTypography(CyntientOpsDesign.Typography.caption)
+                    .opsTypography(CyntientOpsDesign.Typography.caption)
                     .fontWeight(.medium)
                     .foregroundColor(.white)
                     .padding(.horizontal, 8)
@@ -749,12 +749,12 @@ struct NovaInsightRow: View {
             }
             
             Text(insight.description)
-                .francoTypography(CyntientOpsDesign.Typography.body)
+                .opsTypography(CyntientOpsDesign.Typography.body)
                 .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
             
             if insight.actionRequired {
                 Label("Action Required", systemImage: "exclamationmark.circle.fill")
-                    .francoTypography(CyntientOpsDesign.Typography.caption)
+                    .opsTypography(CyntientOpsDesign.Typography.caption)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.warning)
             }
         }
@@ -778,9 +778,9 @@ struct NovaInsightRow: View {
     }
 }
 
-// MARK: - Franco Glass Button Style
+// MARK: - Ops Glass Button Style
 
-struct FrancoGlassButtonStyle: ButtonStyle {
+struct OpsGlassButtonStyle: ButtonStyle {
     enum Style {
         case normal
         case prominent
@@ -794,7 +794,7 @@ struct FrancoGlassButtonStyle: ButtonStyle {
     
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .francoTypography(CyntientOpsDesign.Typography.caption)
+            .opsTypography(CyntientOpsDesign.Typography.caption)
             .fontWeight(.medium)
             .foregroundColor(foregroundColor)
             .padding(.horizontal, 12)

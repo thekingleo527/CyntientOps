@@ -38,7 +38,7 @@ struct WeatherRibbonView: View {
                 
                 Spacer()
                 
-                Button(expanded ? "Hide" : "Hourly") {
+                Button(expanded ? LocalizedStringKey("weather.hide_details") : LocalizedStringKey("weather.view_hourly")) {
                     withAnimation(.easeInOut(duration: 0.3)) {
                         expanded.toggle()
                     }

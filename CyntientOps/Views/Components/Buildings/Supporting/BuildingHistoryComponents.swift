@@ -86,8 +86,8 @@ struct MaintenanceHistoryCard: View {
                 MaintenanceRecordRow(record: record)
             }
         }
-        .francoCardPadding()
-        .francoGlassBackground()
+        .opsCardPadding()
+        .opsGlassBackground()
     }
 }
 

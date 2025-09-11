@@ -212,6 +212,147 @@ public struct DSNYCollectionSchedule {
         return schedules
     }()
 
+    // MARK: - General Set-Out Schedules (bags or bins)
+
+    /// Defines set-out days and waste streams for each building, including bag-managed buildings
+    public static let allSetOutSchedules: [String: GeneralSetOutSchedule] = {
+        let t2000 = DSNYTime(hour: 20, minute: 0)
+        let r0900 = DSNYTime(hour: 9, minute: 0)
+        let r0830 = DSNYTime(hour: 8, minute: 30)
+        let r1000 = DSNYTime(hour: 10, minute: 0)
+
+        func dayMap(_ pairs: [(CollectionDay, [WasteType])]) -> [CollectionDay: [WasteType]] {
+            var m: [CollectionDay: [WasteType]] = [:]
+            for (d, w) in pairs { m[d] = w }
+            return m
+        }
+
+        var schedules: [String: GeneralSetOutSchedule] = [:]
+
+        // 12 W 18th — Mon/Wed/Fri (garbage)
+        schedules[CanonicalIDs.Buildings.westEighteenth12] = GeneralSetOutSchedule(
+            buildingId: CanonicalIDs.Buildings.westEighteenth12,
+            buildingName: CanonicalIDs.Buildings.getName(for: CanonicalIDs.Buildings.westEighteenth12) ?? "12 West 18th Street",
+            setOutByDay: dayMap([
+                (.monday, [.trash]), (.wednesday, [.trash]), (.friday, [.trash])
+            ]),
+            setOutTime: t2000, retrievalTime: r0900,
+            containerType: .blackBags, unitCount: 24
+        )
+
+        // 117 W 17th — Sun/Tue/Thu (Thu adds recycling/compost)
+        schedules[CanonicalIDs.Buildings.westSeventeenth117] = GeneralSetOutSchedule(
+            buildingId: CanonicalIDs.Buildings.westSeventeenth117,
+            buildingName: CanonicalIDs.Buildings.getName(for: CanonicalIDs.Buildings.westSeventeenth117) ?? "117 West 17th Street",
+            setOutByDay: dayMap([
+                (.sunday, [.trash]), (.tuesday, [.trash]), (.thursday, [.trash, .recycling, .compost])
+            ]),
+            setOutTime: t2000, retrievalTime: r0900,
+            containerType: .blackBags, unitCount: 12
+        )
+
+        // 135–139 W 17th — Sun/Tue/Thu (Thu adds recycling/compost)
+        schedules[CanonicalIDs.Buildings.westSeventeenth135_139] = GeneralSetOutSchedule(
+            buildingId: CanonicalIDs.Buildings.westSeventeenth135_139,
+            buildingName: CanonicalIDs.Buildings.getName(for: CanonicalIDs.Buildings.westSeventeenth135_139) ?? "135–139 West 17th Street",
+            setOutByDay: dayMap([
+                (.sunday, [.trash]), (.tuesday, [.trash]), (.thursday, [.trash, .recycling, .compost])
+            ]),
+            setOutTime: t2000, retrievalTime: r0900,
+            containerType: .blackBags, unitCount: 18
+        )
+
+        // 136 W 17th — Sun/Tue/Thu (Thu adds recycling/compost)
+        schedules[CanonicalIDs.Buildings.westSeventeenth136] = GeneralSetOutSchedule(
+            buildingId: CanonicalIDs.Buildings.westSeventeenth136,
+            buildingName: CanonicalIDs.Buildings.getName(for: CanonicalIDs.Buildings.westSeventeenth136) ?? "136 West 17th Street",
+            setOutByDay: dayMap([
+                (.sunday, [.trash]), (.tuesday, [.trash]), (.thursday, [.trash, .recycling, .compost])
+            ]),
+            setOutTime: t2000, retrievalTime: r0900,
+            containerType: .blackBags, unitCount: 12
+        )
+
+        // 138 W 17th — Sun/Tue/Thu (bins)
+        schedules[CanonicalIDs.Buildings.westSeventeenth138] = GeneralSetOutSchedule(
+            buildingId: CanonicalIDs.Buildings.westSeventeenth138,
+            buildingName: CanonicalIDs.Buildings.getName(for: CanonicalIDs.Buildings.westSeventeenth138) ?? "138 West 17th Street",
+            setOutByDay: dayMap([
+                (.sunday, [.trash]), (.tuesday, [.trash]), (.thursday, [.trash, .recycling, .compost])
+            ]),
+            setOutTime: t2000, retrievalTime: r0900,
+            containerType: .blackBin, unitCount: 9
+        )
+
+        // Rubin Complex — Sun/Tue/Thu
+        schedules[CanonicalIDs.Buildings.rubinMuseum] = GeneralSetOutSchedule(
+            buildingId: CanonicalIDs.Buildings.rubinMuseum,
+            buildingName: CanonicalIDs.Buildings.getName(for: CanonicalIDs.Buildings.rubinMuseum) ?? "Rubin Museum",
+            setOutByDay: dayMap([
+                (.sunday, [.trash]), (.tuesday, [.trash]), (.thursday, [.trash, .recycling, .compost])
+            ]),
+            setOutTime: t2000, retrievalTime: r0900,
+            containerType: .blackBags, unitCount: 20
+        )
+
+        // 112 W 18th — Tue/Thu/Sat (kept), Thu adds recycling/compost
+        schedules[CanonicalIDs.Buildings.westEighteenth112] = GeneralSetOutSchedule(
+            buildingId: CanonicalIDs.Buildings.westEighteenth112,
+            buildingName: CanonicalIDs.Buildings.getName(for: CanonicalIDs.Buildings.westEighteenth112) ?? "112 West 18th Street",
+            setOutByDay: dayMap([
+                (.tuesday, [.trash]), (.thursday, [.trash, .recycling, .compost]), (.saturday, [.trash])
+            ]),
+            setOutTime: t2000, retrievalTime: r0900,
+            containerType: .blackBags, unitCount: 18
+        )
+
+        // 68 Perry — Mon/Wed/Fri (Wed adds recycling/compost)
+        schedules[CanonicalIDs.Buildings.perry68] = GeneralSetOutSchedule(
+            buildingId: CanonicalIDs.Buildings.perry68,
+            buildingName: CanonicalIDs.Buildings.getName(for: CanonicalIDs.Buildings.perry68) ?? "68 Perry Street",
+            setOutByDay: dayMap([
+                (.monday, [.trash]), (.wednesday, [.trash, .recycling, .compost]), (.friday, [.trash])
+            ]),
+            setOutTime: t2000, retrievalTime: r0830,
+            containerType: .blackBin, unitCount: 6
+        )
+
+        // 131 Perry — Mon/Wed/Fri (Wed adds recycling/compost)
+        schedules[CanonicalIDs.Buildings.perry131] = GeneralSetOutSchedule(
+            buildingId: CanonicalIDs.Buildings.perry131,
+            buildingName: CanonicalIDs.Buildings.getName(for: CanonicalIDs.Buildings.perry131) ?? "131 Perry Street",
+            setOutByDay: dayMap([
+                (.monday, [.trash]), (.wednesday, [.trash, .recycling, .compost]), (.friday, [.trash])
+            ]),
+            setOutTime: t2000, retrievalTime: r0830,
+            containerType: .blackBin, unitCount: 8
+        )
+
+        // 178 Spring — Mon (trash), Thu (trash+recycling+compost)
+        schedules[CanonicalIDs.Buildings.springStreet178] = GeneralSetOutSchedule(
+            buildingId: CanonicalIDs.Buildings.springStreet178,
+            buildingName: CanonicalIDs.Buildings.getName(for: CanonicalIDs.Buildings.springStreet178) ?? "178 Spring Street",
+            setOutByDay: dayMap([
+                (.monday, [.trash]), (.thursday, [.trash, .recycling, .compost])
+            ]),
+            setOutTime: t2000, retrievalTime: r1000,
+            containerType: .blackBags, unitCount: 4
+        )
+
+        // 123 1st Avenue — Mon/Wed (all streams), Fri (trash)
+        schedules[CanonicalIDs.Buildings.firstAvenue123] = GeneralSetOutSchedule(
+            buildingId: CanonicalIDs.Buildings.firstAvenue123,
+            buildingName: CanonicalIDs.Buildings.getName(for: CanonicalIDs.Buildings.firstAvenue123) ?? "123 1st Avenue",
+            setOutByDay: dayMap([
+                (.monday, [.trash, .recycling, .compost]), (.wednesday, [.trash, .recycling, .compost]), (.friday, [.trash])
+            ]),
+            setOutTime: t2000, retrievalTime: r0900,
+            containerType: .blackBags, unitCount: 8
+        )
+
+        return schedules
+    }()
+
     // MARK: - Bin Management Lists
 
     /// Returns all buildings that are managed via individual bins with their schedules
@@ -299,6 +440,17 @@ public struct DSNYCollectionSchedule {
         }
     }
     
+    /// General set-out: returns buildings that need any set-out (bags or bins) for the given day
+    public static func getBuildingsForSetOutAll(on day: CollectionDay) -> [GeneralSetOutSchedule] {
+        return allSetOutSchedules.values.filter { $0.setOutByDay.keys.contains(day) }
+            .sorted { $0.buildingName < $1.buildingName }
+    }
+    
+    /// Returns waste streams for a building on a specific day
+    public static func getWasteStreams(for buildingId: String, on day: CollectionDay) -> [WasteType] {
+        return allSetOutSchedules[buildingId]?.setOutByDay[day] ?? []
+    }
+    
     /// Determine which worker should handle a building's bin management
     private static func shouldWorkerHandleBuilding(workerId: String, buildingId: String, on day: CollectionDay) -> Bool {
         switch buildingId {
@@ -316,8 +468,8 @@ public struct DSNYCollectionSchedule {
             return workerId == CanonicalIDs.Workers.kevinDutan
 
         case CanonicalIDs.Buildings.firstAvenue123:
-            // Kevin handles 1st Ave during his M W F afternoon rotation
-            return workerId == CanonicalIDs.Workers.kevinDutan && 
+            // Morning retrieval on 1st Ave handled by Edwin on M/W/F (post-park), per updated ops
+            return workerId == CanonicalIDs.Workers.edwinLema &&
                    [CollectionDay.monday, CollectionDay.wednesday, CollectionDay.friday].contains(day)
             
         case CanonicalIDs.Buildings.westSeventeenth136,
@@ -487,6 +639,18 @@ public enum ContainerType: String {
     case blackBags = "Black Bags"
     case clearBags = "Clear Bags"
     case empireContainer = "Empire Container"
+}
+
+// MARK: - General Set-Out Schedule Type
+
+public struct GeneralSetOutSchedule {
+    public let buildingId: String
+    public let buildingName: String
+    public let setOutByDay: [CollectionDay: [WasteType]] // e.g., Thu -> [trash, recycling, compost]
+    public let setOutTime: DSNYTime
+    public let retrievalTime: DSNYTime?
+    public let containerType: ContainerType
+    public let unitCount: Int
 }
 
 // MARK: - Integration Helpers

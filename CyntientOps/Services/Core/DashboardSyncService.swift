@@ -83,7 +83,6 @@ public class DashboardSyncService: ObservableObject {
     // MARK: - Service Dependencies
     
     // Service dependencies commented out - using direct access patterns for now
-    private let operationalManager = OperationalDataManager.shared
     private let operationalDataManager = OperationalDataManager.shared
     private let grdbManager = GRDBManager.shared
     private let webSocketManager: WebSocketManager
@@ -99,6 +98,11 @@ public class DashboardSyncService: ObservableObject {
     private var updateDebouncer: [String: Timer] = [:]
     private var recentEmitTimer: Timer?
     private var lastRecentEmit: Date = .distantPast
+    // Recent Activity Summaries state
+    @Published public private(set) var summarizedRecentActivity: [RecentActivityItem] = []
+    // Keep last event timestamp per (buildingId+type) to coalesce within 10 minutes
+    private static let coalesceWindow: TimeInterval = 10 * 60
+    private var recentLastSeen: [String: Date] = [:]
     
     // Debug mode for logging
     #if DEBUG
@@ -929,18 +933,26 @@ public class DashboardSyncService: ObservableObject {
             
             Task {
                 do {
-                    // let metrics = try await self.buildingMetricsService.calculateMetrics(for: buildingId) // TODO: Inject service
-                    let metrics = CoreTypes.BuildingMetrics.empty // Placeholder
+                    // Prefer metrics via ServiceContainer
+                    let container = try await ServiceContainer()
+                    let metrics = try await container.metrics.calculateMetrics(for: buildingId)
                     await MainActor.run {
                         self.unifiedBuildingMetrics[buildingId] = metrics
-                        
-                        // Record metric for trend analysis
                         self.operationalDataManager.recordMetricValue(
                             metricName: "building_\(buildingId)_completion",
                             value: metrics.completionRate
                         )
                     }
                 } catch {
+                    // Fall back to empty metrics on failure
+                    let metrics = CoreTypes.BuildingMetrics.empty
+                    await MainActor.run {
+                        self.unifiedBuildingMetrics[buildingId] = metrics
+                        self.operationalDataManager.recordMetricValue(
+                            metricName: "building_\(buildingId)_completion",
+                            value: metrics.completionRate
+                        )
+                    }
                     self.operationalDataManager.logError("Failed to update building metrics", error: error)
                 }
             }
@@ -1094,11 +1106,6 @@ extension DashboardSyncService {
         public let occurredAt: Date
     }
 
-    @Published public private(set) var summarizedRecentActivity: [RecentActivityItem] = []
-
-    // Keep last event timestamp per (buildingId+type) to coalesce within 10 minutes
-    private static let coalesceWindow: TimeInterval = 10 * 60
-    private var recentLastSeen: [String: Date] = [:]
 
     private func processRecentActivity(_ update: CoreTypes.DashboardUpdate) {
         // Only summarize selected update types for workers

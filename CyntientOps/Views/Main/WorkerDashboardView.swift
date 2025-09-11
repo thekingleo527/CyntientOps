@@ -64,13 +64,23 @@ struct WorkerDashboardView: View {
                             )
                             .padding(.horizontal, CyntientOpsDesign.Spacing.md)
                             .animatedGlassAppear(delay: 0.3)
+                            .overlay(alignment: .topTrailing) {
+                                Button(action: { showingThresholds = true }) {
+                                    Image(systemName: "gauge")
+                                        .font(.system(size: 14, weight: .medium))
+                                        .padding(8)
+                                        .background(.ultraThinMaterial, in: Circle())
+                                }
+                                .padding(8)
+                                .accessibilityLabel("View weather thresholds")
+                            }
                         }
-                        .padding(.horizontal, CyntientOpsDesign.Spacing.md)
-                        .animatedGlassAppear(delay: 0.3)
+                        
 
-                        // Upcoming Tasks (weather-aware, intelligent ordering)
-                        if !viewModel.upcoming.isEmpty {
-                            UpcomingTaskListView(rows: viewModel.upcoming) { tapped in
+                        // Upcoming Tasks (non-weather items only; weather tasks live under the Weather card)
+                        let nonWeatherUpcoming = viewModel.upcoming.filter { $0.chip == nil }
+                        if !nonWeatherUpcoming.isEmpty {
+                            UpcomingTaskListView(rows: nonWeatherUpcoming) { tapped in
                                 sheet = .taskDetail(tapped.taskId)
                             }
                             .padding(.horizontal, CyntientOpsDesign.Spacing.md)
@@ -119,6 +129,7 @@ struct WorkerDashboardView: View {
     @State private var showingClockInSheet = false
     @State private var toastMessage: String? = nil
     @State private var showToast: Bool = false
+    @State private var showingThresholds = false
     
     // MARK: - Intelligence Tabs
     enum IntelligenceTab: String, CaseIterable {
@@ -171,20 +182,23 @@ struct WorkerDashboardView: View {
                     }
                 }()
                 // DSNY fallback after 8pm: include DSNY circuit buildings for today
-                var enrichedSummaries = summaries
-                let now = Date()
-                let hour = Calendar.current.component(.hour, from: now)
-                if hour >= 20 { // after 8pm
-                    let todaysRoutes = container.routes.today(for: wid, date: now)
-                    let dsnyItems = todaysRoutes.filter { $0.icon == "trash.circle" || $0.buildingName.lowercased().contains("dsny") }
-                    for item in dsnyItems {
-                        if let b = viewModel.assignedBuildings.first(where: { $0.id == item.buildingId }) {
-                            if !enrichedSummaries.contains(where: { $0.id == b.id }) {
-                                enrichedSummaries.append(b)
+                let enrichedSummaries: [WorkerDashboardViewModel.BuildingSummary] = {
+                    var enriched = summaries
+                    let now = Date()
+                    let hour = Calendar.current.component(.hour, from: now)
+                    if hour >= 20 { // after 8pm
+                        let todaysRoutes = container.routes.today(for: wid, date: now)
+                        let dsnyItems = todaysRoutes.filter { $0.icon == "trash.circle" || $0.buildingName.lowercased().contains("dsny") }
+                        for item in dsnyItems {
+                            if let b = viewModel.assignedBuildings.first(where: { $0.id == item.buildingId }) {
+                                if !enriched.contains(where: { $0.id == b.id }) {
+                                    enriched.append(b)
+                                }
                             }
                         }
                     }
-                }
+                    return enriched
+                }()
                 let buildingCoords: [NamedCoordinate] = enrichedSummaries.map { b in
                     NamedCoordinate(
                         id: b.id,
@@ -221,6 +235,13 @@ struct WorkerDashboardView: View {
                     }
                 } else {
                     EmptyView()
+                }
+            }
+            .sheet(isPresented: $showingThresholds) {
+                NavigationView {
+                    WeatherThresholdsView(container: container, currentBuildingId: viewModel.currentBuilding?.id)
+                        .navigationTitle("Weather Thresholds")
+                        .navigationBarTitleDisplayMode(.inline)
                 }
             }
             .sheet(isPresented: $showingQuickNote) {
@@ -265,7 +286,7 @@ struct WorkerDashboardView: View {
                     }
                 }
             )
-            .overlay(alignment: .bottom) {
+            .overlay(alignment: Alignment.bottom) {
                 if showToast, let msg = toastMessage {
                     Text(msg)
                         .font(.subheadline)
@@ -275,6 +296,15 @@ struct WorkerDashboardView: View {
                         .background(.ultraThinMaterial, in: Capsule())
                         .padding(.bottom, 30)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: Notification.Name("WeatherAdvisory"))) { note in
+                if let info = note.userInfo as? [String: String], let body = info["body"] {
+                    toastMessage = body
+                    withAnimation { showToast = true }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                        withAnimation { showToast = false }
+                    }
                 }
             }
 
@@ -305,9 +335,11 @@ struct WorkerDashboardView: View {
         VStack {
             // Last Activity ticker for worker (inside intelligence area)
             let recentActivity: [CoreTypes.DashboardUpdate] = Array(viewModel.recentUpdates.suffix(6))
-            LastActivityTickerWorker(updates: recentActivity)
-                .padding(.horizontal, 12)
-                .padding(.top, 8)
+            if AppFeatures.RecentActivity.enabledForWorkers, !recentActivity.isEmpty {
+                LastActivityTickerWorker(updates: recentActivity)
+                    .padding(.horizontal, 12)
+                    .padding(.top, 8)
+            }
             // Basic tab bar for worker functions
             HStack {
                 ForEach(IntelligenceTab.allCases, id: \.rawValue) { tab in
@@ -349,7 +381,7 @@ struct WorkerDashboardView: View {
                 HStack(spacing: 6) {
                     Image(systemName: "bolt.horizontal.circle")
                         .foregroundColor(.orange)
-                    Text("Recent Activity")
+                    Text(LocalizedStringKey("dashboard.recent_activity"))
                         .font(.caption)
                         .foregroundColor(.secondary)
                     Spacer()

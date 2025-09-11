@@ -326,6 +326,11 @@ Note: In this repository, Nova already uses secure JWT pass‑through.
 - Sync side: `Services/Core/SupabaseSyncService.swift` includes the user JWT on REST writes so RLS policies apply.
 - Server side: Your Edge Function must create the Supabase client with the incoming Authorization header so `auth.uid()` is populated (do not deploy with `--no-verify-jwt`). See Step 3 above for secure deploy and the TypeScript example.
 
+RLS & Multi‑tenant notes:
+- Release builds must forward `Authorization: Bearer <sessionJWT>`; anon fallback should be disabled in production.
+- Edge functions must verify JWTs and pass the `Authorization` header into the Supabase client to satisfy RLS.
+- For multi‑tenant readiness, add an `org_id` claim to JWTs and an `org_id` column on analytics tables; scope RLS with `org_id = (auth.jwt()->>'org_id')`.
+
 The example below shows a generic pattern; prefer the in‑repo implementation paths referenced above.
 
 The `processPromptOnline` method in `NovaAPIService.swift` is already set up with a placeholder. **Replace the TODO section** with:

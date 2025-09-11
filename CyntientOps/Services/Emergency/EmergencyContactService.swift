@@ -245,8 +245,8 @@ public final class EmergencyContactService: ObservableObject {
     private func getCompanyEmergencyContacts() -> [EmergencyContact] {
         return [
             EmergencyContact(
-                name: "Franco Management Emergency",
-                phoneNumber: "917-555-0000", // Placeholder - replace with real
+                name: "CyntientOps Emergency",
+                phoneNumber: "9177311764",
                 type: .company
             ),
             EmergencyContact(
@@ -292,7 +292,7 @@ public final class EmergencyContactService: ObservableObject {
         // Auto-notify Shawn Magloire (Manager)
         let managerContact = EmergencyContact(
             name: "Shawn Magloire (Manager)",
-            phoneNumber: "917-555-0008", // Placeholder
+            phoneNumber: "9177311764",
             type: .manager
         )
         

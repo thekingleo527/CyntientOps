@@ -29,12 +29,22 @@ WorkerDashboardViewModel.loadTodaysTasks()
 todaysTasks property updated
     ↓ (via @Published)
 Hero Cards + Task Lists display
+
+// Client portfolio (route-derived)
+RouteOperationalBridge
+    ↓ (convertSequencesToContextualTasks)
+ClientDashboardViewModel.loadClientRoutePortfolioData()
+    ↓ (filter to client buildings, add DSNY set‑out)
+routePortfolioTodayTasks updated
+    ↓ (via @Published)
+ClientDashboardView lists Today’s Tasks
 ```
 
 **Critical Connection Points:**
 1. Line 1690-1750: `loadTodaysTasks()` must load for ANY workerId
 2. Line 1094: `refreshData()` must call `loadTodaysTasks()`
 3. UI components must reference `viewModel.todaysTasks`
+4. Client UI must reference `viewModel.routePortfolioTodayTasks`
 
 ### Building Policies Data Flow  
 ```

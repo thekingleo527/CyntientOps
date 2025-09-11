@@ -195,177 +195,196 @@ public final class WeatherTriggeredTaskManager: ObservableObject {
     // MARK: - Trigger Definitions
     
     private func setupTriggerDefinitions() {
-        // Dynamic templates derived locally (no external catalog dependency)
-        let roofDrainByWorker = self.roofDrainBuildingsPerWorker().mapValues { ids in
-            // Only include buildings with pilot/production config
-            ids.filter { id in
-                let cfg = Task { await BuildingConfigurationManager.shared.getConfiguration(for: id) }
-                let conf = (try? await cfg.value) ?? .standard
-                return conf != .standard
+        // Build triggers asynchronously to avoid async-in-sync closure issues
+        Task { [weak self] in
+            guard let self else { return }
+            
+            // Filter roof-drain buildings per worker by feature config (pilot/production only)
+            let roofDrainByWorkerRaw = self.roofDrainBuildingsPerWorker()
+            var roofDrainByWorkerFiltered: [String: [String]] = [:]
+            for (workerId, ids) in roofDrainByWorkerRaw {
+                var kept: [String] = []
+                for id in ids {
+                    let conf = await BuildingConfigurationManager.shared.getConfiguration(for: id)
+                    if conf != .standard {
+                        kept.append(id)
+                    }
+                }
+                roofDrainByWorkerFiltered[workerId] = kept
             }
-        }
-        let roofDrainBeforeRain: [TaskTemplate] = roofDrainByWorker.flatMap { (workerId, buildingIds) in
-            buildingIds.map { bid in
+            
+            // Filter rain-mat buildings by feature config (pilot/production only)
+            let rainMatRaw = self.rainMatBuildingIds()
+            var rainMatBuildingsFiltered: [String] = []
+            for id in rainMatRaw {
+                let conf = await BuildingConfigurationManager.shared.getConfiguration(for: id)
+                if conf != .standard {
+                    rainMatBuildingsFiltered.append(id)
+                }
+            }
+            
+            // Build templates synchronously from filtered sets
+            let roofDrainBeforeRain: [TaskTemplate] = roofDrainByWorkerFiltered.flatMap { (workerId, buildingIds) in
+                buildingIds.map { bid in
+                    TaskTemplate(
+                        name: "Emergency Roof Drain Inspection - Before Rain",
+                        assignedWorkerId: workerId,
+                        buildingIds: [bid],
+                        category: .maintenance,
+                        location: .exterior,
+                        estimatedDuration: 60 * 60,
+                        instructions: "URGENT: Inspect and clear roof drains before expected heavy rain.",
+                        requiredEquipment: ["Ladder", "Safety equipment", "Drain snake", "Flashlight"],
+                        mustCompleteWithin: 4 * 3600
+                    )
+                }
+            }
+
+            let roofDrainAfterRain: [TaskTemplate] = roofDrainByWorkerFiltered.flatMap { (workerId, buildingIds) in
+                buildingIds.map { bid in
+                    TaskTemplate(
+                        name: "Post-Rain Roof Drain Assessment",
+                        assignedWorkerId: workerId,
+                        buildingIds: [bid],
+                        category: .buildingInspection,
+                        location: .exterior,
+                        estimatedDuration: 45 * 60,
+                        instructions: "Inspect roof drains for proper drainage and any backup issues.",
+                        requiredEquipment: ["Ladder", "Camera", "Safety equipment"],
+                        mustCompleteWithin: 6 * 3600
+                    )
+                }
+            }
+
+            let rainMatPutOut: [TaskTemplate] = rainMatBuildingsFiltered.map { bid in
                 TaskTemplate(
-                    name: "Emergency Roof Drain Inspection - Before Rain",
-                    assignedWorkerId: workerId,
+                    name: "Put Out Rain Mats (Pre-Rain)",
+                    assignedWorkerId: assignMatWorker(for: bid),
                     buildingIds: [bid],
                     category: .maintenance,
-                    location: .exterior,
-                    estimatedDuration: 60 * 60,
-                    instructions: "URGENT: Inspect and clear roof drains before expected heavy rain.",
-                    requiredEquipment: ["Ladder", "Safety equipment", "Drain snake", "Flashlight"],
-                    mustCompleteWithin: 4 * 3600
-                )
-            }
-        }
-
-        let roofDrainAfterRain: [TaskTemplate] = roofDrainByWorker.flatMap { (workerId, buildingIds) in
-            buildingIds.map { bid in
-                TaskTemplate(
-                    name: "Post-Rain Roof Drain Assessment",
-                    assignedWorkerId: workerId,
-                    buildingIds: [bid],
-                    category: .buildingInspection,
-                    location: .exterior,
-                    estimatedDuration: 45 * 60,
-                    instructions: "Inspect roof drains for proper drainage and any backup issues.",
-                    requiredEquipment: ["Ladder", "Camera", "Safety equipment"],
+                    location: .entrance,
+                    estimatedDuration: 20 * 60,
+                    instructions: "Place rain mats at entrances prior to rain.",
+                    requiredEquipment: ["Rain mats"],
                     mustCompleteWithin: 6 * 3600
                 )
             }
-        }
 
-        let rainMatBuildings = self.rainMatBuildingIds().filter { id in
-            let cfg = Task { await BuildingConfigurationManager.shared.getConfiguration(for: id) }
-            let conf = (try? await cfg.value) ?? .standard
-            return conf != .standard
-        }
-        let rainMatPutOut: [TaskTemplate] = rainMatBuildings.map { bid in
-            TaskTemplate(
-                name: "Put Out Rain Mats (Pre-Rain)",
-                assignedWorkerId: assignMatWorker(for: bid),
-                buildingIds: [bid],
+            let rainMatRemove: [TaskTemplate] = rainMatBuildingsFiltered.map { bid in
+                TaskTemplate(
+                    name: "Remove Rain Mats (Post-Rain)",
+                    assignedWorkerId: assignMatWorker(for: bid),
+                    buildingIds: [bid],
+                    category: .maintenance,
+                    location: .entrance,
+                    estimatedDuration: 20 * 60,
+                    instructions: "Remove and store rain mats once surfaces are dry.",
+                    requiredEquipment: ["Rain mats"],
+                    mustCompleteWithin: 6 * 3600
+                )
+            }
+
+            // Salt sidewalks pre-snow (approximate: freeze warning is our proxy)
+            let saltSidewalks = TaskTemplate(
+                name: "Pre-Salt Sidewalks",
+                assignedWorkerId: CanonicalIDs.Workers.kevinDutan,
+                buildingIds: getAllBuildingIds(),
                 category: .maintenance,
-                location: .entrance,
-                estimatedDuration: 20 * 60,
-                instructions: "Place rain mats at entrances prior to rain.",
-                requiredEquipment: ["Rain mats"],
+                location: .sidewalk,
+                estimatedDuration: 45 * 60,
+                instructions: "Apply salt to sidewalks prior to snowfall to prevent icing.",
+                requiredEquipment: ["Salt", "Spreader"],
                 mustCompleteWithin: 6 * 3600
             )
+            
+            // Assign active triggers on main actor
+            await MainActor.run {
+                self.activeTriggers = [
+                    // Roof drains + rain mats before rain
+                    WeatherTrigger(
+                        condition: .rainExpected,
+                        threshold: 0.6, // 60% chance or higher
+                        timeFrame: .next12Hours,
+                        priority: .high,
+                        triggeredTasks: roofDrainBeforeRain + rainMatPutOut
+                    ),
+                    
+                    // Roof drain checks + remove mats after rain
+                    WeatherTrigger(
+                        condition: .rainEnded,
+                        threshold: 0.5, // After significant rain (>0.5 inches)
+                        timeFrame: .afterCondition,
+                        priority: .high,
+                        triggeredTasks: roofDrainAfterRain + rainMatRemove
+                    ),
+                    
+                    // High wind preparations
+                    WeatherTrigger(
+                        condition: .heavyWindWarning,
+                        threshold: 35.0, // 35+ mph winds
+                        timeFrame: .next6Hours,
+                        priority: .critical,
+                        triggeredTasks: [
+                            TaskTemplate(
+                                name: "High Wind Preparation - Secure Loose Items",
+                                assignedWorkerId: CanonicalIDs.Workers.kevinDutan,
+                                buildingIds: getAllBuildingIds(),
+                                category: .maintenance,
+                                location: .exterior,
+                                estimatedDuration: 60 * 60, // 1 hour
+                                instructions: "CRITICAL: Secure all loose items, trash bins, signage, and outdoor furniture. Check building exteriors for loose elements.",
+                                requiredEquipment: ["Tie-down straps", "Storage areas access"],
+                                mustCompleteWithin: 2 * 3600 // 2 hours to complete
+                            )
+                        ]
+                    ),
+                    
+                    // Post-wind damage assessment
+                    WeatherTrigger(
+                        condition: .windEnded,
+                        threshold: 30.0, // After winds above 30 mph
+                        timeFrame: .afterCondition,
+                        priority: .high,
+                        triggeredTasks: [
+                            TaskTemplate(
+                                name: "Post-Wind Damage Assessment",
+                                assignedWorkerId: CanonicalIDs.Workers.edwinLema,
+                                buildingIds: getAllBuildingIds(),
+                                category: .buildingInspection,
+                                location: .exterior,
+                                estimatedDuration: 120 * 60, // 2 hours
+                                instructions: "Comprehensive inspection for wind damage: loose siding, damaged signage, clogged drains from debris, broken windows.",
+                                requiredEquipment: ["Camera", "Ladder", "Safety equipment", "Temporary repair materials"],
+                                mustCompleteWithin: 4 * 3600 // 4 hours after wind subsides
+                            )
+                        ]
+                    ),
+                    
+                    // Freeze warning preparations (pre-salt sidewalks + freeze protection)
+                    WeatherTrigger(
+                        condition: .freezeWarning,
+                        threshold: 32.0, // Below 32°F
+                        timeFrame: .next12Hours,
+                        priority: .high,
+                        triggeredTasks: [saltSidewalks,
+                            TaskTemplate(
+                                name: "Freeze Protection - Pipe & System Check",
+                                assignedWorkerId: CanonicalIDs.Workers.edwinLema,
+                                buildingIds: getBuildingsWithExposedPlumbing(),
+                                category: .maintenance,
+                                location: .basement,
+                                estimatedDuration: 90 * 60, // 1.5 hours
+                                instructions: "Check exposed pipes, ensure heat is adequate in vulnerable areas, verify freeze protection systems are active.",
+                                requiredEquipment: ["Thermometer", "Pipe insulation", "Space heaters if needed"],
+                                mustCompleteWithin: 6 * 3600 // 6 hours before freeze
+                            )
+                        ]
+                    )
+                ]
+                
+                print("✅ WeatherTriggeredTaskManager: Loaded \(self.activeTriggers.count) weather trigger definitions")
+            }
         }
-
-        let rainMatRemove: [TaskTemplate] = rainMatBuildings.map { bid in
-            TaskTemplate(
-                name: "Remove Rain Mats (Post-Rain)",
-                assignedWorkerId: assignMatWorker(for: bid),
-                buildingIds: [bid],
-                category: .maintenance,
-                location: .entrance,
-                estimatedDuration: 20 * 60,
-                instructions: "Remove and store rain mats once surfaces are dry.",
-                requiredEquipment: ["Rain mats"],
-                mustCompleteWithin: 6 * 3600
-            )
-        }
-
-        // Salt sidewalks pre-snow (approximate: freeze warning is our proxy)
-        let saltSidewalks = TaskTemplate(
-            name: "Pre-Salt Sidewalks",
-            assignedWorkerId: CanonicalIDs.Workers.kevinDutan,
-            buildingIds: getAllBuildingIds(),
-            category: .maintenance,
-            location: .sidewalk,
-            estimatedDuration: 45 * 60,
-            instructions: "Apply salt to sidewalks prior to snowfall to prevent icing.",
-            requiredEquipment: ["Salt", "Spreader"],
-            mustCompleteWithin: 6 * 3600
-        )
-
-        activeTriggers = [
-            // Roof drains + rain mats before rain
-            WeatherTrigger(
-                condition: .rainExpected,
-                threshold: 0.6, // 60% chance or higher
-                timeFrame: .next12Hours,
-                priority: .high,
-                triggeredTasks: roofDrainBeforeRain + rainMatPutOut
-            ),
-            
-            // Roof drain checks + remove mats after rain
-            WeatherTrigger(
-                condition: .rainEnded,
-                threshold: 0.5, // After significant rain (>0.5 inches)
-                timeFrame: .afterCondition,
-                priority: .high,
-                triggeredTasks: roofDrainAfterRain + rainMatRemove
-            ),
-            
-            // High wind preparations
-            WeatherTrigger(
-                condition: .heavyWindWarning,
-                threshold: 35.0, // 35+ mph winds
-                timeFrame: .next6Hours,
-                priority: .critical,
-                triggeredTasks: [
-                    TaskTemplate(
-                        name: "High Wind Preparation - Secure Loose Items",
-                        assignedWorkerId: CanonicalIDs.Workers.kevinDutan,
-                        buildingIds: getAllBuildingIds(),
-                        category: .maintenance,
-                        location: .exterior,
-                        estimatedDuration: 60 * 60, // 1 hour
-                        instructions: "CRITICAL: Secure all loose items, trash bins, signage, and outdoor furniture. Check building exteriors for loose elements.",
-                        requiredEquipment: ["Tie-down straps", "Storage areas access"],
-                        mustCompleteWithin: 2 * 3600 // 2 hours to complete
-                    )
-                ]
-            ),
-            
-            // Post-wind damage assessment
-            WeatherTrigger(
-                condition: .windEnded,
-                threshold: 30.0, // After winds above 30 mph
-                timeFrame: .afterCondition,
-                priority: .high,
-                triggeredTasks: [
-                    TaskTemplate(
-                        name: "Post-Wind Damage Assessment",
-                        assignedWorkerId: CanonicalIDs.Workers.edwinLema,
-                        buildingIds: getAllBuildingIds(),
-                        category: .buildingInspection,
-                        location: .exterior,
-                        estimatedDuration: 120 * 60, // 2 hours
-                        instructions: "Comprehensive inspection for wind damage: loose siding, damaged signage, clogged drains from debris, broken windows.",
-                        requiredEquipment: ["Camera", "Ladder", "Safety equipment", "Temporary repair materials"],
-                        mustCompleteWithin: 4 * 3600 // 4 hours after wind subsides
-                    )
-                ]
-            ),
-            
-            // Freeze warning preparations (pre-salt sidewalks + freeze protection)
-            WeatherTrigger(
-                condition: .freezeWarning,
-                threshold: 32.0, // Below 32°F
-                timeFrame: .next12Hours,
-                priority: .high,
-                triggeredTasks: [saltSidewalks,
-                    TaskTemplate(
-                        name: "Freeze Protection - Pipe & System Check",
-                        assignedWorkerId: CanonicalIDs.Workers.edwinLema,
-                        buildingIds: getBuildingsWithExposedPlumbing(),
-                        category: .maintenance,
-                        location: .basement,
-                        estimatedDuration: 90 * 60, // 1.5 hours
-                        instructions: "Check exposed pipes, ensure heat is adequate in vulnerable areas, verify freeze protection systems are active.",
-                        requiredEquipment: ["Thermometer", "Pipe insulation", "Space heaters if needed"],
-                        mustCompleteWithin: 6 * 3600 // 6 hours before freeze
-                    )
-                ]
-            )
-        ]
-        
-        print("✅ WeatherTriggeredTaskManager: Loaded \(activeTriggers.count) weather trigger definitions")
     }
 
     // MARK: - Advisory Broadcast

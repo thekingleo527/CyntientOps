@@ -528,9 +528,9 @@ public class WorkerDashboardViewModel: ObservableObject {
     // Core User State
     @Published public private(set) var worker: CoreTypes.User?
     @Published public private(set) var currentBuilding: BuildingSummary?
-    @BatchedPublished public private(set) var assignedBuildings: [BuildingSummary] = []
+    @BatchedPublished private(set) var assignedBuildings: [BuildingSummary] = []
     @Published public private(set) var allBuildings: [BuildingSummary] = [] // For coverage purposes
-    @BatchedPublished public private(set) var todaysTasks: [TaskItem] = []
+    @BatchedPublished private(set) var todaysTasks: [TaskItem] = []
     
     // MARK: - Hero Card Derived Streams
     @Published public private(set) var immediateCount: Int = 0
@@ -539,7 +539,7 @@ public class WorkerDashboardViewModel: ObservableObject {
     @Published public private(set) var currentBuildingName: String = "Not Assigned"
     @Published public private(set) var todayTasksCount: Int = 0
     @Published public private(set) var buildingsServedToday: Int = 0
-    @BatchedPublished public private(set) var urgentTaskItems: [TaskItem] = []
+    @BatchedPublished private(set) var urgentTaskItems: [TaskItem] = []
     @Published public private(set) var scheduleWeek: [DaySchedule] = []
     
     /// Computed property for grouping schedule by weekday using DateUtils
@@ -548,11 +548,11 @@ public class WorkerDashboardViewModel: ObservableObject {
             (CoreTypes.DateUtils.weekday(for: schedule.date), schedule)
         })
     }
-    @BatchedPublished public private(set) var performance: WorkerPerformance = WorkerPerformance()
+    @BatchedPublished private(set) var performance: WorkerPerformance = WorkerPerformance()
     @Published public private(set) var weather: WeatherSnapshot?
     @Published public private(set) var weatherBanner: WorkerWeatherSnapshot?
     @Published public private(set) var weatherSuggestions: [WeatherSuggestion] = []
-    @Published public private(set) var topWeatherSuggestionV2: WeatherSuggestionV2?
+    @Published private(set) var topWeatherSuggestionV2: WeatherSuggestionV2?
     @Published public private(set) var upcoming: [TaskRowVM] = []
     
     // MARK: - Route-Based Properties
@@ -565,7 +565,7 @@ public class WorkerDashboardViewModel: ObservableObject {
     @Published public var novaTab: NovaTab = .priorities
     @Published public var ui: WorkerDashboardUIState = WorkerDashboardUIState()
     @Published public var intelligencePanelExpanded: Bool = false
-    @BatchedPublished public private(set) var currentInsights: [CoreTypes.IntelligenceInsight] = []
+    @BatchedPublished private(set) var currentInsights: [CoreTypes.IntelligenceInsight] = []
     
     // Legacy properties for compatibility
     @Published public private(set) var isLoading = false
@@ -994,27 +994,40 @@ public class WorkerDashboardViewModel: ObservableObject {
     
     /// Open route map
     public func openRouteMap() {
-        // Implementation for route map
+        // Navigate to current building detail as a proxy for route map
+        if let b = currentBuilding {
+            NavigationCoordinator.shared.presentSheet(.buildingDetail(buildingId: b.id))
+        }
     }
     
     /// Open schedule view
     public func openSchedule() {
-        // Implementation for schedule
+        // For now, open the current building detail where schedule is visible
+        if let b = currentBuilding {
+            NavigationCoordinator.shared.presentSheet(.buildingDetail(buildingId: b.id))
+        }
     }
     
     /// Add a note
     public func addNote() {
-        // Implementation for adding notes
+        // Stub: present worker preferences as placeholder for note UI or extend with a Note sheet
+        if let wid = worker?.id {
+            NavigationCoordinator.shared.presentSheet(.workerPreferences(workerId: wid))
+        }
     }
     
     /// Report an issue for a building
     public func reportIssue(for building: BuildingSummary?) {
-        // Implementation for reporting issues
+        let target = building ?? currentBuilding
+        if let b = target {
+            NavigationCoordinator.shared.presentSheet(.buildingDetail(buildingId: b.id))
+        }
     }
     
     /// Emergency call functionality
     public func emergencyCall() {
-        // Implementation for emergency calls
+        // Surface a generic alert for now; future: integrate phone dialer or emergency flow
+        NavigationCoordinator.shared.presentAlert(.genericError(title: "Emergency", message: "Please contact dispatch immediately."))
     }
     
     // MARK: - Legacy Methods
@@ -1599,68 +1612,52 @@ public class WorkerDashboardViewModel: ObservableObject {
     }
     
     private func loadAssignedBuildings() async {
-        // Prefer database-backed assignments; fall back to operational data
-        guard let workerId = currentWorkerId ?? worker?.workerId else { return }
-        do {
-            // Query buildings joined to worker assignments
-            let rows = try await container.database.query("""
-                SELECT b.id, b.name, b.address, b.latitude, b.longitude
-                FROM worker_building_assignments wba
-                INNER JOIN buildings b ON b.id = wba.building_id
-                WHERE wba.worker_id = ? AND wba.is_active = 1
-                ORDER BY b.name
-            """, [workerId])
+        guard let workerId = worker?.workerId else { return }
+        
+        print("✅ [DIAGNOSTIC] WorkerDashboard: Loading assigned buildings from RouteManager for worker ID: \(workerId)")
+        let routeManager = RouteManager.shared
+        guard let route = routeManager.getCurrentRoute(for: workerId) else {
+            print("⚠️ [DIAGNOSTIC] WorkerDashboard: No route found for today.")
+            self.assignedBuildings = []
+            return
+        }
 
-            var buildings: [BuildingSummary] = rows.compactMap { row in
-                guard let id = row["id"] as? (any CustomStringConvertible),
-                      let name = row["name"] as? String,
-                      let address = row["address"] as? String,
-                      let lat = row["latitude"] as? Double,
-                      let lon = row["longitude"] as? Double else { return nil }
-                return BuildingSummary(
-                    id: String(describing: id),
+        var buildingsFromRoute: [BuildingSummary] = []
+        for sequence in route.sequences {
+            let buildingProfile = routeManager.getBuildingProfile(for: sequence.buildingId)
+            var name = buildingProfile?.buildingName ?? "Unknown Building"
+            var address = "No address"
+            var coordinate = CLLocationCoordinate2D()
+            if let b = try? await container.buildings.getBuilding(buildingId: sequence.buildingId) {
+                name = b.name
+                address = b.address
+                coordinate = b.coordinate
+            }
+            buildingsFromRoute.append(
+                BuildingSummary(
+                    id: sequence.buildingId,
                     name: name,
                     address: address,
-                    coordinate: CLLocationCoordinate2D(latitude: lat, longitude: lon),
+                    coordinate: coordinate,
                     status: .assigned,
-                    todayTaskCount: 0
+                    todayTaskCount: sequence.operations.count
                 )
-            }
-
-            // If DB had no assignments, fall back to operational data
-            if buildings.isEmpty {
-                let routineSchedules = try await OperationalDataManager.shared.getWorkerRoutineSchedules(for: workerId)
-                buildings = Dictionary(grouping: routineSchedules, by: \.buildingId)
-                    .compactMap { (buildingId, routines) -> BuildingSummary? in
-                        guard let firstRoutine = routines.first else { return nil }
-                        let coordinate = CLLocationCoordinate2D(
-                            latitude: firstRoutine.buildingLocation.latitude,
-                            longitude: firstRoutine.buildingLocation.longitude
-                        )
-                        return BuildingSummary(
-                            id: buildingId,
-                            name: firstRoutine.buildingName,
-                            address: firstRoutine.buildingAddress,
-                            coordinate: coordinate,
-                            status: .assigned,
-                            todayTaskCount: routines.count
-                        )
-                    }
-            }
-
-            assignedBuildings = buildings
-            // Ensure a deterministic current building (first assigned) if none is set
-            if self.currentBuilding == nil, let first = buildings.first {
-                self.currentBuilding = first
-            }
-            updateMapRegion()
-            print("✅ Loaded \(buildings.count) assigned buildings for worker \(workerId)")
-            computeOptimizedRouteIfNeeded()
-            await updateHeroTileProperties()
-        } catch {
-            print("❌ Failed to load assigned buildings: \(error)")
-            assignedBuildings = []
+            )
         }
+        
+        // Deduplicate buildings
+        let uniqueBuildings = Array(Set(buildingsFromRoute.map { $0.id })).compactMap { id in
+            buildingsFromRoute.first { $0.id == id }
+        }
+
+        self.assignedBuildings = uniqueBuildings
+        print("  ✅ [DIAGNOSTIC] WorkerDashboard: Loaded \(uniqueBuildings.count) unique buildings from today's route.")
+
+        if self.currentBuilding == nil, let firstBuilding = uniqueBuildings.first {
+            self.currentBuilding = firstBuilding
+        }
+        updateMapRegion()
+        await updateHeroTileProperties()
     }
     
     /// Update map region to show assigned buildings optimally
@@ -1735,92 +1732,144 @@ public class WorkerDashboardViewModel: ObservableObject {
     
     private func loadTodaysTasks() async {
         guard let workerId = worker?.workerId else {
-            print("⚠️ DEBUG: No worker ID available for task loading")
+            print("⚠️ [DIAGNOSTIC] WorkerDashboard: Aborting task load - worker ID is nil.")
             return
         }
         
-        print("🔍 DEBUG: Loading tasks for worker ID '\(workerId)' (should be Kevin if ID is '4')")
-        
-        do {
-            // ENHANCEMENT: Ensure operational data is initialized before loading tasks
-            let operationalDataManager = OperationalDataManager.shared
-            let initStatus = await operationalDataManager.getInitializationStatus()
-            
-            if !initStatus.routinesSeeded {
-                print("⚠️ DEBUG: Operational data not seeded - initializing now...")
-                try await operationalDataManager.initializeOperationalData()
-                print("✅ DEBUG: Operational data initialized for worker \(workerId)")
-            }
-            
-            // Load worker routine schedules from OperationalDataManager
-            let workerScheduleItems = try await operationalDataManager.getWorkerScheduleForDate(workerId: workerId, date: Date())
-            
-            print("🔍 DEBUG: OperationalDataManager returned \(workerScheduleItems.count) schedule items for worker \(workerId)")
-            
-            // Convert WorkerScheduleItem to TaskItem format
-            let routineTasks = workerScheduleItems.map { scheduleItem in
-                let mustPhotoByCategory = scheduleItem.category.lowercased().contains("sanitation")
-                let mustPhotoByWorker = (self.workerCapabilities?.requiresPhotoForSanitation ?? true) && mustPhotoByCategory
-                
-                print("🔍 DEBUG: Converting schedule item '\(scheduleItem.title)' at \(scheduleItem.buildingName)")
-                
-                return TaskItem(
-                    id: scheduleItem.id,
-                    title: scheduleItem.title,
-                    description: scheduleItem.description,
-                    buildingId: scheduleItem.buildingId,
-                    dueDate: scheduleItem.startTime,
-                    urgency: .normal, // Default urgency for routine tasks
-                    isCompleted: false,
-                    category: scheduleItem.category,
-                    requiresPhoto: scheduleItem.requiresPhoto || mustPhotoByWorker
-                )
-            }
-            
-            print("🔍 DEBUG: Created \(routineTasks.count) routine tasks from schedule items")
-            
-            // Also load contextual tasks from task service
-            let contextualTasks = try await container.tasks.getTasks(for: workerId, date: Date())
-            let regularTasks = contextualTasks.map { task in
-                TaskItem(
-                    id: task.id,
-                    title: task.title,
-                    description: task.description,
-                    buildingId: task.buildingId,
-                    dueDate: task.dueDate,
-                    urgency: convertUrgency(task.urgency),
-                    isCompleted: task.isCompleted,
-                    category: task.category?.rawValue ?? "General",
-                    requiresPhoto: shouldTaskRequirePhoto(task: task)
-                )
-            }
-            
-            // Combine routine tasks with regular tasks
-            todaysTasks = routineTasks + regularTasks
-            print("✅ Loaded \(todaysTasks.count) tasks for worker \(workerId) (\(routineTasks.count) routine tasks + \(regularTasks.count) regular tasks)")
-            
-            // Update derived streams immediately after loading tasks
-            computeDerivedStreams()
-            
-            // DEBUG: Show first few tasks to verify they're loaded
-            if todaysTasks.count > 0 {
-                print("🔍 DEBUG: First 3 tasks for display verification:")
-                for (index, task) in todaysTasks.prefix(3).enumerated() {
-                    let timeStr = task.dueDate.map { CoreTypes.DateUtils.timeFormatter.string(from: $0) } ?? "No time"
-                    print("  \(index + 1). \(task.title) at \(timeStr) (\(task.category))")
-                }
-            } else {
-                // Likely after-hours or no remaining items for today; schedules may show tomorrow preview
-                print("ℹ️ DEBUG: No tasks remaining for today; showing tomorrow's preview on schedule cards if available.")
-            }
-            
-            // Update hero tile properties after tasks are loaded
-            await updateHeroTileProperties()
-            
-        } catch {
-            print("❌ Failed to load today's tasks: \(error)")
-            todaysTasks = []
+        print("✅ [DIAGNOSTIC] WorkerDashboard: Loading tasks via RouteOperationalBridge for worker ID: \(workerId)")
+        // Use the bridge to ensure urgency/category/photo flags and scheduling are consistent
+        var hydrated = container.routeBridge.convertRoutesToTasks(for: workerId)
+
+        // Inject DSNY tasks: evening set-out (staggered) and morning retrievals, using fallback schedule
+        var dsny: [TaskItem] = []
+        let cal = Calendar.current
+        let now = Date()
+        let day = CollectionDay.from(weekday: cal.component(.weekday, from: now))
+        let todaySetOut = DSNYCollectionSchedule.getBuildingsForSetOutAll(on: day)
+        let corridor: Set<String> = [
+            CanonicalIDs.Buildings.westSeventeenth117,
+            CanonicalIDs.Buildings.westSeventeenth135_139,
+            CanonicalIDs.Buildings.westSeventeenth136,
+            CanonicalIDs.Buildings.westSeventeenth138,
+            CanonicalIDs.Buildings.rubinMuseum,
+            CanonicalIDs.Buildings.westEighteenth112
+        ]
+        func assignedSetOutWorker(for day: CollectionDay) -> String {
+            switch day { case .sunday, .tuesday, .thursday: return CanonicalIDs.Workers.kevinDutan; case .wednesday: return CanonicalIDs.Workers.angelGuirachocha; default: return "" }
         }
+        if workerId == assignedSetOutWorker(for: day) {
+            // Build staggered evening plan for corridor buildings scheduled today
+            var current = cal.date(bySettingHour: 19, minute: 50, second: 0, of: now) ?? now
+            let durations: [TimeInterval] = [15*60, 20*60]
+            let ordered: [String] = [
+                CanonicalIDs.Buildings.westSeventeenth117,
+                CanonicalIDs.Buildings.westSeventeenth135_139,
+                CanonicalIDs.Buildings.westSeventeenth136,
+                CanonicalIDs.Buildings.westSeventeenth138,
+                CanonicalIDs.Buildings.rubinMuseum,
+                CanonicalIDs.Buildings.westEighteenth112
+            ]
+            var i = 0
+            for bid in ordered where corridor.contains(bid) && todaySetOut.contains(where: { $0.buildingId == bid }) {
+                let bname = CanonicalIDs.Buildings.getName(for: bid) ?? bid
+                let streams = DSNYCollectionSchedule.getWasteStreams(for: bid, on: day)
+                let desc = "Set out: \((streams.isEmpty ? [WasteType.trash] : streams).map { $0.rawValue }.joined(separator: ", "))"
+                let item = TaskItem(
+                    id: "dsny_setout_\(bid)_\(Int(current.timeIntervalSince1970))",
+                    title: "DSNY Set Out — \(bname)",
+                    description: desc,
+                    buildingId: bid,
+                    dueDate: current,
+                    urgency: .urgent,
+                    isCompleted: false,
+                    category: CanonicalIDs.TaskCategories.sanitation,
+                    requiresPhoto: false
+                )
+                dsny.append(item)
+                current = current.addingTimeInterval(durations[i % durations.count]); i += 1
+            }
+        }
+        // Morning retrievals for buildings set out yesterday
+        let yesterday = day.previousDay()
+        let setOutYesterday = DSNYCollectionSchedule.getBuildingsForSetOutAll(on: yesterday)
+        func retrievalWorker(for buildingId: String, on today: CollectionDay) -> String {
+            switch buildingId {
+            case CanonicalIDs.Buildings.perry68: return today == .saturday ? CanonicalIDs.Workers.shawnMagloire : CanonicalIDs.Workers.kevinDutan
+            case CanonicalIDs.Buildings.firstAvenue123, CanonicalIDs.Buildings.springStreet178, CanonicalIDs.Buildings.chambers148: return CanonicalIDs.Workers.edwinLema
+            default: return ""
+            }
+        }
+        for sched in setOutYesterday {
+            let bid = sched.buildingId
+            guard retrievalWorker(for: bid, on: day) == workerId else { continue }
+            let due = sched.retrievalTime.map { cal.date(bySettingHour: $0.hour, minute: $0.minute, second: 0, of: now) ?? now } ?? (cal.date(bySettingHour: 9, minute: 0, second: 0, of: now) ?? now)
+            let bname = CanonicalIDs.Buildings.getName(for: bid) ?? bid
+            let item = TaskItem(
+                id: "dsny_retrieval_\(bid)_\(Int(due.timeIntervalSince1970))",
+                title: "DSNY Bring In — \(bname)",
+                description: "Bring bins/bags inside after collection",
+                buildingId: bid,
+                dueDate: due,
+                urgency: .high,
+                isCompleted: false,
+                category: CanonicalIDs.TaskCategories.sanitation,
+                requiresPhoto: false
+            )
+            dsny.append(item)
+        }
+        // Subtle morning retrieval staggering (visual order only)
+        // Inverse of evening corridor staggering for Chelsea corridor buildings
+        if !dsny.isEmpty {
+            let corridorOrderedEvening: [String] = [
+                CanonicalIDs.Buildings.westSeventeenth117,
+                CanonicalIDs.Buildings.westSeventeenth135_139,
+                CanonicalIDs.Buildings.westSeventeenth136,
+                CanonicalIDs.Buildings.westSeventeenth138,
+                CanonicalIDs.Buildings.rubinMuseum,
+                CanonicalIDs.Buildings.westEighteenth112
+            ]
+            let morningOrder = corridorOrderedEvening.reversed()
+            var offsets: [String: TimeInterval] = [:]
+            var minuteOffset: TimeInterval = 0
+            for bid in morningOrder {
+                offsets[bid] = minuteOffset
+                minuteOffset += 2 * 60 // 2-minute steps, subtle
+            }
+            dsny = dsny.map { t in
+                guard t.title.hasPrefix("DSNY Bring In —"), let bid = t.buildingId, let baseDue = t.dueDate, let off = offsets[bid] else { return t }
+                return TaskItem(
+                    id: t.id,
+                    title: t.title,
+                    description: t.description,
+                    buildingId: t.buildingId,
+                    dueDate: baseDue.addingTimeInterval(off),
+                    urgency: t.urgency,
+                    isCompleted: t.isCompleted,
+                    category: t.category,
+                    requiresPhoto: t.requiresPhoto
+                )
+            }
+        }
+        if !dsny.isEmpty {
+            // Deduplicate by (title + buildingId + dueDate minute) to avoid accidental doubles
+            let existingKeys: Set<String> = Set(hydrated.map { h in
+                let minute = Int((h.dueDate ?? Date.distantPast).timeIntervalSince1970 / 60)
+                return "\(h.title)|\(h.buildingId ?? "")|\(minute)"
+            })
+            let extra = dsny.filter { t in
+                let minute = Int((t.dueDate ?? Date.distantPast).timeIntervalSince1970 / 60)
+                let key = "\(t.title)|\(t.buildingId ?? "")|\(minute)"
+                return !existingKeys.contains(key)
+            }
+            hydrated.append(contentsOf: extra)
+        }
+
+        self.todaysTasks = hydrated.sorted { ($0.dueDate ?? .distantFuture) < ($1.dueDate ?? .distantFuture) }
+        print("  ✅ [HYDRATION] WorkerDashboard: Assigned \(self.todaysTasks.count) tasks (bridge + DSNY where applicable).")
+        print("  [HYDRATION_CONFIRMATION] WorkerDashboard: First 3 tasks - [\(self.todaysTasks.prefix(3).map { $0.title }.joined(separator: ", "))]")
+
+        computeDerivedStreams()
+        await updateHeroTileProperties()
     }
     
     private func loadScheduleWeek() async {
@@ -3172,7 +3221,21 @@ public class WorkerDashboardViewModel: ObservableObject {
         // Heuristic tasks based on suggestion kind/title
         var tasks: [WeatherTaskV2] = []
         let lower = s.title.lowercased()
-        if lower.contains("dsny") {
+
+        // Specialization: Mercedes only needs rain mat prompts for 112 W 18th and 117 W 17th
+        if worker?.name.localizedCaseInsensitiveContains("Mercedes") == true {
+            // Known IDs for those buildings (per existing comments): 112 W 18th -> "7", 117 W 17th -> "9"
+            let allowedIds: Set<String> = ["7", "9"]
+            let name = building.name.lowercased()
+            let nameMatch = name.contains("112 w 18") || name.contains("112 west 18") || name.contains("117 w 17") || name.contains("117 west 17")
+            guard allowedIds.contains(building.id) || nameMatch else { return nil }
+
+            tasks = [
+                WeatherTaskV2(id: UUID().uuidString, title: "Deploy rain mats at entrances", notes: "Main and side entrances", estimatedMinutes: 5, cautions: ["Place securely to avoid trips"], requiresPhoto: false),
+                WeatherTaskV2(id: UUID().uuidString, title: "Check mats inside vestibule", notes: "Reduce slip risk", estimatedMinutes: 5, cautions: [], requiresPhoto: false),
+                WeatherTaskV2(id: UUID().uuidString, title: "Dry entrance area (mop/squeegee)", notes: nil, estimatedMinutes: 8, cautions: ["Wet floor sign if needed"], requiresPhoto: false)
+            ]
+        } else if lower.contains("dsny") {
             tasks = [
                 WeatherTaskV2(id: UUID().uuidString, title: "Secure bags", notes: nil, estimatedMinutes: 10, cautions: ["Avoid blocking entrances"], requiresPhoto: true),
                 WeatherTaskV2(id: UUID().uuidString, title: "Check mats inside vestibule", notes: "Reduce slip risk", estimatedMinutes: 5, cautions: [], requiresPhoto: false),
@@ -3191,6 +3254,9 @@ public class WorkerDashboardViewModel: ObservableObject {
                 WeatherTaskV2(id: UUID().uuidString, title: "Courtyard check", notes: nil, estimatedMinutes: 10, cautions: ["Watch for slippery surfaces"], requiresPhoto: false)
             ]
         }
+
+        // Limit to up to 3 tasks for a compact V2 card
+        tasks = Array(tasks.prefix(3))
 
         let icon = iconForSuggestionTitle(lower)
         let headline = s.subtitle
@@ -3216,7 +3282,7 @@ public class WorkerDashboardViewModel: ObservableObject {
         return "lightbulb"
     }
 
-    public func startWeatherFlow(_ s: WeatherSuggestionV2) {
+    func startWeatherFlow(_ s: WeatherSuggestionV2) {
         // Log event
         let props: [String: Any] = ["buildingId": s.buildingId, "workerId": session.user?.id ?? "", "hourOfDay": Calendar.current.component(.hour, from: Date())]
         AnalyticsManager.shared.track(AnalyticsEvent(name: .weatherCardStart, properties: props))
@@ -4368,7 +4434,7 @@ public class WorkerDashboardViewModel: ObservableObject {
     /// Get real violation count for specific building from compiled NYC data
     /// UPDATED: Corrected based on verified building unit counts
     private func getRealViolationCount(for building: CoreTypes.NamedCoordinate) -> Int {
-        // CORRECTED NYC data with accurate unit counts from Franco Management
+        // CORRECTED NYC data with accurate unit counts from FME (Franco Management Enterprises)
         let correctedViolationData: [String: Int] = [
             // CORRECTED: Major revisions based on accurate unit counts
             "148 Chambers Street": 8, // Corrected: 8 res units (was 15) = fewer violations

@@ -62,7 +62,7 @@ public struct StatusPill: View {
             
             // Status text
             Text(text)
-                .francoTypography(style.typography)
+                .opsTypography(style.typography)
                 .foregroundColor(textColor)
         }
         .padding(.horizontal, style.horizontalPadding)
@@ -400,4 +400,3 @@ extension StatusPill {
         }
     }
 }
-

@@ -260,7 +260,7 @@ public final class RouteManager: ObservableObject {
         
         return RouteItem(
             id: nextSequence.id,
-            buildingName: nextOperation.name,
+            buildingName: nextSequence.buildingName,
             buildingId: nextSequence.buildingId,
             time: formatTimeRange(start: nextSequence.arrivalTime, duration: nextSequence.estimatedDuration),
             icon: iconForOperationType(nextOperation.category.rawValue),
@@ -277,7 +277,7 @@ public final class RouteManager: ObservableObject {
             
             return RouteItem(
                 id: sequence.id,
-                buildingName: operation.name,
+                buildingName: sequence.buildingName,
                 buildingId: sequence.buildingId,
                 time: formatTimeRange(start: sequence.arrivalTime, duration: sequence.estimatedDuration),
                 icon: iconForOperationType(operation.category.rawValue),
@@ -301,7 +301,7 @@ public final class RouteManager: ObservableObject {
                     
                     return RouteItem(
                         id: "\(sequence.id)_\(dayOffset)",
-                        buildingName: operation.name,
+                        buildingName: sequence.buildingName,
                         buildingId: sequence.buildingId,
                         time: formatTimeRange(start: sequence.arrivalTime, duration: sequence.estimatedDuration),
                         icon: iconForOperationType(operation.category.rawValue),
@@ -330,14 +330,14 @@ public final class RouteManager: ObservableObject {
     
     private func iconForOperationType(_ type: String) -> String {
         switch type.lowercased() {
-        case "cleaning":
+        case "sweeping", "hosing", "vacuuming", "mopping", "poster removal", "treepit cleaning", "stairwell cleaning", "laundry room":
             return "sparkles"
+        case "trash collection", "bin management", "dsny setout":
+            return "trash.circle"
+        case "building inspection", "inspection":
+            return "magnifyingglass.circle"
         case "maintenance":
-            return "wrench"
-        case "inspection":
-            return "magnifyingglass"
-        case "delivery":
-            return "box"
+            return "wrench.and.screwdriver"
         default:
             return "building.2"
         }

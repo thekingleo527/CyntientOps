@@ -94,6 +94,9 @@ struct WeatherHybridCardV2: View {
         let fmt = DateIntervalFormatter()
         fmt.dateStyle = .none
         fmt.timeStyle = .short
-        return fmt.string(from: window)
+        // DateIntervalFormatter can return nil; provide a sensible fallback
+        if let s = fmt.string(from: window) { return s }
+        let df = DateFormatter(); df.dateStyle = .none; df.timeStyle = .short
+        return "\(df.string(from: window.start)) – \(df.string(from: window.end))"
     }
 }

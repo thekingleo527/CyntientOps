@@ -206,7 +206,7 @@ public final class OfflineQueueManager: ObservableObject {
         
         // Simulate task completion API call
         // In production, this would call the actual service
-        AppLog.network.log("Processing offline task completion: \(data.taskId)")
+        print("Processing offline task completion: \(data.taskId)")
         
         // Add small delay to simulate network call
         try await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
@@ -219,7 +219,7 @@ public final class OfflineQueueManager: ObservableObject {
             throw OfflineQueueError.invalidActionData
         }
         
-        AppLog.network.log("Processing offline clock-in: \(data.workerId) at \(data.buildingId)")
+        print("Processing offline clock-in: \(data.workerId) at \(data.buildingId)")
         try await Task.sleep(nanoseconds: 500_000_000)
         
         return true
@@ -230,7 +230,7 @@ public final class OfflineQueueManager: ObservableObject {
             throw OfflineQueueError.invalidActionData
         }
         
-        AppLog.network.log("Processing offline clock-out: \(data.workerId)")
+        print("Processing offline clock-out: \(data.workerId)")
         try await Task.sleep(nanoseconds: 500_000_000)
         
         return true
@@ -241,7 +241,7 @@ public final class OfflineQueueManager: ObservableObject {
             throw OfflineQueueError.invalidActionData
         }
         
-        AppLog.network.log("Processing offline photo upload: \(data.taskId)")
+        print("Processing offline photo upload: \(data.taskId)")
         try await Task.sleep(nanoseconds: 1_000_000_000) // 1 second for photo upload
         
         return true
@@ -252,14 +252,14 @@ public final class OfflineQueueManager: ObservableObject {
             throw OfflineQueueError.invalidActionData
         }
         
-        AppLog.network.log("Processing offline compliance update: \(data.buildingId)")
+        print("Processing offline compliance update: \(data.buildingId)")
         try await Task.sleep(nanoseconds: 500_000_000)
         
         return true
     }
     
     private func processSyncData(_ action: OfflineAction) async throws -> Bool {
-        AppLog.network.log("Processing offline sync data")
+        print("Processing offline sync data")
         try await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds for sync
         
         return true

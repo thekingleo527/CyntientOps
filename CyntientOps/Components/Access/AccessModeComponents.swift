@@ -56,9 +56,9 @@ public struct AccessModeCard: View {
             // Main action button
             actionButton
         }
-        .francoCardPadding()
+        .opsCardPadding()
         .background(backgroundView)
-        .francoShadow(CyntientOpsDesign.Shadow.md)
+        .opsShadow(CyntientOpsDesign.Shadow.md)
         .scaleEffect(isPressed ? 0.98 : 1.0)
         .animation(CyntientOpsDesign.Animations.quick, value: isPressed)
         .task {
@@ -101,11 +101,11 @@ public struct AccessModeCard: View {
             
             VStack(alignment: .leading, spacing: 2) {
                 Text(accessType.title)
-                    .francoTypography(CyntientOpsDesign.Typography.headline)
+                    .opsTypography(CyntientOpsDesign.Typography.headline)
                     .foregroundColor(accessType.color)
                 
                 Text(accessType.subtitle)
-                    .francoTypography(CyntientOpsDesign.Typography.caption)
+                    .opsTypography(CyntientOpsDesign.Typography.caption)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
             }
             
@@ -125,12 +125,12 @@ public struct AccessModeCard: View {
     private var accessDescription: some View {
         VStack(alignment: .leading, spacing: CyntientOpsDesign.Spacing.xs) {
             Text(accessType.primaryDescription)
-                .francoTypography(CyntientOpsDesign.Typography.subheadline)
+                .opsTypography(CyntientOpsDesign.Typography.subheadline)
                 .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
             
             if let secondaryDesc = accessType.secondaryDescription {
                 Text(secondaryDesc)
-                    .francoTypography(CyntientOpsDesign.Typography.caption)
+                    .opsTypography(CyntientOpsDesign.Typography.caption)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -142,7 +142,7 @@ public struct AccessModeCard: View {
     private var primaryWorkerSection: some View {
         VStack(alignment: .leading, spacing: CyntientOpsDesign.Spacing.xs) {
             Text("Primary Coverage")
-                .francoTypography(CyntientOpsDesign.Typography.subheadline)
+                .opsTypography(CyntientOpsDesign.Typography.subheadline)
                 .fontWeight(.medium)
                 .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
             
@@ -159,7 +159,7 @@ public struct AccessModeCard: View {
             }
         }
         .padding(CyntientOpsDesign.Spacing.sm)
-        .francoGlassBackground(cornerRadius: CyntientOpsDesign.CornerRadius.md)
+        .opsGlassBackground(cornerRadius: CyntientOpsDesign.CornerRadius.md)
     }
     
     // MARK: - Emergency Content
@@ -179,22 +179,22 @@ public struct AccessModeCard: View {
     private var trainingContent: some View {
         VStack(alignment: .leading, spacing: CyntientOpsDesign.Spacing.xs) {
             Text("Training Progress")
-                .francoTypography(CyntientOpsDesign.Typography.caption)
+                .opsTypography(CyntientOpsDesign.Typography.caption)
                 .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
             
             HStack {
                 Text("0% Complete")
-                    .francoTypography(CyntientOpsDesign.Typography.caption)
+                    .opsTypography(CyntientOpsDesign.Typography.caption)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
                 
                 Spacer()
             }
             
-            FrancoMetricsProgress(value: 0, role: .worker)
+            OpsMetricsProgress(value: 0, role: .worker)
                 .frame(height: 4)
         }
         .padding(CyntientOpsDesign.Spacing.sm)
-        .francoGlassBackground(cornerRadius: CyntientOpsDesign.CornerRadius.sm)
+        .opsGlassBackground(cornerRadius: CyntientOpsDesign.CornerRadius.sm)
     }
     
     // MARK: - Supporting Views
@@ -202,12 +202,12 @@ public struct AccessModeCard: View {
     private var emergencyTimestamp: some View {
         VStack(alignment: .trailing, spacing: 2) {
             Text("EMERGENCY")
-                .francoTypography(CyntientOpsDesign.Typography.caption2)
+                .opsTypography(CyntientOpsDesign.Typography.caption2)
                 .fontWeight(.bold)
                 .foregroundColor(CyntientOpsDesign.DashboardColors.critical)
             
             Text(Date().formatted(.dateTime.hour().minute()))
-                .francoTypography(CyntientOpsDesign.Typography.caption2)
+                .opsTypography(CyntientOpsDesign.Typography.caption2)
                 .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
         }
     }
@@ -215,11 +215,11 @@ public struct AccessModeCard: View {
     private var currentUserIndicator: some View {
         VStack(alignment: .trailing, spacing: 2) {
             Text("You")
-                .francoTypography(CyntientOpsDesign.Typography.caption2)
+                .opsTypography(CyntientOpsDesign.Typography.caption2)
                 .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
             
             Text("Coverage Access")
-                .francoTypography(CyntientOpsDesign.Typography.caption)
+                .opsTypography(CyntientOpsDesign.Typography.caption)
                 .fontWeight(.medium)
                 .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
         }
@@ -232,7 +232,7 @@ public struct AccessModeCard: View {
                 .tint(CyntientOpsDesign.DashboardColors.primaryText)
             
             Text("Loading worker information...")
-                .francoTypography(CyntientOpsDesign.Typography.caption)
+                .opsTypography(CyntientOpsDesign.Typography.caption)
                 .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
         }
         .padding(CyntientOpsDesign.Spacing.sm)
@@ -251,11 +251,11 @@ public struct AccessModeCard: View {
             
             VStack(alignment: .leading, spacing: 2) {
                 Text("No primary worker assigned")
-                    .francoTypography(CyntientOpsDesign.Typography.caption)
+                    .opsTypography(CyntientOpsDesign.Typography.caption)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
                 
                 Text("Contact management for assistance")
-                    .francoTypography(CyntientOpsDesign.Typography.caption2)
+                    .opsTypography(CyntientOpsDesign.Typography.caption2)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
             }
             
@@ -270,7 +270,7 @@ public struct AccessModeCard: View {
                 .foregroundColor(CyntientOpsDesign.DashboardColors.critical)
             
             Text("Emergency situation detected. Full access to all building systems and procedures authorized.")
-                .francoTypography(CyntientOpsDesign.Typography.caption2)
+                .opsTypography(CyntientOpsDesign.Typography.caption2)
                 .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
         }
         .padding(CyntientOpsDesign.Spacing.xs)
@@ -329,7 +329,7 @@ public struct AccessModeCard: View {
                     .font(.subheadline)
                 
                 Text(accessType.actionTitle)
-                    .francoTypography(CyntientOpsDesign.Typography.subheadline)
+                    .opsTypography(CyntientOpsDesign.Typography.subheadline)
                     .fontWeight(.medium)
                 
                 Spacer()
@@ -454,7 +454,7 @@ public struct EmergencyActionButton: View {
     public var body: some View {
         Button(action: action) {
             Text(title)
-                .francoTypography(CyntientOpsDesign.Typography.caption)
+                .opsTypography(CyntientOpsDesign.Typography.caption)
                 .fontWeight(isPrimary ? .bold : .medium)
                 .foregroundColor(.white)
                 .padding(.horizontal, 16)
@@ -495,4 +495,3 @@ public struct AccessTypeDetector {
         return assignedBuildings.contains(buildingId) ? .coverage : .coverage
     }
 }
-

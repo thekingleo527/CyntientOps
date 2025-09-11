@@ -42,7 +42,7 @@ Icon?
 .vscode/
 .idea/
 
-# FrancoSphere backup files (prevent bloat)
+# CyntientOps backup files (prevent bloat)
 *.backup.*
 *.surgical_backup.*
 *.comprehensive_backup.*

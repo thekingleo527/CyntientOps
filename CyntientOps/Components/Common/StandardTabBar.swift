@@ -123,8 +123,8 @@ struct StandardTabBar: View {
                 .overlay(
                     // Top border
                     Rectangle()
-                        .frame(height: 1)
                         .fill(Color.white.opacity(0.1))
+                        .frame(height: 1)
                         .offset(y: -25)
                 )
             }
@@ -259,7 +259,6 @@ struct StandardTabBar: View {
             
             // Accent line
             Rectangle()
-                .frame(height: 2)
                 .fill(
                     LinearGradient(
                         colors: [userRole.primaryColor.opacity(0.6), userRole.accentColor.opacity(0.4)],
@@ -267,6 +266,7 @@ struct StandardTabBar: View {
                         endPoint: .trailing
                     )
                 )
+                .frame(height: 2)
                 .offset(y: -24)
         }
     }
@@ -294,22 +294,22 @@ struct StandardTabBar: View {
     private func updateBadgeForUpdate(_ update: CoreTypes.DashboardUpdate) {
         // Update badge counts based on dashboard updates
         switch update.type {
-        case .taskCompleted, .taskAssignmentChanged:
+        case .taskCompleted, .taskUpdated:
             if let index = tabs.firstIndex(where: { $0.id == "tasks" }) {
                 badgeCounts["tasks"] = getBadgeCount(for: "tasks")
             }
             
-        case .complianceChanged, .buildingComplianceChanged:
+        case .complianceStatusChanged, .complianceUpdate:
             if let index = tabs.firstIndex(where: { $0.id == "compliance" }) {
                 badgeCounts["compliance"] = getAlertCount(for: "compliance")
             }
             
-        case .photoEvidenceUpdated:
+        case .workerPhotoUploaded:
             if let index = tabs.firstIndex(where: { $0.id == "photos" }) {
                 badgeCounts["photos"] = getNewCount(for: "photos")
             }
             
-        case .performanceMetricsChanged:
+        case .portfolioMetricsChanged, .buildingMetricsChanged, .monthlyMetricsUpdated:
             if let index = tabs.firstIndex(where: { $0.id == "performance" }) {
                 badgeCounts["performance"] = getSyncCount(for: "performance")
             }
@@ -355,7 +355,7 @@ struct StandardTabBar: View {
     private func getSyncCount(for tabId: String) -> Int {
         switch tabId {
         case "performance":
-            return container.dashboardSync.isActivelySyncing ? 1 : 0
+            return dashboardSync.pendingUpdatesCount > 0 ? 1 : 0
         default:
             return 0
         }

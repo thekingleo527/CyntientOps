@@ -10,7 +10,7 @@
 
 import SwiftUI
 
-public struct ClientDashboardPortfolioHeroCard: View {
+public struct ClientDashboardPortfolioHeroCardAlt: View {
     let portfolioHealth: CoreTypes.PortfolioHealth
     let realtimeMetrics: CoreTypes.RealtimePortfolioMetrics
     let monthlyMetrics: CoreTypes.MonthlyMetrics
@@ -84,19 +84,19 @@ public struct ClientDashboardPortfolioHeroCard: View {
                     
                     // Real-time Metrics from OperationalDataManager
                     VStack(spacing: CyntientOpsDesign.Spacing.sm) {
-                        ClientPortfolioMetric(
+                        ClientPortfolioMetricAlt(
                             title: "Critical Issues",
                             value: "\(portfolioHealth.criticalIssues)",
                             color: portfolioHealth.criticalIssues == 0 ? CyntientOpsDesign.DashboardColors.success : CyntientOpsDesign.DashboardColors.critical
                         )
                         
-                        ClientPortfolioMetric(
+                        ClientPortfolioMetricAlt(
                             title: "Budget Used",
                             value: monthlyMetrics.monthlyBudget > 0 ? "\(Int(monthlyMetrics.currentSpend / monthlyMetrics.monthlyBudget * 100))%" : "N/A",
                             color: CyntientOpsDesign.DashboardColors.workerAccent
                         )
                         
-                        ClientPortfolioMetric(
+                        ClientPortfolioMetricAlt(
                             title: "Trend",
                             value: portfolioHealth.trend.rawValue.capitalized,
                             color: portfolioHealth.trend == .improving ? CyntientOpsDesign.DashboardColors.success : CyntientOpsDesign.DashboardColors.warning
@@ -124,7 +124,7 @@ public struct ClientDashboardPortfolioHeroCard: View {
 
 // MARK: - Supporting Component
 
-struct ClientPortfolioMetric: View {
+struct ClientPortfolioMetricAlt: View {
     let title: String
     let value: String
     let color: Color

@@ -695,27 +695,27 @@ extension String {
 // MARK: - View Extensions (ENHANCED)
 extension View {
     // Typography
-    func francoTypography(_ style: CyntientOpsDesign.Typography.FontStyle) -> some View {
+    func opsTypography(_ style: CyntientOpsDesign.Typography.FontStyle) -> some View {
         self.font(style.font)
     }
     
     // Spacing
-    func francoPadding(_ spacing: CGFloat = CyntientOpsDesign.Spacing.md) -> some View {
+    func opsPadding(_ spacing: CGFloat = CyntientOpsDesign.Spacing.md) -> some View {
         self.padding(spacing)
     }
     
     // Card padding
-    func francoCardPadding() -> some View {
+    func opsCardPadding() -> some View {
         self.padding(CyntientOpsDesign.Spacing.cardPadding)
     }
     
     // Property card padding (NEW for v6.0)
-    func francoPropertyCardPadding() -> some View {
+    func opsPropertyCardPadding() -> some View {
         self.padding(CyntientOpsDesign.Spacing.propertyCardSpacing)
     }
     
     // Shadow
-    func francoShadow(_ shadow: CyntientOpsDesign.Shadow.ShadowStyle = CyntientOpsDesign.Shadow.md) -> some View {
+    func opsShadow(_ shadow: CyntientOpsDesign.Shadow.ShadowStyle = CyntientOpsDesign.Shadow.md) -> some View {
         self.shadow(
             color: shadow.color,
             radius: shadow.radius,
@@ -725,12 +725,12 @@ extension View {
     }
     
     // Corner radius
-    func francoCornerRadius(_ radius: CGFloat = CyntientOpsDesign.CornerRadius.lg) -> some View {
+    func opsCornerRadius(_ radius: CGFloat = CyntientOpsDesign.CornerRadius.lg) -> some View {
         self.clipShape(RoundedRectangle(cornerRadius: radius))
     }
     
     // Glass background - Updated for Dark Theme
-    func francoGlassBackground(
+    func opsGlassBackground(
         cornerRadius: CGFloat = CyntientOpsDesign.CornerRadius.xl,
         opacity: Double = CyntientOpsDesign.Glass.backgroundOpacity
     ) -> some View {
@@ -742,7 +742,7 @@ extension View {
                         .stroke(CyntientOpsDesign.DashboardColors.borderSubtle, lineWidth: 1)
                 )
         )
-        .francoShadow()
+        .opsShadow()
     }
     
     // Dark card background
@@ -763,36 +763,36 @@ extension View {
                         .stroke(CyntientOpsDesign.DashboardColors.borderSubtle, lineWidth: 1)
                 )
         )
-        .francoShadow()
+        .opsShadow()
     }
     
     // PropertyCard glass background (NEW for v6.0)
-    func francoPropertyCardBackground() -> some View {
-        self.francoGlassBackground(
+    func opsPropertyCardBackground() -> some View {
+        self.opsGlassBackground(
             cornerRadius: CyntientOpsDesign.CornerRadius.propertyCard,
             opacity: CyntientOpsDesign.Glass.cardBackgroundOpacity
         )
     }
     
     // Dashboard role-specific styling (NEW for v6.0)
-    func francoDashboardStyle(for role: DashboardRole) -> some View {
+    func opsDashboardStyle(for role: DashboardRole) -> some View {
         self.foregroundColor(role.primaryColor)
     }
 }
 
 // MARK: - Animation Modifiers (FIXED)
 extension View {
-    func francoAnimation<V: Equatable>(_ animation: SwiftUI.Animation = CyntientOpsDesign.Animations.standard, value: V) -> some View {
+    func opsAnimation<V: Equatable>(_ animation: SwiftUI.Animation = CyntientOpsDesign.Animations.standard, value: V) -> some View {
         self.animation(animation, value: value)
     }
     
     // Property card hover animation (NEW for v6.0)
-    func francoPropertyCardAnimation<V: Equatable>(value: V) -> some View {
+    func opsPropertyCardAnimation<V: Equatable>(value: V) -> some View {
         self.animation(CyntientOpsDesign.Animations.propertyCardHover, value: value)
     }
     
     // Dashboard transition animation (NEW for v6.0)
-    func francoDashboardTransition<V: Equatable>(value: V) -> some View {
+    func opsDashboardTransition<V: Equatable>(value: V) -> some View {
         self.animation(CyntientOpsDesign.Animations.dashboardTransition, value: value)
     }
 }
@@ -872,13 +872,13 @@ extension UIEdgeInsets {
 }
 
 extension View {
-    func francoSafeArea(_ edges: Edge.Set = .all) -> some View {
+    func opsSafeArea(_ edges: Edge.Set = .all) -> some View {
         self.modifier(SafeAreaHelper(edges: edges))
     }
 }
 
 // MARK: - Loading State (Updated for Dark Theme)
-struct FrancoLoadingView: View {
+struct OpsLoadingView: View {
     let message: String
     let role: DashboardRole?
     
@@ -894,16 +894,16 @@ struct FrancoLoadingView: View {
                 .scaleEffect(1.2)
             
             Text(message)
-                .francoTypography(CyntientOpsDesign.Typography.body)
+                .opsTypography(CyntientOpsDesign.Typography.body)
                 .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
         }
-        .francoCardPadding()
-        .francoGlassBackground()
+        .opsCardPadding()
+        .opsGlassBackground()
     }
 }
 
 // MARK: - Empty State (Updated for Dark Theme)
-struct FrancoEmptyState: View {
+struct OpsEmptyState: View {
     let icon: String
     let title: String
     let message: String
@@ -935,11 +935,11 @@ struct FrancoEmptyState: View {
             
             VStack(spacing: CyntientOpsDesign.Spacing.sm) {
                 Text(title)
-                    .francoTypography(CyntientOpsDesign.Typography.headline)
+                    .opsTypography(CyntientOpsDesign.Typography.headline)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                 
                 Text(message)
-                    .francoTypography(CyntientOpsDesign.Typography.body)
+                    .opsTypography(CyntientOpsDesign.Typography.body)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
                     .multilineTextAlignment(.center)
             }
@@ -958,13 +958,13 @@ struct FrancoEmptyState: View {
                 .padding(.top, CyntientOpsDesign.Spacing.sm)
             }
         }
-        .francoCardPadding()
+        .opsCardPadding()
         .frame(maxWidth: 400)
     }
 }
 
 // MARK: - Metrics Display Components (Updated for Dark Theme)
-struct FrancoMetricsProgress: View {
+struct OpsMetricsProgress: View {
     let value: Double
     let role: DashboardRole?
     
@@ -976,7 +976,7 @@ struct FrancoMetricsProgress: View {
     }
 }
 
-struct FrancoStatusIndicator: View {
+struct OpsStatusIndicator: View {
     let isActive: Bool
     let role: DashboardRole?
     
@@ -989,6 +989,8 @@ struct FrancoStatusIndicator: View {
             )
     }
 }
+
+// End of rebrand: no legacy typealiases retained
 
 
 // Helper view for color preview

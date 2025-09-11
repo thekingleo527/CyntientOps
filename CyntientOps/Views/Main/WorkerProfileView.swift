@@ -214,7 +214,7 @@ struct ProfileHeaderView: View {
             }
         }
         .padding(28)
-        .francoGlassCard(intensity: GlassIntensity.regular)
+        .opsGlassCard(intensity: GlassIntensity.regular)
     }
 }
 
@@ -322,7 +322,7 @@ struct ProfilePerformanceMetricsView: View {
             .padding(.top, 8)
         }
         .padding(24)
-        .francoGlassCard(intensity: GlassIntensity.regular)
+        .opsGlassCard(intensity: GlassIntensity.regular)
     }
     
     private func formatTime(_ seconds: TimeInterval) -> String {
@@ -420,7 +420,7 @@ struct RecentTasksView: View {
             }
         }
         .padding(24)
-        .francoGlassCard(intensity: GlassIntensity.regular)
+        .opsGlassCard(intensity: GlassIntensity.regular)
     }
 }
 
@@ -570,7 +570,7 @@ struct SkillsView: View {
             }
         }
         .padding(24)
-        .francoGlassCard(intensity: GlassIntensity.regular)
+        .opsGlassCard(intensity: GlassIntensity.regular)
     }
 }
 
@@ -993,7 +993,7 @@ struct ProfileWeeklyScheduleView: View {
             }
         }
         .padding(24)
-        .francoGlassCard(intensity: GlassIntensity.regular)
+        .opsGlassCard(intensity: GlassIntensity.regular)
     }
 }
 
@@ -1042,7 +1042,7 @@ struct ProfileAssignedBuildingsViewEmbedded: View {
             }
         }
         .padding(24)
-        .francoGlassCard(intensity: GlassIntensity.regular)
+        .opsGlassCard(intensity: GlassIntensity.regular)
     }
 }
 

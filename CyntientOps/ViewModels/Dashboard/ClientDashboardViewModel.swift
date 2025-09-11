@@ -108,6 +108,10 @@ public final class ClientDashboardViewModel: ObservableObject {
     
     private var cancellables = Set<AnyCancellable>()
     private var refreshTask: Task<Void, Never>?
+
+    // Route-derived portfolio view (HydrationFacade)
+    @Published public private(set) var routePortfolioTodayTasks: [CoreTypes.ContextualTask] = []
+    @Published public private(set) var routePortfolioWorkerIds: [String] = []
     private let updateDebouncer = Debouncer(delay: 0.3)
     
     // MARK: - Computed Properties
@@ -451,68 +455,34 @@ public final class ClientDashboardViewModel: ObservableObject {
     
     /// Load client-specific data
     public func loadClientData() async {
-        // Get current client user
-        guard let currentUser = session.user,
-              currentUser.role == "client" else {
-            print("⚠️ No client user logged in")
+        guard let currentUser = session.user, currentUser.role == "client" else {
+            print("⚠️ [DIAGNOSTIC] ClientDashboard: Aborting data load - no client user in session.")
             return
         }
         
-        print("🔍 DEBUG: Loading client data for \(currentUser.name) (\(currentUser.email))")
+        print("✅ [DIAGNOSTIC] ClientDashboard: Starting data load for client: \(currentUser.name)")
         
-        // Get client ID and buildings
         if let clientData = try? await container.client.getClientForUser(email: currentUser.email) {
             self.clientId = clientData.id
             self.clientName = currentUser.name
             self.clientEmail = currentUser.email
             
-            // Load real building and compliance data
             await loadClientBuildings()
             await loadRealComplianceData()
             
-            // Load only this client's buildings
-            let clientBuildingIds = try? await container.client.getBuildingsForClient(clientData.id)
-            
-            print("🔍 DEBUG: Client \(clientData.id) has \(clientBuildingIds?.count ?? 0) buildings assigned")
-            
-            if let buildingCoordinates = clientBuildingIds {
-                // Get full building data including image asset names from database
-                do {
-                    let buildingData = try await container.database.query(
-                        "SELECT id, name, address, latitude, longitude, imageAssetName, numberOfUnits, yearBuilt, squareFootage FROM buildings WHERE id IN (" +
-                        buildingCoordinates.map { _ in "?" }.joined(separator: ",") + ")",
-                        buildingCoordinates.map { $0.id }
-                    )
-                    
-                    self.clientBuildingsWithImages = buildingData.map { row in
-                        let buildingId = row["id"] as? String ?? ""
-                        return CoreTypes.BuildingWithImage(
-                            id: buildingId,
-                            name: row["name"] as? String ?? "",
-                            address: row["address"] as? String ?? "",
-                            latitude: row["latitude"] as? Double ?? 0.0,
-                            longitude: row["longitude"] as? Double ?? 0.0,
-                            imageAssetName: getImageAssetName(for: buildingId),
-                            numberOfUnits: row["numberOfUnits"] as? Int,
-                            yearBuilt: row["yearBuilt"] as? Int,
-                            squareFootage: row["squareFootage"] as? Double
-                        )
-                    }
-                    
-                    // Create coordinate array for backwards compatibility
-                    self.clientBuildings = clientBuildingsWithImages.map { $0.coordinate }
-                } catch {
-                    print("⚠️ Failed to load buildings with images: \(error)")
-                    // No fallback to all buildings in production; maintain strict client isolation
-                    self.clientBuildingsWithImages = []
-                    self.clientBuildings = []
-                }
-                
-                print("✅ Client \(clientData.name) has access to \(clientBuildings.count) buildings")
-                
-                // Set map region to focus on client's buildings
-                setInitialRegion(for: self.clientBuildings)
+            guard let clientBuildingCoords = try? await container.client.getBuildingsForClient(clientData.id) else {
+                print("⚠️ [DIAGNOSTIC] ClientDashboard: Client has no buildings assigned.")
+                return
             }
+            
+            print("  ➡️ [DIAGNOSTIC] ClientDashboard: Fetched \(clientBuildingCoords.count) assigned buildings.")
+            print("  [HYDRATION_CONFIRMATION] ClientDashboard: First 3 buildings - [\(clientBuildingCoords.prefix(3).map { $0.name }.joined(separator: ", "))]")
+            self.clientBuildings = clientBuildingCoords
+            self.totalBuildings = clientBuildingCoords.count
+            
+            setInitialRegion(for: self.clientBuildings)
+        } else {
+            print("❌ [DIAGNOSTIC] ClientDashboard: Could not retrieve client data for email \(currentUser.email ?? "N/A").")
         }
     }
     
@@ -530,6 +500,7 @@ public final class ClientDashboardViewModel: ObservableObject {
             group.addTask { await self.loadPortfolioBenchmarks() }
             group.addTask { await self.loadRealPortfolioValues() }
             group.addTask { await self.loadClientTaskData() }
+            group.addTask { await self.loadClientRoutePortfolioData() }
         }
         
         // Update computed metrics
@@ -538,6 +509,83 @@ public final class ClientDashboardViewModel: ObservableObject {
             self.createPortfolioIntelligence()
             self.isLoading = false
             self.lastUpdateTime = Date()
+        }
+    }
+
+    /// Hydrate client dashboard with route-derived, portfolio-scoped tasks and scheduled workers
+    private func loadClientRoutePortfolioData() async {
+        // Determine clientId using existing properties/services
+        var resolvedClientId = self.clientId
+        if resolvedClientId == nil, let email = self.clientEmail {
+            if let client = try? await container.client.getClientForUser(email: email) {
+                resolvedClientId = client.id
+                await MainActor.run { self.clientId = client.id; self.clientName = client.name }
+            }
+        }
+        guard let cid = resolvedClientId else { return }
+
+        do {
+            // Portfolio buildings
+            let buildings = try await container.client.getBuildingsForClient(cid)
+            let buildingIds = Set(buildings.map { $0.id })
+
+            // Today’s worker routes
+            let allRoutes = container.routes.routes
+            let todayWk = Calendar.current.component(.weekday, from: Date())
+            let workersToday = Set(allRoutes.filter { $0.dayOfWeek == todayWk }.map { $0.workerId })
+
+            var tasks: [CoreTypes.ContextualTask] = []
+            var workerIds: Set<String> = []
+
+            for wid in workersToday {
+                let contextual = container.routeBridge.convertSequencesToContextualTasks(for: wid)
+                let filtered = contextual.filter { task in
+                    guard let bid = task.buildingId else { return false }
+                    return buildingIds.contains(bid)
+                }
+                if !filtered.isEmpty { workerIds.insert(wid) }
+                tasks.append(contentsOf: filtered)
+            }
+
+            // DSNY set-out tonight for client buildings
+            let day = CollectionDay.from(weekday: todayWk)
+            let scheduled = Set(DSNYCollectionSchedule.getBuildingsForSetOutAll(on: day).map { $0.buildingId })
+            for bid in buildingIds.intersection(scheduled) {
+                let bname = buildings.first(where: { $0.id == bid })?.name ?? CanonicalIDs.Buildings.getName(for: bid) ?? bid
+                let streams = DSNYCollectionSchedule.getWasteStreams(for: bid, on: day)
+                let time = DSNYCollectionSchedule.allSetOutSchedules[bid]?.setOutTime ?? DSNYTime(hour: 20, minute: 0)
+                let due = Calendar.current.date(bySettingHour: time.hour, minute: time.minute, second: 0, of: Date()) ?? Date()
+                let desc = "Set out: \((streams.isEmpty ? [WasteType.trash] : streams).map { $0.rawValue }.joined(separator: ", "))"
+                let ctx = CoreTypes.ContextualTask(
+                    id: "dsny_setout_ctx_\(bid)_\(Int(due.timeIntervalSince1970))",
+                    title: "DSNY Set Out — \(bname)",
+                    description: desc,
+                    status: .pending,
+                    dueDate: due,
+                    category: .sanitation,
+                    urgency: .urgent,
+                    building: nil,
+                    worker: nil,
+                    buildingId: bid,
+                    buildingName: bname,
+                    assignedWorkerId: nil,
+                    requiresPhoto: false,
+                    estimatedDuration: 15 * 60
+                )
+                tasks.append(ctx)
+            }
+
+            // Deduplicate and sort
+            var seen = Set<String>()
+            let unique = tasks.filter { t in if seen.contains(t.id) { return false } else { seen.insert(t.id); return true } }
+                .sorted { ($0.dueDate ?? .distantFuture) < ($1.dueDate ?? .distantFuture) }
+
+            await MainActor.run {
+                self.routePortfolioTodayTasks = unique
+                self.routePortfolioWorkerIds = Array(workerIds)
+            }
+        } catch {
+            print("⚠️ Failed to load route-derived portfolio data: \(error)")
         }
     }
     
@@ -688,6 +736,8 @@ public final class ClientDashboardViewModel: ObservableObject {
     
     /// Get detailed building infrastructure information for client reporting and vendor coordination
     public func getBuildingOperationalDetails(for buildingName: String) -> (infrastructure: String, accessRequirements: String, inspectionSchedule: String, vendorNotes: String) {
+        // Prefer database-driven operational details when available (async path omitted in sync API)
+        // Note: For now, we fall back to heuristic details below. If needed, add an async variant.
         switch buildingName {
         case let name where name.contains("135-139"):
             return (
@@ -753,6 +803,27 @@ public final class ClientDashboardViewModel: ObservableObject {
                 vendorNotes: "Follow standard building maintenance procedures"
             )
         }
+    }
+
+    private func fetchOperationalDetailsFromDatabase(buildingName: String) async throws -> (String, String, String, String)? {
+        let rows = try await container.database.query(
+            """
+            SELECT infrastructure, access_requirements, inspection_schedule, vendor_notes
+            FROM building_operational_details
+            WHERE building_name = ?
+            LIMIT 1
+            """,
+            [buildingName]
+        )
+        guard let row = rows.first else { return nil }
+        let infra = (row["infrastructure"] as? String) ?? ""
+        let access = (row["access_requirements"] as? String) ?? ""
+        let schedule = (row["inspection_schedule"] as? String) ?? ""
+        let notes = (row["vendor_notes"] as? String) ?? ""
+        if [infra, access, schedule, notes].allSatisfy({ !$0.isEmpty }) {
+            return (infra, access, schedule, notes)
+        }
+        return nil
     }
     
     // MARK: - Private Data Loading Methods
@@ -1092,16 +1163,23 @@ public final class ClientDashboardViewModel: ObservableObject {
     }
     
     private func updateComputedMetrics() {
-        // Calculate average completion rate
-        if !buildingMetrics.isEmpty {
+        // Calculate completion: prefer route-derived portfolio tasks
+        if !routePortfolioTodayTasks.isEmpty {
+            let total = Double(routePortfolioTodayTasks.count)
+            let completed = Double(routePortfolioTodayTasks.filter { $0.status == .completed }.count)
+            completionRate = total > 0 ? (completed / total) : 0
+        } else if !buildingMetrics.isEmpty {
             let totalCompletion = buildingMetrics.values.reduce(0) { $0 + $1.completionRate }
             completionRate = totalCompletion / Double(buildingMetrics.count)
+        } else {
+            completionRate = 0
         }
         
         // Calculate real monthly operational costs
         calculateMonthlyOperationalCosts()
         
-        // Update real-time routine metrics
+        // Update real-time routine metrics (prefer route-derived counts when present)
+        let routeActiveWorkerCount = !routePortfolioWorkerIds.isEmpty ? routePortfolioWorkerIds.count : activeWorkers
         var buildingStatuses: [String: CoreTypes.BuildingRoutineStatus] = [:]
         
         for building in buildingsList {
@@ -1118,7 +1196,7 @@ public final class ClientDashboardViewModel: ObservableObject {
         
         realtimeRoutineMetrics = CoreTypes.RealtimeRoutineMetrics(
             overallCompletion: completionRate,
-            activeWorkerCount: activeWorkers,
+            activeWorkerCount: routeActiveWorkerCount,
             behindScheduleCount: buildingStatuses.filter { !$0.value.isOnSchedule }.count,
             buildingStatuses: buildingStatuses
         )
@@ -1130,9 +1208,9 @@ public final class ClientDashboardViewModel: ObservableObject {
         }
         
         activeWorkerStatus = CoreTypes.ActiveWorkerStatus(
-            totalActive: activeWorkers,
+            totalActive: routeActiveWorkerCount,
             byBuilding: workersByBuilding,
-            utilizationRate: activeWorkers > 0 ? Double(activeWorkers) / Double(buildingsList.count) : 0
+            utilizationRate: routeActiveWorkerCount > 0 ? Double(routeActiveWorkerCount) / Double(buildingsList.count) : 0
         )
         
         // Update trend based on metrics
@@ -2344,7 +2422,7 @@ public final class ClientDashboardViewModel: ObservableObject {
                     status: .resolved,
                     dueDate: Date(),
                     type: .operational,
-                    department: "Franco Management"
+                    department: "FME"
                 ))
             }
             
@@ -2359,7 +2437,7 @@ public final class ClientDashboardViewModel: ObservableObject {
                     status: .resolved,
                     dueDate: Date(),
                     type: .operational,
-                    department: "Franco Management"
+                    department: "FME"
                 ))
             }
         }

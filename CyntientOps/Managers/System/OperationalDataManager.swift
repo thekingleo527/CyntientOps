@@ -1,6 +1,6 @@
 /*
  * 🛡️ PRESERVATION NOTICE
- * This file contains the master operational playbook for Franco Management.
+ * This file contains the master operational playbook for FME (Franco Management Enterprises).
  * It is the authoritative source of all routine definitions.
  *
  * STATUS: PERMANENT REFERENCE - NEVER DELETE
@@ -184,7 +184,7 @@ public class OperationalDataManager: ObservableObject {
     
     // MARK: - Dependencies
     private let grdbManager = GRDBManager.shared
-    // private let buildingMetrics = // BuildingMetricsService injection needed
+    // Building metrics are computed via BuildingMetricsService where needed
     
     // MARK: - Published State
     @Published public var importProgress: Double = 0.0

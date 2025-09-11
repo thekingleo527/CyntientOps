@@ -52,18 +52,18 @@ struct EnhancedStatCard: View {
             
             // Value
             Text(value)
-                .francoTypography(CyntientOpsDesign.Typography.largeTitle)
+                .opsTypography(CyntientOpsDesign.Typography.largeTitle)
                 .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
             
             // Title
             Text(title)
-                .francoTypography(CyntientOpsDesign.Typography.caption)
+                .opsTypography(CyntientOpsDesign.Typography.caption)
                 .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
                 .lineLimit(2)
         }
-        .francoCardPadding()
+        .opsCardPadding()
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: CyntientOpsDesign.CornerRadius.lg)
@@ -73,7 +73,7 @@ struct EnhancedStatCard: View {
                         .stroke(CyntientOpsDesign.DashboardColors.borderSubtle, lineWidth: 1)
                 )
         )
-        .francoShadow(CyntientOpsDesign.Shadow.sm)
+        .opsShadow(CyntientOpsDesign.Shadow.sm)
         .scaleEffect(isPressed ? 0.98 : 1.0)
         .animation(CyntientOpsDesign.Animations.quick, value: isPressed)
     }
@@ -95,7 +95,7 @@ struct EnhancedStatCard: View {
             Text(trend.replacingOccurrences(of: "↑", with: "")
                     .replacingOccurrences(of: "↓", with: "")
                     .trimmingCharacters(in: .whitespaces))
-                .francoTypography(CyntientOpsDesign.Typography.caption)
+                .opsTypography(CyntientOpsDesign.Typography.caption)
                 .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
         }
         .font(.caption)
@@ -109,7 +109,7 @@ struct EnhancedStatCard: View {
                 .foregroundColor(CyntientOpsDesign.EnumColors.trendDirection(direction))
             
             Text(direction.rawValue.capitalized)
-                .francoTypography(CyntientOpsDesign.Typography.caption2)
+                .opsTypography(CyntientOpsDesign.Typography.caption2)
                 .foregroundColor(CyntientOpsDesign.EnumColors.trendDirection(direction))
         }
         .padding(.horizontal, 8)
@@ -196,11 +196,11 @@ struct CompactStatCard: View {
             
             VStack(alignment: .leading, spacing: 2) {
                 Text(value)
-                    .francoTypography(CyntientOpsDesign.Typography.headline)
+                    .opsTypography(CyntientOpsDesign.Typography.headline)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                 
                 Text(title)
-                    .francoTypography(CyntientOpsDesign.Typography.caption2)
+                    .opsTypography(CyntientOpsDesign.Typography.caption2)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
             }
             
@@ -217,4 +217,3 @@ struct CompactStatCard: View {
 // MARK: - Type Alias for Backward Compatibility
 // If you have existing code using StatCard, you can uncomment this:
 typealias StatCard = EnhancedStatCard
-

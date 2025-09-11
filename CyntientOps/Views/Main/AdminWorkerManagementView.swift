@@ -328,16 +328,16 @@ struct AdminWorkerManagementView: View {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Worker Management")
-                        .francoTypography(CyntientOpsDesign.Typography.dashboardTitle)
+                    .opsTypography(CyntientOpsDesign.Typography.dashboardTitle)
                         .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                     
                     HStack(spacing: 8) {
                         Text("\(activeWorkerCount) active")
-                            .francoTypography(CyntientOpsDesign.Typography.headline)
+                            .opsTypography(CyntientOpsDesign.Typography.headline)
                             .foregroundColor(CyntientOpsDesign.DashboardColors.success)
                         
                         Text("of \(allWorkers.count) workers")
-                            .francoTypography(CyntientOpsDesign.Typography.caption)
+                            .opsTypography(CyntientOpsDesign.Typography.caption)
                             .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
                         
                         // Live indicator
@@ -396,13 +396,13 @@ struct AdminWorkerManagementView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Label("Critical Alerts", systemImage: "exclamationmark.triangle.fill")
-                    .francoTypography(CyntientOpsDesign.Typography.headline)
+                    .opsTypography(CyntientOpsDesign.Typography.headline)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.critical)
                 
                 Spacer()
                 
                 Text("\(criticalAlerts.count)")
-                    .francoTypography(CyntientOpsDesign.Typography.caption)
+                    .opsTypography(CyntientOpsDesign.Typography.caption)
                     .fontWeight(.semibold)
                     .foregroundColor(.white)
                     .padding(.horizontal, 8)
@@ -448,7 +448,7 @@ struct AdminWorkerManagementView: View {
                 }
             }
         }
-        .francoCardPadding()
+        .opsCardPadding()
         .background(
             RoundedRectangle(cornerRadius: CyntientOpsDesign.CornerRadius.lg)
                 .fill(CyntientOpsDesign.DashboardColors.critical.opacity(0.1))
@@ -465,7 +465,7 @@ struct AdminWorkerManagementView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Label("Live Activity", systemImage: "dot.radiowaves.left.and.right")
-                    .francoTypography(CyntientOpsDesign.Typography.headline)
+                    .opsTypography(CyntientOpsDesign.Typography.headline)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                 
                 Spacer()
@@ -479,7 +479,7 @@ struct AdminWorkerManagementView: View {
                 }
             }
         }
-        .francoCardPadding()
+        .opsCardPadding()
         .cyntientOpsDarkCardBackground()
     }
     
@@ -490,7 +490,7 @@ struct AdminWorkerManagementView: View {
             // Section header with search
             HStack {
                 Text("Workers")
-                    .francoTypography(CyntientOpsDesign.Typography.headline)
+                    .opsTypography(CyntientOpsDesign.Typography.headline)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                 
                 Spacer()
@@ -565,14 +565,14 @@ struct AdminWorkerManagementView: View {
                             Image(systemName: "person.3.fill")
                             Text("View All \(filteredWorkers.count) Workers")
                         }
-                        .francoTypography(CyntientOpsDesign.Typography.subheadline)
+                        .opsTypography(CyntientOpsDesign.Typography.subheadline)
                         .foregroundColor(CyntientOpsDesign.DashboardColors.primaryAction)
                     }
                     .padding(.top, 8)
                 }
             }
         }
-        .francoCardPadding()
+        .opsCardPadding()
         .cyntientOpsDarkCardBackground()
     }
     
@@ -1053,7 +1053,7 @@ struct WorkerHeroStatusCard: View {
             // Quick actions
             quickActionButtons
         }
-        .francoCardPadding()
+        .opsCardPadding()
         .cyntientOpsDarkCardBackground()
     }
     
@@ -1062,16 +1062,16 @@ struct WorkerHeroStatusCard: View {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Workforce Status")
-                        .francoTypography(CyntientOpsDesign.Typography.subheadline)
+                        .opsTypography(CyntientOpsDesign.Typography.subheadline)
                         .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
                     
                     HStack(alignment: .bottom, spacing: 8) {
                         Text("\(activeWorkers)")
-                            .francoTypography(CyntientOpsDesign.Typography.largeTitle)
+                            .opsTypography(CyntientOpsDesign.Typography.largeTitle)
                             .foregroundColor(CyntientOpsDesign.DashboardColors.success)
                         
                         Text("of \(totalWorkers) active")
-                            .francoTypography(CyntientOpsDesign.Typography.body)
+                            .opsTypography(CyntientOpsDesign.Typography.body)
                             .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
                     }
                 }
@@ -1088,7 +1088,7 @@ struct WorkerHeroStatusCard: View {
                     )
                     .overlay(
                         Text("\(Int((Double(activeWorkers) / Double(max(totalWorkers, 1))) * 100))%")
-                            .francoTypography(CyntientOpsDesign.Typography.caption)
+                            .opsTypography(CyntientOpsDesign.Typography.caption)
                             .fontWeight(.bold)
                             .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                     )
@@ -1099,7 +1099,7 @@ struct WorkerHeroStatusCard: View {
             if !clockedIn.isEmpty {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Currently Clocked In")
-                        .francoTypography(CyntientOpsDesign.Typography.caption)
+                        .opsTypography(CyntientOpsDesign.Typography.caption)
                         .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
                     
                     ScrollView(.horizontal, showsIndicators: false) {
@@ -1110,7 +1110,7 @@ struct WorkerHeroStatusCard: View {
                             
                             if clockedIn.count > 10 {
                                 Text("+\(clockedIn.count - 10)")
-                                    .francoTypography(CyntientOpsDesign.Typography.caption)
+                                    .opsTypography(CyntientOpsDesign.Typography.caption)
                                     .fontWeight(.medium)
                                     .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
                                     .frame(width: 32, height: 32)
@@ -1163,21 +1163,21 @@ struct WorkerHeroStatusCard: View {
         HStack(spacing: 12) {
             Button(action: onScheduleTap) {
                 Label("Schedule", systemImage: "calendar")
-                    .francoTypography(CyntientOpsDesign.Typography.caption)
+                    .opsTypography(CyntientOpsDesign.Typography.caption)
                     .fontWeight(.medium)
             }
             .buttonStyle(ActionButtonStyle(color: CyntientOpsDesign.DashboardColors.info))
             
             Button(action: onAssignmentsTap) {
                 Label("Assign", systemImage: "person.3")
-                    .francoTypography(CyntientOpsDesign.Typography.caption)
+                    .opsTypography(CyntientOpsDesign.Typography.caption)
                     .fontWeight(.medium)
             }
             .buttonStyle(ActionButtonStyle(color: CyntientOpsDesign.DashboardColors.success))
             
             Button(action: onAddWorkerTap) {
                 Label("Add", systemImage: "person.badge.plus")
-                    .francoTypography(CyntientOpsDesign.Typography.caption)
+                    .opsTypography(CyntientOpsDesign.Typography.caption)
                     .fontWeight(.medium)
             }
             .buttonStyle(ActionButtonStyle(color: CyntientOpsDesign.DashboardColors.primaryAction))
@@ -1210,7 +1210,7 @@ struct WorkerCard: View {
                     
                     VStack(alignment: .leading, spacing: 2) {
                         Text(CanonicalIDs.Workers.getName(for: worker.id) ?? worker.name)
-                            .francoTypography(CyntientOpsDesign.Typography.subheadline)
+                            .opsTypography(CyntientOpsDesign.Typography.subheadline)
                             .fontWeight(.medium)
                             .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                             .lineLimit(1)
@@ -1221,7 +1221,7 @@ struct WorkerCard: View {
                                 .frame(width: 6, height: 6)
                             
                             Text(status.displayText)
-                                .francoTypography(CyntientOpsDesign.Typography.caption)
+                                .opsTypography(CyntientOpsDesign.Typography.caption)
                                 .foregroundColor(status.color)
                         }
                     }
@@ -1243,7 +1243,7 @@ struct WorkerCard: View {
                             Image(systemName: "building.2")
                                 .font(.caption2)
                             Text(building.name)
-                                .francoTypography(CyntientOpsDesign.Typography.caption2)
+                                .opsTypography(CyntientOpsDesign.Typography.caption2)
                                 .lineLimit(1)
                         }
                         .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
@@ -1253,12 +1253,12 @@ struct WorkerCard: View {
                         Image(systemName: "checkmark.circle")
                             .font(.caption2)
                         Text("\(tasksCompleted) tasks today")
-                            .francoTypography(CyntientOpsDesign.Typography.caption2)
+                            .opsTypography(CyntientOpsDesign.Typography.caption2)
                     }
                     .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
                 }
             }
-            .francoCardPadding()
+            .opsCardPadding()
             .cyntientOpsDarkCardBackground()
         }
         .buttonStyle(PlainButtonStyle())
@@ -1278,18 +1278,18 @@ struct WorkerActivityRow: View {
             
             VStack(alignment: .leading, spacing: 2) {
                 Text(activity.description)
-                    .francoTypography(CyntientOpsDesign.Typography.caption)
+                    .opsTypography(CyntientOpsDesign.Typography.caption)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                     .lineLimit(1)
                 
                 HStack(spacing: 4) {
                     Text(activity.workerName)
-                        .francoTypography(CyntientOpsDesign.Typography.caption2)
+                        .opsTypography(CyntientOpsDesign.Typography.caption2)
                         .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
                     
                     if let buildingName = activity.buildingName {
                         Text("• \(buildingName)")
-                            .francoTypography(CyntientOpsDesign.Typography.caption2)
+                            .opsTypography(CyntientOpsDesign.Typography.caption2)
                             .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
                     }
                 }
@@ -1298,7 +1298,7 @@ struct WorkerActivityRow: View {
             Spacer()
             
             Text(activity.timestamp, style: .relative)
-                .francoTypography(CyntientOpsDesign.Typography.caption2)
+                .opsTypography(CyntientOpsDesign.Typography.caption2)
                 .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
         }
         .padding(.vertical, 4)
@@ -1331,12 +1331,12 @@ struct AlertRow: View {
                 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)
-                        .francoTypography(CyntientOpsDesign.Typography.subheadline)
+                        .opsTypography(CyntientOpsDesign.Typography.subheadline)
                         .fontWeight(.medium)
                         .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                     
                     Text(description)
-                        .francoTypography(CyntientOpsDesign.Typography.caption)
+                        .opsTypography(CyntientOpsDesign.Typography.caption)
                         .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
                 }
                 
@@ -1362,7 +1362,7 @@ struct EmptyWorkerState: View {
                 .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
             
             Text("No \(filterStatus.rawValue.lowercased()) workers")
-                .francoTypography(CyntientOpsDesign.Typography.subheadline)
+                .opsTypography(CyntientOpsDesign.Typography.subheadline)
                 .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
         }
         .frame(maxWidth: .infinity)
@@ -1380,12 +1380,12 @@ struct FilterChip: View {
         Button(action: action) {
             HStack(spacing: 4) {
                 Text(title)
-                    .francoTypography(CyntientOpsDesign.Typography.caption)
+                    .opsTypography(CyntientOpsDesign.Typography.caption)
                     .fontWeight(.medium)
                 
                 if count > 0 {
                     Text("\(count)")
-                        .francoTypography(CyntientOpsDesign.Typography.caption2)
+                        .opsTypography(CyntientOpsDesign.Typography.caption2)
                         .fontWeight(.semibold)
                         .padding(.horizontal, 4)
                         .padding(.vertical, 1)
@@ -1418,7 +1418,7 @@ struct QuickActionCard: View {
                     .foregroundColor(color)
                 
                 Text(title)
-                    .francoTypography(CyntientOpsDesign.Typography.subheadline)
+                    .opsTypography(CyntientOpsDesign.Typography.subheadline)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                     .multilineTextAlignment(.center)
             }
@@ -1461,11 +1461,11 @@ struct MetricCard: View {
                 .foregroundColor(color)
             
             Text(value)
-                .francoTypography(CyntientOpsDesign.Typography.headline)
+                .opsTypography(CyntientOpsDesign.Typography.headline)
                 .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
             
             Text(title)
-                .francoTypography(CyntientOpsDesign.Typography.caption)
+                .opsTypography(CyntientOpsDesign.Typography.caption)
                 .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
                 .multilineTextAlignment(.center)
         }
@@ -1554,7 +1554,7 @@ struct WorkerIntelligencePanel: View {
                                  value: isProcessing)
                     
                     Text("AI")
-                        .francoTypography(CyntientOpsDesign.Typography.caption)
+                        .opsTypography(CyntientOpsDesign.Typography.caption)
                         .fontWeight(.bold)
                         .foregroundColor(CyntientOpsDesign.DashboardColors.adminPrimary)
                 }
@@ -1575,7 +1575,7 @@ struct WorkerIntelligencePanel: View {
                             Image(systemName: "chevron.up")
                                 .font(.caption)
                             Text("MORE")
-                                .francoTypography(CyntientOpsDesign.Typography.caption2)
+                                .opsTypography(CyntientOpsDesign.Typography.caption2)
                         }
                         .foregroundColor(CyntientOpsDesign.DashboardColors.adminPrimary)
                         .frame(width: 44, height: 60)
@@ -1644,19 +1644,19 @@ struct AdminWorkerInsightCard: View {
                         )
                     
                     Text(insight.priority.rawValue.capitalized)
-                        .francoTypography(CyntientOpsDesign.Typography.caption)
+                        .opsTypography(CyntientOpsDesign.Typography.caption)
                         .fontWeight(.semibold)
                         .foregroundColor(priorityColor)
                 }
                 
                 Text(insight.title)
-                    .francoTypography(CyntientOpsDesign.Typography.subheadline)
+                    .opsTypography(CyntientOpsDesign.Typography.subheadline)
                     .fontWeight(.medium)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                     .lineLimit(2)
                 
                 Text(insight.description)
-                    .francoTypography(CyntientOpsDesign.Typography.caption)
+                    .opsTypography(CyntientOpsDesign.Typography.caption)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
                     .lineLimit(2)
                 
@@ -1665,7 +1665,7 @@ struct AdminWorkerInsightCard: View {
                         Image(systemName: "arrow.right")
                             .font(.caption2)
                         Text(action)
-                            .francoTypography(CyntientOpsDesign.Typography.caption2)
+                            .opsTypography(CyntientOpsDesign.Typography.caption2)
                     }
                     .foregroundColor(actionColor)
                 }
@@ -1712,7 +1712,7 @@ struct WorkerLiveIndicator: View {
                 .animation(.easeInOut(duration: 1).repeatForever(autoreverses: true), value: isAnimating)
             
             Text("LIVE")
-                .francoTypography(CyntientOpsDesign.Typography.caption2)
+                .opsTypography(CyntientOpsDesign.Typography.caption2)
                 .fontWeight(.semibold)
                 .foregroundColor(CyntientOpsDesign.DashboardColors.success)
         }

@@ -226,15 +226,15 @@ struct UnifiedHeaderComponent: View {
         Button(action: {}) {
             HStack(spacing: 6) {
                 Image(systemName: "brain.head.profile")
-                    .foregroundColor(novaEngine.isActive ? .green : .gray)
+                    .foregroundColor(novaEngine.novaState == .active ? .green : .gray)
                     .font(.caption)
                 
-                if novaEngine.isActive {
+                if novaEngine.novaState == .active {
                     Circle()
                         .fill(Color.green)
                         .frame(width: 6, height: 6)
-                        .scaleEffect(novaEngine.isProcessing ? 1.2 : 1.0)
-                        .animation(.easeInOut(duration: 0.5).repeatForever(autoreverses: true), value: novaEngine.isProcessing)
+                        .scaleEffect(novaEngine.isThinking ? 1.2 : 1.0)
+                        .animation(.easeInOut(duration: 0.5).repeatForever(autoreverses: true), value: novaEngine.isThinking)
                 }
             }
         }
@@ -302,7 +302,7 @@ struct UnifiedHeaderComponent: View {
     // MARK: - Status Bar
     
     private var shouldShowStatusBar: Bool {
-        syncStatus != .synced || novaEngine.isProcessing
+        syncStatus != .synced || novaEngine.isThinking
     }
     
     private var statusBar: some View {
@@ -323,7 +323,7 @@ struct UnifiedHeaderComponent: View {
             Spacer()
             
             // Nova AI Processing Status
-            if novaEngine.isProcessing {
+            if novaEngine.isThinking {
                 HStack(spacing: 6) {
                     ProgressView()
                         .scaleEffect(0.8)
@@ -351,11 +351,11 @@ struct UnifiedHeaderComponent: View {
             startPoint: .topLeading,
             endPoint: .bottomTrailing
         )
-        .overlay(
+                .overlay(
             // Subtle accent border
             Rectangle()
-                .frame(height: 1)
                 .fill(userRole.primaryColor.opacity(0.3))
+                .frame(height: 1)
                 .offset(y: 50)
         )
     }
@@ -388,7 +388,7 @@ struct UnifiedHeaderComponent: View {
         
         if !hasConnectivity {
             syncStatus = .error
-        } else if container.dashboardSync.isActivelySyncing {
+        } else if container.dashboardSync.pendingUpdatesCount > 0 {
             syncStatus = .syncing
         } else if isDataSynced {
             syncStatus = .synced

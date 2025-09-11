@@ -90,76 +90,18 @@ struct WorkerDashboardMainView: View {
                     }
                         .padding(.horizontal)
 
-                    // Weather Hybrid Card (tethered to worker/location)
-                    WeatherHybridCard(
-                        snapshot: viewModel.weather,
-                        suggestions: viewModel.weatherSuggestions,
-                        onSuggestionTap: { suggestion in
-                            // Forward to building detail or task start as appropriate
-                            if let bid = suggestion.buildingId {
+                    // Weather Hybrid Card V2 (unified)
+                    if let s = viewModel.topWeatherSuggestionV2 {
+                        WeatherHybridCardV2(
+                            suggestion: s,
+                            onStart: { sug in viewModel.startWeatherFlow(sug) },
+                            onOpenBuilding: { bid in
                                 buildingDetailIdTemp = bid
                                 showingBuildingDetailSheet = true
                             }
-                        },
-                        onViewHourly: { showingHourlyWeather = true },
-                        onLongPressAction: { suggestion, action in
-                            switch action {
-                            case .start:
-                                // No-op here; handled in full dashboard
-                                break
-                            case .viewPolicy:
-                                if let bid = suggestion.buildingId {
-                                    buildingDetailIdTemp = bid
-                                    showingBuildingDetailSheet = true
-                                }
-                            case .snooze:
-                                break
-                            }
-                        },
-                        weatherAffectedTasks: {
-                            if let snap = viewModel.weather {
-                                return WeatherIntelligenceAdvisor.getWeatherAffectedTaskItems(
-                                    tasks: viewModel.todaysTasks,
-                                    weather: snap,
-                                    currentBuildingId: viewModel.currentBuilding?.id
-                                )
-                            }
-                            return nil
-                        }(),
-                        onTaskTap: { taskId in
-                            if let task = viewModel.todaysTasks.first(where: { $0.id == taskId }) {
-                                selectedTask = CoreTypes.ContextualTask(
-                                    id: task.id,
-                                    title: task.title,
-                                    description: task.description ?? "",
-                                    status: task.isCompleted ? .completed : .pending,
-                                    completedAt: nil,
-                                    scheduledDate: Calendar.current.startOfDay(for: Date()),
-                                    dueDate: task.dueDate,
-                                    category: CoreTypes.TaskCategory(rawValue: task.category) ?? .administrative,
-                                    urgency: {
-                                        switch task.urgency {
-                                        case .low: return .low
-                                        case .normal: return .normal
-                                        case .high: return .high
-                                        case .urgent: return .urgent
-                                        case .critical: return .critical
-                                        case .emergency: return .emergency
-                                        }
-                                    }(),
-                                    buildingId: task.buildingId,
-                                    buildingName: task.buildingId,
-                                    assignedWorkerId: viewModel.worker?.workerId,
-                                    priority: .normal,
-                                    frequency: nil,
-                                    requiresPhoto: task.requiresPhoto,
-                                    estimatedDuration: 60
-                                )
-                                showingTaskDetail = true
-                            }
-                        }
-                    )
-                    .padding(.horizontal)
+                        )
+                        .padding(.horizontal)
+                    }
 
                     // Compact policy chips for current building
                     if let bid = viewModel.currentBuilding?.id {

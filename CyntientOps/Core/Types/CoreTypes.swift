@@ -2437,7 +2437,7 @@ public struct CrossDashboardUpdate: Codable {
         }
     }
     
-    public typealias FrancoWorkerAssignment = WorkerAssignment
+    // Rebrand cleanup: use WorkerAssignment directly
     
     // MARK: - Verification Types
     
@@ -2649,7 +2649,7 @@ public struct CrossDashboardUpdate: Codable {
     
     // MARK: - Camera Model
     
-    public class FrancoCameraModel: NSObject, ObservableObject {
+    public class OpsCameraModel: NSObject, ObservableObject {
         @Published public var photo: UIImage?
         @Published public var showAlertError = false
         @Published public var isFlashOn = false

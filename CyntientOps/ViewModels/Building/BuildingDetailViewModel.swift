@@ -572,8 +572,31 @@ public class BuildingDetailViewModel: ObservableObject {
     }
     
     public func loadBuildingDetails() async {
+        print("✅ [DIAGNOSTIC] BuildingDetail: Loading details for building ID: \(buildingId) from RouteManager.")
+        guard let profile = RouteManager.shared.getBuildingProfile(for: buildingId) else {
+            print("⚠️ [DIAGNOSTIC] BuildingDetail: No operational profile found in RouteManager for building ID: \(buildingId).")
+            // Fallback to original method if no profile is found, to prevent a blank screen.
+            await loadDetailsFromLegacy();
+            return
+        }
+
+        print("  ➡️ [DIAGNOSTIC] BuildingDetail: Found profile: '\(profile.buildingName)'. Populating ViewModel.")
+        await MainActor.run {
+            self.buildingType = profile.operationalComplexity.rawValue
+            self.floors = profile.floorConfiguration.totalFloors
+            self.units = 0 // Profile does not contain unit count, this would come from another service.
+            self.yearBuilt = 0 // Not in profile.
+            self.contractType = "Managed"
+
+            // You can further map profile data to other @Published properties here.
+            // For example, mapping specialRequirements or accessConstraints to UI-specific properties.
+            print("  ✅ [DIAGNOSTIC] BuildingDetail: Successfully populated ViewModel from RouteManager profile.")
+        }
+    }
+
+    private func loadDetailsFromLegacy() async {
+        // This contains the original logic as a fallback.
         do {
-            // Get comprehensive building data from database
             let buildingData = try await container.database.query("""
                 SELECT b.*, 
                        c.name as client_name,
@@ -586,7 +609,6 @@ public class BuildingDetailViewModel: ObservableObject {
             """, [buildingId])
             
             guard let building = buildingData.first else {
-                // Fallback to operational data manager
                 if operationalDataManager.getBuilding(byId: buildingId) != nil {
                     await MainActor.run {
                         self.buildingType = "Residential"
@@ -595,15 +617,13 @@ public class BuildingDetailViewModel: ObservableObject {
                         self.units = 30
                         self.yearBuilt = 1985
                         self.contractType = "Management Agreement"
-                        
-                        // Set specific building details based on ID
-                        if buildingId == "14" { // Rubin Museum
+                        if buildingId == "14" { 
                             self.buildingType = "Museum/Commercial"
                             self.buildingSize = 65000
                             self.floors = 6
                             self.units = 1
                             self.yearBuilt = 1929
-                        } else if buildingId == "4" { // 131 Perry Street
+                        } else if buildingId == "4" { 
                             self.buildingType = "Residential"
                             self.buildingSize = 12000
                             self.floors = 5
@@ -616,18 +636,14 @@ public class BuildingDetailViewModel: ObservableObject {
             }
             
             await MainActor.run {
-                // Use real database data
-                self.buildingType = "Residential" // Default
-                // Set coordinates if available for accurate DSNY schedule & maps
+                self.buildingType = "Residential" 
                 if let lat = building["latitude"] as? Double, let lon = building["longitude"] as? Double {
                     self.coordinate = CLLocationCoordinate2D(latitude: lat, longitude: lon)
                 }
                 
-                // Load building image from DB asset name, then fall back to centralized mapping
                 if let imageAsset = building["imageAssetName"] as? String, !imageAsset.isEmpty,
                    let img = UIImage(named: imageAsset) {
                     self.buildingImage = img
-                    // Set building type based on asset heuristic
                     if imageAsset.localizedCaseInsensitiveContains("museum") {
                         self.buildingType = "Commercial"
                     } else if imageAsset.localizedCaseInsensitiveContains("office") {
@@ -636,13 +652,9 @@ public class BuildingDetailViewModel: ObservableObject {
                 } else if let mapped = BuildingAssets.assetName(for: buildingId),
                           let img = UIImage(named: mapped) {
                     self.buildingImage = img
-                } else {
-                    self.buildingImage = nil
                 }
                 
-                // Prefer known mappings when DB fields are unavailable
                 self.buildingSize = Int((building["squareFootage"] as? Double ?? Double(Self.lookupSquareFootage(for: buildingId))).rounded())
-                // Derive floors from RouteManager profile > DB > Infra catalog
                 if let profile = container.routes.getBuildingProfile(for: buildingId) {
                     self.floors = profile.floorConfiguration.totalFloors
                 } else if let dbFloors = building["floors"] as? Int {
@@ -653,13 +665,10 @@ public class BuildingDetailViewModel: ObservableObject {
                     self.floors = 5
                 }
                 
-                // REAL DATA: Use verified residential unit counts from BuildingUnitValidator
                 self.units = BuildingUnitValidator.verifiedUnitCounts[buildingId] ?? (building["numberOfUnits"] as? Int ?? 20)
-                
                 self.yearBuilt = building["yearBuilt"] as? Int ?? Self.lookupYearBuilt(for: buildingId)
                 self.contractType = "Management Agreement"
                 
-                // Set contacts from database
                 if let clientName = building["client_name"] as? String,
                    let clientEmail = building["client_email"] as? String {
                     self.primaryContact = BDBuildingContact(
@@ -671,7 +680,6 @@ public class BuildingDetailViewModel: ObservableObject {
                     )
                 }
                 
-                // --- START EMERGENCY CONTACT LOGIC ---
                 let jmRealtyBuildingIds = Set(["3", "5", "6", "7", "9", "10", "11", "14", "21"])
                 let weberFarhatBuildingIds = Set(["13"])
                 
@@ -692,7 +700,6 @@ public class BuildingDetailViewModel: ObservableObject {
                         isEmergencyContact: true
                     )
                 } else {
-                    // Default emergency contact
                     self.emergencyContact = BDBuildingContact(
                         name: "24/7 Emergency Line",
                         role: "Emergency Response Team",
@@ -701,10 +708,6 @@ public class BuildingDetailViewModel: ObservableObject {
                         isEmergencyContact: true
                     )
                 }
-                // --- END EMERGENCY CONTACT LOGIC ---
-                
-                // Property manager info could be added if needed
-                // let propertyManager = building["propertyManager"] as? String
             }
         } catch {
             await MainActor.run {
@@ -741,292 +744,106 @@ public class BuildingDetailViewModel: ObservableObject {
     }
     
     private func loadRoutines() async {
-        do {
-            // First load today's specific tasks (use correct camelCase columns)
-            let taskData = try await container.database.query("""
-                SELECT t.*, w.name as worker_name
-                FROM tasks t
-                LEFT JOIN workers w ON t.workerId = w.id
-                WHERE t.buildingId = ? 
-                  AND DATE(t.scheduledDate) = DATE('now')
-                ORDER BY t.scheduledDate ASC
-            """, [buildingId])
-            
-            // Then load recurring routine schedules for this building
-            let routineData = try await container.database.query("""
-                SELECT rs.*, w.name as worker_name
-                FROM routine_schedules rs
-                LEFT JOIN workers w ON rs.worker_id = w.id
-                WHERE rs.building_id = ?
-                ORDER BY rs.name ASC
-            """, [buildingId])
-            
-            // DSNY schedules handled by DSNYAPIService in loadComplianceStatus
-            let dsnyData: [[String: Any]] = []
-            
+        print("✅ [DIAGNOSTIC] BuildingDetail: Loading routines from RouteManager for building ID: \(buildingId)")
+        guard let route = RouteManager.shared.routes.first(where: { $0.sequences.contains(where: { $0.buildingId == buildingId }) }),
+              let sequence = route.sequences.first(where: { $0.buildingId == buildingId }) else {
+            print("⚠️ [DIAGNOSTIC] BuildingDetail: No route sequence found for this building.")
             await MainActor.run {
-                var allRoutines: [BDDailyRoutine] = []
-                
-                // Add today's specific tasks
-                let todayTasks = taskData.map { task in
-                    let scheduledTimeStr: String? = {
-                        if let scheduledDate = task["scheduledDate"] as? String {
-                            let formatter = ISO8601DateFormatter()
-                            if let date = formatter.date(from: scheduledDate) {
-                                return date.formatted(date: .omitted, time: .shortened)
-                            }
-                        }
-                        return nil
-                    }()
-                    return BDDailyRoutine(
-                        id: task["id"] as? String ?? UUID().uuidString,
-                        title: task["title"] as? String ?? "Routine Task",
-                        scheduledTime: scheduledTimeStr,
-                        isCompleted: (task["isCompleted"] as? Int64 ?? 0) == 1,
-                        assignedWorker: task["worker_name"] as? String ?? "Unassigned",
-                        requiredInventory: []
-                    )
-                }
-                allRoutines.append(contentsOf: todayTasks)
-                
-                // Add recurring routines (showing what should happen today based on schedule)
-                let recurringRoutines = routineData.compactMap { routine -> BDDailyRoutine? in
-                    guard let name = routine["name"] as? String,
-                          let workerName = routine["worker_name"] as? String,
-                          let category = routine["category"] as? String else { return nil }
-                    
-                    // Parse RRULE to determine if this routine applies today
-                    let rrule = routine["rrule"] as? String ?? ""
-                    let shouldRunToday = self.shouldRoutineRunToday(rrule: rrule)
-                    
-                    if shouldRunToday {
-                        let scheduledTime = self.extractTimeFromRRule(rrule: rrule)
-                        return BDDailyRoutine(
-                            id: routine["id"] as? String ?? UUID().uuidString,
-                            title: "\(name) (\(category))",
-                            scheduledTime: scheduledTime,
-                            isCompleted: false, // Routines reset daily
-                            assignedWorker: workerName,
-                            requiredInventory: category == "Cleaning" ? ["Cleaning supplies", "Trash bags"] : []
-                        )
-                    }
-                    return nil
-                }
-                allRoutines.append(contentsOf: recurringRoutines)
-                
-                // REAL DATA: Add DSNY schedules using DSNYCollectionSchedule
-                var dsnyTasks: [BDDailyRoutine] = []
-                if let schedule = DSNYCollectionSchedule.buildingCollectionSchedules[buildingId] {
-                    let today = CollectionDay.from(weekday: Calendar.current.component(.weekday, from: Date()))
-                    
-                    // Check if bins need to be set out today (evening before collection)
-                    let tomorrow = today.nextDay()
-                    if schedule.collectionDays.contains(tomorrow) {
-                        let workerName = self.dsnyAssignedWorkerName(for: buildingId, on: tomorrow)
-                        dsnyTasks.append(BDDailyRoutine(
-                            id: "dsny_setout_\(buildingId)",
-                            title: "DSNY: Set Out Bins",
-                            scheduledTime: schedule.binSetOutTime.timeString,
-                            isCompleted: false,
-                            assignedWorker: workerName,
-                            requiredInventory: ["Trash bins", "Recycling bins"]
-                        ))
-                    }
-                    
-                    // Check if bins need to be retrieved today (morning after collection)
-                    if schedule.collectionDays.contains(today) {
-                        let workerName = self.dsnyAssignedWorkerName(for: buildingId, on: today)
-                        dsnyTasks.append(BDDailyRoutine(
-                            id: "dsny_retrieve_\(buildingId)",
-                            title: "DSNY: Retrieve Bins",
-                            scheduledTime: schedule.binRetrievalTime.timeString,
-                            isCompleted: false,
-                            assignedWorker: workerName,
-                            requiredInventory: ["None"]
-                        ))
-                    }
-                }
-                allRoutines.append(contentsOf: dsnyTasks)
-                
-                // Fold route-derived routines for this building (today)
-                let todayWeekday = Calendar.current.component(.weekday, from: Date())
-                let todayRoutes = self.container.routes.routes.filter { $0.dayOfWeek == todayWeekday }
-                var routeRoutines: [BDDailyRoutine] = []
-                for route in todayRoutes {
-                    let workerName = CanonicalIDs.Workers.getName(for: route.workerId) ?? "Worker"
-                    for seq in route.sequences where seq.buildingId == self.buildingId {
-                        // Build one routine per operation with proper time offsets
-                        var elapsed: TimeInterval = 0
-                        for op in seq.operations {
-                            let start = seq.arrivalTime.addingTimeInterval(elapsed)
-                            let timeStr = start.formatted(date: .omitted, time: .shortened)
-                            routeRoutines.append(BDDailyRoutine(
-                                id: op.id,
-                                title: op.name,
-                                scheduledTime: timeStr,
-                                isCompleted: false,
-                                assignedWorker: workerName,
-                                requiredInventory: []
-                            ))
-                            elapsed += op.estimatedDuration
-                        }
-                    }
-                }
+                self.dailyRoutines = []
+                self.completedRoutines = 0
+                self.totalRoutines = 0
+            }
+            return
+        }
 
-                allRoutines.append(contentsOf: routeRoutines)
-                self.dailyRoutines = allRoutines.sorted { (a, b) in
-                    // Sort by time where available, then title
-                    if let ta = a.scheduledTime, let tb = b.scheduledTime {
-                        return ta < tb
-                    }
-                    return a.title.localizedCaseInsensitiveCompare(b.title) == .orderedAscending
-                }
-                self.completedRoutines = dailyRoutines.filter { $0.isCompleted }.count
-                self.totalRoutines = dailyRoutines.count
-                
-                print("📋 Loaded \(allRoutines.count) routines for building \(buildingId): \(todayTasks.count) tasks, \(recurringRoutines.count) recurring, \(dsnyTasks.count) DSNY")
-            }
-            
-            // Also load weekly/recurring routines for this building
-            await loadWeeklyRoutines()
-            
-        } catch {
-            print("⚠️ Error loading routines: \(error)")
-            // Fallback to TaskService if database query fails
-            do {
-                let routines = try await taskService.getTasksForBuilding(buildingId)
-                await MainActor.run {
-                    self.dailyRoutines = routines.map { routine in
-                        BDDailyRoutine(
-                            id: routine.id,
-                            title: routine.title,
-                            scheduledTime: routine.scheduledDate?.formatted(date: .omitted, time: .shortened),
-                            isCompleted: routine.status == .completed,
-                            assignedWorker: routine.worker?.name ?? "Unassigned",
-                            requiredInventory: []
-                        )
-                    }
-                    self.completedRoutines = dailyRoutines.filter { $0.isCompleted }.count
-                    self.totalRoutines = dailyRoutines.count
-                }
-            } catch {
-                print("❌ Both database and service failed for routines: \(error)")
-            }
+        let workerName = CanonicalIDs.Workers.getName(for: route.workerId) ?? "Unknown"
+
+        // Compute accurate per-operation scheduled times using cumulative duration
+        var cumulative: TimeInterval = 0
+        var routines: [BDDailyRoutine] = []
+        for op in sequence.operations {
+            let scheduled = sequence.arrivalTime.addingTimeInterval(cumulative)
+            let scheduledStr = scheduled.formatted(date: .omitted, time: .shortened)
+            routines.append(
+                BDDailyRoutine(
+                    id: op.id,
+                    title: op.name,
+                    scheduledTime: scheduledStr,
+                    isCompleted: false,
+                    assignedWorker: workerName,
+                    requiredInventory: op.requiredEquipment
+                )
+            )
+            cumulative += op.estimatedDuration
+        }
+
+        await MainActor.run {
+            self.dailyRoutines = routines
+            self.completedRoutines = self.dailyRoutines.filter { $0.isCompleted }.count
+            self.totalRoutines = routines.count
+            print("  ✅ [DIAGNOSTIC] BuildingDetail: Loaded \(routines.count) routines from RouteManager with scheduled times.")
         }
     }
     
     private func loadWeeklyRoutines() async {
-        do {
-            // Load detailed worker assignments and their schedules for this building
-            let workerAssignmentData = try await container.database.query("""
-                SELECT wba.*, w.name as worker_name, w.role, w.skills,
-                       COUNT(DISTINCT t.id) as task_count,
-                       COUNT(DISTINCT rs.id) as routine_count,
-                       AVG(CASE WHEN t.completedAt IS NOT NULL THEN 1.0 ELSE 0.0 END) as completion_rate
-                FROM worker_building_assignments wba
-                JOIN workers w ON wba.worker_id = w.id
-                LEFT JOIN tasks t ON t.assignee_id = w.id AND t.building_id = ?
-                LEFT JOIN routine_schedules rs ON rs.worker_id = w.id AND rs.building_id = ?
-                WHERE wba.building_id = ? AND wba.is_active = 1
-                GROUP BY wba.worker_id, w.name, w.role
-                ORDER BY w.name
-            """, [buildingId, buildingId, buildingId])
-            
-            // Load routine schedules to generate worker schedule information
-            let routineScheduleData = try await container.database.query("""
-                SELECT rs.*, w.name as worker_name
-                FROM routine_schedules rs
-                JOIN workers w ON rs.worker_id = w.id
-                WHERE rs.building_id = ?
-                ORDER BY rs.worker_id, rs.name
-            """, [buildingId])
-            
-            await MainActor.run {
-                // Process worker assignments with detailed schedule information
-                self.assignedWorkers = workerAssignmentData.map { assignment in
-                    let workerId = assignment["worker_id"] as? String ?? ""
-                    let workerName = assignment["worker_name"] as? String ?? "Unknown Worker"
-                    let role = assignment["role"] as? String ?? "General"
-                    let routineCount = assignment["routine_count"] as? Int64 ?? 0
-                    
-                    // Generate schedule summary for this worker at this building
-                    let workerRoutines = routineScheduleData.filter { routine in
-                        (routine["worker_id"] as? String) == workerId
-                    }
-                    
-                    var scheduleDays: Set<String> = []
-                    for routine in workerRoutines {
-                        if let rrule = routine["rrule"] as? String {
-                            if rrule.contains("FREQ=DAILY") {
-                                scheduleDays = Set(["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"])
-                                break
-                            } else if rrule.contains("BYDAY=") {
-                                let dayAbbreviations = ["MO", "TU", "WE", "TH", "FR", "SA", "SU"]
-                                for abbrev in dayAbbreviations {
-                                    if rrule.contains(abbrev) {
-                                        scheduleDays.insert(abbrev)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    
-                    let scheduleText = scheduleDays.isEmpty 
-                        ? "\(role) - \(routineCount) routines" 
-                        : "\(role) - \(scheduleDays.sorted().joined(separator: ", "))"
-                    
-                    return BDAssignedWorker(
-                        id: workerId,
-                        name: workerName,
-                        role: role,
-                        schedule: scheduleText,
-                        isOnSite: false // Will be updated by loadActivityData
-                    )
-                }
-                
-                print("📊 Building \(buildingId) worker assignments: \(self.assignedWorkers.count) workers with detailed schedules")
-                
-                // Log specific assignments for debugging
-                for worker in self.assignedWorkers {
-                    print("   👷 \(worker.name): \(worker.schedule ?? "No schedule")")
-                }
-            }
-            
-        } catch {
-            print("⚠️ Error loading weekly routines and worker assignments: \(error)")
+        print("✅ [DIAGNOSTIC] BuildingDetail: Loading worker assignments from RouteManager for building ID: \(buildingId)")
+        let routesForBuilding = RouteManager.shared.routes.filter { $0.sequences.contains(where: { $0.buildingId == buildingId }) }
+        
+        var workers: [BDAssignedWorker] = []
+        let uniqueWorkerIds = Set(routesForBuilding.map { $0.workerId })
+
+        for workerId in uniqueWorkerIds {
+            let workerName = CanonicalIDs.Workers.getName(for: workerId) ?? "Unknown Worker"
+            let workerRoutes = routesForBuilding.filter { $0.workerId == workerId }
+            let scheduleDays = workerRoutes.map { DateFormatter().weekdaySymbols[$0.dayOfWeek - 1].prefix(3) }.joined(separator: ", ")
+
+            workers.append(BDAssignedWorker(
+                id: workerId,
+                name: workerName,
+                role: "Field Technician",
+                schedule: "Scheduled on: \(scheduleDays)",
+                isOnSite: false // This state is managed by live activity tracking
+            ))
+        }
+
+        await MainActor.run {
+            self.assignedWorkers = workers
+            print("  ✅ [DIAGNOSTIC] BuildingDetail: Loaded \(workers.count) assigned workers from RouteManager.")
         }
     }
     
     private func loadSpacesAndAccess() async {
-        do {
-            // Load building spaces from building service
-            let buildingSpaces = try await container.buildings.getSpaces(for: buildingId)
-            
-            await MainActor.run {
-                self.spaces = buildingSpaces.map { space in
-                    BDSpaceAccess(
-                        id: space.id,
-                        name: space.name,
-                        category: .utility, // Default category from available options
-                        thumbnail: nil,
-                        lastUpdated: Date(),
-                        accessCode: nil,
-                        notes: space.description,
-                        requiresKey: false,
-                        photoIds: []
-                    )
-                }
-                self.accessCodes = [] // Access codes loaded separately
-            }
-        } catch {
-            await MainActor.run {
-                self.spaces = []
-                self.accessCodes = []
-            }
-        }
+        print("✅ [DIAGNOSTIC] BuildingDetail: Loading spaces and access from BuildingInfrastructureCatalog for building ID: \(buildingId)")
         
-        // Load thumbnails asynchronously
-        await loadSpaceThumbnails()
+        var buildingSpaces: [BDSpaceAccess] = []
+        
+        // Example: Create a 'space' for elevators if they exist in the catalog
+        if let elevatorCount = BuildingInfrastructureCatalog.elevatorCount(for: buildingId), elevatorCount > 0 {
+            buildingSpaces.append(BDSpaceAccess(
+                id: "elevators_space",
+                name: "Elevator Machine Room",
+                category: .mechanical,
+                notes: "Contains \(elevatorCount) elevator(s)."
+            ))
+        }
+
+        // Example: Create a 'space' for staircases
+        if let staircaseCount = BuildingInfrastructureCatalog.staircaseCount(for: buildingId), staircaseCount > 0 {
+            buildingSpaces.append(BDSpaceAccess(
+                id: "stairwells_space",
+                name: "Stairwells",
+                category: .access,
+                notes: "\(staircaseCount) staircase(s) in this building."
+            ))
+        }
+
+        // You can add more logic here to map other catalog data to 'spaces'
+
+        await MainActor.run {
+            self.spaces = buildingSpaces
+            self.accessCodes = [] // Access codes can be sourced from a secure vault or another service
+            print("  ✅ [DIAGNOSTIC] BuildingDetail: Loaded \(buildingSpaces.count) spaces from BuildingInfrastructureCatalog.")
+        }
     }
 
     // MARK: - DSNY assignment helper (kept local to avoid exposing internals)
@@ -1147,8 +964,8 @@ public class BuildingDetailViewModel: ObservableObject {
     
     private func loadComplianceStatus() async {
         do {
-            // Use integration cache + compliance service accessors
-            let complianceService = NYCComplianceService(database: container.database)
+            // Use integration cache + preconfigured compliance service
+            let complianceService = container.nycCompliance
             await complianceService.syncBuildingCompliance(building: CoreTypes.NamedCoordinate(
                 id: buildingId,
                 name: buildingName,
@@ -1373,7 +1190,35 @@ public class BuildingDetailViewModel: ObservableObject {
             
             await MainActor.run {
                 // Use tasks directly since getTasksForBuilding returns ContextualTask objects
-                self.buildingTasks = tasks
+                var merged: [CoreTypes.ContextualTask] = tasks
+                // Inject DSNY set-out tasks for this building if scheduled today (fallback schedule)
+                let cal = Calendar.current
+                let day = CollectionDay.from(weekday: cal.component(.weekday, from: Date()))
+                let scheduled = Set(DSNYCollectionSchedule.getBuildingsForSetOutAll(on: day).map { $0.buildingId })
+                if scheduled.contains(self.buildingId) {
+                    let streams = DSNYCollectionSchedule.getWasteStreams(for: self.buildingId, on: day)
+                    let time = DSNYCollectionSchedule.allSetOutSchedules[self.buildingId]?.setOutTime ?? DSNYTime(hour: 20, minute: 0)
+                    let due = cal.date(bySettingHour: time.hour, minute: time.minute, second: 0, of: Date()) ?? Date()
+                    let desc = "Set out: \((streams.isEmpty ? [WasteType.trash] : streams).map { $0.rawValue }.joined(separator: ", "))"
+                    let ctx = CoreTypes.ContextualTask(
+                        id: "dsny_setout_ctx_\(self.buildingId)_\(Int(due.timeIntervalSince1970))",
+                        title: "DSNY Set Out — \(self.buildingName)",
+                        description: desc,
+                        status: .pending,
+                        dueDate: due,
+                        category: .sanitation,
+                        urgency: .urgent,
+                        building: nil,
+                        worker: nil,
+                        buildingId: self.buildingId,
+                        buildingName: self.buildingName,
+                        assignedWorkerId: nil,
+                        requiresPhoto: false,
+                        estimatedDuration: 15 * 60
+                    )
+                    merged.append(ctx)
+                }
+                self.buildingTasks = merged.sorted { ($0.dueDate ?? .distantFuture) < ($1.dueDate ?? .distantFuture) }
                 
                 // Load maintenance tasks
                 self.maintenanceTasks = self.buildingTasks

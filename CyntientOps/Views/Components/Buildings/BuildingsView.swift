@@ -142,11 +142,11 @@ struct BuildingsView: View {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Building Portfolio")
-                        .francoTypography(CyntientOpsDesign.Typography.title)
+                        .opsTypography(CyntientOpsDesign.Typography.title)
                         .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                     
                     Text("\(buildings.count) properties managed")
-                        .francoTypography(CyntientOpsDesign.Typography.caption)
+                        .opsTypography(CyntientOpsDesign.Typography.caption)
                         .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
                 }
                 
@@ -188,7 +188,7 @@ struct BuildingsView: View {
                     .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
                 
                 TextField("Search buildings or addresses", text: $searchText)
-                    .francoTypography(CyntientOpsDesign.Typography.body)
+                    .opsTypography(CyntientOpsDesign.Typography.body)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                     .autocapitalization(.none)
                     .disableAutocorrection(true)
@@ -308,7 +308,7 @@ struct BuildingsView: View {
         VStack(spacing: CyntientOpsDesign.Spacing.lg) {
             Spacer()
             
-            FrancoLoadingView(
+            OpsLoadingView(
                 message: "Loading portfolio...",
                 role: .admin
             )
@@ -328,11 +328,11 @@ struct BuildingsView: View {
                     .foregroundColor(CyntientOpsDesign.DashboardColors.critical)
                 
                 Text("Error Loading Buildings")
-                    .francoTypography(CyntientOpsDesign.Typography.headline)
+                    .opsTypography(CyntientOpsDesign.Typography.headline)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                 
                 Text(message)
-                    .francoTypography(CyntientOpsDesign.Typography.body)
+                    .opsTypography(CyntientOpsDesign.Typography.body)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
                     .multilineTextAlignment(.center)
                 
@@ -356,7 +356,7 @@ struct BuildingsView: View {
     
     // MARK: - Empty State View
     private var emptyStateView: some View {
-        FrancoEmptyState(
+        OpsEmptyState(
             icon: searchText.isEmpty ? "building.2.crop.circle" : "magnifyingglass",
             title: searchText.isEmpty ? "No Buildings" : "No Results",
             message: searchText.isEmpty ?
@@ -454,12 +454,12 @@ struct BuildingRowCard: View {
             // Building info
             VStack(alignment: .leading, spacing: CyntientOpsDesign.Spacing.xs) {
                 Text(building.name)
-                    .francoTypography(CyntientOpsDesign.Typography.headline)
+                    .opsTypography(CyntientOpsDesign.Typography.headline)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                     .lineLimit(1)
                 
                 Text(building.address)
-                    .francoTypography(CyntientOpsDesign.Typography.caption)
+                    .opsTypography(CyntientOpsDesign.Typography.caption)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
                     .lineLimit(2)
                 
@@ -482,7 +482,7 @@ struct BuildingRowCard: View {
                 .font(.caption)
                 .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
         }
-        .francoCardPadding()
+        .opsCardPadding()
         .background(
             RoundedRectangle(cornerRadius: CyntientOpsDesign.CornerRadius.lg)
                 .fill(CyntientOpsDesign.DashboardColors.cardBackground)
@@ -491,7 +491,7 @@ struct BuildingRowCard: View {
                         .stroke(CyntientOpsDesign.DashboardColors.borderSubtle, lineWidth: 1)
                 )
         )
-        .francoShadow(CyntientOpsDesign.Shadow.sm)
+        .opsShadow(CyntientOpsDesign.Shadow.sm)
         .scaleEffect(isPressed ? 0.98 : 1.0)
         .onTapGesture {
             withAnimation(CyntientOpsDesign.Animations.quick) {
@@ -548,7 +548,7 @@ struct BuildingTypeBadge: View {
                 .font(.caption2)
             
             Text(type.rawValue)
-                .francoTypography(CyntientOpsDesign.Typography.caption2)
+                .opsTypography(CyntientOpsDesign.Typography.caption2)
                 .fontWeight(.medium)
         }
         .foregroundColor(type.color)
@@ -579,7 +579,7 @@ struct BuildingQuickMetrics: View {
                     .frame(width: 6, height: 6)
                 
                 Text("\(Int(metrics.completionRate * 100))%")
-                    .francoTypography(CyntientOpsDesign.Typography.caption2)
+                    .opsTypography(CyntientOpsDesign.Typography.caption2)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
             }
             
@@ -591,7 +591,7 @@ struct BuildingQuickMetrics: View {
                         .foregroundColor(CyntientOpsDesign.DashboardColors.info)
                     
                     Text("\(metrics.activeWorkers)")
-                        .francoTypography(CyntientOpsDesign.Typography.caption2)
+                        .opsTypography(CyntientOpsDesign.Typography.caption2)
                         .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
                 }
             }
@@ -632,7 +632,7 @@ struct BuildingsFilterPill: View {
                     .font(.caption)
                 
                 Text(title)
-                    .francoTypography(CyntientOpsDesign.Typography.caption)
+                    .opsTypography(CyntientOpsDesign.Typography.caption)
                     .fontWeight(isSelected ? .semibold : .regular)
             }
             .foregroundColor(isSelected ? .white : CyntientOpsDesign.DashboardColors.primaryText)
@@ -705,7 +705,7 @@ struct BuildingMapPin: View {
                 Circle()
                     .fill(CyntientOpsDesign.DashboardColors.primaryAction)
                     .frame(width: 50, height: 50)
-                    .francoShadow(CyntientOpsDesign.Shadow.md)
+                    .opsShadow(CyntientOpsDesign.Shadow.md)
                 
                 // Try to load building image, fallback to building icon
                 AsyncImage(url: URL(string: "building_\(building.id).jpg")) { image in
@@ -728,14 +728,14 @@ struct BuildingMapPin: View {
             
             if showingDetail {
                 Text(building.name)
-                    .francoTypography(CyntientOpsDesign.Typography.caption2)
+                    .opsTypography(CyntientOpsDesign.Typography.caption2)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
                     .background(
                         Capsule()
                             .fill(CyntientOpsDesign.DashboardColors.cardBackground)
-                            .francoShadow(CyntientOpsDesign.Shadow.sm)
+                            .opsShadow(CyntientOpsDesign.Shadow.sm)
                     )
                     .offset(y: -5)
             }

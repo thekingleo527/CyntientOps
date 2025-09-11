@@ -15,10 +15,10 @@ import MapKit
 
 struct BuildingPhotoGallery: View {
     let buildingId: String
-    @State private var photos: [BuildingPhoto] = []
+    @State private var photos: [UIBuildingPhoto] = []
     @State private var selectedCategory: LocalPhotoCategory = .all
     @State private var isGridView = true
-    @State private var selectedPhoto: BuildingPhoto?
+    @State private var selectedPhoto: UIBuildingPhoto?
     @State private var showingPhotoDetail = false
     @State private var isLoading = true
     
@@ -96,7 +96,7 @@ struct BuildingPhotoGallery: View {
         }
     }
     
-    private var filteredPhotos: [BuildingPhoto] {
+    private var filteredPhotos: [UIBuildingPhoto] {
         if selectedCategory == .all {
             return photos
         }
@@ -126,7 +126,7 @@ struct BuildingPhotoGallery: View {
                 LIMIT 100
             """, [buildingId])
             
-            photos = rows.compactMap { BuildingPhoto(from: $0) }
+            photos = rows.compactMap { UIBuildingPhoto(from: $0) }
             isLoading = false
             
         } catch {
@@ -162,7 +162,7 @@ struct PhotoCategoryFilter: View {
 
 struct SpacePhotoCard: View {
     let space: BuildingSpace
-    let photos: [BuildingPhoto]
+    let photos: [UIBuildingPhoto]
     @State private var currentPhotoIndex = 0
     let onTap: () -> Void
     
@@ -256,8 +256,8 @@ struct SpacePhotoCard: View {
 // MARK: - Photo Comparison View
 
 struct PhotoComparisonView: View {
-    let beforePhoto: BuildingPhoto
-    let afterPhoto: BuildingPhoto
+    let beforePhoto: UIBuildingPhoto
+    let afterPhoto: UIBuildingPhoto
     @State private var showingBefore = true
     @State private var dragOffset: CGFloat = 0
     
@@ -359,7 +359,7 @@ struct PhotoComparisonView: View {
 // MARK: - Photo Annotation Tool
 
 struct PhotoAnnotationTool: View {
-    let photo: BuildingPhoto
+    let photo: UIBuildingPhoto
     @State private var annotations: [PhotoAnnotation] = []
     @State private var isDrawing = false
     @State private var currentPath = Path()
@@ -579,7 +579,7 @@ struct PhotoAnnotationTool: View {
 // MARK: - Photo Metadata View
 
 struct PhotoMetadataView: View {
-    let photo: BuildingPhoto
+    let photo: UIBuildingPhoto
     @State private var showingMap = false
     
     var body: some View {
@@ -891,7 +891,7 @@ struct PhotoComplianceVerifier: View {
     let buildingId: String
     let complianceType: CompliancePhotoType
     @State private var requiredPhotos: [RequiredPhoto] = []
-    @State private var capturedPhotos: [String: BuildingPhoto] = [:]
+    @State private var capturedPhotos: [String: UIBuildingPhoto] = [:]
     @State private var showingPhotoCapture = false
     @State private var selectedRequirement: RequiredPhoto?
     
@@ -1026,8 +1026,8 @@ struct PhotoComplianceVerifier: View {
 // MARK: - Supporting Views
 
 struct PhotoGridView: View {
-    let photos: [BuildingPhoto]
-    let onPhotoTap: (BuildingPhoto) -> Void
+    let photos: [UIBuildingPhoto]
+    let onPhotoTap: (UIBuildingPhoto) -> Void
     
     private let columns = [
         GridItem(.flexible(), spacing: 8),
@@ -1050,8 +1050,8 @@ struct PhotoGridView: View {
 }
 
 struct PhotoListView: View {
-    let photos: [BuildingPhoto]
-    let onPhotoTap: (BuildingPhoto) -> Void
+    let photos: [UIBuildingPhoto]
+    let onPhotoTap: (UIBuildingPhoto) -> Void
     
     var body: some View {
         ScrollView {
@@ -1068,7 +1068,7 @@ struct PhotoListView: View {
 }
 
 struct PhotoGridItem: View {
-    let photo: BuildingPhoto
+    let photo: UIBuildingPhoto
     
     var body: some View {
         ZStack(alignment: .bottomLeading) {
@@ -1111,7 +1111,7 @@ struct PhotoGridItem: View {
 }
 
 struct PhotoListItem: View {
-    let photo: BuildingPhoto
+    let photo: UIBuildingPhoto
     
     var body: some View {
         HStack(spacing: 12) {
@@ -1226,7 +1226,7 @@ struct EmptyPhotoGalleryView: View {
 
 struct PhotoComparisonDetail: View {
     let title: String
-    let photo: BuildingPhoto
+    let photo: UIBuildingPhoto
     let isHighlighted: Bool
     
     var body: some View {
@@ -1318,9 +1318,9 @@ struct PhotoLocationMapView: View {
 
 struct RequiredPhotoRow: View {
     let requirement: RequiredPhoto
-    let capturedPhoto: BuildingPhoto?
+    let capturedPhoto: UIBuildingPhoto?
     let onCapture: () -> Void
-    let onView: (BuildingPhoto) -> Void
+    let onView: (UIBuildingPhoto) -> Void
     
     var body: some View {
         HStack {
@@ -1404,7 +1404,7 @@ struct TextAnnotationInput: View {
 }
 
 struct PhotoDetailSheet: View {
-    let photo: BuildingPhoto
+    let photo: UIBuildingPhoto
     let buildingId: String
     @State private var showingAnnotationTool = false
     @State private var showingShareSheet = false
@@ -1464,7 +1464,7 @@ struct PhotoDetailSheet: View {
 
 // MARK: - Data Models
 
-struct BuildingPhoto: Identifiable {
+struct UIBuildingPhoto: Identifiable {
     let id: String
     let buildingId: String
     let category: String
@@ -1608,7 +1608,7 @@ struct MultipleImagePicker: UIViewControllerRepresentable {
 struct BuildingPhotoCaptureView: View {
     let requirement: RequiredPhoto
     let buildingId: String
-    let onCapture: (BuildingPhoto) -> Void
+    let onCapture: (UIBuildingPhoto) -> Void
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
@@ -1616,7 +1616,7 @@ struct BuildingPhotoCaptureView: View {
             .onAppear {
                 // In real implementation, would show camera
                 // For now, create mock photo
-                let mockPhoto = BuildingPhoto(from: [
+                let mockPhoto = UIBuildingPhoto(from: [
                     "id": UUID().uuidString,
                     "building_id": buildingId,
                     "category": "compliance",

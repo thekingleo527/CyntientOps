@@ -480,6 +480,7 @@ enum TaskServiceError: LocalizedError {
     case templateNotFound
     case invalidTaskData
     case taskNotFound
+    case validationFailed(String)
     
     var errorDescription: String? {
         switch self {
@@ -489,6 +490,8 @@ enum TaskServiceError: LocalizedError {
             return "Invalid task data"
         case .taskNotFound:
             return "Task not found"
+        case .validationFailed(let message):
+            return message
         }
     }
 }

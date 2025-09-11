@@ -23,6 +23,7 @@ struct NovaInteractionView: View {
     @State private var novaPrompts: [NovaPrompt] = []
     @State private var novaResponses: [NovaResponse] = []
     @State private var processingState: NovaProcessingState = .idle
+    @State private var streamingText: String? = nil
     @State private var currentContext: NovaContext?
     
     // Enhanced Tab System
@@ -1003,6 +1004,20 @@ struct NovaInteractionView: View {
             }
         }
         
+        // Append streaming bubble if present
+        if let text = streamingText, !text.isEmpty {
+            messages.append(NovaChatMessage(
+                id: "response-stream",
+                role: .assistant,
+                content: text,
+                timestamp: Date(),
+                priority: .medium,
+                actions: [],
+                insights: [],
+                metadata: [:]
+            ))
+        }
+        
         return messages
     }
     
@@ -1084,20 +1099,21 @@ struct NovaInteractionView: View {
     @MainActor
     private func processNovaPrompt(_ prompt: NovaPrompt) async {
         processingState = .processing
-        
+        streamingText = ""
         do {
-            let response = try await novaAPI.processPrompt(prompt)
+            let response = try await novaAPI.processPromptStreaming(prompt) { chunk in
+                Task { @MainActor in
+                    if streamingText == nil { streamingText = chunk }
+                    else { streamingText = (streamingText ?? "") + chunk }
+                }
+            }
+            streamingText = nil
             novaResponses.append(response)
             processingState = .idle
-            
             await processResponseActions(response)
-            
-            // Check for scenario triggers
-            if let scenarioType = detectScenarioFromResponse(response) {
-                addScenario(scenarioType)
-            }
-            
+            if let scenarioType = detectScenarioFromResponse(response) { addScenario(scenarioType) }
         } catch {
+            streamingText = nil
             let errorResponse = NovaResponse(
                 success: false,
                 message: "I encountered an error processing your request. Please try again.",
@@ -1619,33 +1635,37 @@ struct NovaChatBubble: View {
                     .cornerRadius(8)
                 }
                 
-                // Message content with glass effect
+                // Message content with glass effect or answer card
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(message.content)
-                        .padding()
-                        .background(
-                            ZStack {
-                                if message.role == .user {
-                                    LinearGradient(
-                                        colors: [Color.blue, Color.blue.opacity(0.8)],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
-                                } else {
-                                    LinearGradient(
-                                        colors: [Color.purple.opacity(0.8), Color.blue.opacity(0.6)],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
+                    if message.role == .assistant && shouldRenderAsAnswerCard(message) {
+                        NovaAnswerCard(message: message)
+                    } else {
+                        Text(message.content)
+                            .padding()
+                            .background(
+                                ZStack {
+                                    if message.role == .user {
+                                        LinearGradient(
+                                            colors: [Color.blue, Color.blue.opacity(0.8)],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
+                                    } else {
+                                        LinearGradient(
+                                            colors: [Color.purple.opacity(0.8), Color.blue.opacity(0.6)],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
+                                    }
                                 }
-                            }
-                        )
-                        .foregroundColor(.white)
-                        .cornerRadius(16)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 16)
-                                .stroke(Color.white.opacity(0.2), lineWidth: 1)
-                        )
+                            )
+                            .foregroundColor(.white)
+                            .cornerRadius(16)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 16)
+                                    .stroke(Color.white.opacity(0.2), lineWidth: 1)
+                            )
+                    }
                     
                     // Actions if present
                     if !message.actions.isEmpty && (isExpanded || message.actions.count <= 2) {
@@ -1680,6 +1700,82 @@ struct NovaChatBubble: View {
             
             if message.role == .assistant { Spacer() }
         }
+    }
+}
+
+private func shouldRenderAsAnswerCard(_ message: NovaChatMessage) -> Bool {
+    // Heuristics: assistant responses with actions or table-like content
+    if !message.actions.isEmpty { return true }
+    let text = message.content
+    if text.contains("\n• ") { return true }
+    if text.contains(" | ") { return true }
+    if text.split(separator: "\n").count >= 3 { return true }
+    return false
+}
+
+struct NovaAnswerCard: View {
+    let message: NovaChatMessage
+    
+    private var header: String {
+        let lines = message.content.split(separator: "\n", omittingEmptySubsequences: false)
+        return lines.first.map(String.init) ?? "Answer"
+    }
+    
+    private var rows: [String] {
+        let lines = message.content.split(separator: "\n", omittingEmptySubsequences: false)
+        guard lines.count > 1 else { return [] }
+        return lines.dropFirst().map { String($0).replacingOccurrences(of: "• ", with: "").trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+    }
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            // Header
+            HStack(spacing: 8) {
+                Image(systemName: "rectangle.grid.2x2")
+                    .font(.caption)
+                    .foregroundColor(.cyan)
+                Text(header)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundColor(.white)
+            }
+            .padding(.bottom, rows.isEmpty ? 0 : 4)
+            
+            // Rows
+            if !rows.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    ForEach(Array(rows.enumerated()), id: \.0) { _, row in
+                        HStack(alignment: .top, spacing: 8) {
+                            Circle()
+                                .fill(Color.cyan.opacity(0.7))
+                                .frame(width: 6, height: 6)
+                                .padding(.top, 6)
+                            Text(row)
+                                .font(.caption)
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                    }
+                }
+            }
+            
+            // Actions
+            if !message.actions.isEmpty {
+                NovaActionButtons(actions: message.actions)
+            }
+        }
+        .padding(12)
+        .background(
+            ZStack {
+                LinearGradient(
+                    colors: [Color.black.opacity(0.35), Color.blue.opacity(0.25)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                RoundedRectangle(cornerRadius: 14)
+                    .stroke(Color.white.opacity(0.08), lineWidth: 1)
+            }
+        )
+        .cornerRadius(14)
     }
 }
 
@@ -1888,7 +1984,7 @@ extension NovaPriority {
 }
 
 extension View {
-    func francoGlassCard(intensity: Material = .ultraThinMaterial) -> some View {
+    func opsGlassCard(intensity: Material = .ultraThinMaterial) -> some View {
         self
             .background(intensity)
             .cornerRadius(16)

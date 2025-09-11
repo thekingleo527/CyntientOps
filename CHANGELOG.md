@@ -1,5 +1,12 @@
 ## Changelog
 
+### 2025-09-10
+
+- Client: ClientDashboardView now lists route-derived portfolio tasks via `routePortfolioTodayTasks`; metrics prioritize route-derived counts. Removed “Recent Activity” widgets for clarity.
+- Worker: `loadTodaysTasks()` hydrates from routes and appends DSNY tasks (evening set-out + next-morning retrievals with correct assignments, including Saturday 68 Perry → Shawn). Added subtle morning retrieval staggering (visual-only, inverse of corridor evening order).
+- Building: DSNY schedule card and contextual set-out tasks use `DSNYCollectionSchedule` as in-target fallback (no VM dependency on `DSNYScheduleProvider`).
+- Dependencies: Removed ViewModel references to `HydrationFacade` and `DSNYScheduleProvider` to avoid new types in compiled targets; implementations remain for future use.
+
 ### 2025-08-28
 
 - DSNY models: Removed BinLocation enum usage from DSNYCollectionSchedule and AdminOperationalIntelligence. Replaced with String-based locations to simplify Codable and remove enum coupling started in prior drafts.
@@ -11,4 +18,3 @@
 - Routes: Added WorkerRoute, Kevin/Edwin weekly routes, OperationalCalendar, and RouteManager; integrated routes into ServiceContainer.
 - Weather UI: Added WeatherSnapshot model, WeatherScoreBuilder (ScoredTask/TaskRowVM), WeatherRibbonView, and UpcomingTaskListView.
 - Housekeeping: Removed deprecated scripts and one-off production helpers; ensured project compiles cleanly with new modules added to the target.
-

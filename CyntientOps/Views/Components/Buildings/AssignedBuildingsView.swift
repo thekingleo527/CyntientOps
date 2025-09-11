@@ -17,8 +17,7 @@ struct AssignedBuildingsView: View {
     @StateObject private var contextEngine = WorkerContextEngine.shared
     @Environment(\.dismiss) private var dismiss
     
-    // Use BuildingService directly without StateObject
-    // private let buildingService = // BuildingService injection needed
+    // Use BuildingService via container (metrics loaded below)
     
     @State private var buildingMetrics: [String: BuildingMetrics] = [:]
     @State private var isLoading = true
@@ -61,12 +60,12 @@ struct AssignedBuildingsView: View {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("My Buildings")
-                        .francoTypography(CyntientOpsDesign.Typography.title)
+                        .opsTypography(CyntientOpsDesign.Typography.title)
                         .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                     
                     if !assignedBuildings.isEmpty {
                         Text("\(assignedBuildings.count) assigned")
-                            .francoTypography(CyntientOpsDesign.Typography.caption)
+                            .opsTypography(CyntientOpsDesign.Typography.caption)
                             .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
                     }
                 }
@@ -76,7 +75,7 @@ struct AssignedBuildingsView: View {
                 Button("Done") {
                     dismiss()
                 }
-                .francoTypography(CyntientOpsDesign.Typography.body)
+                .opsTypography(CyntientOpsDesign.Typography.body)
                 .fontWeight(.medium)
                 .foregroundColor(CyntientOpsDesign.DashboardColors.primaryAction)
             }
@@ -93,7 +92,7 @@ struct AssignedBuildingsView: View {
     // MARK: - Empty State
     
     private var emptyState: some View {
-        FrancoEmptyState(
+        OpsEmptyState(
             icon: "building.2.crop.circle",
             title: "No Buildings Assigned",
             message: "Contact your supervisor to get building assignments",
@@ -211,12 +210,12 @@ struct AssignedBuildingCard: View {
             // Building info
             VStack(alignment: .leading, spacing: CyntientOpsDesign.Spacing.xs) {
                 Text(building.displayName)
-                    .francoTypography(CyntientOpsDesign.Typography.headline)
+                    .opsTypography(CyntientOpsDesign.Typography.headline)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                     .lineLimit(2)
                 
                 Text(building.fullAddress)
-                    .francoTypography(CyntientOpsDesign.Typography.caption)
+                    .opsTypography(CyntientOpsDesign.Typography.caption)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
                     .lineLimit(1)
                 
@@ -254,7 +253,7 @@ struct AssignedBuildingCard: View {
                             }
                             
                             Text("\(taskCount) tasks")
-                                .francoTypography(CyntientOpsDesign.Typography.caption)
+                                .opsTypography(CyntientOpsDesign.Typography.caption)
                                 .foregroundColor(taskCount > 0 ?
                                     CyntientOpsDesign.DashboardColors.warning :
                                     CyntientOpsDesign.DashboardColors.tertiaryText
@@ -262,14 +261,14 @@ struct AssignedBuildingCard: View {
                         }
                     } else if taskCount > 0 {
                         Text("\(taskCount) tasks")
-                            .francoTypography(CyntientOpsDesign.Typography.caption)
+                            .opsTypography(CyntientOpsDesign.Typography.caption)
                             .foregroundColor(CyntientOpsDesign.DashboardColors.warning)
                     }
                 }
                 
                 // Completion progress if available
                 if let metrics = metrics {
-                    FrancoMetricsProgress(value: metrics.completionRate, role: .worker)
+                    OpsMetricsProgress(value: metrics.completionRate, role: .worker)
                         .frame(height: 4)
                 }
             }
@@ -280,7 +279,7 @@ struct AssignedBuildingCard: View {
                 .font(.caption)
                 .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
         }
-        .francoCardPadding()
+        .opsCardPadding()
         .background(
             RoundedRectangle(cornerRadius: CyntientOpsDesign.CornerRadius.lg)
                 .fill(isCurrentBuilding ?
@@ -297,7 +296,7 @@ struct AssignedBuildingCard: View {
                         )
                 )
         )
-        .francoShadow(CyntientOpsDesign.Shadow.sm)
+        .opsShadow(CyntientOpsDesign.Shadow.sm)
         .scaleEffect(isPressed ? 0.98 : 1.0)
         .onTapGesture {
             withAnimation(CyntientOpsDesign.Animations.quick) {

@@ -866,7 +866,15 @@ struct AdminRealTimeHeroCard: View {
         if portfolioMetrics.criticalIssues > 0 {
             return "\(portfolioMetrics.criticalIssues) Critical"
         }
-        return "All Clear"
+        // Provide a more nuanced subtitle based on compliance score
+        switch portfolioMetrics.complianceScore {
+        case let s where s >= 0.95:
+            return "All Clear"
+        case 0.85..<0.95:
+            return "Minor Issues"
+        default:
+            return "Needs Attention"
+        }
     }
     
     private var activeWorkersColor: Color {

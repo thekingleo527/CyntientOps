@@ -31,9 +31,7 @@ public class DatabaseInitializer: ObservableObject {
     // MARK: - Dependencies
     private let grdbManager = GRDBManager.shared
     private let operationalData: OperationalDataManager = OperationalDataManager.shared
-    // private let taskService = // TaskService injection needed
-    // private let workerService = // WorkerService injection needed  
-    // private let buildingService = // BuildingService injection needed
+    // Services are accessed directly via GRDBManager and OperationalDataManager during initialization
     
     // MARK: - Private State
     private var hasVerifiedData = false

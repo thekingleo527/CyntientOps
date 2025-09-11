@@ -4,10 +4,7 @@ import XCTest
 @MainActor
 final class WeeklyScheduleMergingTests: XCTestCase {
     func testWeeklyScheduleLoadsFromOperationalData() async throws {
-        let service = ServiceContainer(
-            database: GRDBManager.shared,
-            operationalData: OperationalDataManager(database: GRDBManager.shared)
-        )
+        let service = try await ServiceContainer()
 
         // Ensure seeds
         let status = await service.operationalData.getInitializationStatus()
@@ -20,4 +17,3 @@ final class WeeklyScheduleMergingTests: XCTestCase {
         XCTAssertGreaterThan(items.count, 0, "Weekly schedule should not be empty for worker 4")
     }
 }
-

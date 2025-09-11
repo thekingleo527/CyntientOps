@@ -9,6 +9,7 @@
 import Foundation
 import Combine
 import SwiftUI
+import LocalAuthentication
 
 @MainActor
 public final class UnifiedAuthenticationService: ObservableObject {
@@ -145,13 +146,13 @@ public final class UnifiedAuthenticationService: ObservableObject {
 }
 
 // MARK: - Legacy Authentication Result (for migration)
-public enum AuthenticationResult {
-    case success(AuthenticatedUser)
+public enum LegacyAuthenticationResult {
+    case success(LegacyAuthenticatedUser)
     case failure(String)
 }
 
 // MARK: - Legacy AuthenticatedUser (for compatibility)
-public struct AuthenticatedUser: Codable {
+public struct LegacyAuthenticatedUser: Codable {
     public let id: Int
     public let name: String
     public let email: String

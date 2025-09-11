@@ -21,13 +21,10 @@ final class CriticalDataIntegrityTests: XCTestCase {
         
         // Initialize test dependencies
         database = GRDBManager.shared
-        operationalData = OperationalDataManager(database: database)
+        operationalData = OperationalDataManager.shared
         
-        // Create service container with test configuration
-        serviceContainer = ServiceContainer(
-            database: database,
-            operationalData: operationalData
-        )
+        // Create service container
+        serviceContainer = try await ServiceContainer()
         
         // Ensure clean state
         await ensureTestDataState()
@@ -366,10 +363,7 @@ final class CriticalPerformanceTests: XCTestCase {
     override func setUp() async throws {
         try await super.setUp()
         
-        serviceContainer = ServiceContainer(
-            database: GRDBManager.shared,
-            operationalData: OperationalDataManager(database: GRDBManager.shared)
-        )
+        serviceContainer = try await ServiceContainer()
     }
     
     /// Test 11: Dashboard loading performance

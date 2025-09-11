@@ -126,7 +126,21 @@ final class NavigationCoordinator: ObservableObject {
     // MARK: - Deep Linking
     
     func handleDeepLink(_ url: URL) {
-        // Implementation remains the same...
+        // Supported formats:
+        // cyntientops://task/<taskId>
+        // cyntientops://building/<buildingId>
+        let host = url.host?.lowercased()
+        let segments = url.pathComponents.filter { $0 != "/" }
+        guard let first = host ?? segments.first else { return }
+        let id: String? = host != nil ? segments.first : (segments.count > 1 ? segments[1] : nil)
+        switch first {
+        case "task":
+            if let id = id { presentSheet(.taskDetail(taskId: id)) }
+        case "building":
+            if let id = id { presentSheet(.buildingDetail(buildingId: id)) }
+        default:
+            break
+        }
     }
 }
 
@@ -134,16 +148,16 @@ final class NavigationCoordinator: ObservableObject {
 
 struct NavigationCoordinatorViewModifier: ViewModifier {
     @StateObject private var coordinator = NavigationCoordinator.shared
+    @EnvironmentObject private var container: ServiceContainer
     
     func body(content: Content) -> some View {
         content
             .sheet(item: $coordinator.presentedSheet) { sheetType in
-                // This view builder now correctly references WorkerPreferencesView from its own file.
                 switch sheetType {
                 case .taskDetail(let taskId):
-                    Text("Detail for task \(taskId)")
+                    TaskDetailSheet(taskId: taskId, container: container)
                 case .buildingDetail(let buildingId):
-                    Text("Detail for building \(buildingId)")
+                    BuildingDetailSheet(buildingId: buildingId, container: container)
                 case .workerPreferences(let workerId):
                     // This now correctly points to the single, authoritative WorkerPreferencesView file.
                     WorkerPreferencesView(workerId: workerId)
@@ -189,6 +203,64 @@ struct NavigationCoordinatorViewModifier: ViewModifier {
                     )
                 }
             }
+    }
+}
+
+// MARK: - Loader Sheets
+
+private struct TaskDetailSheet: View {
+    let taskId: String
+    let container: ServiceContainer
+    @State private var task: CoreTypes.ContextualTask?
+    @State private var isLoading = true
+
+    var body: some View {
+        Group {
+            if let task = task {
+                UnifiedTaskDetailView(task: task, mode: .dashboard)
+            } else if isLoading {
+                ProgressView("Loading task…")
+                    .padding()
+            } else {
+                Text("Task not found")
+            }
+        }
+        .task {
+            do {
+                let loaded = try await container.tasks.getTask(taskId)
+                await MainActor.run { self.task = loaded; self.isLoading = false }
+            } catch {
+                await MainActor.run { self.isLoading = false }
+            }
+        }
+    }
+}
+
+private struct BuildingDetailSheet: View {
+    let buildingId: String
+    let container: ServiceContainer
+    @State private var building: NamedCoordinate?
+    @State private var isLoading = true
+
+    var body: some View {
+        Group {
+            if let b = building {
+                BuildingDetailView(container: container, buildingId: b.id, buildingName: b.name, buildingAddress: b.address)
+            } else if isLoading {
+                ProgressView("Loading building…")
+                    .padding()
+            } else {
+                Text("Building not found")
+            }
+        }
+        .task {
+            do {
+                let loaded = try await container.buildings.getBuilding(buildingId: buildingId)
+                await MainActor.run { self.building = loaded; self.isLoading = false }
+            } catch {
+                await MainActor.run { self.isLoading = false }
+            }
+        }
     }
 }
 

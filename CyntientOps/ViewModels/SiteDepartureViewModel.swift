@@ -174,7 +174,7 @@ public class SiteDepartureViewModel: ObservableObject {
             let cal = Calendar.current
             let hour = cal.component(.hour, from: date)
             if hour >= 20 && finalList.count <= 1 { // "sparse" threshold
-                let day = DSNYCollectionSchedule.CollectionDay.from(weekday: cal.component(.weekday, from: date))
+                let day = CollectionDay.from(weekday: cal.component(.weekday, from: date))
                 let setout = DSNYCollectionSchedule.getBuildingsForBinSetOut(on: day)
                 let dsnyEntries: [BuildingDepartureEntry] = setout.map { sched in
                     BuildingDepartureEntry(

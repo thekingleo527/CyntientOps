@@ -52,7 +52,7 @@ public struct WorkerAvatar: View {
             
             // Worker initials
             Text(workerInitials)
-                .francoTypography(size.typography)
+                .opsTypography(size.typography)
                 .fontWeight(.bold)
                 .foregroundColor(.white)
             
@@ -61,7 +61,7 @@ public struct WorkerAvatar: View {
                 statusIndicator(status)
             }
         }
-        .francoShadow(size.shadow)
+        .opsShadow(size.shadow)
     }
     
     // MARK: - Private Computed Properties
@@ -226,7 +226,7 @@ public struct WorkerAvatarGroup: View {
             .frame(width: size.diameter, height: size.diameter)
             .overlay(
                 Text("+\(workers.count - maxVisible)")
-                    .francoTypography(size.typography)
+                    .opsTypography(size.typography)
                     .fontWeight(.medium)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
             )
@@ -271,12 +271,12 @@ public struct WorkerInfoRow: View {
             
             VStack(alignment: .leading, spacing: 2) {
                 Text(workerName)
-                    .francoTypography(CyntientOpsDesign.Typography.subheadline)
+                    .opsTypography(CyntientOpsDesign.Typography.subheadline)
                     .fontWeight(.medium)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                 
                 Text(subtitle)
-                    .francoTypography(CyntientOpsDesign.Typography.caption2)
+                    .opsTypography(CyntientOpsDesign.Typography.caption2)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
             }
             
@@ -285,7 +285,7 @@ public struct WorkerInfoRow: View {
             // Status text if available
             if let status = status {
                 Text(status.displayText)
-                    .francoTypography(CyntientOpsDesign.Typography.caption)
+                    .opsTypography(CyntientOpsDesign.Typography.caption)
                     .foregroundColor(status.color)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)

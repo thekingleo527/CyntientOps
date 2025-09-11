@@ -44,7 +44,7 @@ struct PropertyCard: View {
                 Spacer()
                 chevron
             }
-            .francoCardPadding()
+            .opsCardPadding()
             .background(
                 RoundedRectangle(cornerRadius: CyntientOpsDesign.CornerRadius.lg)
                     .fill(CyntientOpsDesign.DashboardColors.cardBackground)
@@ -53,7 +53,7 @@ struct PropertyCard: View {
                             .stroke(CyntientOpsDesign.DashboardColors.borderSubtle, lineWidth: 1)
                     )
             )
-            .francoShadow(CyntientOpsDesign.Shadow.sm)
+            .opsShadow(CyntientOpsDesign.Shadow.sm)
             .scaleEffect(isPressed ? 0.98 : 1.0)
         }
         .buttonStyle(PlainButtonStyle())
@@ -98,7 +98,7 @@ struct PropertyCard: View {
     private var buildingContent: some View {
         VStack(alignment: .leading, spacing: CyntientOpsDesign.Spacing.xs) {
             Text(building.name)
-                .francoTypography(CyntientOpsDesign.Typography.headline)
+                .opsTypography(CyntientOpsDesign.Typography.headline)
                 .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                 .lineLimit(2)
             
@@ -118,13 +118,13 @@ struct PropertyCard: View {
             if let metrics = metrics {
                 HStack {
                     Label("Portfolio", systemImage: "building.2.fill")
-                        .francoTypography(CyntientOpsDesign.Typography.caption)
+                        .opsTypography(CyntientOpsDesign.Typography.caption)
                         .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
                     
                     Spacer()
                     
                     Text(metrics.pendingTasks > 0 ? "\(metrics.pendingTasks) remaining" : "All complete")
-                        .francoTypography(CyntientOpsDesign.Typography.caption)
+                        .opsTypography(CyntientOpsDesign.Typography.caption)
                         .foregroundColor(metrics.pendingTasks > 0 ?
                             CyntientOpsDesign.DashboardColors.info :
                             CyntientOpsDesign.DashboardColors.success
@@ -132,14 +132,14 @@ struct PropertyCard: View {
                 }
                 
                 // Progress bar
-                FrancoMetricsProgress(value: metrics.completionRate, role: .worker)
+                OpsMetricsProgress(value: metrics.completionRate, role: .worker)
                     .frame(height: CyntientOpsDesign.MetricsDisplay.progressBarHeight)
             } else {
                 HStack {
                     ProgressView()
                         .scaleEffect(0.8)
                     Text("Loading...")
-                        .francoTypography(CyntientOpsDesign.Typography.caption)
+                        .opsTypography(CyntientOpsDesign.Typography.caption)
                         .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
                 }
             }
@@ -151,45 +151,45 @@ struct PropertyCard: View {
             if let metrics = metrics {
                 HStack {
                     Label("Efficiency", systemImage: "chart.line.uptrend.xyaxis")
-                        .francoTypography(CyntientOpsDesign.Typography.caption)
+                        .opsTypography(CyntientOpsDesign.Typography.caption)
                         .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
                     
                     Spacer()
                     
                     Text("\(Int(metrics.maintenanceEfficiency * 100))%")
-                        .francoTypography(CyntientOpsDesign.Typography.caption)
+                        .opsTypography(CyntientOpsDesign.Typography.caption)
                         .fontWeight(.semibold)
                         .foregroundColor(efficiencyColor)
                 }
                 
                 HStack {
                     Label("Workers", systemImage: "person.3.fill")
-                        .francoTypography(CyntientOpsDesign.Typography.caption2)
+                        .opsTypography(CyntientOpsDesign.Typography.caption2)
                         .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
                     
                     Spacer()
                     
                     Text("\(metrics.activeWorkers)")
-                        .francoTypography(CyntientOpsDesign.Typography.caption2)
+                        .opsTypography(CyntientOpsDesign.Typography.caption2)
                         .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                 }
                 
                 if metrics.overdueTasks > 0 {
                     HStack {
                         Label("Overdue", systemImage: "exclamationmark.triangle.fill")
-                            .francoTypography(CyntientOpsDesign.Typography.caption2)
+                            .opsTypography(CyntientOpsDesign.Typography.caption2)
                             .foregroundColor(CyntientOpsDesign.DashboardColors.critical)
                         
                         Spacer()
                         
                         Text("\(metrics.overdueTasks)")
-                            .francoTypography(CyntientOpsDesign.Typography.caption2)
+                            .opsTypography(CyntientOpsDesign.Typography.caption2)
                             .fontWeight(.semibold)
                             .foregroundColor(CyntientOpsDesign.DashboardColors.critical)
                     }
                 }
             } else {
-                FrancoLoadingView(message: "Loading metrics...", role: .admin)
+                OpsLoadingView(message: "Loading metrics...", role: .admin)
                     .scaleEffect(0.8)
             }
         }
@@ -200,13 +200,13 @@ struct PropertyCard: View {
             if let metrics = metrics {
                 HStack {
                     Label("Compliance", systemImage: "checkmark.shield.fill")
-                        .francoTypography(CyntientOpsDesign.Typography.caption)
+                        .opsTypography(CyntientOpsDesign.Typography.caption)
                         .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
                     
                     Spacer()
                     
                     Text(metrics.isCompliant ? "Compliant" : "Review Needed")
-                        .francoTypography(CyntientOpsDesign.Typography.caption)
+                        .opsTypography(CyntientOpsDesign.Typography.caption)
                         .fontWeight(.medium)
                         .foregroundColor(metrics.isCompliant ?
                             CyntientOpsDesign.DashboardColors.compliant :
@@ -225,7 +225,7 @@ struct PropertyCard: View {
                 
                 HStack {
                     Label("Score", systemImage: "star.fill")
-                        .francoTypography(CyntientOpsDesign.Typography.caption2)
+                        .opsTypography(CyntientOpsDesign.Typography.caption2)
                         .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
                     
                     Spacer()
@@ -241,7 +241,7 @@ struct PropertyCard: View {
                                 )
                         }
                         Text(String(format: "%.1f", metrics.overallScore))
-                            .francoTypography(CyntientOpsDesign.Typography.caption2)
+                            .opsTypography(CyntientOpsDesign.Typography.caption2)
                             .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                     }
                 }
@@ -249,19 +249,19 @@ struct PropertyCard: View {
                 if metrics.urgentTasksCount > 0 {
                     HStack {
                         Label("Urgent", systemImage: "flag.fill")
-                            .francoTypography(CyntientOpsDesign.Typography.caption2)
+                            .opsTypography(CyntientOpsDesign.Typography.caption2)
                             .foregroundColor(CyntientOpsDesign.DashboardColors.warning)
                         
                         Spacer()
                         
                         Text("\(metrics.urgentTasksCount)")
-                            .francoTypography(CyntientOpsDesign.Typography.caption2)
+                            .opsTypography(CyntientOpsDesign.Typography.caption2)
                             .fontWeight(.semibold)
                             .foregroundColor(CyntientOpsDesign.DashboardColors.warning)
                     }
                 }
             } else {
-                FrancoLoadingView(message: "Loading compliance...", role: .client)
+                OpsLoadingView(message: "Loading compliance...", role: .client)
                     .scaleEffect(0.8)
             }
         }
@@ -339,12 +339,12 @@ struct MiniPropertyCard: View {
                 // Content
                 VStack(alignment: .leading, spacing: 2) {
                     Text(building.name)
-                        .francoTypography(CyntientOpsDesign.Typography.subheadline)
+                        .opsTypography(CyntientOpsDesign.Typography.subheadline)
                         .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                         .lineLimit(1)
                     
                     Text(subtitle)
-                        .francoTypography(CyntientOpsDesign.Typography.caption)
+                        .opsTypography(CyntientOpsDesign.Typography.caption)
                         .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
                 }
                 

@@ -2,7 +2,7 @@
 //  OperationalCalendar.swift
 //  CyntientOps
 //
-//  Comprehensive operational calendar system for Franco Management
+//  Comprehensive operational calendar system for FME (Franco Management Enterprises)
 //  Handles weekly, monthly, and project-based scheduling patterns
 //
 

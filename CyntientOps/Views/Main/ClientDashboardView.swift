@@ -193,12 +193,7 @@ struct ClientDashboardView: View {
                         .padding(.vertical, 8)
                         .background(bannerColor.opacity(0.12), in: RoundedRectangle(cornerRadius: 8))
                         
-                        // Recent Activity (client/admin only, summarized & deduped)
-                        RecentActivityList(
-                            onOpenBuilding: { bid in sheet = .buildingDetail(bid) },
-                            isWorker: false
-                        )
-                        .environmentObject(container.dashboardSync)
+                        // Recent Activity removed to reduce clutter
                         
                         // Buildings Grid (when hero expanded and client has properties)
                         if heroExpanded && !viewModel.clientBuildingsWithImages.isEmpty {
@@ -230,6 +225,77 @@ struct ClientDashboardView: View {
                                 weatherUrgentTasks: viewModel.getWeatherUrgentTaskCount(),
                                 onComplianceTap: { /* Navigation */ }
                             )
+                        }
+                        
+                        // Today’s Tasks (route-derived, portfolio-scoped)
+                        if !viewModel.routePortfolioTodayTasks.isEmpty {
+                            VStack(alignment: .leading, spacing: 8) {
+                                HStack {
+                                    Text("Today’s Tasks")
+                                        .font(.headline)
+                                        .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                                    Spacer()
+                                    Text("\(viewModel.routePortfolioTodayTasks.count)")
+                                        .font(.subheadline)
+                                        .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                                }
+                                .padding(.horizontal, 4)
+
+                                VStack(spacing: 8) {
+                                    ForEach(viewModel.routePortfolioTodayTasks.prefix(16)) { task in
+                                        HStack(alignment: .top, spacing: 12) {
+                                            // Urgency dot
+                                            let urgencyColor: Color = {
+                                                switch task.urgency ?? .normal {
+                                                case .low: return .gray
+                                                case .medium, .normal: return CyntientOpsDesign.DashboardColors.info
+                                                case .high: return CyntientOpsDesign.DashboardColors.warning
+                                                case .urgent: return CyntientOpsDesign.DashboardColors.accent
+                                                case .critical, .emergency: return CyntientOpsDesign.DashboardColors.critical
+                                                }
+                                            }()
+                                            Circle().fill(urgencyColor).frame(width: 8, height: 8)
+
+                                            VStack(alignment: .leading, spacing: 2) {
+                                                Text(task.title)
+                                                    .font(.subheadline.weight(.semibold))
+                                                    .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                                                    .lineLimit(1)
+                                                HStack(spacing: 6) {
+                                                    if let bname = task.buildingName ?? task.building?.name {
+                                                        Text(bname)
+                                                            .font(.caption)
+                                                            .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                                                            .lineLimit(1)
+                                                    }
+                                                    if let due = task.dueDate {
+                                                        Text("•")
+                                                            .font(.caption)
+                                                            .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                                                        Text(due, style: .time)
+                                                            .font(.caption)
+                                                            .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
+                                                    }
+                                                }
+                                            }
+
+                                            Spacer()
+
+                                            // Status pill
+                                            let statusText = task.status.rawValue
+                                            let statusColor: Color = task.isOverdue ? CyntientOpsDesign.DashboardColors.critical : CyntientOpsDesign.DashboardColors.info
+                                            Text(statusText)
+                                                .font(.caption2.weight(.semibold))
+                                                .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
+                                                .padding(.horizontal, 8)
+                                                .padding(.vertical, 4)
+                                                .background(statusColor.opacity(0.15), in: RoundedRectangle(cornerRadius: 6))
+                                        }
+                                        .padding(10)
+                                        .background(CyntientOpsDesign.DashboardColors.cardBackground, in: RoundedRectangle(cornerRadius: 10))
+                                    }
+                                }
+                            }
                         }
                         
                         // Dynamic spacer for intelligence panel
@@ -990,15 +1056,15 @@ struct ClientBuildingGridItemWithImage: View {
                             .frame(height: 80)
                             .clipped()
                             .onAppear {
-                                print("✅ Building \(building.id) - Image '\(imageAssetName)' loaded successfully")
+                                // Image loaded successfully
                             }
                     } else {
                         fallbackImageView
                             .onAppear {
                                 if let imageAssetName = building.imageAssetName {
-                                    print("⚠️ Building \(building.id) - Image '\(imageAssetName)' not found in assets")
+                                    // Image not found in assets
                                 } else {
-                                    print("⚠️ Building \(building.id) - No imageAssetName provided")
+                                    // No image asset name provided
                                 }
                             }
                     }
@@ -1316,9 +1382,7 @@ struct ClientNovaIntelligenceBar: View {
         if intelligencePanelExpanded {
             ScrollView {
                 VStack(spacing: 16) {
-                    // Last Activity Ticker for client (inside intelligence content)
-                    LastActivityTickerClient(updates: Array(viewModel.dashboardUpdates.suffix(8)))
-                        .padding(.horizontal, 4)
+                    // Activity ticker removed to reduce clutter
                     switch selectedTab {
                     case .priorities:
                         ClientPrioritiesContent(

@@ -10,6 +10,14 @@ import SwiftUI
 public struct AdminAnalyticsView: View {
     @ObservedObject var viewModel: AdminDashboardViewModel
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var container: ServiceContainer
+    @EnvironmentObject private var offlineQueue: OfflineQueueManager
+
+    // Health metrics state (24h window)
+    @State private var avgLLMLatencyMs: Int? = nil
+    @State private var tokensUsed24h: Int = 0
+    @State private var llmSuccessRate: Double? = nil
+    @State private var llmErrors24h: Int = 0
     
     public var body: some View {
         ScrollView {
@@ -112,8 +120,6 @@ public struct AdminAnalyticsView: View {
         .cyntientOpsDarkCardBackground()
     }
 
-    @EnvironmentObject private var container: ServiceContainer
-    @EnvironmentObject private var offlineQueue: OfflineQueueManager
     private var healthSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("System Health")
@@ -138,17 +144,68 @@ public struct AdminAnalyticsView: View {
             }
             .font(.caption)
 
-            // Placeholder hooks for LLM metrics: would read from nova_usage_analytics_local
+            // LLM metrics (24h)
             HStack {
                 Label("LLM Latency", systemImage: "bolt.fill").foregroundColor(.cyan)
                 Spacer()
-                Text("~ n/a ms (see analytics)")
+                Text(avgLLMLatencyMs != nil ? "~ \(avgLLMLatencyMs!) ms" : "n/a")
                     .foregroundColor(.cyan)
-            }
-            .font(.caption)
+            }.font(.caption)
+
+            HStack {
+                Label("LLM Tokens (24h)", systemImage: "number.square").foregroundColor(.cyan)
+                Spacer()
+                Text(tokensUsed24h.formatted())
+                    .foregroundColor(.cyan)
+            }.font(.caption)
+
+            HStack {
+                Label("LLM Success", systemImage: "checkmark.seal").foregroundColor(.green)
+                Spacer()
+                Text(llmSuccessRate != nil ? "\(Int((llmSuccessRate ?? 0) * 100))%" : "n/a")
+                    .foregroundColor(.green)
+            }.font(.caption)
+
+            HStack {
+                Label("Function Errors (24h)", systemImage: "xmark.octagon.fill").foregroundColor(.red)
+                Spacer()
+                Text("\(llmErrors24h)")
+                    .foregroundColor(.red)
+            }.font(.caption)
         }
         .padding()
         .cyntientOpsDarkCardBackground()
+        .task { await refreshHealthMetrics() }
+    }
+
+    private func refreshHealthMetrics() async {
+        do {
+            let rows = try await container.database.query("""
+                SELECT 
+                    AVG(latency_ms) AS avg_latency,
+                    SUM(tokens_used) AS total_tokens,
+                    SUM(CASE WHEN success = 1 THEN 1 ELSE 0 END) AS ok,
+                    SUM(CASE WHEN success = 0 THEN 1 ELSE 0 END) AS err,
+                    COUNT(*) AS total
+                FROM nova_usage_analytics_local
+                WHERE datetime(created_at) >= datetime('now', '-1 day')
+            """)
+            if let r = rows.first {
+                let avg = (r["avg_latency"] as? Double) ?? (r["avg_latency"] as? NSNumber)?.doubleValue
+                let toks = (r["total_tokens"] as? Int64) ?? 0
+                let ok = (r["ok"] as? Int64) ?? 0
+                let err = (r["err"] as? Int64) ?? 0
+                let total = (r["total"] as? Int64) ?? 0
+                await MainActor.run {
+                    self.avgLLMLatencyMs = avg != nil ? Int(avg!) : nil
+                    self.tokensUsed24h = Int(toks)
+                    self.llmErrors24h = Int(err)
+                    self.llmSuccessRate = total > 0 ? Double(ok) / Double(total) : nil
+                }
+            }
+        } catch {
+            print("⚠️ Health metrics query failed: \(error)")
+        }
     }
 }
 

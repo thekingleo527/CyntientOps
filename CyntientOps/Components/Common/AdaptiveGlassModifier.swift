@@ -20,9 +20,9 @@ struct AdaptiveGlassModifier: ViewModifier {
     
     func body(content: Content) -> some View {
         if isCompact {
-            content.francoGlassCardCompact(intensity: intensity)
+            content.opsGlassCardCompact(intensity: intensity)
         } else {
-            content.francoGlassCard(intensity: intensity)
+            content.opsGlassCard(intensity: intensity)
         }
     }
 }
@@ -30,8 +30,8 @@ struct AdaptiveGlassModifier: ViewModifier {
 // MARK: - 🔧 HF-25: UNIFIED GLASS CARD EXTENSIONS
 
 extension View {
-    /// Standard Franco glass card with consistent Material Design 2040 styling
-    func francoGlassCard(intensity: GlassIntensity = .regular) -> some View {
+    /// Standard glass card with consistent Material Design 2040 styling
+    func opsGlassCard(intensity: GlassIntensity = .regular) -> some View {
         self
             .padding(16)
             .background(intensity.material, in: RoundedRectangle(cornerRadius: 16))  // ✅ Using unified GlassIntensity.material
@@ -43,7 +43,7 @@ extension View {
     }
     
     /// Compact glass card for tight spaces
-    func francoGlassCardCompact(intensity: GlassIntensity = .thin) -> some View {
+    func opsGlassCardCompact(intensity: GlassIntensity = .thin) -> some View {
         self
             .padding(12)
             .background(intensity.material, in: RoundedRectangle(cornerRadius: 12))  // ✅ Using unified GlassIntensity.material
@@ -65,22 +65,22 @@ extension View {
 extension View {
     /// Property card glass effect (optimized for dashboard cards)
     func propertyCardGlass() -> some View {
-        self.francoGlassCard(intensity: GlassIntensity.regular)
+        self.opsGlassCard(intensity: GlassIntensity.regular)
     }
     
     /// Metric card glass effect (optimized for data display)
     func metricCardGlass() -> some View {
-        self.francoGlassCard(intensity: GlassIntensity.thin)
+        self.opsGlassCard(intensity: GlassIntensity.thin)
     }
     
     /// Header glass effect (optimized for navigation)
     func headerGlass() -> some View {
-        self.francoGlassCard(intensity: GlassIntensity.ultraThin)
+        self.opsGlassCard(intensity: GlassIntensity.ultraThin)
     }
     
     /// Modal glass effect (optimized for overlays)
     func modalGlass() -> some View {
-        self.francoGlassCard(intensity: GlassIntensity.thick)
+        self.opsGlassCard(intensity: GlassIntensity.thick)
     }
 }
 
@@ -113,17 +113,11 @@ extension View {
     }
 }
 
-// MARK: - CyntientOps Naming Aliases (Franco → CyntientOps)
+// MARK: - CyntientOps Naming Aliases (Ops Glass APIs)
 extension View {
-    /// Preferred alias for francoGlassCard
-    func glassCard(intensity: GlassIntensity = .regular) -> some View {
-        self.francoGlassCard(intensity: intensity)
-    }
-    
-    /// Preferred alias for francoGlassCardCompact
-    func glassCardCompact(intensity: GlassIntensity = .thin) -> some View {
-        self.francoGlassCardCompact(intensity: intensity)
-    }
+    /// Glass card helper (ops naming)
+    func glassCard(intensity: GlassIntensity = .regular) -> some View { self.opsGlassCard(intensity: intensity) }
+    func glassCardCompact(intensity: GlassIntensity = .thin) -> some View { self.opsGlassCardCompact(intensity: intensity) }
 }
 
 // MARK: - Glass Animation Modifiers (Extracted from GlassMorphismStyles)
@@ -234,12 +228,12 @@ extension Color {
 
 extension View {
     /// Standard glass card spacing for CyntientOps
-    func francoSpacing() -> some View {
+    func opsSpacing() -> some View {
         self.padding(.vertical, 12)
     }
     
     /// Standard glass section spacing
-    func francoSectionSpacing() -> some View {
+    func opsSectionSpacing() -> some View {
         self.padding(.vertical, 20)
     }
     
@@ -486,14 +480,14 @@ extension Button where Label == Text {
 // Keep old function names working for existing code
 
 extension View {
-    @available(*, deprecated, message: "Use francoGlassCard(intensity:) instead")
+    @available(*, deprecated, message: "Use opsGlassCard(intensity:) instead")
     func glassMorphismCard() -> some View {
-        self.francoGlassCard(intensity: GlassIntensity.regular)
+        self.opsGlassCard(intensity: GlassIntensity.regular)
     }
     
-    @available(*, deprecated, message: "Use francoGlassCardCompact(intensity:) instead")
+    @available(*, deprecated, message: "Use opsGlassCardCompact(intensity:) instead")
     func glassMorphismCardCompact() -> some View {
-        self.francoGlassCardCompact(intensity: GlassIntensity.thin)
+        self.opsGlassCardCompact(intensity: GlassIntensity.thin)
     }
 }
 
@@ -521,7 +515,7 @@ struct AnimatedGlassCard<Content: View>: View {
     
     var body: some View {
         content
-            .francoGlassCard(intensity: intensity)
+            .opsGlassCard(intensity: intensity)
             .scaleEffect(scale)
             .opacity(opacity)
             .onAppear {

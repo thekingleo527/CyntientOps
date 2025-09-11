@@ -256,7 +256,7 @@ extension UserDefaults {
     }
     
     /// Check if the user has seen the map interaction hint
-    var francoHasSeenMapHint: Bool {
+    var opsHasSeenMapHint: Bool {
         get { bool(forKey: CyntientOpsKeys.hasSeenMapHint) }
         set { set(newValue, forKey: CyntientOpsKeys.hasSeenMapHint) }
     }
@@ -269,7 +269,7 @@ extension UserDefaults {
     }
     
     /// Get/set last selected dashboard for continuity
-    var francoLastSelectedDashboard: String? {
+    var opsLastSelectedDashboard: String? {
         get { string(forKey: CyntientOpsKeys.lastSelectedDashboard) }
         set { set(newValue, forKey: CyntientOpsKeys.lastSelectedDashboard) }
     }
@@ -396,7 +396,7 @@ private struct InteractiveDemoView: View {
                     }
                     
                     demoButton("Show Returning User Hint", color: .green) {
-                        UserDefaults.standard.francoHasSeenMapHint = true
+                        UserDefaults.standard.opsHasSeenMapHint = true
                         showDemoHint = true
                     }
                     

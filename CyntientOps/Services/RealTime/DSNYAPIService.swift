@@ -394,7 +394,14 @@ public class DSNYAPIService: ObservableObject {
             ]
         )
         
-        // await DashboardSyncService.shared.broadcastAdminUpdate(update) // TODO: Inject service
+        // Broadcast via ServiceContainer if available
+        do {
+            let container = try await ServiceContainer()
+            await container.dashboardSync.broadcastAdminUpdate(update)
+        } catch {
+            // If container is unavailable, silently ignore to avoid crashing background tasks
+            print("⚠️ DSNYAPIService: Unable to broadcast violation update: \(error)")
+        }
     }
 }
 

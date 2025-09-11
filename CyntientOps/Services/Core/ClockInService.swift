@@ -62,10 +62,7 @@ public final class ClockInService: ObservableObject {
     
     // MARK: - Dependencies
     private let clockInManager = ClockInManager.shared
-    // private let workerService = // WorkerService injection needed
-    // private let buildingService = // BuildingService injection needed
     private let locationManager = LocationManager.shared
-    // private let dashboardSync = // DashboardSyncService injection needed
     
     // MARK: - Private State
     private var cancellables = Set<AnyCancellable>()
@@ -89,9 +86,16 @@ public final class ClockInService: ObservableObject {
         defer { isProcessing = false }
         
         do {
-            // Get building details
-            // let building = try await // buildingService. // TODO: Inject buildingServicegetBuilding(buildingId: buildingId) // TODO: Inject buildingService
-            let building = NamedCoordinate(id: buildingId, name: "Building", address: "Unknown", latitude: 0, longitude: 0) // Placeholder
+            // Get building details from database
+            let rows = try await GRDBManager.shared.query("SELECT id, name, address, latitude, longitude FROM buildings WHERE id = ?", [buildingId])
+            guard let row = rows.first else { throw ClockInError.buildingNotFound }
+            let building = NamedCoordinate(
+                id: buildingId,
+                name: row["name"] as? String ?? "Building",
+                address: row["address"] as? String ?? "",
+                latitude: row["latitude"] as? Double ?? 0,
+                longitude: row["longitude"] as? Double ?? 0
+            )
             
             // Get current location if available
             let location = locationManager.location
@@ -106,9 +110,9 @@ public final class ClockInService: ObservableObject {
             // Update local state
             await refreshClockInStatus()
             
-            // Get worker name for status  
-            // let workerProfile = try await // workerService. // TODO: Inject workerServicegetWorkerProfile(for: workerId) // TODO: Inject workerService
-            let workerName = "Worker" // Placeholder
+            // Get worker name for status
+            let wrows = try await GRDBManager.shared.query("SELECT name FROM workers WHERE id = ?", [workerId])
+            let workerName = wrows.first?["name"] as? String ?? "Worker"
             
             // Update current worker session if it's the current user
             if let currentUser = NewAuthManager.shared.currentUser,
@@ -122,12 +126,13 @@ public final class ClockInService: ObservableObject {
                 )
             }
             
-            // Broadcast update
-            // dashboardSync.onWorkerClockedIn( // TODO: Inject dashboardSync
-            //     workerId: workerId,
-            //     buildingId: buildingId,
-            //     buildingName: building.name
-            // )
+            // Broadcast update via ServiceContainer if available
+            do {
+                let container = try await ServiceContainer()
+                await container.dashboardSync.onWorkerClockedIn(workerId: workerId, buildingId: buildingId, buildingName: building.name)
+            } catch {
+                // Non-fatal if container not available
+            }
             
             print("✅ Worker \(workerName) clocked in at \(building.name)")
             
@@ -164,11 +169,13 @@ public final class ClockInService: ObservableObject {
             // Update local state
             await refreshClockInStatus()
             
-            // Broadcast update
-            // dashboardSync.onWorkerClockedOut( // TODO: Inject dashboardSync
-            //     workerId: workerId,
-            //     buildingId: sessionBuildingId
-            // )
+            // Broadcast update via ServiceContainer if available
+            do {
+                let container = try await ServiceContainer()
+                await container.dashboardSync.onWorkerClockedOut(workerId: workerId, buildingId: sessionBuildingId)
+            } catch {
+                // Non-fatal if container not available
+            }
             
             print("✅ Worker clocked out from \(sessionBuildingName)")
             
@@ -180,16 +187,28 @@ public final class ClockInService: ObservableObject {
     
     /// Get available buildings for clock in
     public func getAvailableBuildings(for workerId: String) async throws -> [NamedCoordinate] {
-        // Use building service to get all available buildings for this worker
-        // return try await buildingService.getBuildingsForWorker(workerId) // TODO: Inject buildingService
-        return [] // Placeholder
+        // Load buildings directly from database
+        let rows = try await GRDBManager.shared.query("""
+            SELECT b.id, b.name, b.address, b.latitude, b.longitude
+            FROM buildings b
+            INNER JOIN worker_assignments wa ON CAST(b.id AS TEXT) = wa.building_id
+            WHERE wa.worker_id = ? AND wa.is_active = 1
+            ORDER BY b.name
+        """, [workerId])
+        return rows.compactMap { row in
+            guard let id = row["id"] as? String,
+                  let name = row["name"] as? String,
+                  let address = row["address"] as? String,
+                  let lat = row["latitude"] as? Double,
+                  let lon = row["longitude"] as? Double else { return nil }
+            return NamedCoordinate(id: id, name: name, address: address, latitude: lat, longitude: lon)
+        }
     }
     
     /// Get assigned buildings (for UI display)
     public func getAssignedBuildings(for workerId: String) async throws -> [NamedCoordinate] {
         // Same as available buildings - workers can only clock into assigned buildings
-        // return try await buildingService.getBuildingsForWorker(workerId) // TODO: Inject buildingService
-        return [] // Placeholder
+        return try await getAvailableBuildings(for: workerId)
     }
     
     /// Check if worker is clocked in
@@ -213,8 +232,8 @@ public final class ClockInService: ObservableObject {
             
             for session in sessions {
                 // Get worker name
-                // let workerProfile = try? await workerService.getWorkerProfile(for: session.workerId) // TODO: Inject workerService
-                let workerName = "Worker" // Placeholder
+                let wrows = try? await GRDBManager.shared.query("SELECT name FROM workers WHERE id = ?", [session.workerId])
+                let workerName = wrows?.first?["name"] as? String ?? "Worker"
                 
                 let status = ClockInStatus(
                     workerId: session.workerId,

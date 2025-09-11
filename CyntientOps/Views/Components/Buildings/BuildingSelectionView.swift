@@ -110,14 +110,14 @@ struct BuildingSelectionView: View {
                         Image(systemName: "chevron.left")
                         Text("Back")
                     }
-                    .francoTypography(CyntientOpsDesign.Typography.body)
+                    .opsTypography(CyntientOpsDesign.Typography.body)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                 }
                 
                 Spacer()
                 
                 Text(purpose.title)
-                    .francoTypography(CyntientOpsDesign.Typography.headline)
+                    .opsTypography(CyntientOpsDesign.Typography.headline)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                 
                 Spacer()
@@ -153,7 +153,7 @@ struct BuildingSelectionView: View {
                 .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
             
             TextField("Search buildings...", text: $searchText)
-                .francoTypography(CyntientOpsDesign.Typography.body)
+                .opsTypography(CyntientOpsDesign.Typography.body)
                 .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                 .autocapitalization(.none)
                 .disableAutocorrection(true)
@@ -248,7 +248,7 @@ struct BuildingSelectionView: View {
     // MARK: - Empty State
     
     private var emptySearchState: some View {
-        FrancoEmptyState(
+        OpsEmptyState(
             icon: "magnifyingglass",
             title: "No Results",
             message: "No buildings match '\(searchText)'",
@@ -338,7 +338,7 @@ struct SelectableBuildingCard: View {
                                 .foregroundColor(CyntientOpsDesign.DashboardColors.primaryAction)
                             
                             Text(purpose.actionText)
-                                .francoTypography(CyntientOpsDesign.Typography.caption)
+                                .opsTypography(CyntientOpsDesign.Typography.caption)
                                 .foregroundColor(CyntientOpsDesign.DashboardColors.primaryAction)
                         }
                         .padding(.trailing, CyntientOpsDesign.Spacing.md)
@@ -395,7 +395,7 @@ struct SelectedBuildingOverlay: View {
                     Image(systemName: actionIcon)
                     Text(purpose.actionText)
                 }
-                .francoTypography(CyntientOpsDesign.Typography.headline)
+                .opsTypography(CyntientOpsDesign.Typography.headline)
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity)
                 .padding()
@@ -407,7 +407,7 @@ struct SelectedBuildingOverlay: View {
         .background(
             RoundedRectangle(cornerRadius: CyntientOpsDesign.CornerRadius.xl)
                 .fill(CyntientOpsDesign.DashboardColors.cardBackground)
-                .francoShadow(CyntientOpsDesign.Shadow.lg)
+                .opsShadow(CyntientOpsDesign.Shadow.lg)
         )
         .onTapGesture {
             onDismiss()
@@ -442,7 +442,7 @@ struct BuildingSelectionMapPin: View {
                 if !isSelected {
                     // Small label when not selected
                     Text(building.name)
-                        .francoTypography(CyntientOpsDesign.Typography.caption2)
+                        .opsTypography(CyntientOpsDesign.Typography.caption2)
                         .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                         .lineLimit(1)
                         .padding(.horizontal, 8)
@@ -450,7 +450,7 @@ struct BuildingSelectionMapPin: View {
                         .background(
                             Capsule()
                                 .fill(CyntientOpsDesign.DashboardColors.cardBackground)
-                                .francoShadow(CyntientOpsDesign.Shadow.sm)
+                                .opsShadow(CyntientOpsDesign.Shadow.sm)
                         )
                         .offset(y: -5)
                 }

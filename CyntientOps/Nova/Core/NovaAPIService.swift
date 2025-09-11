@@ -53,6 +53,7 @@ public actor NovaAPIService {
     private var processingQueue: [NovaPrompt] = []
     // Simple per-user rate limiter: timestamps of recent requests
     private var requestLog: [String: [Date]] = [:]
+    private let db = GRDBManager.shared
     
     
     // MARK: - Public API
@@ -66,7 +67,7 @@ public actor NovaAPIService {
         isProcessing = true
         defer { isProcessing = false }
         
-        AppLog.ai.log("Processing Nova prompt: \(prompt.text)")
+        print("[AI] Processing Nova prompt: \(prompt.text)")
         let userId = await MainActor.run { NewAuthManager.shared.currentUserId ?? "anon" }
         // Track request analytics
         await logAnalytics(event: "novaRequest", properties: [
@@ -93,9 +94,16 @@ public actor NovaAPIService {
         }
         recordRequest(userId: userId)
         
+        // Enforce per-user daily token ceiling (admin override supported)
+        if await isDailyTokenCeilingExceeded(userId: userId) {
+            let msg = "You've reached today's Nova token limit. Please try again tomorrow or ask an admin to increase your daily ceiling."
+            await logAnalytics(event: "novaRateLimited", properties: ["user_id": userId, "limit": String(await dailyTokenLimit(userId: userId))])
+            return NovaResponse(success: false, message: msg, metadata: ["tokenCeiling": "true"])
+        }
+
         // HYBRID ROUTING: Check network status first
         if await NetworkMonitor.shared.isConnected {
-            AppLog.ai.log("Nova: Online mode - using full AI capabilities")
+            print("[AI] Online mode - using full AI capabilities")
             let result = try await processPromptOnline(prompt)
             await logAnalytics(event: "novaResponse", properties: [
                 "user_id": userId,
@@ -107,7 +115,7 @@ public actor NovaAPIService {
             ])
             return result
         } else {
-            AppLog.ai.log("Nova: Offline mode - using local data search")
+            print("[AI] Offline mode - using local data search")
             let local = await processPromptOffline(prompt)
             await logAnalytics(event: "novaResponse", properties: [
                 "user_id": userId,
@@ -117,6 +125,20 @@ public actor NovaAPIService {
             ])
             return local
         }
+    }
+
+    /// Stream-like processing: emits partial chunks via callback and returns final response
+    public func processPromptStreaming(_ prompt: NovaPrompt, onChunk: @escaping @Sendable (String) -> Void) async throws -> NovaResponse {
+        // For now, call regular processing and simulate streaming by chunking the result
+        let final = try await processPrompt(prompt)
+        let text = final.message
+        let parts = chunk(text: text, max: 120)
+        for (i, p) in parts.enumerated() {
+            onChunk(p)
+            // Tiny delay to simulate stream
+            try? await Task.sleep(nanoseconds: (i == 0 ? 120_000_000 : 60_000_000))
+        }
+        return final
     }
     
     /// Check if Nova is currently processing
@@ -155,7 +177,7 @@ public actor NovaAPIService {
                 )
             }
         } catch {
-            AppLog.ai.error("Nova: Online processing failed, falling back to offline: \(String(describing: error))")
+            print("[AI] Online processing failed; falling back to offline: \(String(describing: error))")
             return await processPromptOffline(prompt)
         }
     }
@@ -200,7 +222,7 @@ public actor NovaAPIService {
     }
 
     private func callSupabaseEdgeFunction(url: URL, anonKey: String, prompt: NovaPrompt, context: NovaContext) async throws -> NovaResponse {
-        AppLog.ai.log("Nova: Calling Supabase Edge Function …")
+        print("[AI] Calling Supabase Edge Function …")
         let start = Date()
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -218,7 +240,7 @@ public actor NovaAPIService {
             request.setValue("Bearer \(anonKey)", forHTTPHeaderField: "Authorization")
         } else {
             // No JWT available and anon fallback not allowed → return offline response
-            AppLog.ai.warning("Nova: No session JWT; using offline mode due to secure configuration")
+            print("[AI] No session JWT; using offline mode due to secure configuration")
             return await processPromptOffline(prompt)
         }
         // Provide client identity hints for rate limiting and observability
@@ -226,7 +248,8 @@ public actor NovaAPIService {
         if !userId.isEmpty { request.setValue(userId, forHTTPHeaderField: "X-Client-Id") }
         request.setValue(UUID().uuidString, forHTTPHeaderField: "X-Request-Id")
 
-        let history: [[String: String]] = [] // Placeholder; no persisted history yet
+        // Include last 5 messages for light context continuity (local cache)
+        let history = await recentHistory(limit: 5)
         let body: [String: Any] = [
             "prompt": prompt.text,
             "history": history,
@@ -250,7 +273,8 @@ public actor NovaAPIService {
         }
 
         let processing = Date().timeIntervalSince(start)
-        AppLog.ai.log("Nova: Supabase response in \(String(format: \"%.2f\", processing))s")
+        let processingStr = String(format: "%.2f", processing)
+        print("[AI] Supabase response in \(processingStr)s")
         let result = NovaResponse(
             success: true,
             message: message,
@@ -265,33 +289,42 @@ public actor NovaAPIService {
                 "tokensUsed": String(decoded.tokensUsed ?? 0)
             ]
         )
-        // Persist conversation + attempt sync
-        let userId = await MainActor.run { NewAuthManager.shared.currentUserId ?? "anon" }
+        // Persist conversation + usage locally (sync handled elsewhere)
+        let uidHeader = await MainActor.run { NewAuthManager.shared.currentUserId ?? "" }
+        let uid = uidHeader.isEmpty ? "anon" : uidHeader
         let role = await MainActor.run { NewAuthManager.shared.userRole?.rawValue ?? "worker" }
-        let ctxJSON: String? = {
-            let payload = await buildContextPayload(for: prompt, using: context)
-            if let data = try? JSONSerialization.data(withJSONObject: payload), let s = String(data: data, encoding: .utf8) { return s }
-            return nil
-        }()
-        await SupabaseSyncService.shared.queueConversation(
-            userId: userId,
-            userRole: role,
-            prompt: prompt.text,
-            response: message,
-            contextJSON: ctxJSON,
-            model: decoded.model ?? "gpt-4",
-            tokens: decoded.tokensUsed,
-            latencyMs: Int(processing * 1000)
-        )
-        await SupabaseSyncService.shared.queueUsage(
-            userId: userId,
-            promptType: "chat",
-            mode: "online",
-            tokens: decoded.tokensUsed,
-            latencyMs: Int(processing * 1000),
-            success: true,
-            errorMessage: nil
-        )
+        let payload = await buildContextPayload(for: prompt, using: context)
+        let ctxJSON: String? = (try? JSONSerialization.data(withJSONObject: payload)).flatMap { String(data: $0, encoding: .utf8) }
+        do {
+            try await db.execute("""
+                INSERT INTO conversations_local (id, user_id, user_role, prompt, response, context_data, processing_time_ms, model_used, synced, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?)
+            """, [
+                UUID().uuidString,
+                uid,
+                role,
+                prompt.text,
+                message,
+                ctxJSON ?? NSNull(),
+                Int(processing * 1000),
+                decoded.model ?? "gpt-4",
+                ISO8601DateFormatter().string(from: Date())
+            ])
+            try await db.execute("""
+                INSERT INTO nova_usage_analytics_local (id, user_id, prompt_type, processing_mode, tokens_used, latency_ms, success, error, synced, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, 1, NULL, 0, ?)
+            """, [
+                UUID().uuidString,
+                uid,
+                "chat",
+                "online",
+                decoded.tokensUsed ?? 0,
+                Int(processing * 1000),
+                ISO8601DateFormatter().string(from: Date())
+            ])
+        } catch {
+            print("[AI] Failed to persist analytics locally: \(error)")
+        }
         return result
     }
     
@@ -665,7 +698,7 @@ public actor NovaAPIService {
         
         return response
     }
-    
+
     // MARK: - Insight Generation
     
     private func generateInsights(for prompt: NovaPrompt, context: NovaContext) async throws -> [NovaInsight] {
@@ -824,6 +857,63 @@ public actor NovaAPIService {
             AnalyticsService.shared.track(AnalyticsService.EventType(rawValue: event) ?? .reportGenerated,
                                           properties: properties)
         }
+    }
+
+    // MARK: - History + Token Budget Helpers
+
+    private func recentHistory(limit: Int) async -> [[String: String]] {
+        do {
+            let userId = await MainActor.run { NewAuthManager.shared.currentUserId ?? "anon" }
+            let rows = try await db.query("""
+                SELECT prompt, response
+                FROM conversations_local
+                WHERE user_id = ?
+                ORDER BY created_at DESC
+                LIMIT ?
+            """, [userId, limit])
+            // Return newest-first array of role/content pairs
+            var hist: [[String: String]] = []
+            for r in rows {
+                if let resp = r["response"] as? String, let pr = r["prompt"] as? String {
+                    hist.append(["role": "user", "content": pr])
+                    hist.append(["role": "assistant", "content": resp])
+                }
+            }
+            return hist.reversed()
+        } catch { return [] }
+    }
+
+    private func dailyTokenLimit(userId: String) async -> Int {
+        // Admin override via UserDefaults: token_ceiling_<userId>
+        let key = "token_ceiling_\(userId)"
+        let override = await MainActor.run { UserDefaults.standard.integer(forKey: key) }
+        if override > 0 { return override }
+        // Default ceiling (tune as needed)
+        return 50000
+    }
+
+    private func isDailyTokenCeilingExceeded(userId: String) async -> Bool {
+        do {
+            let rows = try await db.query("""
+                SELECT COALESCE(SUM(tokens_used), 0) AS t
+                FROM nova_usage_analytics_local
+                WHERE user_id = ? AND DATE(created_at) = DATE('now')
+            """, [userId])
+            let used = Int((rows.first?["t"] as? Int64) ?? 0)
+            let limit = await dailyTokenLimit(userId: userId)
+            return used >= limit
+        } catch { return false }
+    }
+
+    private func chunk(text: String, max: Int) -> [String] {
+        var out: [String] = []
+        var idx = text.startIndex
+        while idx < text.endIndex {
+            let end = text.index(idx, offsetBy: max, limitedBy: text.endIndex) ?? text.endIndex
+            out.append(String(text[idx..<end]))
+            idx = end
+        }
+        return out
     }
 }
 

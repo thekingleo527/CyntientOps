@@ -82,11 +82,10 @@ public final class RouteOperationalBridge: ObservableObject {
         
         for sequence in route.sequences {
             // Convert each operation in the sequence to a TaskItem
-            for (index, operation) in sequence.operations.enumerated() {
+            var cumulative: TimeInterval = 0
+            for operation in sequence.operations {
                 let taskId = "\(sequence.id)_\(operation.id)"
-                let scheduledTime = sequence.arrivalTime.addingTimeInterval(
-                    TimeInterval(index) * operation.estimatedDuration
-                )
+                let scheduledTime = sequence.arrivalTime.addingTimeInterval(cumulative)
                 
                 let urgency = determineUrgency(from: operation, scheduledTime: scheduledTime)
                 let taskItem = WorkerDashboardViewModel.TaskItem(
@@ -102,6 +101,7 @@ public final class RouteOperationalBridge: ObservableObject {
                 )
                 
                 taskItems.append(taskItem)
+                cumulative += operation.estimatedDuration
             }
         }
         
@@ -155,9 +155,10 @@ public final class RouteOperationalBridge: ObservableObject {
         var contextualTasks: [CoreTypes.ContextualTask] = []
         
         for sequence in upcomingSequences {
+            var cumulative: TimeInterval = 0
             for operation in sequence.operations {
                 let taskId = "\(sequence.id)_\(operation.id)"
-                let scheduledTime = sequence.arrivalTime
+                let scheduledTime = sequence.arrivalTime.addingTimeInterval(cumulative)
                 
                 let contextualTask = CoreTypes.ContextualTask(
                     id: taskId,
@@ -177,6 +178,7 @@ public final class RouteOperationalBridge: ObservableObject {
                 )
                 
                 contextualTasks.append(contextualTask)
+                cumulative += operation.estimatedDuration
             }
         }
         

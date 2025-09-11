@@ -52,9 +52,11 @@ enum IntegrationTest {
     
     private static func testPortfolioIntelligence() async -> Bool {
         do {
-            let buildingService = BuildingService.shared
-            let workerService = // WorkerService injection needed
-            let taskService = // TaskService injection needed
+            // Use ServiceContainer for dependency access
+            let container = try await ServiceContainer()
+            let buildingService = container.buildings
+            let workerService = container.workers
+            let taskService = container.tasks
             
             let buildings = try await buildingService.getAllBuildings()
             let workers = try await workerService.getAllActiveWorkers()
@@ -92,9 +94,11 @@ enum IntegrationTest {
     
     private static func testBuildingMetrics() async -> Bool {
         do {
-            let buildingService = BuildingService.shared
-            let taskService = // TaskService injection needed
-            let workerService = // WorkerService injection needed
+            // Use ServiceContainer for dependency access
+            let container = try await ServiceContainer()
+            let buildingService = container.buildings
+            let taskService = container.tasks
+            let workerService = container.workers
             
             let buildings = try await buildingService.getAllBuildings()
             var metrics: [CoreTypes.BuildingMetrics] = []
@@ -149,8 +153,10 @@ enum IntegrationTest {
     
     private static func testWorkerPerformance() async -> Bool {
         do {
-            let workerService = // WorkerService injection needed
-            let taskService = // TaskService injection needed
+            // Use ServiceContainer for dependency access
+            let container = try await ServiceContainer()
+            let workerService = container.workers
+            let taskService = container.tasks
             
             let workerExists = try await workerService.getWorkerProfile(for: "2") != nil
             

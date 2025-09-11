@@ -19,7 +19,7 @@ public class WorkerManager: ObservableObject {
     @Published public var isLoading = false
     @Published public var error: Error?
     
-    // private let workerService = // WorkerService injection needed
+    // Worker data is currently loaded directly from GRDBManager
     
     private init() {
         loadWorkers()

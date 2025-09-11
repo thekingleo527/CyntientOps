@@ -4,10 +4,7 @@ import XCTest
 @MainActor
 final class ClockStateTransitionsTests: XCTestCase {
     func testClockInOutTransitionsPersist() async throws {
-        let container = ServiceContainer(
-            database: GRDBManager.shared,
-            operationalData: OperationalDataManager(database: GRDBManager.shared)
-        )
+        let container = try await ServiceContainer()
         let clock = container.clockIn
 
         // Worker 4 (Kevin) at building 10 (131 Perry Street)
@@ -28,4 +25,3 @@ final class ClockStateTransitionsTests: XCTestCase {
         XCTAssertFalse(clock.isWorkerClockedIn(workerId), "Worker should be clocked out after clockOut call")
     }
 }
-

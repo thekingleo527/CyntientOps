@@ -249,17 +249,17 @@ struct ComplianceOverviewView: View {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Compliance Center")
-                        .francoTypography(CyntientOpsDesign.Typography.dashboardTitle)
+                        .opsTypography(CyntientOpsDesign.Typography.dashboardTitle)
                         .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                     
                     if let score = intelligence?.complianceScore {
                         HStack(spacing: 8) {
                             Text("\(Int(score))%")
-                                .francoTypography(CyntientOpsDesign.Typography.headline)
+                                .opsTypography(CyntientOpsDesign.Typography.headline)
                                 .foregroundColor(complianceScoreColor(score))
                             
                             Text("Overall Score")
-                                .francoTypography(CyntientOpsDesign.Typography.caption)
+                                .opsTypography(CyntientOpsDesign.Typography.caption)
                                 .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
                             
                             // Trend indicator
@@ -327,7 +327,7 @@ struct ComplianceOverviewView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Label("Critical Issues", systemImage: "exclamationmark.triangle.fill")
-                    .francoTypography(CyntientOpsDesign.Typography.headline)
+                    .opsTypography(CyntientOpsDesign.Typography.headline)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.critical)
                 
                 Spacer()
@@ -335,7 +335,7 @@ struct ComplianceOverviewView: View {
                 Button("View All") {
                     showingAllIssues = true
                 }
-                .francoTypography(CyntientOpsDesign.Typography.caption)
+                .opsTypography(CyntientOpsDesign.Typography.caption)
                 .foregroundColor(CyntientOpsDesign.DashboardColors.primaryAction)
             }
             
@@ -357,14 +357,14 @@ struct ComplianceOverviewView: View {
                         Image(systemName: "plus.circle.fill")
                             .font(.caption)
                         Text("\(criticalIssues.count - 3) more issues")
-                            .francoTypography(CyntientOpsDesign.Typography.caption)
+                            .opsTypography(CyntientOpsDesign.Typography.caption)
                     }
                     .foregroundColor(CyntientOpsDesign.DashboardColors.warning)
                 }
                 .padding(.top, 4)
             }
         }
-        .francoCardPadding()
+        .opsCardPadding()
         .background(
             RoundedRectangle(cornerRadius: CyntientOpsDesign.CornerRadius.lg)
                 .fill(CyntientOpsDesign.DashboardColors.critical.opacity(0.1))
@@ -381,7 +381,7 @@ struct ComplianceOverviewView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Label("Live Activity", systemImage: "dot.radiowaves.left.and.right")
-                    .francoTypography(CyntientOpsDesign.Typography.headline)
+                    .opsTypography(CyntientOpsDesign.Typography.headline)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                 
                 Spacer()
@@ -396,7 +396,7 @@ struct ComplianceOverviewView: View {
                 }
             }
         }
-        .francoCardPadding()
+        .opsCardPadding()
         .cyntientOpsDarkCardBackground()
     }
     
@@ -435,25 +435,25 @@ struct ComplianceOverviewView: View {
                 Button("View Full History") {
                     showingAuditHistory = true
                 }
-                .francoTypography(CyntientOpsDesign.Typography.caption)
+                .opsTypography(CyntientOpsDesign.Typography.caption)
                 .foregroundColor(CyntientOpsDesign.DashboardColors.primaryAction)
             }
         } label: {
             HStack {
                 Label("Audit Schedule", systemImage: "calendar.badge.checkmark")
-                    .francoTypography(CyntientOpsDesign.Typography.headline)
+                    .opsTypography(CyntientOpsDesign.Typography.headline)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                 
                 Spacer()
                 
                 if let days = daysUntilNextAudit {
                     Text("\(days) days")
-                        .francoTypography(CyntientOpsDesign.Typography.caption)
+                        .opsTypography(CyntientOpsDesign.Typography.caption)
                         .foregroundColor(days < 7 ? CyntientOpsDesign.DashboardColors.warning : CyntientOpsDesign.DashboardColors.secondaryText)
                 }
             }
         }
-        .francoCardPadding()
+        .opsCardPadding()
         .cyntientOpsDarkCardBackground()
     }
     
@@ -502,79 +502,52 @@ struct ComplianceOverviewView: View {
         refreshID = UUID()
     }
     
-    /// Load real compliance data from ServiceContainer
+    /// Load real compliance data from ServiceContainer (integration caches)
     private func loadRealComplianceData() async {
         do {
-            // Load compliance data from ServiceContainer using existing methods
+            // Ensure integration caches are up to date
+            await container.nycIntegration.performFullSync()
+
             let buildings = try await container.buildings.getAllBuildings()
-            
-            // Load real NYC violations data for all buildings
-            let nycAPIService = NYCAPIService.shared
             var allViolationIssues: [ComplianceIssueData] = []
-            
+
             for building in buildings {
-                // Generate BBL for building (simplified Manhattan pattern)
-                let bbl = generateBBLFromCoordinates(building.coordinate)
-                
-                // Fetch real violations from NYC APIs  
-                async let dsnyViolations = try? nycAPIService.fetchDSNYViolations(bin: building.id)
-                async let hpdViolations = try? nycAPIService.fetchHPDViolations(bin: building.id)
-                async let dobPermits = try? nycAPIService.fetchDOBPermits(bin: building.id)
-                async let ll97Data = try? nycAPIService.fetchLL97Compliance(bbl: bbl)
-                
-                let (dsny, hpd, dob, _) = await (dsnyViolations, hpdViolations, dobPermits, ll97Data)
-                
-                // Convert DSNY violations to ComplianceIssueData
-                if let dsnyViolations = dsny {
-                    // Filter active violations first
-                    let activeViolations = dsnyViolations.filter { $0.isActive }
-                    
-                    // Create compliance issues from active violations
-                    let dsnyIssues: [ComplianceIssueData] = activeViolations.map { violation in
-                        // Parse issue date string to Date for due date calculation
-                        let dateFormatter = DateFormatter()
-                        dateFormatter.dateFormat = "yyyy-MM-dd"
-                        let issueDate = dateFormatter.date(from: violation.issueDate) ?? Date()
-                        let dueDate = Calendar.current.date(byAdding: .day, value: 30, to: issueDate)
-                        
-                        return ComplianceIssueData(
-                            type: .environmental,
-                            severity: (violation.fineAmount ?? 0) > 200 ? .critical : .high,
-                            description: "DSNY: \(violation.violationType)",
-                            buildingId: building.id,
-                            buildingName: building.name,
-                            dueDate: dueDate
-                        )
-                    }
-                    allViolationIssues.append(contentsOf: dsnyIssues)
+                // HPD via cache
+                let hpd = container.nycCompliance.getHPDViolations(for: building.id)
+                let hpdActive = hpd.filter { $0.isActive }
+                let hpdIssues: [ComplianceIssueData] = hpdActive.map { violation in
+                    // Parse inspection/issued dates
+                    let issued = parseDateFlexible(violation.inspectionDate) ?? Date()
+                    let dueDate = Calendar.current.date(byAdding: .day, value: 60, to: issued)
+                    return ComplianceIssueData(
+                        type: .regulatory,
+                        severity: violation.severity,
+                        description: "HPD: \(violation.novDescription)",
+                        buildingId: building.id,
+                        buildingName: building.name,
+                        dueDate: dueDate
+                    )
                 }
-                
-                // Convert HPD violations to ComplianceIssueData
-                if let hpdViolations = hpd {
-                    // Filter active violations first
-                    let activeViolations = hpdViolations.filter { $0.violationStatus != "RESOLVED" }
-                    
-                    // Create compliance issues from active violations
-                    let hpdIssues: [ComplianceIssueData] = activeViolations.map { violation in
-                        // Parse inspection date string to Date for due date calculation
-                        let dateFormatter = DateFormatter()
-                        dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSS"
-                        let inspectionDate = dateFormatter.date(from: violation.inspectionDate) ?? Date()
-                        let dueDate = Calendar.current.date(byAdding: .day, value: 30, to: inspectionDate)
-                        
-                        return ComplianceIssueData(
-                            type: .regulatory,
-                            severity: violation.severity == .critical ? .critical : .high,
-                            description: "HPD: \(violation.novDescription)",
-                            buildingId: building.id,
-                            buildingName: building.name,
-                            dueDate: dueDate
-                        )
-                    }
-                    allViolationIssues.append(contentsOf: hpdIssues)
+                allViolationIssues.append(contentsOf: hpdIssues)
+
+                // DSNY via cache
+                let dsny = container.nycCompliance.getDSNYViolations(for: building.id)
+                let dsnyActive = dsny.filter { $0.isActive }
+                let dsnyIssues: [ComplianceIssueData] = dsnyActive.map { violation in
+                    let issued = parseDateFlexible(violation.issueDate) ?? Date()
+                    let dueDate = Calendar.current.date(byAdding: .day, value: 30, to: issued)
+                    return ComplianceIssueData(
+                        type: .environmental,
+                        severity: (violation.fineAmount ?? 0) > 200 ? .critical : .high,
+                        description: "DSNY: \(violation.violationType)",
+                        buildingId: building.id,
+                        buildingName: building.name,
+                        dueDate: dueDate
+                    )
                 }
+                allViolationIssues.append(contentsOf: dsnyIssues)
             }
-            
+
             // Create sample audits based on building data (real service would have actual audit data)
             let sampleAudits = buildings.prefix(3).enumerated().map { index, building in
                 ComplianceAudit(
@@ -590,7 +563,7 @@ struct ComplianceOverviewView: View {
             await MainActor.run {
                 self.upcomingAudits = Array(sampleAudits)
                 self.auditHistory = [] // Would load from real audit history
-                self.allIssues = allViolationIssues // Now using real NYC violations data
+                self.allIssues = allViolationIssues // Now using compliance cache data
                 self.historicalData = [] // Would load from real historical data
                 self.lastAudit = nil // Would load from most recent audit
                 self.nextAudit = sampleAudits.first
@@ -599,7 +572,7 @@ struct ComplianceOverviewView: View {
                     self.daysUntilNextAudit = Calendar.current.dateComponents([.day], from: Date(), to: nextAudit.date).day
                 }
                 
-                print("✅ Loaded real compliance data:")
+                print("✅ Loaded compliance data from integration caches:")
                 print("  - \(upcomingAudits.count) upcoming audits")
                 print("  - \(auditHistory.count) historical audits") 
                 print("  - \(allIssues.count) compliance issues")
@@ -618,6 +591,21 @@ struct ComplianceOverviewView: View {
                 self.daysUntilNextAudit = nil
             }
         }
+    }
+
+    private func parseDateFlexible(_ s: String?) -> Date? {
+        guard let s = s, !s.isEmpty else { return nil }
+        let fmts = [
+            "yyyy-MM-dd'T'HH:mm:ss.SSS",
+            "yyyy-MM-dd'T'HH:mm:ss",
+            "yyyy-MM-dd",
+            "MM/dd/yyyy"
+        ]
+        for f in fmts {
+            let df = DateFormatter(); df.locale = Locale(identifier: "en_US_POSIX"); df.dateFormat = f
+            if let d = df.date(from: s) { return d }
+        }
+        return nil
     }
     
     
@@ -1007,7 +995,7 @@ struct ComplianceHeroStatusCard: View {
             // Quick actions
             quickActionButtons
         }
-        .francoCardPadding()
+        .opsCardPadding()
         .cyntientOpsDarkCardBackground()
     }
     
@@ -1016,12 +1004,12 @@ struct ComplianceHeroStatusCard: View {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Overall Compliance Score")
-                        .francoTypography(CyntientOpsDesign.Typography.subheadline)
+                        .opsTypography(CyntientOpsDesign.Typography.subheadline)
                         .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
                     
                     HStack(alignment: .bottom, spacing: 8) {
                         Text("\(Int(intel.complianceScore))%")
-                            .francoTypography(CyntientOpsDesign.Typography.largeTitle)
+                            .opsTypography(CyntientOpsDesign.Typography.largeTitle)
                             .foregroundColor(complianceScoreColor(intel.complianceScore))
                         
                         let trend = intel.monthlyTrend
@@ -1032,7 +1020,7 @@ struct ComplianceHeroStatusCard: View {
                                     .font(.caption2)
                                     .foregroundColor((trend == .improving || trend == .up) ? CyntientOpsDesign.DashboardColors.success : CyntientOpsDesign.DashboardColors.critical)
                                 Text(trend.rawValue)
-                                    .francoTypography(CyntientOpsDesign.Typography.caption2)
+                                    .opsTypography(CyntientOpsDesign.Typography.caption2)
                                     .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
                             }
                         }
@@ -1047,7 +1035,7 @@ struct ComplianceHeroStatusCard: View {
                         .foregroundColor(complianceScoreColor(intel.complianceScore))
                     
                     Text(complianceStatusText(intel.complianceScore))
-                        .francoTypography(CyntientOpsDesign.Typography.caption)
+                        .opsTypography(CyntientOpsDesign.Typography.caption)
                         .fontWeight(.medium)
                         .foregroundColor(complianceScoreColor(intel.complianceScore))
                 }
@@ -1057,13 +1045,13 @@ struct ComplianceHeroStatusCard: View {
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
                     Text("Compliant Buildings")
-                        .francoTypography(CyntientOpsDesign.Typography.caption)
+                        .opsTypography(CyntientOpsDesign.Typography.caption)
                         .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
                     
                     Spacer()
                     
                     Text("\(calculateCompliantBuildings(intel))/\(intel.totalBuildings)")
-                        .francoTypography(CyntientOpsDesign.Typography.caption)
+                        .opsTypography(CyntientOpsDesign.Typography.caption)
                         .fontWeight(.medium)
                         .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                 }
@@ -1118,7 +1106,7 @@ struct ComplianceHeroStatusCard: View {
         HStack(spacing: 12) {
             Button(action: onViewAllIssues) {
                 Label("Issues", systemImage: "exclamationmark.triangle")
-                    .francoTypography(CyntientOpsDesign.Typography.caption)
+                    .opsTypography(CyntientOpsDesign.Typography.caption)
                     .fontWeight(.medium)
             }
             .buttonStyle(ComplianceActionButtonStyle(color: CyntientOpsDesign.DashboardColors.critical))
@@ -1126,14 +1114,14 @@ struct ComplianceHeroStatusCard: View {
             
             Button(action: onScheduleAudit) {
                 Label("Schedule", systemImage: "calendar")
-                    .francoTypography(CyntientOpsDesign.Typography.caption)
+                    .opsTypography(CyntientOpsDesign.Typography.caption)
                     .fontWeight(.medium)
             }
             .buttonStyle(ComplianceActionButtonStyle(color: CyntientOpsDesign.DashboardColors.info))
             
             Button(action: onExportReport) {
                 Label("Export", systemImage: "doc.badge.arrow.up")
-                    .francoTypography(CyntientOpsDesign.Typography.caption)
+                    .opsTypography(CyntientOpsDesign.Typography.caption)
                     .fontWeight(.medium)
             }
             .buttonStyle(ComplianceActionButtonStyle(color: CyntientOpsDesign.DashboardColors.success))
@@ -1229,11 +1217,11 @@ struct ComplianceOverviewMetricCard: View {
                     .foregroundColor(color)
                 
                 Text(value)
-                    .francoTypography(CyntientOpsDesign.Typography.title3)
+                    .opsTypography(CyntientOpsDesign.Typography.title3)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                 
                 Text(title)
-                    .francoTypography(CyntientOpsDesign.Typography.caption)
+                    .opsTypography(CyntientOpsDesign.Typography.caption)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
                     .multilineTextAlignment(.center)
             }
@@ -1268,7 +1256,7 @@ struct ComplianceQuickActionCard: View {
                     .foregroundColor(color)
                 
                 Text(title)
-                    .francoTypography(CyntientOpsDesign.Typography.subheadline)
+                    .opsTypography(CyntientOpsDesign.Typography.subheadline)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                     .multilineTextAlignment(.center)
             }
@@ -1293,13 +1281,13 @@ struct CriticalIssueRow: View {
                 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(issue.type.rawValue)
-                        .francoTypography(CyntientOpsDesign.Typography.subheadline)
+                        .opsTypography(CyntientOpsDesign.Typography.subheadline)
                         .fontWeight(.medium)
                         .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                     
                     if let buildingName = issue.buildingName {
                         Text(buildingName)
-                            .francoTypography(CyntientOpsDesign.Typography.caption)
+                            .opsTypography(CyntientOpsDesign.Typography.caption)
                             .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
                     }
                 }
@@ -1311,7 +1299,7 @@ struct CriticalIssueRow: View {
                     
                     if let dueDate = issue.dueDate {
                         Text(formattedDueDate(dueDate))
-                            .francoTypography(CyntientOpsDesign.Typography.caption2)
+                            .opsTypography(CyntientOpsDesign.Typography.caption2)
                             .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
                     }
                 }
@@ -1341,7 +1329,7 @@ struct SeverityBadge: View {
     
     var body: some View {
         Text(severity.rawValue)
-            .francoTypography(CyntientOpsDesign.Typography.caption2)
+            .opsTypography(CyntientOpsDesign.Typography.caption2)
             .fontWeight(.medium)
             .foregroundColor(.white)
             .padding(.horizontal, 6)
@@ -1361,20 +1349,20 @@ struct ComplianceActivityRow: View {
             
             VStack(alignment: .leading, spacing: 2) {
                 Text(activity.description)
-                    .francoTypography(CyntientOpsDesign.Typography.caption)
+                    .opsTypography(CyntientOpsDesign.Typography.caption)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                     .lineLimit(1)
                 
                 HStack(spacing: 4) {
                     if let workerName = activity.workerName {
                         Text(workerName)
-                            .francoTypography(CyntientOpsDesign.Typography.caption2)
+                            .opsTypography(CyntientOpsDesign.Typography.caption2)
                             .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
                     }
                     
                     if let buildingName = activity.buildingName {
                         Text("• \(buildingName)")
-                            .francoTypography(CyntientOpsDesign.Typography.caption2)
+                            .opsTypography(CyntientOpsDesign.Typography.caption2)
                             .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
                     }
                 }
@@ -1383,7 +1371,7 @@ struct ComplianceActivityRow: View {
             Spacer()
             
             Text(activity.timestamp, style: .relative)
-                .francoTypography(CyntientOpsDesign.Typography.caption2)
+                .opsTypography(CyntientOpsDesign.Typography.caption2)
                 .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
         }
         .padding(.vertical, 4)
@@ -1418,12 +1406,12 @@ struct AuditTimelineItem: View {
             
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
-                    .francoTypography(CyntientOpsDesign.Typography.subheadline)
+                    .opsTypography(CyntientOpsDesign.Typography.subheadline)
                     .fontWeight(.medium)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                 
                 Text(formattedDate(date))
-                    .francoTypography(CyntientOpsDesign.Typography.caption)
+                    .opsTypography(CyntientOpsDesign.Typography.caption)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
             }
             
@@ -1431,7 +1419,7 @@ struct AuditTimelineItem: View {
             
             if let score = score {
                 Text("\(Int(score))%")
-                    .francoTypography(CyntientOpsDesign.Typography.headline)
+                    .opsTypography(CyntientOpsDesign.Typography.headline)
                     .foregroundColor(scoreColor(score))
             }
             
@@ -1439,7 +1427,7 @@ struct AuditTimelineItem: View {
                 VStack(alignment: .trailing, spacing: 4) {
                     if let days = daysUntil {
                         Text(daysUntilText(days))
-                            .francoTypography(CyntientOpsDesign.Typography.caption)
+                            .opsTypography(CyntientOpsDesign.Typography.caption)
                             .fontWeight(.medium)
                             .foregroundColor(days < 7 ? CyntientOpsDesign.DashboardColors.warning : CyntientOpsDesign.DashboardColors.info)
                     }
@@ -1448,7 +1436,7 @@ struct AuditTimelineItem: View {
                         Button("Reschedule") {
                             onReschedule()
                         }
-                        .francoTypography(CyntientOpsDesign.Typography.caption2)
+                        .opsTypography(CyntientOpsDesign.Typography.caption2)
                         .foregroundColor(CyntientOpsDesign.DashboardColors.primaryAction)
                     }
                 }
@@ -1488,11 +1476,11 @@ struct NoUpcomingAuditsCard: View {
                 .foregroundColor(CyntientOpsDesign.DashboardColors.warning)
             
             Text("No Upcoming Audits")
-                .francoTypography(CyntientOpsDesign.Typography.headline)
+                .opsTypography(CyntientOpsDesign.Typography.headline)
                 .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
             
             Text("Schedule your next compliance audit to maintain good standing")
-                .francoTypography(CyntientOpsDesign.Typography.subheadline)
+                .opsTypography(CyntientOpsDesign.Typography.subheadline)
                 .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
                 .multilineTextAlignment(.center)
             
@@ -1540,7 +1528,7 @@ struct ComplianceIntelligencePanel: View {
                                  value: isProcessing)
                     
                     Text("AI")
-                        .francoTypography(CyntientOpsDesign.Typography.caption)
+                        .opsTypography(CyntientOpsDesign.Typography.caption)
                         .fontWeight(.bold)
                         .foregroundColor(CyntientOpsDesign.DashboardColors.adminPrimary)
                 }
@@ -1563,7 +1551,7 @@ struct ComplianceIntelligencePanel: View {
                             Image(systemName: "chevron.up")
                                 .font(.caption)
                             Text("MORE")
-                                .francoTypography(CyntientOpsDesign.Typography.caption2)
+                                .opsTypography(CyntientOpsDesign.Typography.caption2)
                         }
                         .foregroundColor(CyntientOpsDesign.DashboardColors.adminPrimary)
                         .frame(width: 44, height: 60)
@@ -1629,20 +1617,20 @@ struct ComplianceInsightCard: View {
                         )
                     
                     Text(insight.priority.rawValue.capitalized)
-                        .francoTypography(CyntientOpsDesign.Typography.caption)
+                        .opsTypography(CyntientOpsDesign.Typography.caption)
                         .fontWeight(.semibold)
                         .foregroundColor(priorityColor)
                 }
                 
                 // Content
                 Text(insight.title)
-                    .francoTypography(CyntientOpsDesign.Typography.subheadline)
+                    .opsTypography(CyntientOpsDesign.Typography.subheadline)
                     .fontWeight(.medium)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                     .lineLimit(2)
                 
                 Text(insight.description)
-                    .francoTypography(CyntientOpsDesign.Typography.caption)
+                    .opsTypography(CyntientOpsDesign.Typography.caption)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
                     .lineLimit(2)
                 
@@ -1652,7 +1640,7 @@ struct ComplianceInsightCard: View {
                         Image(systemName: "arrow.right")
                             .font(.caption2)
                         Text(action)
-                            .francoTypography(CyntientOpsDesign.Typography.caption2)
+                            .opsTypography(CyntientOpsDesign.Typography.caption2)
                     }
                     .foregroundColor(actionColor)
                 }
@@ -1756,12 +1744,12 @@ struct ComplianceIssueDetailView: View {
                 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(issue.type.rawValue)
-                        .francoTypography(CyntientOpsDesign.Typography.title2)
+                        .opsTypography(CyntientOpsDesign.Typography.title2)
                         .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                     
                     if let buildingName = issue.buildingName {
                         Text(buildingName)
-                            .francoTypography(CyntientOpsDesign.Typography.subheadline)
+                            .opsTypography(CyntientOpsDesign.Typography.subheadline)
                             .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
                     }
                 }
@@ -1787,14 +1775,14 @@ struct ComplianceIssueDetailView: View {
                 detailRow(label: "Potential Impact", value: impact)
             }
         }
-        .francoCardPadding()
+        .opsCardPadding()
         .cyntientOpsDarkCardBackground()
     }
     
     private var resolutionSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Resolution")
-                .francoTypography(CyntientOpsDesign.Typography.headline)
+                .opsTypography(CyntientOpsDesign.Typography.headline)
                 .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
             
             // Resolution type picker
@@ -1808,7 +1796,7 @@ struct ComplianceIssueDetailView: View {
             // Notes field
             VStack(alignment: .leading, spacing: 8) {
                 Text("Notes")
-                    .francoTypography(CyntientOpsDesign.Typography.subheadline)
+                    .opsTypography(CyntientOpsDesign.Typography.subheadline)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
                 
                 TextEditor(text: $notes)
@@ -1835,7 +1823,7 @@ struct ComplianceIssueDetailView: View {
                     Text("Update Status")
                 }
                 .frame(maxWidth: .infinity)
-                .francoTypography(CyntientOpsDesign.Typography.subheadline)
+                .opsTypography(CyntientOpsDesign.Typography.subheadline)
                 .fontWeight(.medium)
             }
             .buttonStyle(ComplianceActionButtonStyle(color: selectedResolution.color))
@@ -1849,7 +1837,7 @@ struct ComplianceIssueDetailView: View {
                         Text("Dispatch Worker")
                     }
                     .frame(maxWidth: .infinity)
-                    .francoTypography(CyntientOpsDesign.Typography.subheadline)
+                    .opsTypography(CyntientOpsDesign.Typography.subheadline)
                     .fontWeight(.medium)
                 }
                 .buttonStyle(ComplianceActionButtonStyle(color: CyntientOpsDesign.DashboardColors.critical))
@@ -1860,11 +1848,11 @@ struct ComplianceIssueDetailView: View {
     private func detailRow(label: String, value: String) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(label)
-                .francoTypography(CyntientOpsDesign.Typography.caption)
+                .opsTypography(CyntientOpsDesign.Typography.caption)
                 .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
             
             Text(value)
-                .francoTypography(CyntientOpsDesign.Typography.body)
+                    .opsTypography(CyntientOpsDesign.Typography.body)
                 .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
         }
     }
@@ -1932,29 +1920,29 @@ struct AuditSchedulerSheet: View {
     private var currentAuditsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Scheduled Audits")
-                .francoTypography(CyntientOpsDesign.Typography.headline)
+                .opsTypography(CyntientOpsDesign.Typography.headline)
                 .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
             
             ForEach(currentAudits) { audit in
                 HStack {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(audit.type)
-                            .francoTypography(CyntientOpsDesign.Typography.subheadline)
+                            .opsTypography(CyntientOpsDesign.Typography.subheadline)
                             .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                         
                         Text(audit.date.formatted(date: .abbreviated, time: .omitted))
-                            .francoTypography(CyntientOpsDesign.Typography.caption)
+                            .opsTypography(CyntientOpsDesign.Typography.caption)
                             .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
                     }
                     
                     Spacer()
                     
                     Text(daysUntilText(audit.date))
-                        .francoTypography(CyntientOpsDesign.Typography.caption)
+                        .opsTypography(CyntientOpsDesign.Typography.caption)
                         .fontWeight(.medium)
                         .foregroundColor(CyntientOpsDesign.DashboardColors.info)
                 }
-                .francoCardPadding()
+                .opsCardPadding()
                 .cyntientOpsDarkCardBackground()
             }
         }
@@ -1963,13 +1951,13 @@ struct AuditSchedulerSheet: View {
     private var scheduleSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Schedule New Audit")
-                .francoTypography(CyntientOpsDesign.Typography.headline)
+                .opsTypography(CyntientOpsDesign.Typography.headline)
                 .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
             
             // Audit type
             VStack(alignment: .leading, spacing: 8) {
                 Text("Audit Type")
-                    .francoTypography(CyntientOpsDesign.Typography.subheadline)
+                    .opsTypography(CyntientOpsDesign.Typography.subheadline)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
                 
                 Picker("Type", selection: $auditType) {
@@ -1988,11 +1976,11 @@ struct AuditSchedulerSheet: View {
                 displayedComponents: .date
             )
             .datePickerStyle(.compact)
-            .francoTypography(CyntientOpsDesign.Typography.subheadline)
+            .opsTypography(CyntientOpsDesign.Typography.subheadline)
             
             // Building selection would go here
         }
-        .francoCardPadding()
+        .opsCardPadding()
         .cyntientOpsDarkCardBackground()
     }
     
@@ -2060,7 +2048,7 @@ struct ComplianceExportSheet: View {
     private var reportPreviewSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Report Preview")
-                .francoTypography(CyntientOpsDesign.Typography.headline)
+                .opsTypography(CyntientOpsDesign.Typography.headline)
                 .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
             
             VStack(alignment: .leading, spacing: 16) {
@@ -2069,11 +2057,11 @@ struct ComplianceExportSheet: View {
                     HStack {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Compliance Score")
-                                .francoTypography(CyntientOpsDesign.Typography.caption)
+                                .opsTypography(CyntientOpsDesign.Typography.caption)
                                 .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
                             
                             Text("\(Int(intel.complianceScore))%")
-                                .francoTypography(CyntientOpsDesign.Typography.title2)
+                                .opsTypography(CyntientOpsDesign.Typography.title2)
                                 .foregroundColor(scoreColor(intel.complianceScore))
                         }
                         
@@ -2081,11 +2069,11 @@ struct ComplianceExportSheet: View {
                         
                         VStack(alignment: .trailing, spacing: 4) {
                             Text("Critical Issues")
-                                .francoTypography(CyntientOpsDesign.Typography.caption)
+                                .opsTypography(CyntientOpsDesign.Typography.caption)
                                 .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
                             
                             Text("\(intel.criticalIssues)")
-                                .francoTypography(CyntientOpsDesign.Typography.title2)
+                                .opsTypography(CyntientOpsDesign.Typography.title2)
                                 .foregroundColor(intel.criticalIssues > 0 ? CyntientOpsDesign.DashboardColors.critical : CyntientOpsDesign.DashboardColors.success)
                         }
                     }
@@ -2103,13 +2091,13 @@ struct ComplianceExportSheet: View {
                                 .foregroundColor(CyntientOpsDesign.DashboardColors.success)
                             
                             Text(section)
-                                .francoTypography(CyntientOpsDesign.Typography.caption)
+                                .opsTypography(CyntientOpsDesign.Typography.caption)
                                 .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                         }
                     }
                 }
             }
-            .francoCardPadding()
+            .opsCardPadding()
             .cyntientOpsDarkCardBackground()
         }
     }
@@ -2117,13 +2105,13 @@ struct ComplianceExportSheet: View {
     private var exportOptionsSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Export Options")
-                .francoTypography(CyntientOpsDesign.Typography.headline)
+                .opsTypography(CyntientOpsDesign.Typography.headline)
                 .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
             
             // Format selection
             VStack(alignment: .leading, spacing: 8) {
                 Text("Format")
-                    .francoTypography(CyntientOpsDesign.Typography.subheadline)
+                    .opsTypography(CyntientOpsDesign.Typography.subheadline)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
                 
                 Picker("Format", selection: $selectedFormat) {
@@ -2137,7 +2125,7 @@ struct ComplianceExportSheet: View {
             // Date range
             VStack(alignment: .leading, spacing: 8) {
                 Text("Date Range")
-                    .francoTypography(CyntientOpsDesign.Typography.subheadline)
+                    .opsTypography(CyntientOpsDesign.Typography.subheadline)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
                 
                 Picker("Date Range", selection: $dateRange) {
@@ -2150,10 +2138,10 @@ struct ComplianceExportSheet: View {
             
             // Include photos toggle
             Toggle("Include Photo Evidence", isOn: $includePhotos)
-                .francoTypography(CyntientOpsDesign.Typography.subheadline)
+                .opsTypography(CyntientOpsDesign.Typography.subheadline)
                 .toggleStyle(SwitchToggleStyle(tint: CyntientOpsDesign.DashboardColors.primaryAction))
         }
-        .francoCardPadding()
+        .opsCardPadding()
         .cyntientOpsDarkCardBackground()
     }
     
@@ -2167,7 +2155,7 @@ struct ComplianceExportSheet: View {
                 Text("Export Report")
             }
             .frame(maxWidth: .infinity)
-            .francoTypography(CyntientOpsDesign.Typography.subheadline)
+            .opsTypography(CyntientOpsDesign.Typography.subheadline)
             .fontWeight(.medium)
         }
         .buttonStyle(ComplianceActionButtonStyle(color: CyntientOpsDesign.DashboardColors.primaryAction))
@@ -2326,11 +2314,11 @@ struct AllIssuesListView: View {
                 .foregroundColor(CyntientOpsDesign.DashboardColors.success)
             
             Text("No Issues Found")
-                .francoTypography(CyntientOpsDesign.Typography.title2)
+                .opsTypography(CyntientOpsDesign.Typography.title2)
                 .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
             
             Text("Try adjusting your filters")
-                .francoTypography(CyntientOpsDesign.Typography.subheadline)
+                .opsTypography(CyntientOpsDesign.Typography.subheadline)
                 .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
             
             Spacer()
@@ -2351,13 +2339,13 @@ struct ComplianceIssueRowCard: View {
                 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(issue.type.rawValue)
-                        .francoTypography(CyntientOpsDesign.Typography.subheadline)
+                        .opsTypography(CyntientOpsDesign.Typography.subheadline)
                         .fontWeight(.medium)
                         .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                     
                     if let buildingName = issue.buildingName {
                         Text(buildingName)
-                            .francoTypography(CyntientOpsDesign.Typography.caption)
+                            .opsTypography(CyntientOpsDesign.Typography.caption)
                             .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
                     }
                 }
@@ -2368,7 +2356,7 @@ struct ComplianceIssueRowCard: View {
             }
             
             Text(issue.description)
-                .francoTypography(CyntientOpsDesign.Typography.caption)
+                .opsTypography(CyntientOpsDesign.Typography.caption)
                 .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
                 .lineLimit(2)
             
@@ -2377,13 +2365,13 @@ struct ComplianceIssueRowCard: View {
                     Image(systemName: "calendar")
                         .font(.caption2)
                     Text(dueDate.formatted(date: .abbreviated, time: .omitted))
-                        .francoTypography(CyntientOpsDesign.Typography.caption2)
+                        .opsTypography(CyntientOpsDesign.Typography.caption2)
                         .fontWeight(.medium)
                 }
                 .foregroundColor(dueDateColor(dueDate))
             }
         }
-        .francoCardPadding()
+        .opsCardPadding()
         .cyntientOpsDarkCardBackground()
     }
     
@@ -2447,11 +2435,11 @@ struct AuditHistoryView: View {
                 .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
             
             Text("No Audit History")
-                .francoTypography(CyntientOpsDesign.Typography.title2)
+                .opsTypography(CyntientOpsDesign.Typography.title2)
                 .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
             
             Text("Previous audits will appear here")
-                .francoTypography(CyntientOpsDesign.Typography.subheadline)
+                .opsTypography(CyntientOpsDesign.Typography.subheadline)
                 .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
             
             Spacer()
@@ -2466,16 +2454,16 @@ struct AuditHistoryCard: View {
         HStack {
             VStack(alignment: .leading, spacing: 8) {
                 Text(audit.type)
-                    .francoTypography(CyntientOpsDesign.Typography.headline)
+                    .opsTypography(CyntientOpsDesign.Typography.headline)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                 
                 Text(audit.date.formatted(date: .abbreviated, time: .omitted))
-                    .francoTypography(CyntientOpsDesign.Typography.subheadline)
+                    .opsTypography(CyntientOpsDesign.Typography.subheadline)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
                 
                 if let auditor = audit.auditor {
                     Text("Audited by: \(auditor)")
-                        .francoTypography(CyntientOpsDesign.Typography.caption)
+                        .opsTypography(CyntientOpsDesign.Typography.caption)
                         .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
                 }
             }
@@ -2484,15 +2472,15 @@ struct AuditHistoryCard: View {
             
             VStack(alignment: .trailing, spacing: 4) {
                 Text("\(Int(audit.score))%")
-                    .francoTypography(CyntientOpsDesign.Typography.title2)
+                    .opsTypography(CyntientOpsDesign.Typography.title2)
                     .foregroundColor(scoreColor(audit.score))
                 
                 Text("Score")
-                    .francoTypography(CyntientOpsDesign.Typography.caption)
+                    .opsTypography(CyntientOpsDesign.Typography.caption)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
             }
         }
-        .francoCardPadding()
+        .opsCardPadding()
         .cyntientOpsDarkCardBackground()
     }
     
@@ -2544,7 +2532,7 @@ struct ComplianceTrendsView: View {
     private var trendChartSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Compliance Score Trend")
-                .francoTypography(CyntientOpsDesign.Typography.headline)
+                .opsTypography(CyntientOpsDesign.Typography.headline)
                 .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
             
             // Chart placeholder
@@ -2558,7 +2546,7 @@ struct ComplianceTrendsView: View {
                             .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
                         
                         Text("Chart visualization")
-                            .francoTypography(CyntientOpsDesign.Typography.caption)
+                            .opsTypography(CyntientOpsDesign.Typography.caption)
                             .foregroundColor(CyntientOpsDesign.DashboardColors.tertiaryText)
                     }
                 )
@@ -2568,7 +2556,7 @@ struct ComplianceTrendsView: View {
     private var keyMetricsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Key Metrics")
-                .francoTypography(CyntientOpsDesign.Typography.headline)
+                .opsTypography(CyntientOpsDesign.Typography.headline)
                 .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
             
             LazyVGrid(columns: [
@@ -2609,7 +2597,7 @@ struct ComplianceTrendsView: View {
     private var trendsInsightsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Insights")
-                .francoTypography(CyntientOpsDesign.Typography.headline)
+                .opsTypography(CyntientOpsDesign.Typography.headline)
                 .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
             
             VStack(alignment: .leading, spacing: 16) {
@@ -2631,7 +2619,7 @@ struct ComplianceTrendsView: View {
                     color: CyntientOpsDesign.DashboardColors.warning
                 )
             }
-            .francoCardPadding()
+            .opsCardPadding()
             .cyntientOpsDarkCardBackground()
         }
     }
@@ -2647,7 +2635,7 @@ struct TrendMetricCard: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Text(title)
-                    .francoTypography(CyntientOpsDesign.Typography.caption)
+                    .opsTypography(CyntientOpsDesign.Typography.caption)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
                 
                 Spacer()
@@ -2658,16 +2646,16 @@ struct TrendMetricCard: View {
                         .font(.caption2)
                         .foregroundColor((trend == .improving || trend == .up) ? CyntientOpsDesign.DashboardColors.success : CyntientOpsDesign.DashboardColors.critical)
                     Text(trend.rawValue)
-                        .francoTypography(CyntientOpsDesign.Typography.caption2)
+                        .opsTypography(CyntientOpsDesign.Typography.caption2)
                         .foregroundColor(CyntientOpsDesign.DashboardColors.secondaryText)
                 }
             }
             
             Text(value)
-                .francoTypography(CyntientOpsDesign.Typography.title3)
+                .opsTypography(CyntientOpsDesign.Typography.title3)
                 .foregroundColor(color)
         }
-        .francoCardPadding()
+        .opsCardPadding()
         .cyntientOpsDarkCardBackground()
     }
 }
@@ -2685,7 +2673,7 @@ struct TrendInsightRow: View {
                 .frame(width: 20)
             
             Text(text)
-                .francoTypography(CyntientOpsDesign.Typography.caption)
+                .opsTypography(CyntientOpsDesign.Typography.caption)
                 .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -2773,7 +2761,7 @@ struct GuideSection: View {
                             .frame(width: 16)
                         
                         Text(item)
-                            .francoTypography(CyntientOpsDesign.Typography.caption)
+                            .opsTypography(CyntientOpsDesign.Typography.caption)
                             .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
                             .fixedSize(horizontal: false, vertical: true)
                     }
@@ -2788,11 +2776,11 @@ struct GuideSection: View {
                     .frame(width: 24)
                 
                 Text(category.title)
-                    .francoTypography(CyntientOpsDesign.Typography.headline)
+                    .opsTypography(CyntientOpsDesign.Typography.headline)
                     .foregroundColor(CyntientOpsDesign.DashboardColors.primaryText)
             }
         }
-        .francoCardPadding()
+        .opsCardPadding()
         .cyntientOpsDarkCardBackground()
     }
 }
@@ -2907,7 +2895,7 @@ struct ComplianceLiveIndicator: View {
                 .animation(.easeInOut(duration: 1).repeatForever(autoreverses: true), value: isAnimating)
             
             Text("LIVE")
-                .francoTypography(CyntientOpsDesign.Typography.caption2)
+                .opsTypography(CyntientOpsDesign.Typography.caption2)
                 .fontWeight(.semibold)
                 .foregroundColor(CyntientOpsDesign.DashboardColors.success)
         }
@@ -2922,7 +2910,7 @@ struct ComplianceFilterChip: View {
     
     var body: some View {
         Text(title)
-            .francoTypography(CyntientOpsDesign.Typography.caption)
+            .opsTypography(CyntientOpsDesign.Typography.caption)
             .fontWeight(.medium)
             .foregroundColor(isActive ? .white : CyntientOpsDesign.DashboardColors.secondaryText)
             .padding(.horizontal, 12)
@@ -2950,4 +2938,3 @@ struct ComplianceActionButtonStyle: ButtonStyle {
             .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
     }
 }
-

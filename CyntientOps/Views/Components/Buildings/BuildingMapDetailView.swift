@@ -132,7 +132,7 @@ struct BuildingMapDetailView: View {
                         )
                 }
             }
-            .francoGlassCard(intensity: GlassIntensity.regular)
+            .opsGlassCard(intensity: GlassIntensity.regular)
             
             // Building info with glass text
             VStack(spacing: 8) {
@@ -201,7 +201,7 @@ struct BuildingMapDetailView: View {
             }
         }
         .padding(20)
-        .francoGlassCard(intensity: GlassIntensity.regular)
+        .opsGlassCard(intensity: GlassIntensity.regular)
     }
     
     // MARK: - Actions Section

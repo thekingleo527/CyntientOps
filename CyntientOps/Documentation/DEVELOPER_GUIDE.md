@@ -53,6 +53,8 @@ This guide codifies our working style so features compile, connect, and display 
   - Routines look‑ahead in `Views/Admin/AdminRoutinesPanel.swift` + `ViewModels/Dashboard/Admin/AdminRoutinesViewModel.swift`.
   - Weather ribbon Now/12h/48h + DSNY advisory in `Views/Admin/AdminWeatherRibbon.swift`.
 - DSNY unit counts centralized in `BuildingUnitValidator`.
+- ViewModels avoid new types in compiled targets: no direct references to `HydrationFacade` or `DSNYScheduleProvider` from VMs; DSNY UI and logic use `DSNYCollectionSchedule` which is in-target.
+- Client dashboard metrics/UI prefer route-derived portfolio data: `routePortfolioTodayTasks` and `routePortfolioWorkerIds`.
 - 29/31 E 20th fully deprecated from user-visible code.
 
 Admin TODOs (P0 small polish)

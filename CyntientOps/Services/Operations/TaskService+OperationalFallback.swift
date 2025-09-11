@@ -114,22 +114,37 @@ extension TaskService {
     }
     
     private func convertOperationalTask(_ opTask: OperationalDataTaskAssignment, index: Int, workerId: String? = nil) async -> ContextualTask? {
-        // Get building ID from building service
-        // TODO: Inject BuildingService dependency
-        // let buildingService = BuildingService.shared
+        // Get building match directly from database via grdbManager
         var buildingId: String?
         var building: NamedCoordinate?
-        
         do {
-            // TODO: Fix BuildingService injection
-            // let allBuildings = try await buildingService.getAllBuildings()
-            // building = allBuildings.first { bldg in
-            //     bldg.name.lowercased().contains(opTask.building.lowercased()) ||
-            //     opTask.building.lowercased().contains(bldg.name.lowercased())
-            // }
-            // buildingId = building?.id
+            let query = """
+                SELECT id, name, address, latitude, longitude
+                FROM buildings
+                WHERE LOWER(name) = ?
+                   OR LOWER(name) LIKE ?
+                   OR (aliases IS NOT NULL AND LOWER(aliases) LIKE ?)
+                ORDER BY CASE WHEN LOWER(name) = ? THEN 0 ELSE 1 END, name
+                LIMIT 1
+            """
+            let needle = opTask.building.lowercased()
+            let rows = try await grdbManager.query(query, [needle, "%\(needle)%", "%\(needle)%", needle])
+            if let row = rows.first {
+                if let idInt = row["id"] as? Int64 {
+                    buildingId = String(idInt)
+                } else if let idStr = row["id"] as? String {
+                    buildingId = idStr
+                }
+                if let id = buildingId,
+                   let name = row["name"] as? String,
+                   let address = row["address"] as? String,
+                   let lat = row["latitude"] as? Double,
+                   let lon = row["longitude"] as? Double {
+                    building = NamedCoordinate(id: id, name: name, address: address, latitude: lat, longitude: lon)
+                }
+            }
         } catch {
-            print("⚠️ Could not get building for \(opTask.building): \(error)")
+            print("⚠️ Could not lookup building for \(opTask.building): \(error)")
         }
         
         // Map category

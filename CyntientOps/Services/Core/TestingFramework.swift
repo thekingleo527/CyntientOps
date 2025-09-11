@@ -262,7 +262,9 @@ public final class TestingFramework: ObservableObject {
     }
     
     private func testTaskServiceOperations() async throws {
-        let taskService = // TaskService injection needed
+        // Access TaskService via ServiceContainer
+        let container = try await ServiceContainer()
+        let taskService = container.tasks
         
         // Test task retrieval (this should work with existing data)
         let tasks = try await taskService.getTasks(for: "4", date: Date())
@@ -312,22 +314,26 @@ public final class TestingFramework: ObservableObject {
     }
     
     private func testDashboardSyncIntegration() async throws {
-        let syncService = DashboardSyncService.shared
-        XCTAssertNotNil(syncService)
+        // Access DashboardSyncService via ServiceContainer
+        let container = try await ServiceContainer()
+        let syncService = container.dashboardSync
         
-        // Test sync status
-        let status = syncService.currentStatus
-        XCTAssertNotNil(status)
+        // Initialize and verify live state
+        syncService.initialize()
+        XCTAssertTrue(syncService.isLive, "Dashboard sync should be live after initialize()")
     }
     
     private func testPhotoEvidenceIntegration() async throws {
-        let photoService = PhotoEvidenceService.shared
+        // Access PhotoEvidenceService via ServiceContainer
+        let container = try await ServiceContainer()
+        let photoService = container.photos
         XCTAssertNotNil(photoService)
     }
     
     private func testProductionDataIntegrity() async throws {
         // Test Kevin's 38 tasks
-        let taskService = // TaskService injection needed
+        let container = try await ServiceContainer()
+        let taskService = container.tasks
         let kevinTasks = try await taskService.getTasks(for: "4", date: Date())
         XCTAssertEqual(kevinTasks.count, 38, "Kevin should have exactly 38 tasks")
         
@@ -342,13 +348,15 @@ public final class TestingFramework: ObservableObject {
     }
     
     private func testWorkerTaskSystem() async throws {
-        let workerService = // WorkerService injection needed
+        let container = try await ServiceContainer()
+        let workerService = container.workers
         let workers = try await workerService.getAllWorkers()
         XCTAssertFalse(workers.isEmpty)
     }
     
     private func testBuildingSystem() async throws {
-        let buildingService = BuildingService.shared
+        let container = try await ServiceContainer()
+        let buildingService = container.buildings
         let buildings = try await buildingService.getAllBuildings()
         XCTAssertFalse(buildings.isEmpty)
     }

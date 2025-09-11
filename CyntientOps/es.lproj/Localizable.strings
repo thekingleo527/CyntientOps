@@ -91,3 +91,16 @@
 "building.21.private_elevator_cold_title" = "Frío: ascensor privado";
 "building.21.private_elevator_cold_reco" = "Revisar confort donde el ascensor abre en la unidad";
 "building.21.private_elevator_cold_detail" = "Revisar ascensor que abre en la unidad: confort del residente";
+
+// Dashboard
+"dashboard.upcoming_tasks" = "Tareas próximas";
+"dashboard.all_caught_up" = "¡Al día!";
+"dashboard.no_upcoming_tasks" = "No hay tareas próximas ahora.";
+"dashboard.recent_activity" = "Actividad reciente";
+
+// Weather Card V2
+"weather.card.title" = "Aviso meteorológico";
+"weather.details" = "Detalles";
+"weather.hide_details" = "Ocultar detalles";
+"weather.open_building" = "Abrir edificio";
+"weather.start" = "Iniciar";

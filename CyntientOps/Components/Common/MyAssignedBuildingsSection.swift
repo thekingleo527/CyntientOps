@@ -16,8 +16,7 @@ struct MyAssignedBuildingsSection: View {
     let onBuildingTap: (NamedCoordinate) -> Void
     let onShowAllBuildings: () -> Void
     
-    // Service references
-    // private let buildingMetricsService = // BuildingMetricsService injection needed
+    // Metrics are fetched on-demand via BuildingMetricsService (see .task)
     
     @State private var buildingMetrics: [String: CoreTypes.BuildingMetrics] = [:]
     @State private var isLoadingMetrics = false
@@ -97,9 +96,9 @@ struct MyAssignedBuildingsSection: View {
                 .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity, minHeight: 200)
-        .francoCardPadding()
-        .francoGlassBackground()
-        .francoShadow(CyntientOpsDesign.Shadow.glassCard)
+        .opsCardPadding()
+        .opsGlassBackground()
+        .opsShadow(CyntientOpsDesign.Shadow.glassCard)
     }
     
     // MARK: - Metrics Loading
@@ -184,8 +183,8 @@ struct GlassBuildingMetricCard: View {
         .buttonStyle(PlainButtonStyle())
         .padding(12)
         .frame(height: 160)
-        .francoPropertyCardBackground()
-        .francoShadow(CyntientOpsDesign.Shadow.propertyCard)
+        .opsPropertyCardBackground()
+        .opsShadow(CyntientOpsDesign.Shadow.propertyCard)
         .overlay(
             // Glow effect for primary building
             RoundedRectangle(cornerRadius: 12)

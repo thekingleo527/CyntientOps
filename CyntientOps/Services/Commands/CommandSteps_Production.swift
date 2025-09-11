@@ -2,7 +2,7 @@
 //  CommandSteps_Production.swift
 //  CyntientOps
 //
-//  🏭 PRODUCTION COMMAND STEPS: Real-world implementations using actual Franco Management data
+//  🏭 PRODUCTION COMMAND STEPS: Real-world implementations using actual FME (Franco Management Enterprises) data
 //  ✅ BASED ON: OperationalDataManager routines and NYC API integrations
 //  ✅ NO PLACEHOLDERS: Complete implementations for field deployment
 //
@@ -141,7 +141,7 @@ public struct CaptureTaskPhotoCommand: CommandStep {
         let workerName = getWorkerName(for: workerId)
         let timestamp = DateFormatter.standard.string(from: Date())
         
-        // Generate specific notes based on actual Franco Management task patterns
+        // Generate specific notes based on actual FME task patterns
         switch taskType.lowercased() {
         case let type where type.contains("trash"):
             return "Trash collection completed at \(buildingName). All bins emptied and sorted. Photo taken by \(workerName) at \(timestamp)."
@@ -360,7 +360,7 @@ public struct CreateViolationTaskCommand: CommandStep {
     }
     
     private func assignWorkerForViolation(violation: RecentNYCViolation, buildingId: String) -> String {
-        // Assign based on building and violation type using real Franco Management assignments
+        // Assign based on building and violation type using real FME assignments
         
         // Kevin Dutan handles most buildings and has broad skillset
         let kevinBuildings = ["1", "7", "9", "10", "11", "14"] // His regular buildings

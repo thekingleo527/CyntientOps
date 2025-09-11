@@ -39,8 +39,9 @@ P1 — Intelligence, Compliance, and Reliability
 P2 — Scale, Observability, and Safety Nets
 
 6) Observability & health dashboard
-- Status: Pending
-- Plan: OSLog categories (ui, network, db, ai), local crash persistence, admin health dashboard with LLM latency/tokens/sync backlog.
+- Status: In progress
+- Implemented: AdminAnalyticsView now queries local `nova_usage_analytics_local` for 24h averages (latency, tokens, success/error rates) and shows offline queue + network state.
+- Next: Add sparkline charts and per-user token budget breakdown.
 
 7) Role‑aware RLS & multi‑tenant
 - Status: Guidance updated (Supabase setup); Edge must pass Authorization to Supabase client; org_id scoping planned.
@@ -49,4 +50,6 @@ P2 — Scale, Observability, and Safety Nets
 - Status: Pipeline builds on macOS; adding SwiftLint and basic UI snapshot tests planned.
 
 9) Nova cost & speed
-- Status: Client analytics recorded (model, tokens, latency). Next up: streaming UI and prompt caching of last 5 messages per user; token ceilings.
+- Status: In progress
+- Implemented: Streaming UI (simulated chunking) in NovaInteractionView; prompt caching (last 5 messages) included in Edge calls; per-user daily token ceilings enforced (default 50k, admin override via UserDefaults key `token_ceiling_<userId>`).
+- Next: Expose admin override in Settings; consider true server-sent streaming.

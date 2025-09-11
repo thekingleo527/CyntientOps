@@ -179,26 +179,39 @@ public actor ComplianceService {
     /// Aggregate compliance snapshot over a timeframe using locally cached NYC data
     public func fetchPortfolioSnapshot(timeframe: SnapshotTimeframe = .thirtyDays) async -> PortfolioSnapshot {
         let cutoff = timeframe.cutoff
-        // Buildings from DB
-        let buildings: [CoreTypes.NamedCoordinate] = (try? await getBuildingsFromDatabase()) ?? []
-        let totalB = buildings.count
-
-        func parse(_ s: String) -> Date? {
-            let fmts = ["yyyy-MM-dd'T'HH:mm:ss.SSS","yyyy-MM-dd'T'HH:mm:ss","yyyy-MM-dd","MM/dd/yyyy"]
-            for f in fmts { let df = DateFormatter(); df.locale = Locale(identifier: "en_US_POSIX"); df.dateFormat = f; if let d = df.date(from: s) { return d } }
-            return nil
-        }
+        
+        // Read from local cache of NYC compliance data to avoid coupling to other services
+        var totalBuildings = 0
         var hpd = 0
         var dsny = 0
         var dob = 0
-        for b in buildings {
-            if let ctx = complianceData[b.id] {
-                hpd += ctx.hpdViolations.filter { v in (parse(v.inspectionDate) ?? .distantPast) >= cutoff }.count
-                dsny += ctx.dsnyViolations.filter { v in (parse(v.issueDate) ?? .distantPast) >= cutoff }.count
-                dob += ctx.dobPermits.filter { !$0.isExpired }.count
+        
+        do {
+            let rows = try await grdbManager.query("SELECT building_id, data FROM nyc_compliance_cache")
+            totalBuildings = rows.count
+            
+            func parse(_ s: String) -> Date? {
+                let fmts = ["yyyy-MM-dd'T'HH:mm:ss.SSS","yyyy-MM-dd'T'HH:mm:ss","yyyy-MM-dd","MM/dd/yyyy"]
+                for f in fmts {
+                    let df = DateFormatter(); df.locale = Locale(identifier: "en_US_POSIX"); df.dateFormat = f
+                    if let d = df.date(from: s) { return d }
+                }
+                return nil
             }
+            
+            for row in rows {
+                guard let data = row["data"] as? Data else { continue }
+                if let ctx = try? JSONDecoder().decode(NYCBuildingCompliance.self, from: data) {
+                    hpd += ctx.hpdViolations.filter { (parse($0.inspectionDate) ?? .distantPast) >= cutoff }.count
+                    dsny += ctx.dsnyViolations.filter { (parse($0.issueDate) ?? .distantPast) >= cutoff }.count
+                    dob += ctx.dobPermits.filter { !$0.isExpired }.count
+                }
+            }
+        } catch {
+            // Fall back to zeros if cache not present
         }
-        return PortfolioSnapshot(timeframe: timeframe, hpdNew: hpd, dsnyNew: dsny, dobActive: dob, totalBuildings: totalB)
+        
+        return PortfolioSnapshot(timeframe: timeframe, hpdNew: hpd, dsnyNew: dsny, dobActive: dob, totalBuildings: totalBuildings)
     }
     
     /// Get compliance overview for portfolio
