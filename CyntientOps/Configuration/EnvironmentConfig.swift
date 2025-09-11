@@ -85,7 +85,8 @@ final class EnvironmentConfig {
         return [
             "Environment": current.rawValue,
             "Debug": isDebugEnabled ? "Enabled" : "Disabled",
-            "Demo Mode": isDemoMode ? "Enabled" : "Disabled"
+            "Demo Mode": isDemoMode ? "Enabled" : "Disabled",
+            "Use Real APIs": useRealAPIs ? "Yes" : "No"
         ]
     }
 }
@@ -151,6 +152,18 @@ extension EnvironmentConfig {
             sentryDSN: isPlaceholder ? nil : sentryDSN,
             isAnalyticsEnabled: !isDemoMode
         )
+    }
+}
+
+// MARK: - Feature Flags
+
+extension EnvironmentConfig {
+    /// Whether to use real APIs. Defaults to true unless explicitly disabled via env or demo mode.
+    var useRealAPIs: Bool {
+        if let raw = ProcessInfo.processInfo.environment["USE_REAL_APIS"], !raw.isEmpty {
+            return (raw as NSString).boolValue
+        }
+        return !isDemoMode
     }
 }
 

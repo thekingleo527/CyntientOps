@@ -116,9 +116,22 @@ public final class LocationManager: NSObject, ObservableObject {
             requestLocationPermission()
             return
         }
-        
+
         coreLocationManager.requestLocation()
     }
+
+#if DEBUG
+    /// Set a debug/simulated location (e.g., Chelsea center) for deterministic fixtures
+    public func setDebugLocation(latitude: Double, longitude: Double) {
+        let coord = CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
+        let loc = CLLocation(latitude: coord.latitude, longitude: coord.longitude)
+        DispatchQueue.main.async {
+            self.location = loc
+            self.currentBuilding = nil
+        }
+        print("📍 Debug location set: (\(latitude), \(longitude))")
+    }
+#endif
     
     public func isAtBuilding(_ building: CoreTypes.NamedCoordinate, threshold: CLLocationDistance = 50) -> Bool {
         guard let currentLocation = location else { return false }
