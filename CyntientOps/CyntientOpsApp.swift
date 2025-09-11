@@ -137,26 +137,7 @@ struct CyntientOpsApp: App {
                             .environmentObject(container.dashboardSync) // Dashboard Sync Service
                             .environmentObject(session)
                             .transition(.opacity)
-                            // Debug overlays and sim banner
-                            .overlay(alignment: .topTrailing) {
-                                #if DEBUG
-                                HydrationHUD()
-                                #endif
-                            }
-                            .overlay(alignment: .topLeading) {
-                                #if DEBUG
-                                if EnvironmentConfig.shared.isDemoMode {
-                                    Text("Running in Sim Mode")
-                                        .font(.caption2.weight(.semibold))
-                                        .padding(.horizontal, 8)
-                                        .padding(.vertical, 4)
-                                        .background(Color.yellow.opacity(0.9), in: Capsule())
-                                        .foregroundColor(.black)
-                                        .padding(.top, 8)
-                                        .padding(.leading, 8)
-                                }
-                                #endif
-                            }
+                            // Production build: no debug overlays or sim banners
                     } else {
                         // Show loading while container initializes
                         VStack {
