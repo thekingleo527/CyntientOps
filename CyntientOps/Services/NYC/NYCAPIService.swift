@@ -172,6 +172,7 @@ public final class NYCAPIService: ObservableObject {
 
     // MARK: - Footprints Helpers
     public func resolveBinBbl(lat: Double, lon: Double, radiusMeters: Int = 25) async -> (bin: String?, bbl: String?) {
+        // 1) Try Building Footprints (preferred if available)
         let radii = [radiusMeters, 50, 100, 150]
         for r in radii {
             do {
@@ -181,17 +182,76 @@ public final class NYCAPIService: ObservableObject {
                 if let token = appToken() { request.setValue(token, forHTTPHeaderField: "X-App-Token") }
                 request.setValue("application/json", forHTTPHeaderField: "Accept")
                 let (data, response) = try await session.data(for: request)
-                guard let http = response as? HTTPURLResponse, http.statusCode == 200 else { continue }
-                if let arr = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]], let first = arr.first {
+                if let http = response as? HTTPURLResponse, http.statusCode == 200,
+                   let arr = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]], let first = arr.first {
                     let bin = first["bin"] as? String
                     let bbl = first["bbl"] as? String
                     if bin != nil || bbl != nil { return (bin, bbl) }
                 }
-            } catch {
-                if let ue = error as? URLError, ue.code == .cancelled { continue }
-            }
+            } catch {}
         }
+
+        // 2) Fallback: derive from HPD violations by nearby address (requires caller to supply address)
+        // Since we only have lat/lon, attempt a nearby reverse lookup via 311 complaints (includes incident_address)
+        do {
+            // Use a coarse box: try addresses within ~100m using 311 complaints, then query HPD/DOB by address
+            let addrCandidates = try await fetchNearbyAddresses(lat: lat, lon: lon, radiusMeters: 100)
+            for addr in addrCandidates {
+                if let bbl = try await deriveBBLFromHPD(address: addr) { return (nil, bbl) }
+                if let (bin, bbl) = try await deriveBinOrBBLFromDOB(address: addr) { return (bin, bbl) }
+            }
+        } catch {}
+
         return (nil, nil)
+    }
+
+    private func fetchNearbyAddresses(lat: Double, lon: Double, radiusMeters: Int) async throws -> [String] {
+        // Use 311 complaints as a quick reverse proxy for addresses around a coordinate
+        let endpoint = APIEndpoint.complaints311Address(address: "") // we will override via full URL
+        let whereParam = "$where=within_circle(latitude,\(lat),\(lon),\(radiusMeters))"
+        let urlStr = "\(APIConfig.complaints311URL)?\(whereParam)&$select=incident_address&$limit=20"
+        guard let url = URL(string: urlStr) else { return [] }
+        var request = URLRequest(url: url)
+        if let token = appToken() { request.setValue(token, forHTTPHeaderField: "X-App-Token") }
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        let (data, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse, http.statusCode == 200 else { return [] }
+        guard let arr = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] else { return [] }
+        let addresses = arr.compactMap { $0["incident_address"] as? String }.filter { !$0.isEmpty }
+        return Array(Set(addresses))
+    }
+
+    private func deriveBBLFromHPD(address: String) async throws -> String? {
+        do {
+            let records: [HPDViolation] = try await fetchHPDViolations(address: address)
+            guard let first = records.first else { return nil }
+            // HPD includes boro (text), block, lot; build a 10-digit BBL
+            let boroCode: String = {
+                let b = (first.boro ?? "").uppercased()
+                switch b {
+                case "MANHATTAN": return "1"
+                case "BRONX": return "2"
+                case "BROOKLYN": return "3"
+                case "QUEENS": return "4"
+                case "STATEN IS": return "5"
+                default: return ""
+                }
+            }()
+            guard !boroCode.isEmpty, let block = first.block, let lot = first.lot else { return nil }
+            let blockPadded = String(format: "%05d", Int(block) ?? 0)
+            let lotPadded = String(format: "%04d", Int(lot) ?? 0)
+            return "\(boroCode)\(blockPadded)\(lotPadded)"
+        } catch { return nil }
+    }
+
+    private func deriveBinOrBBLFromDOB(address: String) async throws -> (String?, String?) {
+        do {
+            let permits: [DOBPermit] = try await fetchDOBPermits(address: address)
+            guard let first = permits.first else { return (nil, nil) }
+            let bin = first.bin
+            // Some DOB rows include bbl; if not, return nil for bbl
+            return (bin, nil)
+        } catch { return (nil, nil) }
     }
     
     public enum APIStatus {
